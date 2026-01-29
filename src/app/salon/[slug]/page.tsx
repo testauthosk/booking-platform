@@ -407,6 +407,32 @@ export default function SalonPage() {
     }
   };
 
+  // Smooth scroll to top on page load/refresh
+  useEffect(() => {
+    if (window.scrollY > 0) {
+      const startPosition = window.scrollY;
+      const duration = 600;
+      let startTime: number | null = null;
+
+      const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+
+      const animation = (currentTime: number) => {
+        if (startTime === null) startTime = currentTime;
+        const timeElapsed = currentTime - startTime;
+        const progress = Math.min(timeElapsed / duration, 1);
+        const easedProgress = easeOutCubic(progress);
+
+        window.scrollTo(0, startPosition * (1 - easedProgress));
+
+        if (timeElapsed < duration) {
+          requestAnimationFrame(animation);
+        }
+      };
+
+      requestAnimationFrame(animation);
+    }
+  }, []);
+
   // Scroll to reviews - smooth and slow
   const scrollToReviews = () => {
     setActiveTab("reviews");
@@ -467,7 +493,7 @@ export default function SalonPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fafafa]">
+    <div className="min-h-screen bg-white">
       {/* Navigation - Simplified for business card */}
       <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -979,7 +1005,7 @@ export default function SalonPage() {
                   <div className={`overflow-hidden transition-all duration-300 ease-out ${
                     isScrolled ? "max-h-[160px] opacity-100" : "max-h-0 opacity-0"
                   }`}>
-                    <div className="px-5 pt-5 space-y-2 pb-4 border-b border-gray-100">
+                    <div className="px-5 pt-5 space-y-2 pb-4 border-b border-gray-200">
                       {/* Name - 44px bold like Fresha */}
                       <h3 className="font-bold text-gray-900 text-[28px] leading-tight">{salonData.name}</h3>
 
@@ -991,8 +1017,8 @@ export default function SalonPage() {
                             <Star key={star} className="w-4 h-4 fill-amber-400 text-amber-400" />
                           ))}
                         </div>
-                        <button className="text-violet-600 font-medium text-base hover:underline">
-                          ({salonData.reviewCount.toLocaleString().replace(',', ' ')})
+                        <button onClick={scrollToReviews} className="text-blue-600 font-medium text-base hover:underline cursor-pointer">
+                          ({salonData.reviewCount.toLocaleString().replace(',', ' ')} відгуків)
                         </button>
                       </div>
                     </div>
