@@ -1,0 +1,495 @@
+// Salon Booking Platform - Prisma Schema
+// Style: Fresha-like, focusing on salon business card (vizitka)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== ENUMS ====================
+
+enum UserRole {
+  OWNER
+  ADMIN
+  MASTER
+  RECEPTIONIST
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum BookingSource {
+  WEBSITE
+  PHONE
+  WALK_IN
+  SOCIAL
+  DIRECT_LINK
+}
+
+enum ScheduleChangeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum SubscriptionPlan {
+  FREE
+  BASIC
+  BUSINESS
+  PREMIUM
+}
+
+// ==================== ORGANIZATION (Salon) ====================
+
+model Organization {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?
+
+  // Contact info
+  phone       String?
+  email       String?
+  website     String?
+
+  // Address
+  address     String?
+  city        String?
+  country     String   @default("Ukraine")
+
+  // Map coordinates
+  latitude    Float?
+  longitude   Float?
+
+  // Branding
+  logo        String?
+  coverImage  String?
+  photos      String[] @default([])
+
+  // Working hours (JSON for flexibility)
+  workingHours Json?
+
+  // Settings
+  timezone    String   @default("Europe/Kiev")
+  currency    String   @default("UAH")
+  plan        SubscriptionPlan @default(FREE)
+
+  // Stats (denormalized for performance)
+  rating      Float    @default(0)
+  reviewCount Int      @default(0)
+
+  // Meta
+  isActive    Boolean  @default(true)
+  metadata    Json?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users       User[]
+  masters     Master[]
+  services    Service[]
+  categories  ServiceCategory[]
+  clients     Client[]
+  bookings    Booking[]
+  reviews     Review[]
+  auditLogs   AuditLog[]
+
+  @@index([slug])
+  @@index([city])
+}
+
+// ==================== USER ====================
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String
+
+  firstName     String
+  lastName      String
+  phone         String?
+  avatar        String?
+
+  role          UserRole
+
+  emailVerified DateTime?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // If user is a master
+  masterProfile Master?
+
+  // Auth
+  lastLoginAt   DateTime?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  auditLogs     AuditLog[]
+
+  @@index([email])
+  @@index([organizationId])
+}
+
+// ==================== MASTER ====================
+
+model Master {
+  id              String   @id @default(uuid())
+
+  // Link to user account (optional - master may not have login)
+  userId          String?  @unique
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Profile
+  name            String
+  phone           String?
+  email           String?
+  avatar          String?
+  bio             String?
+
+  specialization  String[]
+  experienceYears Int      @default(0)
+
+  // Stats
+  rating          Float    @default(0)
+  reviewCount     Int      @default(0)
+
+  // Booking settings
+  slotDuration    Int      @default(30) // minutes
+
+  // Status
+  isActive        Boolean  @default(true)
+  isVisible       Boolean  @default(true)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  services        MasterService[]
+  schedules       Schedule[]
+  bookings        Booking[]
+  reviews         Review[]
+  gallery         GalleryItem[]
+  scheduleChanges ScheduleChangeRequest[]
+
+  @@index([organizationId])
+  @@index([isActive, isVisible])
+}
+
+// ==================== SERVICES ====================
+
+model ServiceCategory {
+  id              String   @id @default(uuid())
+
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name            String
+  slug            String
+  order           Int      @default(0)
+
+  services        Service[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+}
+
+model Service {
+  id              String   @id @default(uuid())
+
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  categoryId      String?
+  category        ServiceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  name            String
+  slug            String
+  description     String?
+
+  // Pricing
+  price           Decimal  @db.Decimal(10, 2)
+  currency        String   @default("UAH")
+
+  // Duration in minutes
+  duration        Int
+
+  // Buffer time
+  bufferBefore    Int      @default(0)
+  bufferAfter     Int      @default(0)
+
+  // Status
+  isActive        Boolean  @default(true)
+
+  order           Int      @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  masters         MasterService[]
+  bookings        Booking[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([categoryId])
+}
+
+model MasterService {
+  id          String   @id @default(uuid())
+
+  masterId    String
+  master      Master   @relation(fields: [masterId], references: [id], onDelete: Cascade)
+
+  serviceId   String
+  service     Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  // Custom pricing/duration for this master
+  customPrice    Decimal? @db.Decimal(10, 2)
+  customDuration Int?
+
+  @@unique([masterId, serviceId])
+  @@index([masterId])
+  @@index([serviceId])
+}
+
+// ==================== SCHEDULE ====================
+
+model Schedule {
+  id          String   @id @default(uuid())
+
+  masterId    String
+  master      Master   @relation(fields: [masterId], references: [id], onDelete: Cascade)
+
+  // 0 = Monday, 6 = Sunday
+  dayOfWeek   Int
+
+  isWorking   Boolean  @default(true)
+  startTime   String   // "09:00"
+  endTime     String   // "18:00"
+
+  // Break
+  breakStart  String?
+  breakEnd    String?
+
+  @@unique([masterId, dayOfWeek])
+  @@index([masterId])
+}
+
+model ScheduleException {
+  id          String   @id @default(uuid())
+
+  masterId    String
+
+  date        DateTime @db.Date
+  isWorking   Boolean  @default(false)
+  startTime   String?
+  endTime     String?
+  reason      String?
+
+  @@unique([masterId, date])
+  @@index([masterId])
+  @@index([date])
+}
+
+model ScheduleChangeRequest {
+  id          String   @id @default(uuid())
+
+  masterId    String
+  master      Master   @relation(fields: [masterId], references: [id], onDelete: Cascade)
+
+  // What they want to change
+  changeType  String   // "schedule" | "exception" | "day_off"
+  changeData  Json     // The proposed changes
+
+  status      ScheduleChangeStatus @default(PENDING)
+
+  // Admin response
+  reviewedAt  DateTime?
+  reviewedBy  String?
+  rejectReason String?
+
+  createdAt   DateTime @default(now())
+
+  @@index([masterId])
+  @@index([status])
+}
+
+// ==================== CLIENTS ====================
+
+model Client {
+  id              String   @id @default(uuid())
+
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  firstName       String
+  lastName        String?
+  phone           String
+  email           String?
+
+  // Stats
+  totalVisits     Int      @default(0)
+  totalSpent      Decimal  @default(0) @db.Decimal(10, 2)
+  lastVisit       DateTime?
+
+  notes           String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  bookings        Booking[]
+  reviews         Review[]
+
+  @@unique([organizationId, phone])
+  @@index([organizationId])
+  @@index([phone])
+}
+
+// ==================== BOOKINGS ====================
+
+model Booking {
+  id              String   @id @default(uuid())
+  uid             String   @unique @default(uuid())
+
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  clientId        String
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  masterId        String
+  master          Master   @relation(fields: [masterId], references: [id], onDelete: Cascade)
+
+  serviceId       String
+  service         Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  // Time
+  startTime       DateTime
+  endTime         DateTime
+
+  // Status
+  status          BookingStatus @default(CONFIRMED)
+  source          BookingSource @default(WEBSITE)
+
+  // Price at time of booking
+  price           Decimal  @db.Decimal(10, 2)
+
+  // Notes
+  clientNote      String?
+  internalNote    String?
+
+  // Cancellation
+  cancelledAt     DateTime?
+  cancelReason    String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  review          Review?
+
+  @@index([organizationId])
+  @@index([masterId])
+  @@index([clientId])
+  @@index([startTime])
+  @@index([status])
+  @@index([masterId, startTime])
+}
+
+// ==================== REVIEWS ====================
+
+model Review {
+  id              String   @id @default(uuid())
+
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  clientId        String
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  masterId        String?
+  master          Master?  @relation(fields: [masterId], references: [id], onDelete: SetNull)
+
+  bookingId       String?  @unique
+  booking         Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  rating          Int      // 1-5
+  comment         String?
+
+  // Admin can hide inappropriate reviews
+  isVisible       Boolean  @default(true)
+
+  createdAt       DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([masterId])
+  @@index([rating])
+}
+
+// ==================== GALLERY ====================
+
+model GalleryItem {
+  id          String   @id @default(uuid())
+
+  masterId    String
+  master      Master   @relation(fields: [masterId], references: [id], onDelete: Cascade)
+
+  imageUrl    String
+  title       String?
+  description String?
+
+  order       Int      @default(0)
+
+  createdAt   DateTime @default(now())
+
+  @@index([masterId])
+}
+
+// ==================== AUDIT LOG ====================
+
+model AuditLog {
+  id              String   @id @default(uuid())
+
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // What happened
+  action          String   // "create" | "update" | "delete"
+  entityType      String   // "booking" | "service" | "master" | etc
+  entityId        String?
+
+  // Changes
+  oldValue        Json?
+  newValue        Json?
+
+  // Context
+  ipAddress       String?
+  userAgent       String?
+
+  createdAt       DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([entityType])
+  @@index([createdAt])
+}
