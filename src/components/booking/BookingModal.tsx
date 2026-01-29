@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { X, ChevronLeft, ChevronRight, Star, Check, Plus, Calendar, Clock, User } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Star, Check, Plus, Calendar, Clock, User, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // Types
@@ -10,6 +10,7 @@ interface Service {
   id: string;
   name: string;
   duration: string;
+  durationMinutes: number; // Added for time calculation
   price: number;
   priceFrom?: boolean;
 }
@@ -27,6 +28,7 @@ interface Specialist {
 interface TimeSlot {
   time: string;
   available: boolean;
+  booked?: boolean; // For test data
 }
 
 interface BookingModalProps {
@@ -41,26 +43,62 @@ interface BookingModalProps {
   specialists: Specialist[];
 }
 
-// Step indicator component
+// Step indicator component - scrollable on mobile with click navigation
 function StepIndicator({
   steps,
-  currentStep
+  currentStep,
+  onStepClick,
+  completedSteps,
 }: {
   steps: string[];
   currentStep: number;
+  onStepClick: (step: number) => void;
+  completedSteps: number[];
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to current step on mobile
+  useEffect(() => {
+    if (containerRef.current) {
+      const activeButton = containerRef.current.querySelector(`[data-step="${currentStep}"]`);
+      if (activeButton) {
+        activeButton.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+  }, [currentStep]);
+
   return (
-    <div className="flex items-center gap-2 text-sm text-gray-500">
-      {steps.map((step, index) => (
-        <div key={step} className="flex items-center">
-          <span className={`transition-colors ${index <= currentStep ? "text-gray-900 font-medium" : ""}`}>
-            {step}
-          </span>
-          {index < steps.length - 1 && (
-            <ChevronRight className="w-4 h-4 mx-2 text-gray-300" />
-          )}
-        </div>
-      ))}
+    <div
+      ref={containerRef}
+      className="flex items-center gap-1 sm:gap-2 text-sm text-gray-500 overflow-x-auto scrollbar-hide max-w-[60vw] sm:max-w-none"
+    >
+      {steps.map((step, index) => {
+        const isCompleted = completedSteps.includes(index);
+        const isCurrent = index === currentStep;
+        const canClick = isCompleted && index < currentStep && currentStep < steps.length - 1; // Can't go back from "Готово"
+
+        return (
+          <div key={step} className="flex items-center shrink-0">
+            <button
+              data-step={index}
+              onClick={() => canClick && onStepClick(index)}
+              disabled={!canClick}
+              className={`transition-colors whitespace-nowrap px-2 py-1.5 sm:px-3 sm:py-2 rounded-full text-xs sm:text-sm ${
+                isCurrent
+                  ? "text-white bg-gray-900 font-medium"
+                  : isCompleted
+                    ? "text-gray-700 bg-gray-100 font-medium cursor-pointer hover:bg-gray-200"
+                    : "text-gray-400"
+              } ${!canClick && !isCurrent ? "cursor-default" : ""}`}
+            >
+              {step}
+            </button>
+            {index < steps.length - 1 && (
+              <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 mx-0.5 sm:mx-1 text-gray-300 shrink-0" />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -75,9 +113,10 @@ function BookingSummary({
   selectedServices,
   selectedSpecialist,
   selectedDate,
-  selectedTime,
+  selectedTimes,
   specialists,
   services,
+  totalDurationMinutes,
 }: {
   salonName: string;
   salonImage: string;
@@ -87,25 +126,31 @@ function BookingSummary({
   selectedServices: string[];
   selectedSpecialist: string | null;
   selectedDate: Date | null;
-  selectedTime: string | null;
+  selectedTimes: string[];
   specialists: Specialist[];
   services: { category: string; items: Service[] }[];
+  totalDurationMinutes: number;
 }) {
   const allServices = services.flatMap(c => c.items);
   const selectedServiceItems = allServices.filter(s => selectedServices.includes(s.id));
   const specialist = specialists.find(s => s.id === selectedSpecialist);
 
   const total = selectedServiceItems.reduce((sum, s) => sum + s.price, 0);
-  const totalDuration = selectedServiceItems.reduce((sum, s) => {
-    const match = s.duration.match(/(\d+)/);
-    return sum + (match ? parseInt(match[1]) : 0);
-  }, 0);
 
   const formatDate = (date: Date) => {
     const days = ["неділя", "понеділок", "вівторок", "середа", "четвер", "п'ятниця", "субота"];
     const months = ["січня", "лютого", "березня", "квітня", "травня", "червня",
                     "липня", "серпня", "вересня", "жовтня", "листопада", "грудня"];
     return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]}`;
+  };
+
+  const formatDuration = (minutes: number) => {
+    if (minutes >= 60) {
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return mins > 0 ? `${hours} г ${mins} хв` : `${hours} г`;
+    }
+    return `${minutes} хв`;
   };
 
   return (
@@ -133,7 +178,7 @@ function BookingSummary({
       </div>
 
       {/* Date & Time */}
-      {selectedDate && selectedTime && (
+      {selectedDate && selectedTimes.length > 0 && (
         <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
           <div className="flex items-center gap-2 text-sm">
             <Calendar className="w-4 h-4 text-gray-400" />
@@ -142,7 +187,7 @@ function BookingSummary({
           <div className="flex items-center gap-2 text-sm mt-1">
             <Clock className="w-4 h-4 text-gray-400" />
             <span className="text-gray-600">
-              {selectedTime} (тривалість {totalDuration > 60 ? `${Math.floor(totalDuration/60)} г ${totalDuration % 60} хв` : `${totalDuration} хв`})
+              {selectedTimes[0]} - {selectedTimes[selectedTimes.length - 1]} (тривалість {formatDuration(totalDurationMinutes)})
             </span>
           </div>
         </div>
@@ -195,12 +240,12 @@ function ConfirmCloseDialog({
     <div className="fixed inset-0 z-[110] flex items-center justify-center">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm modal-backdrop"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onCancel}
       />
 
       {/* Dialog */}
-      <div className="relative bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl modal-content">
+      <div className="relative bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
         <button
           onClick={onCancel}
           className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer"
@@ -251,17 +296,37 @@ export function BookingModal({
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedSpecialist, setSelectedSpecialist] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [selectedTimes, setSelectedTimes] = useState<string[]>([]);
   const [showAllServices, setShowAllServices] = useState(false);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
 
-  const steps = ["Послуги", "Спеціаліст", "Час", "Підтвердження"];
+  // Form fields for confirmation step
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
 
-  // Generate dates for calendar (next 14 days)
+  const steps = ["Послуги", "Фахівець", "Час", "Підтвердження", "Готово"];
+
+  // Calculate total duration based on selected services
+  const allServices = services.flatMap(c => c.items);
+  const selectedServiceItems = allServices.filter(s => selectedServices.includes(s.id));
+
+  const totalDurationMinutes = selectedServiceItems.reduce((sum, s) => {
+    return sum + (s.durationMinutes || 30); // Default 30 min if not specified
+  }, 0);
+
+  // Round to nearest 30 min slot
+  const roundedDuration = Math.ceil(totalDurationMinutes / 30) * 30;
+  const requiredSlots = roundedDuration / 30;
+
+  // Generate dates for calendar (next 30 days)
   const generateDates = () => {
     const dates = [];
     const today = new Date();
-    for (let i = 0; i < 14; i++) {
+    for (let i = 0; i < 30; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       dates.push(date);
@@ -269,30 +334,93 @@ export function BookingModal({
     return dates;
   };
 
-  // Generate time slots
-  const generateTimeSlots = (): TimeSlot[] => {
+  // Generate time slots with test booked data
+  const generateTimeSlots = (date: Date): TimeSlot[] => {
     const slots: TimeSlot[] = [];
-    const morningTimes = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30"];
-    const afternoonTimes = ["12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30"];
-    const eveningTimes = ["16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00"];
+    const times = [
+      "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+      "12:00", "12:30", "13:00", "13:30", "14:00", "14:30",
+      "15:00", "15:30", "16:00", "16:30", "17:00", "17:30",
+      "18:00", "18:30", "19:00"
+    ];
 
-    [...morningTimes, ...afternoonTimes, ...eveningTimes].forEach(time => {
-      // Randomly mark some as unavailable for demo
-      const available = Math.random() > 0.3;
-      slots.push({ time, available });
+    // Test data: some booked slots for each day
+    const bookedSlots: Record<number, string[]> = {
+      0: ["10:00", "10:30", "14:00", "14:30", "15:00"],
+      1: ["09:30", "10:00", "11:00", "11:30", "16:00"],
+      2: ["12:00", "12:30", "13:00", "17:00", "17:30"],
+      3: ["09:00", "09:30", "15:00", "15:30", "18:00"],
+      4: ["10:30", "11:00", "11:30", "14:00", "19:00"],
+      5: ["13:00", "13:30", "14:00", "14:30", "16:30"],
+      6: ["09:00", "10:00", "12:00", "15:00", "18:30"],
+    };
+
+    const dayOfWeek = date.getDay();
+    const todayBooked = bookedSlots[dayOfWeek] || [];
+
+    times.forEach(time => {
+      const isBooked = todayBooked.includes(time);
+      slots.push({
+        time,
+        available: !isBooked,
+        booked: isBooked
+      });
     });
+
     return slots;
   };
 
   const dates = generateDates();
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [slotSelectionError, setSlotSelectionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (selectedDate) {
-      setTimeSlots(generateTimeSlots());
-      setSelectedTime(null);
+      setTimeSlots(generateTimeSlots(selectedDate));
+      setSelectedTimes([]);
+      setSlotSelectionError(null);
     }
   }, [selectedDate]);
+
+  // Auto-select consecutive slots with animation
+  const handleTimeSlotClick = (clickedTime: string) => {
+    setSlotSelectionError(null);
+
+    const clickedIndex = timeSlots.findIndex(s => s.time === clickedTime);
+    if (clickedIndex === -1) return;
+
+    // Check if we can fit required slots starting from clicked time
+    const neededSlots: string[] = [];
+    let canFit = true;
+
+    for (let i = 0; i < requiredSlots; i++) {
+      const slotIndex = clickedIndex + i;
+      if (slotIndex >= timeSlots.length) {
+        canFit = false;
+        break;
+      }
+      const slot = timeSlots[slotIndex];
+      if (!slot.available) {
+        canFit = false;
+        break;
+      }
+      neededSlots.push(slot.time);
+    }
+
+    if (!canFit) {
+      setSlotSelectionError(`Потрібно ${requiredSlots} слотів підряд (${roundedDuration} хв). Оберіть інший час.`);
+      setSelectedTimes([]);
+      return;
+    }
+
+    // Animate selection
+    setSelectedTimes([]);
+    neededSlots.forEach((time, index) => {
+      setTimeout(() => {
+        setSelectedTimes(prev => [...prev, time]);
+      }, index * 100);
+    });
+  };
 
   const getDayName = (date: Date) => {
     const days = ["нд", "пн", "вт", "ср", "чт", "пт", "сб"];
@@ -302,6 +430,12 @@ export function BookingModal({
   const getMonthName = (date: Date) => {
     const months = ["січень", "лютий", "березень", "квітень", "травень", "червень",
                     "липень", "серпень", "вересень", "жовтень", "листопад", "грудень"];
+    return months[date.getMonth()];
+  };
+
+  const getFullMonthName = (date: Date) => {
+    const months = ["Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
+                    "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"];
     return months[date.getMonth()];
   };
 
@@ -317,22 +451,42 @@ export function BookingModal({
     switch (currentStep) {
       case 0: return selectedServices.length > 0;
       case 1: return selectedSpecialist !== null;
-      case 2: return selectedDate !== null && selectedTime !== null;
+      case 2: return selectedDate !== null && selectedTimes.length === requiredSlots;
+      case 3: return firstName.trim() !== "" && lastName.trim() !== "" && phone.trim().length >= 10;
       default: return true;
     }
   };
 
   const handleNext = () => {
     if (currentStep < steps.length - 1 && canProceed()) {
+      setCompletedSteps(prev => [...prev.filter(s => s !== currentStep), currentStep]);
       setCurrentStep(prev => prev + 1);
     }
   };
 
   const handleBack = () => {
-    if (currentStep > 0) {
+    if (currentStep > 0 && currentStep < steps.length - 1) { // Can't go back from "Готово"
       setCurrentStep(prev => prev - 1);
     }
   };
+
+  const handleStepClick = (step: number) => {
+    if (completedSteps.includes(step) && step < currentStep && currentStep < steps.length - 1) {
+      setCurrentStep(step);
+    }
+  };
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -341,9 +495,14 @@ export function BookingModal({
       setSelectedServices([]);
       setSelectedSpecialist(null);
       setSelectedDate(null);
-      setSelectedTime(null);
+      setSelectedTimes([]);
       setShowAllServices(false);
       setShowConfirmClose(false);
+      setCompletedSteps([]);
+      setFirstName("");
+      setLastName("");
+      setPhone("");
+      setSlotSelectionError(null);
     }
   }, [isOpen]);
 
@@ -351,7 +510,7 @@ export function BookingModal({
   const hasSelections = selectedServices.length > 0 || selectedSpecialist !== null || selectedDate !== null;
 
   const handleCloseAttempt = () => {
-    if (hasSelections) {
+    if (hasSelections && currentStep < steps.length - 1) {
       setShowConfirmClose(true);
     } else {
       onClose();
@@ -363,28 +522,80 @@ export function BookingModal({
     onClose();
   };
 
+  // Calendar navigation
+  const goToPrevMonth = () => {
+    setCalendarMonth(prev => {
+      const newDate = new Date(prev);
+      newDate.setMonth(newDate.getMonth() - 1);
+      return newDate;
+    });
+  };
+
+  const goToNextMonth = () => {
+    setCalendarMonth(prev => {
+      const newDate = new Date(prev);
+      newDate.setMonth(newDate.getMonth() + 1);
+      return newDate;
+    });
+  };
+
+  // Generate calendar days for current month view
+  const generateCalendarDays = () => {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const days: (Date | null)[] = [];
+
+    // Add empty slots for days before first day of month
+    const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; // Monday = 0
+    for (let i = 0; i < startDay; i++) {
+      days.push(null);
+    }
+
+    // Add all days of month
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+      days.push(new Date(year, month, i));
+    }
+
+    return days;
+  };
+
   if (!isOpen) return null;
 
-  const allServices = services.flatMap(c => c.items);
   const displayedServices = showAllServices ? allServices : allServices.slice(0, 5);
 
   return (
-    <div className="fixed inset-0 z-[100] bg-white overflow-hidden fullpage-modal">
+    <div className="fixed inset-0 z-[100] bg-white overflow-hidden">
       <div className="h-full flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 h-16 border-b border-gray-100 shrink-0">
+        <div className="flex items-center justify-between px-3 sm:px-6 h-14 sm:h-16 border-b border-gray-100 shrink-0">
+          {/* Back/Close button - always visible */}
           <button
-            onClick={currentStep > 0 ? handleBack : handleCloseAttempt}
-            className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 active:scale-95 transition-all cursor-pointer"
+            onClick={currentStep > 0 && currentStep < steps.length - 1 ? handleBack : handleCloseAttempt}
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 active:scale-95 transition-all cursor-pointer shrink-0"
           >
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
+            {currentStep > 0 && currentStep < steps.length - 1 ? (
+              <ChevronLeft className="w-5 h-5 text-gray-600" />
+            ) : (
+              <X className="w-5 h-5 text-gray-600" />
+            )}
           </button>
 
-          <StepIndicator steps={steps} currentStep={currentStep} />
+          <StepIndicator
+            steps={steps}
+            currentStep={currentStep}
+            onStepClick={handleStepClick}
+            completedSteps={completedSteps}
+          />
 
+          {/* Close button - always visible on mobile too */}
           <button
             onClick={handleCloseAttempt}
-            className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 active:scale-95 transition-all cursor-pointer"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 active:scale-95 transition-all cursor-pointer shrink-0"
           >
             <X className="w-5 h-5 text-gray-600" />
           </button>
@@ -392,13 +603,13 @@ export function BookingModal({
 
         {/* Content */}
         <div className="flex-1 overflow-hidden">
-          <div className="h-full max-w-6xl mx-auto px-6 py-8 flex gap-8">
+          <div className="h-full max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-8 flex gap-8">
             {/* Main content */}
-            <div className="flex-1 overflow-y-auto pr-4">
+            <div className="flex-1 overflow-y-auto pb-4">
               {/* Step 0: Services */}
               {currentStep === 0 && (
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900 mb-6">Оберіть послуги</h1>
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Оберіть послуги</h1>
 
                   <div className="space-y-3">
                     {displayedServices.map(service => {
@@ -446,13 +657,22 @@ export function BookingModal({
                       <ChevronRight className={`w-4 h-4 transition-transform ${showAllServices ? "rotate-90" : ""}`} />
                     </button>
                   )}
+
+                  {/* Duration info */}
+                  {selectedServices.length > 0 && (
+                    <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                      <p className="text-sm text-blue-800">
+                        <span className="font-medium">Загальна тривалість:</span> {roundedDuration} хв ({requiredSlots} слотів по 30 хв)
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Step 1: Specialist */}
               {currentStep === 1 && (
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900 mb-6">Оберіть спеціаліста</h1>
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Оберіть спеціаліста</h1>
 
                   {/* Any specialist option */}
                   <div
@@ -539,15 +759,22 @@ export function BookingModal({
                 </div>
               )}
 
-              {/* Step 2: Time - Fresha style */}
+              {/* Step 2: Time */}
               {currentStep === 2 && (
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900 mb-6">Виберіть час</h1>
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Виберіть час</h1>
 
-                  {/* Specialist chip */}
-                  {selectedSpecialist && selectedSpecialist !== "any" && (
-                    <div className="flex items-center gap-2 mb-6">
-                      <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-gray-100 cursor-pointer hover:bg-gray-200 transition-colors">
+                  {/* Duration reminder */}
+                  <div className="mb-4 p-3 bg-amber-50 rounded-xl border border-amber-100">
+                    <p className="text-sm text-amber-800">
+                      <span className="font-medium">Потрібно обрати:</span> {requiredSlots} слотів підряд ({roundedDuration} хв)
+                    </p>
+                  </div>
+
+                  {/* Specialist chip + Calendar button */}
+                  <div className="flex items-center gap-2 mb-6">
+                    {selectedSpecialist && selectedSpecialist !== "any" && (
+                      <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-gray-100">
                         <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200">
                           <Image
                             src={specialists.find(s => s.id === selectedSpecialist)?.avatar || ""}
@@ -560,54 +787,125 @@ export function BookingModal({
                         <span className="text-sm font-medium text-gray-900">
                           {specialists.find(s => s.id === selectedSpecialist)?.name}
                         </span>
-                        <ChevronRight className="w-4 h-4 text-gray-400 rotate-90" />
                       </div>
-                      <button className="p-2 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer">
-                        <Calendar className="w-4 h-4 text-gray-500" />
-                      </button>
+                    )}
+                    <button
+                      onClick={() => setCalendarOpen(!calendarOpen)}
+                      className={`p-2 rounded-full border transition-colors cursor-pointer ${
+                        calendarOpen ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200 hover:bg-gray-50"
+                      }`}
+                    >
+                      <Calendar className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Full Calendar View */}
+                  {calendarOpen && (
+                    <div className="mb-6 p-4 bg-white rounded-2xl border border-gray-200 shadow-sm">
+                      <div className="flex items-center justify-between mb-4">
+                        <button
+                          onClick={goToPrevMonth}
+                          className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 cursor-pointer"
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                        </button>
+                        <h3 className="font-semibold text-gray-900">
+                          {getFullMonthName(calendarMonth)} {calendarMonth.getFullYear()}
+                        </h3>
+                        <button
+                          onClick={goToNextMonth}
+                          className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 cursor-pointer"
+                        >
+                          <ChevronRight className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      {/* Weekday headers */}
+                      <div className="grid grid-cols-7 gap-1 mb-2">
+                        {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"].map(day => (
+                          <div key={day} className="text-center text-xs font-medium text-gray-500 py-2">
+                            {day}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Calendar days */}
+                      <div className="grid grid-cols-7 gap-1">
+                        {generateCalendarDays().map((date, index) => {
+                          if (!date) {
+                            return <div key={`empty-${index}`} className="aspect-square" />;
+                          }
+
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          const isPast = date < today;
+                          const isSelected = selectedDate?.toDateString() === date.toDateString();
+                          const isToday = date.toDateString() === today.toDateString();
+
+                          return (
+                            <button
+                              key={date.toISOString()}
+                              onClick={() => !isPast && setSelectedDate(date)}
+                              disabled={isPast}
+                              className={`aspect-square rounded-full flex items-center justify-center text-sm font-medium transition-all cursor-pointer ${
+                                isPast
+                                  ? "text-gray-300 cursor-not-allowed"
+                                  : isSelected
+                                    ? "bg-violet-500 text-white"
+                                    : isToday
+                                      ? "bg-gray-100 text-gray-900 hover:bg-gray-200"
+                                      : "hover:bg-gray-100 text-gray-700"
+                              }`}
+                            >
+                              {date.getDate()}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
 
-                  {/* Month header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-base font-medium text-gray-700">
-                      {getMonthName(dates[0])} {dates[0].getFullYear()} р.
-                    </h2>
-                    <div className="flex gap-1">
-                      <button className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 active:scale-95 transition-all cursor-pointer">
-                        <ChevronLeft className="w-4 h-4 text-gray-600" />
-                      </button>
-                      <button className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 active:scale-95 transition-all cursor-pointer">
-                        <ChevronRight className="w-4 h-4 text-gray-600" />
-                      </button>
-                    </div>
-                  </div>
+                  {/* Horizontal date selector */}
+                  {!calendarOpen && (
+                    <>
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-base font-medium text-gray-700">
+                          {getMonthName(dates[0])} {dates[0].getFullYear()} р.
+                        </h2>
+                      </div>
 
-                  {/* Horizontal date selector - Fresha style */}
-                  <div className="flex gap-2 mb-8 pb-2 overflow-x-auto scrollbar-hide">
-                    {dates.slice(0, 7).map((date, index) => {
-                      const isSelected = selectedDate?.toDateString() === date.toDateString();
-                      const isToday = new Date().toDateString() === date.toDateString();
-                      return (
-                        <button
-                          key={index}
-                          onClick={() => setSelectedDate(date)}
-                          className={`flex flex-col items-center min-w-[52px] py-3 px-3 rounded-full transition-all duration-200 cursor-pointer ${
-                            isSelected
-                              ? "bg-violet-500 text-white shadow-lg shadow-violet-200 scale-105"
-                              : "hover:bg-gray-100 active:scale-95"
-                          }`}
-                        >
-                          <span className={`text-lg font-bold ${isSelected ? "text-white" : "text-gray-900"}`}>
-                            {date.getDate()}
-                          </span>
-                          <span className={`text-xs uppercase font-medium ${isSelected ? "text-violet-100" : "text-gray-500"}`}>
-                            {getDayName(date)}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                      <div className="flex gap-2 mb-6 pb-2 overflow-x-auto scrollbar-hide">
+                        {dates.slice(0, 14).map((date, index) => {
+                          const isSelected = selectedDate?.toDateString() === date.toDateString();
+                          return (
+                            <button
+                              key={index}
+                              onClick={() => setSelectedDate(date)}
+                              className={`flex flex-col items-center min-w-[52px] py-3 px-3 rounded-full transition-all duration-200 cursor-pointer ${
+                                isSelected
+                                  ? "bg-violet-500 text-white shadow-lg shadow-violet-200 scale-105"
+                                  : "hover:bg-gray-100 active:scale-95"
+                              }`}
+                            >
+                              <span className={`text-lg font-bold ${isSelected ? "text-white" : "text-gray-900"}`}>
+                                {date.getDate()}
+                              </span>
+                              <span className={`text-xs uppercase font-medium ${isSelected ? "text-violet-100" : "text-gray-500"}`}>
+                                {getDayName(date)}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Error message */}
+                  {slotSelectionError && (
+                    <div className="mb-4 p-3 bg-red-50 rounded-xl border border-red-100">
+                      <p className="text-sm text-red-700">{slotSelectionError}</p>
+                    </div>
+                  )}
 
                   {/* Time slots */}
                   {!selectedDate ? (
@@ -619,25 +917,32 @@ export function BookingModal({
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {timeSlots.filter(s => s.available).length === 0 ? (
+                      {timeSlots.length === 0 ? (
                         <div className="text-center py-12">
-                          <p className="text-gray-500 font-medium">На цю дату немає вільних слотів</p>
-                          <p className="text-sm text-gray-400 mt-1">Спробуйте обрати іншу дату</p>
+                          <p className="text-gray-500 font-medium">Завантаження...</p>
                         </div>
                       ) : (
-                        timeSlots.filter(s => s.available).map(slot => {
-                          const isSelected = selectedTime === slot.time;
+                        timeSlots.map(slot => {
+                          const isSelected = selectedTimes.includes(slot.time);
+                          const isBooked = slot.booked;
+
                           return (
                             <button
                               key={slot.time}
-                              onClick={() => setSelectedTime(slot.time)}
-                              className={`w-full p-4 rounded-xl border-2 text-center font-medium transition-all duration-200 cursor-pointer ${
-                                isSelected
-                                  ? "border-gray-900 bg-gray-900 text-white shadow-lg"
-                                  : "border-gray-100 bg-white text-gray-900 hover:border-gray-300 hover:bg-gray-50 active:scale-[0.98]"
+                              onClick={() => slot.available && handleTimeSlotClick(slot.time)}
+                              disabled={!slot.available}
+                              className={`w-full p-4 rounded-xl border-2 text-center font-medium transition-all duration-200 ${
+                                isBooked
+                                  ? "border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed line-through"
+                                  : isSelected
+                                    ? "border-gray-900 bg-gray-900 text-white shadow-lg cursor-pointer"
+                                    : "border-gray-100 bg-white text-gray-900 hover:border-gray-300 hover:bg-gray-50 active:scale-[0.98] cursor-pointer"
                               }`}
                             >
-                              {slot.time}
+                              <span className="flex items-center justify-center gap-2">
+                                {slot.time}
+                                {isBooked && <span className="text-xs">(зайнято)</span>}
+                              </span>
                             </button>
                           );
                         })
@@ -647,77 +952,155 @@ export function BookingModal({
                 </div>
               )}
 
-              {/* Step 3: Confirmation */}
+              {/* Step 3: Confirmation form */}
               {currentStep === 3 && (
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900 mb-6">Підтвердження</h1>
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Підтвердження</h1>
 
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6 mb-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center shadow-lg shadow-green-200">
-                        <Check className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-gray-900 text-lg">Майже готово!</h3>
-                        <p className="text-sm text-gray-600">Перевірте деталі та підтвердіть бронювання</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Booking details */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
-                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
-                        <Calendar className="w-5 h-5 text-gray-600" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900">
-                          {selectedDate?.toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long' })}
-                        </p>
-                        <p className="text-sm text-gray-500">{selectedTime}</p>
-                      </div>
+                  <div className="space-y-4">
+                    {/* First name */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Ім'я *</label>
+                      <input
+                        type="text"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        placeholder="Введіть ваше ім'я"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none transition-all"
+                      />
                     </div>
 
-                    {selectedSpecialist && selectedSpecialist !== "any" && (
-                      <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
-                        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 shadow-sm">
-                          <Image
-                            src={specialists.find(s => s.id === selectedSpecialist)?.avatar || ""}
-                            alt=""
-                            width={40}
-                            height={40}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-900">
-                            {specialists.find(s => s.id === selectedSpecialist)?.name}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {specialists.find(s => s.id === selectedSpecialist)?.role}
-                          </p>
-                        </div>
-                      </div>
-                    )}
+                    {/* Last name */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Прізвище *</label>
+                      <input
+                        type="text"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        placeholder="Введіть ваше прізвище"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none transition-all"
+                      />
+                    </div>
 
-                    {/* Services summary */}
-                    <div className="p-4 bg-gray-50 rounded-xl">
-                      <h4 className="font-semibold text-gray-900 mb-3">Обрані послуги</h4>
-                      <div className="space-y-2">
-                        {allServices.filter(s => selectedServices.includes(s.id)).map(service => (
-                          <div key={service.id} className="flex justify-between text-sm">
+                    {/* Phone */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Номер телефону *</label>
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="+380"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none transition-all"
+                      />
+                    </div>
+
+                    {/* Booking summary */}
+                    <div className="mt-6 p-4 bg-gray-50 rounded-xl">
+                      <h4 className="font-semibold text-gray-900 mb-3">Деталі бронювання</h4>
+
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Дата:</span>
+                          <span className="font-medium text-gray-900">
+                            {selectedDate?.toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long' })}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Час:</span>
+                          <span className="font-medium text-gray-900">
+                            {selectedTimes[0]} - {selectedTimes[selectedTimes.length - 1]}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Тривалість:</span>
+                          <span className="font-medium text-gray-900">{roundedDuration} хв</span>
+                        </div>
+                        {selectedSpecialist && selectedSpecialist !== "any" && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Спеціаліст:</span>
+                            <span className="font-medium text-gray-900">
+                              {specialists.find(s => s.id === selectedSpecialist)?.name}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <h5 className="font-medium text-gray-900 mb-2">Послуги:</h5>
+                        {selectedServiceItems.map(service => (
+                          <div key={service.id} className="flex justify-between text-sm py-1">
                             <span className="text-gray-600">{service.name}</span>
                             <span className="font-medium text-gray-900">{service.price} ₴</span>
                           </div>
                         ))}
+                        <div className="flex justify-between text-sm pt-2 mt-2 border-t border-gray-200">
+                          <span className="font-bold text-gray-900">Всього:</span>
+                          <span className="font-bold text-gray-900">
+                            {selectedServiceItems.reduce((sum, s) => sum + s.price, 0)} ₴
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               )}
+
+              {/* Step 4: Done */}
+              {currentStep === 4 && (
+                <div className="text-center py-8">
+                  <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center">
+                    <Check className="w-10 h-10 text-green-600" />
+                  </div>
+
+                  <h1 className="text-2xl font-bold text-gray-900 mb-2">Бронювання підтверджено!</h1>
+                  <p className="text-gray-500 mb-8">
+                    Ми надіслали підтвердження на ваш телефон
+                  </p>
+
+                  {/* Booking details */}
+                  <div className="max-w-sm mx-auto p-4 bg-gray-50 rounded-xl text-left mb-8">
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Дата:</span>
+                        <span className="font-medium text-gray-900">
+                          {selectedDate?.toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Час:</span>
+                        <span className="font-medium text-gray-900">{selectedTimes[0]}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Клієнт:</span>
+                        <span className="font-medium text-gray-900">{firstName} {lastName}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Telegram bot CTA */}
+                  <div className="max-w-sm mx-auto p-5 bg-blue-50 rounded-2xl border border-blue-100">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center">
+                        <Send className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="text-left">
+                        <h3 className="font-semibold text-gray-900">Telegram нагадування</h3>
+                        <p className="text-sm text-gray-500">Отримуйте сповіщення про візити</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Якщо ви хочете отримувати нагадування про візити, активуйте нашого бота в Telegram
+                    </p>
+                    <button className="w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-full transition-colors cursor-pointer flex items-center justify-center gap-2">
+                      <Send className="w-4 h-4" />
+                      Активувати Telegram бота
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Sidebar */}
+            {/* Sidebar - hidden on mobile */}
             <div className="w-[340px] shrink-0 hidden lg:block">
               <BookingSummary
                 salonName={salonName}
@@ -728,26 +1111,43 @@ export function BookingModal({
                 selectedServices={selectedServices}
                 selectedSpecialist={selectedSpecialist}
                 selectedDate={selectedDate}
-                selectedTime={selectedTime}
+                selectedTimes={selectedTimes}
                 specialists={specialists}
                 services={services}
+                totalDurationMinutes={roundedDuration}
               />
             </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 shrink-0 bg-white">
-          <div className="max-w-6xl mx-auto flex justify-end">
-            <Button
-              onClick={currentStep === 3 ? onClose : handleNext}
-              disabled={!canProceed()}
-              className="bg-gray-900 hover:bg-gray-800 text-white rounded-full px-8 h-12 font-semibold transition-all duration-200 hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:active:scale-100 cursor-pointer"
-            >
-              {currentStep === 3 ? "Підтвердити бронювання" : "Продовжити"}
-            </Button>
+        {/* Footer - except on Done step */}
+        {currentStep < steps.length - 1 && (
+          <div className="px-4 sm:px-6 py-4 border-t border-gray-100 shrink-0 bg-white">
+            <div className="max-w-6xl mx-auto flex justify-end">
+              <Button
+                onClick={handleNext}
+                disabled={!canProceed()}
+                className="w-full sm:w-auto bg-gray-900 hover:bg-gray-800 text-white rounded-full px-8 h-12 font-semibold transition-all duration-200 hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:active:scale-100 cursor-pointer"
+              >
+                {currentStep === 3 ? "Підтвердити бронювання" : "Продовжити"}
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Close button on Done step */}
+        {currentStep === steps.length - 1 && (
+          <div className="px-4 sm:px-6 py-4 border-t border-gray-100 shrink-0 bg-white">
+            <div className="max-w-6xl mx-auto flex justify-center">
+              <Button
+                onClick={onClose}
+                className="w-full sm:w-auto bg-gray-900 hover:bg-gray-800 text-white rounded-full px-8 h-12 font-semibold transition-all duration-200 hover:shadow-lg active:scale-95 cursor-pointer"
+              >
+                Закрити
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Confirm close dialog */}

@@ -63,24 +63,24 @@ const services = [
     id: "1",
     category: "СТРИЖКА",
     items: [
-      { id: "1-1", name: "Стрижка чоловіча", duration: "35 хв", price: 450, priceFrom: true },
-      { id: "1-2", name: "Стрижка + борода", duration: "45 хв+", price: 650, priceFrom: true },
-      { id: "1-3", name: "Стрижка + борода + гарячий рушник", duration: "1г 15 хв", price: 700, priceFrom: true },
+      { id: "1-1", name: "Стрижка чоловіча", duration: "35 хв", durationMinutes: 35, price: 450, priceFrom: true },
+      { id: "1-2", name: "Стрижка + борода", duration: "45 хв+", durationMinutes: 45, price: 650, priceFrom: true },
+      { id: "1-3", name: "Стрижка + борода + гарячий рушник", duration: "1г 15 хв", durationMinutes: 75, price: 700, priceFrom: true },
     ],
   },
   {
     id: "2",
     category: "БОРОДА",
     items: [
-      { id: "2-1", name: "Корекція бороди", duration: "20 хв", price: 250, priceFrom: true },
-      { id: "2-2", name: "Корекція бороди + гоління", duration: "30 хв", price: 350, priceFrom: false },
+      { id: "2-1", name: "Корекція бороди", duration: "20 хв", durationMinutes: 20, price: 250, priceFrom: true },
+      { id: "2-2", name: "Корекція бороди + гоління", duration: "30 хв", durationMinutes: 30, price: 350, priceFrom: false },
     ],
   },
   {
     id: "3",
     category: "ГОЛІННЯ",
     items: [
-      { id: "3-1", name: "Гоління голови", duration: "25 хв", price: 350, priceFrom: false },
+      { id: "3-1", name: "Гоління голови", duration: "25 хв", durationMinutes: 25, price: 350, priceFrom: false },
     ],
   },
 ];
@@ -242,8 +242,8 @@ export default function SalonPage() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main>
+      {/* Main Content - pb-24 for mobile bottom bar */}
+      <main className="pb-24 lg:pb-0">
         {/* Hero Section - Name, Rating, Share ABOVE Gallery */}
         <div className="bg-white border-b border-gray-100">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-4">
@@ -817,6 +817,7 @@ export default function SalonPage() {
             id: item.id,
             name: item.name,
             duration: item.duration,
+            durationMinutes: item.durationMinutes,
             price: item.price,
           }))
         }))}
