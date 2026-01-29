@@ -1005,12 +1005,12 @@ export default function SalonPage() {
                   <div className={`overflow-hidden transition-all duration-300 ease-out ${
                     isScrolled ? "max-h-[160px] opacity-100" : "max-h-0 opacity-0"
                   }`}>
-                    <div className="px-5 pt-5 space-y-2 pb-4 border-b border-gray-200">
+                    <div className="px-5 pt-5 space-y-2 pb-[22px] border-b border-gray-200">
                       {/* Name - 44px bold like Fresha */}
                       <h3 className="font-bold text-gray-900 text-[28px] leading-tight">{salonData.name}</h3>
 
                       {/* Rating row - Fresha style: 5,0 + stars + (count) */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 pb-[38px]">
                         <span className="font-semibold text-gray-900 text-lg">{salonData.rating.toFixed(1).replace('.', ',')}</span>
                         <div className="flex gap-0.5">
                           {[1, 2, 3, 4, 5].map((star) => (
