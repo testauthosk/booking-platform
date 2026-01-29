@@ -1003,9 +1003,9 @@ export default function SalonPage() {
                 <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
                   {/* Header - shows name/rating when scrolled (Fresha style) */}
                   <div className={`overflow-hidden transition-all duration-300 ease-out ${
-                    isScrolled ? "max-h-[160px] opacity-100" : "max-h-0 opacity-0"
+                    isScrolled ? "max-h-[162px] opacity-100" : "max-h-0 opacity-0"
                   }`}>
-                    <div className="px-5 pt-5 space-y-2 pb-4 border-b border-gray-200 h-[112px]">
+                    <div className="px-5 pt-5 space-y-2 pb-4 border-b border-gray-200 h-[114px]">
                       {/* Name - 44px bold like Fresha */}
                       <h3 className="font-bold text-gray-900 text-[28px] leading-tight">{salonData.name}</h3>
 
