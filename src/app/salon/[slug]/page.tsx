@@ -591,7 +591,6 @@ export default function SalonPage() {
                     />
                   ))}
                 </div>
-                </div>
                 {/* Counter */}
                 <div className="absolute top-4 right-4 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
                   {mobilePhotoIndex + 1} / {salonData.photos.length}
