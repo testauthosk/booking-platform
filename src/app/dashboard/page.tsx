@@ -768,6 +768,7 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [animatingSlots, setAnimatingSlots] = useState<number[]>([]); // Для пошаговой анимации
 
   // Клиент
   const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
@@ -940,6 +941,31 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
     return slotMins >= selectedMins && slotMins < selectedMins + duration;
   };
 
+  // Пошагова анімація виділення слотів
+  const handleTimeSelect = (time: string, slotMins: number) => {
+    const duration = totalDuration || 60;
+    const slotsNeeded = Math.ceil(duration / 30);
+    const slotMinsArray: number[] = [];
+
+    for (let i = 0; i < slotsNeeded; i++) {
+      slotMinsArray.push(slotMins + i * 30);
+    }
+
+    // Почистити і запустити анімацію
+    setAnimatingSlots([]);
+    setSelectedTime(time);
+
+    // Пошагово додавати слоти з затримкою
+    slotMinsArray.forEach((mins, index) => {
+      setTimeout(() => {
+        setAnimatingSlots(prev => [...prev, mins]);
+      }, index * 80); // 80ms між кожним слотом
+    });
+  };
+
+  // Перевірка чи слот анімується
+  const isSlotAnimating = (slotMins: number) => animatingSlots.includes(slotMins);
+
   // Генерация календаря
   const generateCalendarDays = () => {
     const year = currentMonth.getFullYear();
@@ -1000,71 +1026,94 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
     const name = selectedClient?.name || clientName;
     const phone = selectedClient?.phone || clientPhone;
 
-    if (!name || !phone || !selectedDate || !selectedTime) return;
+    if (!name || !phone || !selectedDate || !selectedTime) {
+      alert('Заповніть всі обов\'язкові поля');
+      return;
+    }
 
     setSaving(true);
 
-    // Если новый клиент - создаём его
-    let clientId = selectedClient?.id;
-    if (!clientId && isNewClient) {
-      const { data: newClient } = await supabase
-        .from('clients')
-        .insert({
-          salon_id: salonId,
-          name: clientName,
-          phone: clientPhone,
-          visits_count: 0,
-          total_spent: 0,
-        })
-        .select()
-        .single();
+    try {
+      // Если новый клиент - создаём его
+      let clientId = selectedClient?.id;
+      if (!clientId && isNewClient) {
+        const { data: newClient, error: clientError } = await supabase
+          .from('clients')
+          .insert({
+            salon_id: salonId,
+            name: clientName,
+            phone: clientPhone,
+            visits_count: 0,
+            total_spent: 0,
+          })
+          .select()
+          .single();
 
-      if (newClient) {
-        clientId = newClient.id;
+        if (clientError) {
+          console.error('Client create error:', clientError);
+          alert('Помилка створення клієнта: ' + clientError.message);
+          setSaving(false);
+          return;
+        }
+
+        if (newClient) {
+          clientId = newClient.id;
+        }
       }
+
+      // Расчёт времени окончания
+      const [h, m] = selectedTime.split(':').map(Number);
+      const endMins = h * 60 + m + totalDuration;
+      const endH = Math.floor(endMins / 60);
+      const endM = endMins % 60;
+      const timeEnd = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+
+      const { error: bookingError } = await supabase.from('bookings').insert({
+        salon_id: salonId,
+        client_id: clientId,
+        client_name: name,
+        client_phone: phone,
+        client_email: selectedClient?.email || '',
+        date: selectedDate,
+        time: selectedTime,
+        time_end: timeEnd,
+        duration: totalDuration,
+        services: selectedServices.map(s => ({ id: s.id, name: s.name, duration: s.duration, price: s.price })),
+        service_id: selectedServices[0]?.id || null,
+        service_name: selectedServices.map(s => s.name).join(', '),
+        master_id: selectedMaster?.id || null,
+        master_name: selectedMaster?.name || '',
+        price: totalPrice,
+        status: 'confirmed',
+      });
+
+      if (bookingError) {
+        console.error('Booking create error:', bookingError);
+        alert('Помилка створення запису: ' + bookingError.message);
+        setSaving(false);
+        return;
+      }
+
+      // Обновляем статистику клиента
+      if (clientId) {
+        await supabase
+          .from('clients')
+          .update({
+            visits_count: (selectedClient?.visits_count || 0) + 1,
+            total_spent: (selectedClient?.total_spent || 0) + totalPrice,
+            last_visit: selectedDate,
+          })
+          .eq('id', clientId);
+      }
+
+      setSaving(false);
+      onSave();
+      onClose();
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      alert('Несподівана помилка');
+      setSaving(false);
     }
-
-    // Расчёт времени окончания
-    const [h, m] = selectedTime.split(':').map(Number);
-    const endMins = h * 60 + m + totalDuration;
-    const endH = Math.floor(endMins / 60);
-    const endM = endMins % 60;
-    const timeEnd = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
-
-    await supabase.from('bookings').insert({
-      salon_id: salonId,
-      client_id: clientId,
-      client_name: name,
-      client_phone: phone,
-      client_email: selectedClient?.email || '',
-      date: selectedDate,
-      time: selectedTime,
-      time_end: timeEnd,
-      duration: totalDuration,
-      services: selectedServices.map(s => ({ id: s.id, name: s.name, duration: s.duration, price: s.price })),
-      service_id: selectedServices[0]?.id || null,
-      service_name: selectedServices.map(s => s.name).join(', '),
-      master_id: selectedMaster?.id || null,
-      master_name: selectedMaster?.name || '',
-      price: totalPrice,
-      status: 'confirmed',
-    });
-
-    // Обновляем статистику клиента
-    if (clientId) {
-      await supabase
-        .from('clients')
-        .update({
-          visits_count: (selectedClient?.visits_count || 0) + 1,
-          total_spent: (selectedClient?.total_spent || 0) + totalPrice,
-          last_visit: selectedDate,
-        })
-        .eq('id', clientId);
-    }
-
-    setSaving(false);
-    onSave();
-    onClose();
   };
 
   const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
@@ -1348,15 +1397,18 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
                 {timeSlots.map(slot => {
                   const isSelected = selectedTime === slot.time;
                   const isInRange = isSlotInSelectedRange(slot.mins);
+                  const isAnimating = isSlotAnimating(slot.mins);
 
                   return (
                     <button
                       key={slot.time}
-                      onClick={() => slot.available && setSelectedTime(slot.time)}
+                      onClick={() => slot.available && handleTimeSelect(slot.time, slot.mins)}
                       disabled={!slot.available}
-                      className={`p-3 rounded-xl text-left transition-all duration-200 ${
+                      className={`p-3 rounded-xl text-left transition-all duration-300 ${
                         isSelected
-                          ? 'bg-violet-600 text-white ring-2 ring-violet-600 ring-offset-2'
+                          ? 'bg-violet-600 text-white ring-2 ring-violet-600 ring-offset-2 scale-[1.02]'
+                          : isAnimating
+                          ? 'bg-violet-200 border-2 border-violet-500 scale-[1.02]'
                           : isInRange
                           ? 'bg-violet-100 border-2 border-violet-400'
                           : slot.available
@@ -1366,17 +1418,17 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
                     >
                       <p className={`font-semibold ${
                         isSelected ? 'text-white' :
-                        isInRange ? 'text-violet-700' :
+                        isAnimating || isInRange ? 'text-violet-700' :
                         slot.available ? 'text-gray-900' : 'text-gray-400'
                       }`}>
                         {slot.time}
                       </p>
                       <p className={`text-xs ${
                         isSelected ? 'text-violet-200' :
-                        isInRange ? 'text-violet-500' :
+                        isAnimating || isInRange ? 'text-violet-500' :
                         'text-gray-500'
                       }`}>
-                        {isSelected ? `до ${slot.endTime}` : isInRange ? 'зайнято' : `до ${slot.endTime}`}
+                        {isSelected ? `до ${slot.endTime}` : (isAnimating || isInRange) ? 'зайнято' : `до ${slot.endTime}`}
                       </p>
                     </button>
                   );
@@ -1432,50 +1484,97 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
                       type="text"
-                      placeholder="Поиск клиента..."
+                      placeholder="Ім'я або телефон..."
                       value={clientSearch}
                       onChange={(e) => setClientSearch(e.target.value)}
                       className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-violet-500"
+                      autoFocus
                     />
                   </div>
 
-                  <div className="max-h-48 overflow-y-auto space-y-2">
-                    {filteredClients.slice(0, 10).map(client => (
-                      <button
-                        key={client.id}
-                        onClick={() => setSelectedClient(client)}
-                        className={`w-full p-3 rounded-xl border text-left transition-all ${
-                          selectedClient?.id === client.id
-                            ? 'border-violet-500 bg-violet-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium text-gray-900">{client.name}</p>
-                            <p className="text-sm text-gray-500">{client.visits_count} визитов</p>
-                          </div>
-                          {selectedClient?.id === client.id && (
-                            <a
-                              href={`tel:${client.phone}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"
+                  {/* Випадаюче меню з результатами або кнопка створити */}
+                  {clientSearch.length > 0 && (
+                    <div className="border border-gray-200 rounded-xl overflow-hidden">
+                      {filteredClients.length > 0 ? (
+                        <div className="max-h-48 overflow-y-auto divide-y divide-gray-100">
+                          {filteredClients.slice(0, 10).map(client => (
+                            <button
+                              key={client.id}
+                              onClick={() => {
+                                setSelectedClient(client);
+                                setClientSearch('');
+                              }}
+                              className={`w-full p-3 text-left transition-all hover:bg-gray-50 ${
+                                selectedClient?.id === client.id ? 'bg-violet-50' : ''
+                              }`}
                             >
-                              <PhoneCall className="w-4 h-4" />
-                            </a>
-                          )}
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="font-medium text-gray-900">{client.name}</p>
+                                  <p className="text-sm text-gray-500">{client.phone} • {client.visits_count} візитів</p>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
                         </div>
-                      </button>
-                    ))}
-                  </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setIsNewClient(true);
+                            setClientName(clientSearch);
+                          }}
+                          className="w-full p-4 text-left hover:bg-violet-50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center">
+                              <Plus className="w-5 h-5 text-violet-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-violet-600">Створити "{clientSearch}"</p>
+                              <p className="text-sm text-gray-500">Додати нового клієнта</p>
+                            </div>
+                          </div>
+                        </button>
+                      )}
+                    </div>
+                  )}
 
-                  <button
-                    onClick={() => setIsNewClient(true)}
-                    className="w-full p-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-violet-400 hover:text-violet-600 transition-colors"
-                  >
-                    <Plus className="w-4 h-4 inline mr-2" />
-                    Новый клиент
-                  </button>
+                  {/* Вибраний клієнт */}
+                  {selectedClient && (
+                    <div className="p-4 bg-violet-50 rounded-xl border border-violet-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold text-gray-900">{selectedClient.name}</p>
+                          <p className="text-sm text-gray-600">{selectedClient.phone}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={`tel:${selectedClient.phone}`}
+                            className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"
+                          >
+                            <PhoneCall className="w-4 h-4" />
+                          </a>
+                          <button
+                            onClick={() => setSelectedClient(null)}
+                            className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Якщо нічого не введено і немає вибраного */}
+                  {clientSearch.length === 0 && !selectedClient && (
+                    <button
+                      onClick={() => setIsNewClient(true)}
+                      className="w-full p-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-violet-400 hover:text-violet-600 transition-colors"
+                    >
+                      <Plus className="w-4 h-4 inline mr-2" />
+                      Новий клієнт
+                    </button>
+                  )}
                 </>
               ) : (
                 <>
@@ -1705,9 +1804,12 @@ function ServicesTab({ services, categories, salonId, onReload }: {
               />
             </button>
             <div
-              className={`divide-y divide-gray-100 transition-all duration-500 ease-out overflow-hidden ${
-                isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
-              }`}
+              style={{
+                maxHeight: isExpanded ? `${categoryServices.length * 80}px` : '0px',
+                opacity: isExpanded ? 1 : 0,
+                transition: 'max-height 0.4s ease-in-out, opacity 0.3s ease-in-out'
+              }}
+              className="divide-y divide-gray-100 overflow-hidden"
             >
               {categoryServices.map(service => (
                 <div key={service.id} className="p-4 flex items-center justify-between gap-4">
@@ -2120,43 +2222,71 @@ function ClientsTab({ clients, salonId, onReload }: {
   onReload: () => void;
 }) {
   const [search, setSearch] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const filteredClients = clients.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
     c.phone.includes(search)
   );
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('Видалити цього клієнта?')) return;
+    setDeleting(id);
+    await supabase.from('clients').delete().eq('id', id);
+    onReload();
+    setDeleting(null);
+  };
+
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-xl border border-gray-200 p-3 lg:p-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Поиск по имени или телефону..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-violet-500"
-          />
+      <div className="flex items-center gap-3">
+        <div className="flex-1 bg-white rounded-xl border border-gray-200 p-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Пошук за ім'ям або телефоном..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border-0 text-sm focus:outline-none"
+            />
+          </div>
         </div>
+        <Button
+          onClick={() => setShowAddModal(true)}
+          className="bg-violet-600 hover:bg-violet-700 text-white rounded-lg whitespace-nowrap"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Додати
+        </Button>
       </div>
 
       {filteredClients.length > 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
           {filteredClients.map(client => (
-            <div key={client.id} className="p-4 flex items-center justify-between">
+            <div key={client.id} className="p-4 flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-gray-900">{client.name}</p>
                 <p className="text-sm text-gray-500">
-                  {client.visits_count} визитов • {client.total_spent} ₴
+                  {client.phone} • {client.visits_count} візитів • {client.total_spent} ₴
                 </p>
               </div>
-              <a
-                href={`tel:${client.phone}`}
-                className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 flex-shrink-0"
-              >
-                <PhoneCall className="w-4 h-4" />
-              </a>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <a
+                  href={`tel:${client.phone}`}
+                  className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"
+                >
+                  <PhoneCall className="w-4 h-4" />
+                </a>
+                <button
+                  onClick={() => handleDelete(client.id)}
+                  disabled={deleting === client.id}
+                  className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100"
+                >
+                  {deleting === client.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -2164,13 +2294,106 @@ function ClientsTab({ clients, salonId, onReload }: {
         <div className="bg-white rounded-xl border border-gray-200 p-8 lg:p-12 text-center">
           <UserCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500">
-            {search ? 'Клиенты не найдены' : 'База клиентов пока пуста'}
+            {search ? 'Клієнтів не знайдено' : 'База клієнтів порожня'}
           </p>
-          <p className="text-sm text-gray-400 mt-2">
-            Клиенты добавляются автоматически при создании записи
-          </p>
+          <Button onClick={() => setShowAddModal(true)} className="mt-4 bg-violet-600 hover:bg-violet-700 text-white rounded-lg">
+            <Plus className="w-4 h-4 mr-2" />
+            Додати першого клієнта
+          </Button>
         </div>
       )}
+
+      {showAddModal && (
+        <AddClientModal
+          salonId={salonId}
+          onClose={() => setShowAddModal(false)}
+          onSave={() => { setShowAddModal(false); onReload(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+// Modal для додавання клієнта
+function AddClientModal({ salonId, onClose, onSave }: { salonId: string; onClose: () => void; onSave: () => void }) {
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ name: '', phone: '', email: '' });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name || !form.phone) {
+      alert('Ім\'я та телефон обов\'язкові');
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase.from('clients').insert({
+      salon_id: salonId,
+      name: form.name,
+      phone: form.phone,
+      email: form.email || null,
+      visits_count: 0,
+      total_spent: 0,
+    });
+    if (error) {
+      alert('Помилка: ' + error.message);
+      setSaving(false);
+      return;
+    }
+    setSaving(false);
+    onSave();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md">
+        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">Новий клієнт</h2>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Ім'я *</label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              className="form-input"
+              placeholder="Ім'я клієнта"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Телефон *</label>
+            <input
+              type="tel"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              className="form-input"
+              placeholder="+380..."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              className="form-input"
+              placeholder="email@example.com"
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1 rounded-xl">
+              Скасувати
+            </Button>
+            <Button type="submit" disabled={saving} className="flex-1 bg-violet-600 hover:bg-violet-700 text-white rounded-xl">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Зберегти'}
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
