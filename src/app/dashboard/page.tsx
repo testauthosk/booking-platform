@@ -2105,14 +2105,29 @@ function TeamTab({ masters, services, salonId, onReload }: {
   };
 
   const handleSave = async (data: Partial<MasterData>) => {
-    if (editingMaster) {
-      await supabase.from('masters').update(data).eq('id', editingMaster.id);
-    } else {
-      await supabase.from('masters').insert({ ...data, salon_id: salonId, is_active: true });
+    try {
+      if (editingMaster) {
+        const { error } = await supabase.from('masters').update(data).eq('id', editingMaster.id);
+        if (error) {
+          console.error('Update master error:', error);
+          alert('Помилка: ' + error.message);
+          return;
+        }
+      } else {
+        const { error } = await supabase.from('masters').insert({ ...data, salon_id: salonId, is_active: true });
+        if (error) {
+          console.error('Insert master error:', error);
+          alert('Помилка: ' + error.message);
+          return;
+        }
+      }
+      setShowModal(false);
+      setEditingMaster(null);
+      onReload();
+    } catch (err) {
+      console.error('Master save error:', err);
+      alert('Помилка збереження');
     }
-    setShowModal(false);
-    setEditingMaster(null);
-    onReload();
   };
 
   return (
