@@ -567,7 +567,7 @@ function QuickBookingModal({ salonId, services, masters, onClose, onSave }: {
   });
 
   // Генерируем слоты времени
-  const timeSlots = [];
+  const timeSlots: string[] = [];
   for (let h = 8; h <= 21; h++) {
     timeSlots.push(`${h.toString().padStart(2, '0')}:00`);
     timeSlots.push(`${h.toString().padStart(2, '0')}:30`);
@@ -1404,7 +1404,7 @@ function ScheduleTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates
     ]
   );
 
-  const timeOptions = [];
+  const timeOptions: string[] = [];
   for (let h = 0; h < 24; h++) {
     for (let m = 0; m < 60; m += 30) {
       const time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
