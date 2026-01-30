@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +26,13 @@ import {
   Save,
   AlertTriangle,
 } from 'lucide-react';
+
+interface UserData {
+  id: string;
+  email: string;
+  role: string;
+  salon_id: string | null;
+}
 
 interface SalonData {
   id: string;
@@ -59,52 +65,71 @@ interface BookingData {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, loading: authLoading, signOut } = useAuth();
 
+  const [user, setUser] = useState<UserData | null>(null);
   const [salon, setSalon] = useState<SalonData | null>(null);
   const [bookings, setBookings] = useState<BookingData[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState({ today: 0, week: 0, month: 0, revenue: 0 });
 
-  // Redirect based on auth status
+  // Загрузка данных при монтировании
   useEffect(() => {
-    if (!authLoading && !user) {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    // Получаем сессию
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session?.user) {
       router.push('/login');
-    } else if (!authLoading && user?.role === 'super_admin') {
-      // Супер админ - в консоль администратора
+      return;
+    }
+
+    // Получаем профиль пользователя
+    const { data: profile } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!profile) {
+      await supabase.auth.signOut();
+      router.push('/login');
+      return;
+    }
+
+    // Супер админ - в консоль
+    if (profile.role === 'super_admin') {
       router.push('/admin');
+      return;
     }
-  }, [authLoading, user, router]);
 
-  // Load salon data
-  useEffect(() => {
-    if (user?.salon_id) {
-      loadSalon();
-      loadBookings();
-    } else if (user && !user.salon_id) {
-      setLoading(false);
+    setUser(profile);
+
+    // Если есть salon_id - загружаем салон
+    if (profile.salon_id) {
+      await loadSalon(profile.salon_id);
+      await loadBookings(profile.salon_id);
     }
-  }, [user]);
 
-  const loadSalon = async () => {
-    if (!user?.salon_id) return;
+    setLoading(false);
+  };
 
+  const loadSalon = async (salonId: string) => {
     const { data } = await supabase
       .from('salons')
       .select('*')
-      .eq('id', user.salon_id)
+      .eq('id', salonId)
       .single();
 
     if (data) {
       setSalon(data);
     }
-    setLoading(false);
   };
 
-  const loadBookings = async () => {
-    if (!user?.salon_id) return;
-
+  const loadBookings = async (salonId: string) => {
     const today = new Date().toISOString().split('T')[0];
 
     const { data } = await supabase
@@ -114,14 +139,13 @@ export default function DashboardPage() {
         services:service_id (name),
         masters:master_id (name)
       `)
-      .eq('salon_id', user.salon_id)
+      .eq('salon_id', salonId)
       .gte('date', today)
       .order('date', { ascending: true })
       .order('time', { ascending: true })
       .limit(10);
 
     if (data) {
-      // Преобразуем данные для удобства
       const formattedBookings: BookingData[] = data.map((b: any) => ({
         id: b.id,
         client_name: b.client_name,
@@ -133,18 +157,17 @@ export default function DashboardPage() {
         master_name: b.masters?.name || undefined,
       }));
       setBookings(formattedBookings);
-      // Подсчёт статистики
       const todayBookings = formattedBookings.filter(b => b.date === today).length;
       setStats(prev => ({ ...prev, today: todayBookings, week: formattedBookings.length }));
     }
   };
 
   const handleSignOut = async () => {
-    await signOut();
+    await supabase.auth.signOut();
     router.push('/login');
   };
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
@@ -402,6 +425,9 @@ export default function DashboardPage() {
                       <span className="text-gray-900 font-medium">{wh.hours}</span>
                     </div>
                   ))}
+                  {(!salon.working_hours || salon.working_hours.length === 0) && (
+                    <p className="text-gray-400 text-sm">Не указаны</p>
+                  )}
                 </div>
               </div>
             </div>
