@@ -1105,7 +1105,6 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
       console.log('Creating booking...');
       const { error: bookingError } = await supabase.from('bookings').insert({
         salon_id: salonId,
-        client_id: clientId || null,
         client_name: name,
         client_phone: phone,
         client_email: selectedClient?.email || '',
