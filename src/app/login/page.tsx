@@ -1,15 +1,13 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Loader2, Eye, EyeOff, Scissors, LogOut, Trash2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Scissors } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signIn, user, loading: authLoading } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,118 +15,62 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Принудительный выход - очищает всё
-  const forceLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (e) {
-      // ignore
-    }
-    // Очищаем localStorage
-    localStorage.clear();
-    // Перезагружаем страницу
-    window.location.reload();
-  };
+  // При загрузке страницы - очищаем старую сессию
+  useEffect(() => {
+    supabase.auth.signOut();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    const { error } = await signIn(email, password);
+    // 1. Логинимся
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-    if (error) {
-      setError(translateError(error));
+    if (authError) {
+      if (authError.message.includes('Invalid login credentials')) {
+        setError('Неверный email или пароль');
+      } else if (authError.message.includes('Email not confirmed')) {
+        setError('Подтвердите email для входа');
+      } else {
+        setError(authError.message);
+      }
       setLoading(false);
       return;
     }
 
-    // После успешного входа перенаправляем в дашборд
-    router.push('/dashboard');
+    if (!authData.user) {
+      setError('Ошибка авторизации');
+      setLoading(false);
+      return;
+    }
+
+    // 2. Получаем профиль из таблицы users
+    const { data: profile, error: profileError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', authData.user.id)
+      .single();
+
+    if (profileError || !profile) {
+      setError('Пользователь не найден в системе. Обратитесь к администратору.');
+      await supabase.auth.signOut();
+      setLoading(false);
+      return;
+    }
+
+    // 3. Редирект по роли
+    if (profile.role === 'super_admin') {
+      router.push('/admin');
+    } else {
+      router.push('/dashboard');
+    }
   };
 
-  const translateError = (error: string) => {
-    if (error.includes('Invalid login credentials')) {
-      return 'Неверный email или пароль';
-    }
-    if (error.includes('Email not confirmed')) {
-      return 'Подтвердите email для входа';
-    }
-    return error;
-  };
-
-  // Кнопка выхода всегда видна в углу
-  const LogoutButton = () => (
-    <button
-      onClick={forceLogout}
-      className="fixed top-4 right-4 flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors z-50"
-    >
-      <Trash2 className="w-4 h-4" />
-      Сбросить сессию
-    </button>
-  );
-
-  // При загрузке показываем спиннер + кнопку выхода
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <LogoutButton />
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500">Загрузка...</p>
-          <p className="text-gray-400 text-sm mt-2">Если долго грузится - нажмите "Сбросить сессию"</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Если залогинен - показать информацию и кнопки
-  if (user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-violet-50 to-pink-50 flex items-center justify-center px-4">
-        <LogoutButton />
-        <div className="w-full max-w-md text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-sm mb-4">
-            <Scissors className="w-8 h-8 text-violet-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Вы вошли как</h1>
-          <p className="text-gray-700 font-medium">{user.email}</p>
-          <p className="text-gray-500 mb-6">
-            Роль: {user.role === 'super_admin' ? 'Супер админ' : 'Владелец салона'}
-          </p>
-
-          <div className="space-y-3">
-            {user.role === 'super_admin' ? (
-              <Button
-                onClick={() => router.push('/admin')}
-                className="w-full bg-slate-800 hover:bg-slate-700 text-white rounded-xl h-12"
-              >
-                Открыть консоль админа
-              </Button>
-            ) : (
-              <Button
-                onClick={() => router.push('/dashboard')}
-                className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl h-12"
-              >
-                Открыть панель салона
-              </Button>
-            )}
-
-            <Button
-              onClick={forceLogout}
-              variant="outline"
-              className="w-full rounded-xl h-12 border-gray-300"
-            >
-              <LogOut className="w-5 h-5 mr-2" />
-              Выйти
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Форма входа
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 to-pink-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
@@ -137,8 +79,8 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-sm mb-4">
             <Scissors className="w-8 h-8 text-violet-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Панель салона</h1>
-          <p className="text-gray-500 mt-2">Войдите для управления вашим салоном</p>
+          <h1 className="text-2xl font-bold text-gray-900">Вход в систему</h1>
+          <p className="text-gray-500 mt-2">Введите данные для входа</p>
         </div>
 
         {/* Login Card */}
@@ -154,7 +96,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="salon@example.com"
+                placeholder="email@example.com"
                 required
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-gray-900"
               />
@@ -209,7 +151,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="text-center text-gray-400 text-sm mt-6">
-          Проблемы с входом? Обратитесь к администратору платформы
+          Проблемы с входом? Обратитесь к администратору
         </p>
       </div>
     </div>
