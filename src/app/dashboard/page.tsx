@@ -53,8 +53,8 @@ interface BookingData {
   date: string;
   time: string;
   status: string;
-  services: { name: string } | null;
-  masters: { name: string } | null;
+  service_name?: string;
+  master_name?: string;
 }
 
 export default function DashboardPage() {
@@ -108,8 +108,8 @@ export default function DashboardPage() {
       .from('bookings')
       .select(`
         id, client_name, client_phone, date, time, status,
-        services (name),
-        masters (name)
+        services:service_id (name),
+        masters:master_id (name)
       `)
       .eq('salon_id', user.salon_id)
       .gte('date', today)
@@ -118,10 +118,21 @@ export default function DashboardPage() {
       .limit(10);
 
     if (data) {
-      setBookings(data as BookingData[]);
+      // Преобразуем данные для удобства
+      const formattedBookings: BookingData[] = data.map((b: any) => ({
+        id: b.id,
+        client_name: b.client_name,
+        client_phone: b.client_phone,
+        date: b.date,
+        time: b.time,
+        status: b.status,
+        service_name: b.services?.name || undefined,
+        master_name: b.masters?.name || undefined,
+      }));
+      setBookings(formattedBookings);
       // Подсчёт статистики
-      const todayBookings = data.filter(b => b.date === today).length;
-      setStats(prev => ({ ...prev, today: todayBookings, week: data.length }));
+      const todayBookings = formattedBookings.filter(b => b.date === today).length;
+      setStats(prev => ({ ...prev, today: todayBookings, week: formattedBookings.length }));
     }
   };
 
@@ -335,7 +346,7 @@ export default function DashboardPage() {
                           <div>
                             <p className="font-medium text-gray-900">{booking.client_name}</p>
                             <p className="text-sm text-gray-500">
-                              {booking.time} • {booking.services?.name || 'Услуга'}
+                              {booking.time} • {booking.service_name || 'Услуга'}
                             </p>
                           </div>
                         </div>
@@ -417,7 +428,7 @@ export default function DashboardPage() {
                         <div>
                           <p className="font-medium text-gray-900">{booking.client_name}</p>
                           <p className="text-sm text-gray-500">
-                            {booking.time} • {booking.services?.name || 'Услуга'} • {booking.masters?.name || 'Мастер'}
+                            {booking.time} • {booking.service_name || 'Услуга'} • {booking.master_name || 'Мастер'}
                           </p>
                           <p className="text-sm text-gray-400">{booking.client_phone}</p>
                         </div>
