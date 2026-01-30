@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Sidebar } from '@/components/dashboard/Sidebar';
 import {
   Loader2,
   LogOut,
@@ -22,6 +21,8 @@ import {
   UserCheck,
   CalendarCheck,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Bell,
   ExternalLink,
   Save,
@@ -41,6 +42,8 @@ import {
   UserCircle,
   X,
   Check,
+  Menu,
+  PhoneCall,
 } from 'lucide-react';
 
 // ===================== INTERFACES =====================
@@ -85,10 +88,21 @@ interface BookingData {
   client_email: string;
   date: string;
   time: string;
+  time_end?: string;
+  duration?: number;
   status: string;
   service_name?: string;
+  service_id?: string;
   master_name?: string;
+  master_id?: string;
   price?: number;
+  services?: { id: string; name: string; duration: number; price: number }[];
+}
+
+interface CategoryData {
+  id: string;
+  name: string;
+  order_index: number;
 }
 
 interface ServiceData {
@@ -98,6 +112,7 @@ interface ServiceData {
   price: number;
   duration: number;
   category: string;
+  category_id?: string;
   is_active: boolean;
 }
 
@@ -109,6 +124,19 @@ interface MasterData {
   phone: string;
   email: string;
   is_active: boolean;
+  working_hours?: WorkingHour[];
+  services?: { service_id: string; price?: number }[];
+}
+
+interface ClientData {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  visits_count: number;
+  last_visit?: string;
+  total_spent: number;
+  created_at: string;
 }
 
 // ===================== MAIN COMPONENT =====================
@@ -120,9 +148,12 @@ export default function DashboardPage() {
   const [salon, setSalon] = useState<SalonData | null>(null);
   const [bookings, setBookings] = useState<BookingData[]>([]);
   const [services, setServices] = useState<ServiceData[]>([]);
+  const [categories, setCategories] = useState<CategoryData[]>([]);
   const [masters, setMasters] = useState<MasterData[]>([]);
+  const [clients, setClients] = useState<ClientData[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [stats, setStats] = useState({
     today: 0,
     week: 0,
@@ -135,6 +166,11 @@ export default function DashboardPage() {
   useEffect(() => {
     loadUserData();
   }, []);
+
+  // Закрытие сайдбара при изменении таба на мобильном
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [activeTab]);
 
   const loadUserData = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -168,7 +204,9 @@ export default function DashboardPage() {
         loadSalon(profile.salon_id),
         loadBookings(profile.salon_id),
         loadServices(profile.salon_id),
+        loadCategories(profile.salon_id),
         loadMasters(profile.salon_id),
+        loadClients(profile.salon_id),
       ]);
     }
 
@@ -183,7 +221,6 @@ export default function DashboardPage() {
       .single();
 
     if (data) {
-      // Ensure working_hours has proper format
       const defaultHours: WorkingHour[] = [
         { day: 'Понедельник', is_working: true, open: '09:00', close: '20:00' },
         { day: 'Вторник', is_working: true, open: '09:00', close: '20:00' },
@@ -210,7 +247,7 @@ export default function DashboardPage() {
       .select('*')
       .eq('salon_id', salonId)
       .order('date', { ascending: false })
-      .limit(50);
+      .limit(100);
 
     if (data) {
       setBookings(data);
@@ -230,10 +267,23 @@ export default function DashboardPage() {
       .from('services')
       .select('*')
       .eq('salon_id', salonId)
+      .order('category', { ascending: true })
       .order('name');
 
     if (data) {
       setServices(data);
+    }
+  };
+
+  const loadCategories = async (salonId: string) => {
+    const { data } = await supabase
+      .from('service_categories')
+      .select('*')
+      .eq('salon_id', salonId)
+      .order('order_index');
+
+    if (data) {
+      setCategories(data);
     }
   };
 
@@ -246,6 +296,18 @@ export default function DashboardPage() {
 
     if (data) {
       setMasters(data);
+    }
+  };
+
+  const loadClients = async (salonId: string) => {
+    const { data } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('salon_id', salonId)
+      .order('name');
+
+    if (data) {
+      setClients(data);
     }
   };
 
@@ -305,40 +367,127 @@ export default function DashboardPage() {
     );
   }
 
+  const tabs = [
+    { id: 'overview', label: 'Обзор', icon: LayoutDashboard },
+    { id: 'bookings', label: 'Записи', icon: Calendar },
+    { id: 'services', label: 'Услуги', icon: Scissors },
+    { id: 'team', label: 'Команда', icon: Users },
+    { id: 'clients', label: 'Клиенты', icon: UserCircle },
+    { id: 'schedule', label: 'Расписание', icon: Clock },
+    { id: 'profile', label: 'Профиль', icon: Store },
+    { id: 'photos', label: 'Фото', icon: Image },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row">
+      {/* Mobile Header */}
+      <header className="lg:hidden bg-white border-b border-gray-200 sticky top-0 z-30">
+        <div className="flex items-center justify-between px-4 py-3">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+          <h1 className="font-semibold text-gray-900 truncate">{salon.name}</h1>
+          <button className="p-2 -mr-2 text-gray-500 hover:text-gray-700 relative">
+            <Bell className="w-5 h-5" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
+          </button>
+        </div>
+      </header>
+
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <Sidebar
-        salonName={salon.name}
-        salonType={salon.type}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        onSignOut={handleSignOut}
-      />
+      <aside className={`
+        fixed lg:sticky top-0 left-0 h-full lg:h-screen w-72 bg-white border-r border-gray-200 z-50
+        transform transition-transform duration-300 ease-in-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        flex flex-col
+      `}>
+        {/* Sidebar Header */}
+        <div className="p-5 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center">
+                {salon.logo_url ? (
+                  <img src={salon.logo_url} alt="" className="w-full h-full object-cover rounded-xl" />
+                ) : (
+                  <Store className="w-5 h-5 text-violet-600" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <h2 className="font-semibold text-gray-900 truncate">{salon.name}</h2>
+                <p className="text-xs text-gray-500">{salon.type}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="lg:hidden p-2 text-gray-400 hover:text-gray-600 rounded-lg"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto p-3">
+          <div className="space-y-1">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  activeTab === tab.id
+                    ? 'bg-violet-100 text-violet-700'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <tab.icon className="w-5 h-5 flex-shrink-0" />
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </nav>
+
+        {/* Sidebar Footer */}
+        <div className="p-3 border-t border-gray-100">
+          <a
+            href={`/s/${salon.slug}`}
+            target="_blank"
+            className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+          >
+            <ExternalLink className="w-5 h-5" />
+            Открыть сайт
+          </a>
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors mt-1"
+          >
+            <LogOut className="w-5 h-5" />
+            Выйти
+          </button>
+        </div>
+      </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        {/* Top Header */}
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <main className="flex-1 min-w-0 lg:overflow-auto">
+        {/* Desktop Header */}
+        <header className="hidden lg:block bg-white border-b border-gray-200 sticky top-0 z-10">
           <div className="px-6 py-4 flex items-center justify-between">
             <div>
               <h1 className="text-xl font-semibold text-gray-900">
-                {activeTab === 'overview' && 'Обзор'}
-                {activeTab === 'bookings' && 'Записи'}
-                {activeTab === 'services' && 'Услуги'}
-                {activeTab === 'team' && 'Команда'}
-                {activeTab === 'clients' && 'Клиенты'}
-                {activeTab === 'analytics' && 'Аналитика'}
-                {activeTab === 'profile' && 'Профиль салона'}
-                {activeTab === 'photos' && 'Фото и медиа'}
-                {activeTab === 'schedule' && 'Расписание'}
-                {activeTab === 'reviews' && 'Отзывы'}
-                {activeTab === 'notifications' && 'Уведомления'}
-                {activeTab === 'settings' && 'Настройки'}
+                {tabs.find(t => t.id === activeTab)?.label || 'Обзор'}
               </h1>
               <p className="text-sm text-gray-500 mt-0.5">{salon.name}</p>
             </div>
-
             <div className="flex items-center gap-3">
               <a
                 href={`/s/${salon.slug}`}
@@ -357,7 +506,7 @@ export default function DashboardPage() {
         </header>
 
         {/* Content Area */}
-        <div className="p-6">
+        <div className="p-4 lg:p-6">
           {activeTab === 'overview' && (
             <OverviewTab salon={salon} bookings={bookings} stats={stats} onViewAll={() => setActiveTab('bookings')} />
           )}
@@ -366,40 +515,50 @@ export default function DashboardPage() {
               bookings={bookings}
               salonId={salon.id}
               services={services}
+              categories={categories}
               masters={masters}
+              clients={clients}
               workingHours={salon.working_hours || []}
-              onReload={() => loadBookings(salon.id)}
+              onReload={() => {
+                loadBookings(salon.id);
+                loadClients(salon.id);
+              }}
             />
           )}
           {activeTab === 'services' && (
-            <ServicesTab services={services} salonId={salon.id} onReload={() => loadServices(salon.id)} />
+            <ServicesTab
+              services={services}
+              categories={categories}
+              salonId={salon.id}
+              onReload={() => {
+                loadServices(salon.id);
+                loadCategories(salon.id);
+              }}
+            />
           )}
           {activeTab === 'team' && (
-            <TeamTab masters={masters} salonId={salon.id} onReload={() => loadMasters(salon.id)} />
+            <TeamTab
+              masters={masters}
+              services={services}
+              salonId={salon.id}
+              onReload={() => loadMasters(salon.id)}
+            />
           )}
           {activeTab === 'clients' && (
-            <PlaceholderTab icon={UserCircle} title="Клиенты" description="База клиентов скоро будет доступна" />
+            <ClientsTab
+              clients={clients}
+              salonId={salon.id}
+              onReload={() => loadClients(salon.id)}
+            />
           )}
-          {activeTab === 'analytics' && (
-            <PlaceholderTab icon={BarChart3} title="Аналитика" description="Аналитика и отчёты скоро будут доступны" />
+          {activeTab === 'schedule' && (
+            <ScheduleTab salon={salon} onUpdate={(updates) => setSalon({ ...salon, ...updates })} />
           )}
           {activeTab === 'profile' && (
             <ProfileTab salon={salon} onUpdate={(updates) => setSalon({ ...salon, ...updates })} />
           )}
           {activeTab === 'photos' && (
             <PhotosTab salon={salon} onUpdate={(updates) => setSalon({ ...salon, ...updates })} />
-          )}
-          {activeTab === 'schedule' && (
-            <ScheduleTab salon={salon} onUpdate={(updates) => setSalon({ ...salon, ...updates })} />
-          )}
-          {activeTab === 'reviews' && (
-            <PlaceholderTab icon={Star} title="Отзывы" description="Управление отзывами скоро будет доступно" />
-          )}
-          {activeTab === 'notifications' && (
-            <PlaceholderTab icon={Bell} title="Уведомления" description="Настройка уведомлений скоро будет доступна" />
-          )}
-          {activeTab === 'settings' && (
-            <PlaceholderTab icon={Settings} title="Настройки" description="Дополнительные настройки скоро будут доступны" />
           )}
         </div>
       </main>
@@ -414,8 +573,8 @@ function OverviewTab({ salon, bookings, stats, onViewAll }: { salon: SalonData; 
   const todayBookings = bookings.filter(b => b.date === today);
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="space-y-4 lg:space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         <StatCard title="Записей сегодня" value={stats.today} icon={CalendarCheck} color="violet" />
         <StatCard title="За неделю" value={stats.week} icon={TrendingUp} color="blue" />
         <StatCard title="Рейтинг" value={salon.rating || '—'} icon={Star} color="yellow" />
@@ -423,10 +582,10 @@ function OverviewTab({ salon, bookings, stats, onViewAll }: { salon: SalonData; 
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-200">
-        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+        <div className="p-4 lg:p-5 border-b border-gray-100 flex items-center justify-between">
           <h2 className="font-semibold text-gray-900">Записи на сегодня</h2>
           <button onClick={onViewAll} className="text-sm text-violet-600 hover:text-violet-700 font-medium flex items-center gap-1">
-            Все записи <ChevronRight className="w-4 h-4" />
+            Все <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
@@ -437,15 +596,15 @@ function OverviewTab({ salon, bookings, stats, onViewAll }: { salon: SalonData; 
             ))}
           </div>
         ) : (
-          <div className="p-12 text-center">
+          <div className="p-8 lg:p-12 text-center">
             <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500">Нет записей на сегодня</p>
           </div>
         )}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+      <div className="grid lg:grid-cols-2 gap-4 lg:gap-6">
+        <div className="bg-white rounded-2xl border border-gray-200 p-4 lg:p-5">
           <h3 className="font-semibold text-gray-900 mb-4">Контактная информация</h3>
           <div className="space-y-3">
             <InfoRow icon={Phone} label="Телефон" value={salon.phone || 'Не указан'} />
@@ -454,7 +613,7 @@ function OverviewTab({ salon, bookings, stats, onViewAll }: { salon: SalonData; 
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+        <div className="bg-white rounded-2xl border border-gray-200 p-4 lg:p-5">
           <h3 className="font-semibold text-gray-900 mb-4">Часы работы</h3>
           <div className="space-y-2">
             {(salon.working_hours || []).map((wh, i) => (
@@ -474,11 +633,13 @@ function OverviewTab({ salon, bookings, stats, onViewAll }: { salon: SalonData; 
 
 // ===================== BOOKINGS TAB =====================
 
-function BookingsTab({ bookings, salonId, services, masters, workingHours, onReload }: {
+function BookingsTab({ bookings, salonId, services, categories, masters, clients, workingHours, onReload }: {
   bookings: BookingData[];
   salonId: string;
   services: ServiceData[];
+  categories: CategoryData[];
   masters: MasterData[];
+  clients: ClientData[];
   workingHours: WorkingHour[];
   onReload: () => void;
 }) {
@@ -494,32 +655,39 @@ function BookingsTab({ bookings, salonId, services, masters, workingHours, onRel
 
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap items-center gap-4">
-        <div className="relative flex-1 min-w-[200px]">
+      {/* Filters - Mobile Optimized */}
+      <div className="bg-white rounded-xl border border-gray-200 p-3 lg:p-4 space-y-3 lg:space-y-0 lg:flex lg:items-center lg:gap-4">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Поиск по имени клиента..."
+            placeholder="Поиск по имени..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-violet-500"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-violet-500"
           />
         </div>
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="status-select"
-        >
-          <option value="all">Все статусы</option>
-          <option value="confirmed">Подтверждено</option>
-          <option value="pending">Ожидает</option>
-          <option value="completed">Завершено</option>
-          <option value="cancelled">Отменено</option>
-        </select>
-        <Button onClick={() => setShowModal(true)} className="bg-violet-600 hover:bg-violet-700 text-white rounded-lg">
-          <Plus className="w-4 h-4 mr-2" />
-          Новая запись
-        </Button>
+        <div className="flex gap-2">
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="flex-1 lg:flex-none status-select"
+          >
+            <option value="all">Все статусы</option>
+            <option value="confirmed">Подтверждено</option>
+            <option value="pending">Ожидает</option>
+            <option value="completed">Завершено</option>
+            <option value="cancelled">Отменено</option>
+          </select>
+          <Button
+            onClick={() => setShowModal(true)}
+            className="flex-1 lg:flex-none bg-violet-600 hover:bg-violet-700 text-white rounded-lg"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Новая запись</span>
+            <span className="sm:hidden">Записать</span>
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200">
@@ -530,7 +698,7 @@ function BookingsTab({ bookings, salonId, services, masters, workingHours, onRel
             ))}
           </div>
         ) : (
-          <div className="p-12 text-center">
+          <div className="p-8 lg:p-12 text-center">
             <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500">Записи не найдены</p>
           </div>
@@ -541,7 +709,9 @@ function BookingsTab({ bookings, salonId, services, masters, workingHours, onRel
         <QuickBookingModal
           salonId={salonId}
           services={services}
+          categories={categories}
           masters={masters}
+          clients={clients}
           bookings={bookings}
           workingHours={workingHours}
           onClose={() => setShowModal(false)}
@@ -552,56 +722,84 @@ function BookingsTab({ bookings, salonId, services, masters, workingHours, onRel
   );
 }
 
-// Модалка создания записи с календарём
-function QuickBookingModal({ salonId, services, masters, bookings, workingHours, onClose, onSave }: {
+// ===================== QUICK BOOKING MODAL (ПОЛНОСТЬЮ ПЕРЕДЕЛАНА) =====================
+
+function QuickBookingModal({ salonId, services, categories, masters, clients, bookings, workingHours, onClose, onSave }: {
   salonId: string;
   services: ServiceData[];
+  categories: CategoryData[];
   masters: MasterData[];
+  clients: ClientData[];
   bookings: BookingData[];
   workingHours: WorkingHour[];
   onClose: () => void;
   onSave: () => void;
 }) {
   const [saving, setSaving] = useState(false);
-  const [step, setStep] = useState<'calendar' | 'time' | 'details'>('calendar');
+  const [step, setStep] = useState<'services' | 'master' | 'calendar' | 'time' | 'client'>('services');
+
+  // Выбранные услуги (можно несколько)
+  const [selectedServices, setSelectedServices] = useState<ServiceData[]>([]);
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+
+  // Мастер
+  const [selectedMaster, setSelectedMaster] = useState<MasterData | null>(null);
+
+  // Дата и время
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
-  const [selectedService, setSelectedService] = useState<ServiceData | null>(null);
-  const [selectedMaster, setSelectedMaster] = useState<MasterData | null>(null);
-  const [clientName, setClientName] = useState('');
-  const [clientPhone, setClientPhone] = useState('');
-
-  // Текущий месяц для календаря
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  // Генерация дней календаря
-  const generateCalendarDays = () => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const startDayOfWeek = (firstDay.getDay() + 6) % 7; // Понедельник = 0
+  // Клиент
+  const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
+  const [clientName, setClientName] = useState('');
+  const [clientPhone, setClientPhone] = useState('');
+  const [clientSearch, setClientSearch] = useState('');
+  const [isNewClient, setIsNewClient] = useState(false);
 
-    const days: (Date | null)[] = [];
+  // Общая длительность выбранных услуг
+  const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration, 0);
+  const totalPrice = selectedServices.reduce((sum, s) => sum + s.price, 0);
 
-    // Пустые ячейки до первого дня
-    for (let i = 0; i < startDayOfWeek; i++) {
-      days.push(null);
+  // Группировка услуг по категориям
+  const servicesByCategory = services.reduce((acc, service) => {
+    const cat = service.category || 'Без категории';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(service);
+    return acc;
+  }, {} as Record<string, ServiceData[]>);
+
+  const categoryNames = Object.keys(servicesByCategory);
+
+  // Toggle категории
+  const toggleCategory = (cat: string) => {
+    setExpandedCategories(prev =>
+      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+    );
+  };
+
+  // Toggle услуги
+  const toggleService = (service: ServiceData) => {
+    setSelectedServices(prev =>
+      prev.find(s => s.id === service.id)
+        ? prev.filter(s => s.id !== service.id)
+        : [...prev, service]
+    );
+  };
+
+  // Рабочие часы мастера (или общие если мастер не выбран)
+  const getWorkingHours = () => {
+    if (selectedMaster?.working_hours?.length) {
+      return selectedMaster.working_hours;
     }
-
-    // Дни месяца
-    for (let d = 1; d <= lastDay.getDate(); d++) {
-      days.push(new Date(year, month, d));
-    }
-
-    return days;
+    return workingHours;
   };
 
   // Проверка рабочий ли день
   const isWorkingDay = (date: Date) => {
     const dayNames = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
     const dayName = dayNames[date.getDay()];
-    const wh = workingHours.find(h => h.day === dayName);
+    const wh = getWorkingHours().find(h => h.day === dayName);
     return wh?.is_working ?? false;
   };
 
@@ -612,14 +810,62 @@ function QuickBookingModal({ salonId, services, masters, bookings, workingHours,
     return date < today;
   };
 
-  // Генерация свободных слотов на выбранную дату
+  // Подсчёт доступных слотов на день
+  const getAvailableSlots = (dateStr: string) => {
+    const dayNames = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+    const date = new Date(dateStr);
+    const dayName = dayNames[date.getDay()];
+    const wh = getWorkingHours().find(h => h.day === dayName);
+
+    if (!wh?.is_working) return 0;
+
+    const [openH, openM] = wh.open.split(':').map(Number);
+    const [closeH, closeM] = wh.close.split(':').map(Number);
+    const openMins = openH * 60 + openM;
+    const closeMins = closeH * 60 + closeM;
+
+    // Занятые слоты на этот день у этого мастера
+    const dayBookings = bookings.filter(b => {
+      if (b.date !== dateStr) return false;
+      if (selectedMaster && b.master_id !== selectedMaster.id) return false;
+      return true;
+    });
+
+    let availableCount = 0;
+    const step = 30;
+    const duration = totalDuration || 60;
+
+    for (let mins = openMins; mins + duration <= closeMins; mins += step) {
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      const slotStart = mins;
+      const slotEnd = mins + duration;
+
+      // Проверяем пересечение с бронями
+      const isOverlapping = dayBookings.some(b => {
+        const [bh, bm] = b.time.split(':').map(Number);
+        const bookingStart = bh * 60 + bm;
+        const bookingDuration = b.duration || 60;
+        const bookingEnd = bookingStart + bookingDuration;
+        return (slotStart < bookingEnd && slotEnd > bookingStart);
+      });
+
+      if (!isOverlapping) {
+        availableCount++;
+      }
+    }
+
+    return availableCount;
+  };
+
+  // Генерация слотов времени
   const generateTimeSlots = () => {
     if (!selectedDate) return [];
 
     const dayNames = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
     const date = new Date(selectedDate);
     const dayName = dayNames[date.getDay()];
-    const wh = workingHours.find(h => h.day === dayName);
+    const wh = getWorkingHours().find(h => h.day === dayName);
 
     if (!wh?.is_working) return [];
 
@@ -628,82 +874,164 @@ function QuickBookingModal({ salonId, services, masters, bookings, workingHours,
     const openMins = openH * 60 + openM;
     const closeMins = closeH * 60 + closeM;
 
-    // Получаем занятые слоты на этот день
-    const dayBookings = bookings.filter(b => b.date === selectedDate);
+    const dayBookings = bookings.filter(b => {
+      if (b.date !== selectedDate) return false;
+      if (selectedMaster && b.master_id !== selectedMaster.id) return false;
+      return true;
+    });
 
-    const slots: { time: string; available: boolean }[] = [];
-    const step = 30; // Шаг 30 минут
+    const slots: { time: string; endTime: string; available: boolean }[] = [];
+    const step = 30;
+    const duration = totalDuration || 60;
 
-    for (let mins = openMins; mins < closeMins; mins += step) {
+    for (let mins = openMins; mins + duration <= closeMins; mins += step) {
       const h = Math.floor(mins / 60);
       const m = mins % 60;
       const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
 
-      // Проверяем занятость
-      const isBooked = dayBookings.some(b => {
+      const endMins = mins + duration;
+      const endH = Math.floor(endMins / 60);
+      const endM = endMins % 60;
+      const endTimeStr = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+
+      const slotStart = mins;
+      const slotEnd = mins + duration;
+
+      const isOverlapping = dayBookings.some(b => {
         const [bh, bm] = b.time.split(':').map(Number);
         const bookingStart = bh * 60 + bm;
-        const duration = selectedService?.duration || 60;
-        const bookingEnd = bookingStart + duration;
-        const slotEnd = mins + (selectedService?.duration || 30);
-
-        // Проверка пересечения
-        return (mins < bookingEnd && slotEnd > bookingStart);
+        const bookingDuration = b.duration || 60;
+        const bookingEnd = bookingStart + bookingDuration;
+        return (slotStart < bookingEnd && slotEnd > bookingStart);
       });
 
-      // Проверка что слот + длительность услуги не выходит за рамки
-      const slotEnd = mins + (selectedService?.duration || 30);
-      const fitsInSchedule = slotEnd <= closeMins;
-
-      slots.push({ time: timeStr, available: !isBooked && fitsInSchedule });
+      slots.push({ time: timeStr, endTime: endTimeStr, available: !isOverlapping });
     }
 
     return slots;
   };
 
+  // Генерация календаря
+  const generateCalendarDays = () => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDayOfWeek = (firstDay.getDay() + 6) % 7;
+
+    const days: (Date | null)[] = [];
+    for (let i = 0; i < startDayOfWeek; i++) {
+      days.push(null);
+    }
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+      days.push(new Date(year, month, d));
+    }
+    return days;
+  };
+
   const timeSlots = generateTimeSlots();
   const calendarDays = generateCalendarDays();
 
-  const handleDateClick = (date: Date) => {
-    if (isPastDate(date) || !isWorkingDay(date)) return;
-    setSelectedDate(date.toISOString().split('T')[0]);
-    setSelectedTime('');
-    setStep('time');
+  // Фильтрация клиентов
+  const filteredClients = clients.filter(c =>
+    c.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
+    c.phone.includes(clientSearch)
+  );
+
+  // Навигация
+  const canGoNext = () => {
+    switch (step) {
+      case 'services': return selectedServices.length > 0;
+      case 'master': return true; // Мастер опционален
+      case 'calendar': return !!selectedDate;
+      case 'time': return !!selectedTime;
+      case 'client': return (selectedClient || (clientName && clientPhone));
+      default: return false;
+    }
   };
 
-  const handleTimeClick = (time: string) => {
-    setSelectedTime(time);
-    setStep('details');
+  const goNext = () => {
+    const steps: typeof step[] = ['services', 'master', 'calendar', 'time', 'client'];
+    const currentIndex = steps.indexOf(step);
+    if (currentIndex < steps.length - 1) {
+      setStep(steps[currentIndex + 1]);
+    }
   };
 
+  const goBack = () => {
+    const steps: typeof step[] = ['services', 'master', 'calendar', 'time', 'client'];
+    const currentIndex = steps.indexOf(step);
+    if (currentIndex > 0) {
+      setStep(steps[currentIndex - 1]);
+    }
+  };
+
+  // Отправка
   const handleSubmit = async () => {
-    if (!clientName || !clientPhone || !selectedDate || !selectedTime) return;
+    const name = selectedClient?.name || clientName;
+    const phone = selectedClient?.phone || clientPhone;
+
+    if (!name || !phone || !selectedDate || !selectedTime) return;
 
     setSaving(true);
 
+    // Если новый клиент - создаём его
+    let clientId = selectedClient?.id;
+    if (!clientId && isNewClient) {
+      const { data: newClient } = await supabase
+        .from('clients')
+        .insert({
+          salon_id: salonId,
+          name: clientName,
+          phone: clientPhone,
+          visits_count: 0,
+          total_spent: 0,
+        })
+        .select()
+        .single();
+
+      if (newClient) {
+        clientId = newClient.id;
+      }
+    }
+
     // Расчёт времени окончания
     const [h, m] = selectedTime.split(':').map(Number);
-    const endMins = h * 60 + m + (selectedService?.duration || 60);
+    const endMins = h * 60 + m + totalDuration;
     const endH = Math.floor(endMins / 60);
     const endM = endMins % 60;
     const timeEnd = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
 
     await supabase.from('bookings').insert({
       salon_id: salonId,
-      client_name: clientName,
-      client_phone: clientPhone,
-      client_email: '',
+      client_id: clientId,
+      client_name: name,
+      client_phone: phone,
+      client_email: selectedClient?.email || '',
       date: selectedDate,
       time: selectedTime,
       time_end: timeEnd,
-      duration: selectedService?.duration || 60,
-      service_id: selectedService?.id || null,
-      service_name: selectedService?.name || '',
+      duration: totalDuration,
+      services: selectedServices.map(s => ({ id: s.id, name: s.name, duration: s.duration, price: s.price })),
+      service_id: selectedServices[0]?.id || null,
+      service_name: selectedServices.map(s => s.name).join(', '),
       master_id: selectedMaster?.id || null,
       master_name: selectedMaster?.name || '',
-      price: selectedService?.price || 0,
+      price: totalPrice,
       status: 'confirmed',
     });
+
+    // Обновляем статистику клиента
+    if (clientId) {
+      await supabase
+        .from('clients')
+        .update({
+          visits_count: (selectedClient?.visits_count || 0) + 1,
+          total_spent: (selectedClient?.total_spent || 0) + totalPrice,
+          last_visit: selectedDate,
+        })
+        .eq('id', clientId);
+    }
 
     setSaving(false);
     onSave();
@@ -713,27 +1041,31 @@ function QuickBookingModal({ salonId, services, masters, bookings, workingHours,
   const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
   const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
+  const stepTitles = {
+    services: 'Выберите услуги',
+    master: 'Выберите мастера',
+    calendar: 'Выберите дату',
+    time: 'Выберите время',
+    client: 'Данные клиента',
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/50 flex items-end lg:items-center justify-center z-50">
+      <div className="bg-white w-full lg:w-full lg:max-w-lg lg:rounded-2xl rounded-t-2xl shadow-xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="p-5 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-4">
-            {step !== 'calendar' && (
+        <div className="p-4 lg:p-5 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-3">
+            {step !== 'services' && (
               <button
-                onClick={() => setStep(step === 'details' ? 'time' : 'calendar')}
-                className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                onClick={goBack}
+                className="p-2 -ml-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
               >
                 <ChevronRight className="w-5 h-5 rotate-180" />
               </button>
             )}
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Новая запись</h2>
-              <p className="text-sm text-gray-500 mt-0.5">
-                {step === 'calendar' && 'Выберите дату'}
-                {step === 'time' && `Выберите время на ${new Date(selectedDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}`}
-                {step === 'details' && 'Данные клиента'}
-              </p>
+              <p className="text-sm text-gray-500">{stepTitles[step]}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
@@ -742,34 +1074,142 @@ function QuickBookingModal({ salonId, services, masters, bookings, workingHours,
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-5">
-          {/* Шаг 1: Выбор услуги (всегда видно сверху) */}
-          {step === 'calendar' && (
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Выберите услугу</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {services.map(s => (
+        <div className="flex-1 overflow-y-auto p-4 lg:p-5">
+
+          {/* STEP 1: Услуги по категориям (Accordion) */}
+          {step === 'services' && (
+            <div className="space-y-2">
+              {categoryNames.map(cat => (
+                <div key={cat} className="border border-gray-200 rounded-xl overflow-hidden">
                   <button
-                    key={s.id}
-                    onClick={() => setSelectedService(s)}
-                    className={`p-3 rounded-xl border text-left transition-all ${
-                      selectedService?.id === s.id
-                        ? 'border-violet-500 bg-violet-50 ring-2 ring-violet-500/20'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
+                    onClick={() => toggleCategory(cat)}
+                    className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
                   >
-                    <p className="font-medium text-gray-900 text-sm">{s.name}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{s.duration} мин • {s.price} ₴</p>
+                    <div className="flex items-center gap-3">
+                      <span className="font-medium text-gray-900">{cat}</span>
+                      <span className="text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
+                        {servicesByCategory[cat].length}
+                      </span>
+                    </div>
+                    {expandedCategories.includes(cat) ? (
+                      <ChevronUp className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                    )}
                   </button>
-                ))}
-              </div>
+
+                  {expandedCategories.includes(cat) && (
+                    <div className="divide-y divide-gray-100">
+                      {servicesByCategory[cat].map(service => {
+                        const isSelected = selectedServices.find(s => s.id === service.id);
+                        return (
+                          <button
+                            key={service.id}
+                            onClick={() => toggleService(service)}
+                            className={`w-full p-4 text-left transition-all ${
+                              isSelected ? 'bg-violet-50' : 'hover:bg-gray-50'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1 min-w-0">
+                                <p className={`font-medium ${isSelected ? 'text-violet-900' : 'text-gray-900'}`}>
+                                  {service.name}
+                                </p>
+                                <p className="text-sm text-gray-500 mt-0.5">
+                                  {service.duration} мин
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className={`font-semibold ${isSelected ? 'text-violet-600' : 'text-gray-900'}`}>
+                                  {service.price} ₴
+                                </span>
+                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                                  isSelected
+                                    ? 'bg-violet-600 border-violet-600'
+                                    : 'border-gray-300'
+                                }`}>
+                                  {isSelected && <Check className="w-4 h-4 text-white" />}
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {selectedServices.length > 0 && (
+                <div className="mt-4 p-4 bg-violet-50 rounded-xl">
+                  <p className="text-sm font-medium text-violet-900 mb-2">
+                    Выбрано: {selectedServices.length} {selectedServices.length === 1 ? 'услуга' : 'услуги'}
+                  </p>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-violet-600">Общее время: {totalDuration} мин</span>
+                    <span className="font-semibold text-violet-900">{totalPrice} ₴</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Шаг 1: Календарь */}
+          {/* STEP 2: Выбор мастера */}
+          {step === 'master' && (
+            <div className="space-y-3">
+              <button
+                onClick={() => setSelectedMaster(null)}
+                className={`w-full p-4 rounded-xl border text-left transition-all ${
+                  !selectedMaster
+                    ? 'border-violet-500 bg-violet-50 ring-2 ring-violet-500/20'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <p className="font-medium text-gray-900">Любой свободный мастер</p>
+                <p className="text-sm text-gray-500 mt-0.5">Система подберёт доступного мастера</p>
+              </button>
+
+              {masters.map(master => (
+                <button
+                  key={master.id}
+                  onClick={() => setSelectedMaster(master)}
+                  className={`w-full p-4 rounded-xl border text-left transition-all ${
+                    selectedMaster?.id === master.id
+                      ? 'border-violet-500 bg-violet-50 ring-2 ring-violet-500/20'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {master.photo_url ? (
+                        <img src={master.photo_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <Users className="w-5 h-5 text-gray-400" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{master.name}</p>
+                      <p className="text-sm text-gray-500">{master.position || 'Мастер'}</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* STEP 3: Календарь с количеством слотов */}
           {step === 'calendar' && (
             <div>
-              {/* Навигация по месяцам */}
+              {/* Сводка */}
+              <div className="mb-4 p-3 bg-gray-50 rounded-xl text-sm">
+                <p className="text-gray-600">
+                  <span className="font-medium text-gray-900">{selectedServices.length} {selectedServices.length === 1 ? 'услуга' : 'услуги'}</span>
+                  {' • '}{totalDuration} мин{' • '}
+                  {selectedMaster ? selectedMaster.name : 'Любой мастер'}
+                </p>
+              </div>
+
+              {/* Навигация */}
               <div className="flex items-center justify-between mb-4">
                 <button
                   onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
@@ -791,9 +1231,7 @@ function QuickBookingModal({ salonId, services, masters, bookings, workingHours,
               {/* Дни недели */}
               <div className="grid grid-cols-7 gap-1 mb-2">
                 {dayNames.map(d => (
-                  <div key={d} className="text-center text-xs font-medium text-gray-500 py-2">
-                    {d}
-                  </div>
+                  <div key={d} className="text-center text-xs font-medium text-gray-500 py-2">{d}</div>
                 ))}
               </div>
 
@@ -804,90 +1242,92 @@ function QuickBookingModal({ salonId, services, masters, bookings, workingHours,
                     return <div key={i} className="aspect-square" />;
                   }
 
+                  const dateStr = date.toISOString().split('T')[0];
                   const isToday = date.toDateString() === new Date().toDateString();
                   const isPast = isPastDate(date);
                   const isWorking = isWorkingDay(date);
-                  const isSelected = date.toISOString().split('T')[0] === selectedDate;
-                  const isDisabled = isPast || !isWorking;
+                  const isSelected = dateStr === selectedDate;
+                  const availableSlots = !isPast && isWorking ? getAvailableSlots(dateStr) : 0;
+                  const isDisabled = isPast || !isWorking || availableSlots === 0;
 
                   return (
                     <button
                       key={i}
-                      onClick={() => handleDateClick(date)}
+                      onClick={() => !isDisabled && setSelectedDate(dateStr)}
                       disabled={isDisabled}
-                      className={`aspect-square rounded-xl flex items-center justify-center text-sm font-medium transition-all ${
+                      className={`aspect-square rounded-xl flex flex-col items-center justify-center text-sm transition-all relative ${
                         isSelected
                           ? 'bg-violet-600 text-white'
-                          : isToday
+                          : isToday && !isDisabled
                           ? 'bg-violet-100 text-violet-700 hover:bg-violet-200'
                           : isDisabled
                           ? 'text-gray-300 cursor-not-allowed'
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
                     >
-                      {date.getDate()}
+                      <span className="font-medium">{date.getDate()}</span>
+                      {!isDisabled && availableSlots > 0 && (
+                        <span className={`text-[10px] ${isSelected ? 'text-violet-200' : 'text-gray-400'}`}>
+                          {availableSlots}
+                        </span>
+                      )}
+                      {isDisabled && !isPast && isWorking && (
+                        <span className="text-[10px] text-gray-400">0</span>
+                      )}
                     </button>
                   );
                 })}
               </div>
 
               {/* Легенда */}
-              <div className="mt-4 flex items-center gap-4 text-xs text-gray-500">
+              <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-gray-500">
                 <span className="flex items-center gap-1.5">
                   <span className="w-3 h-3 rounded bg-violet-100"></span>
                   Сегодня
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded bg-gray-100"></span>
-                  Выходной
+                  <span className="w-3 h-3 rounded bg-gray-200"></span>
+                  Нет мест
                 </span>
+                <span className="text-gray-400">Цифра = кол-во слотов</span>
               </div>
             </div>
           )}
 
-          {/* Шаг 2: Выбор времени */}
+          {/* STEP 4: Выбор времени */}
           {step === 'time' && (
             <div>
-              {/* Выбранная услуга */}
-              {selectedService && (
-                <div className="mb-4 p-3 bg-violet-50 rounded-xl">
-                  <p className="text-sm font-medium text-violet-900">{selectedService.name}</p>
-                  <p className="text-xs text-violet-600">{selectedService.duration} мин • {selectedService.price} ₴</p>
-                </div>
-              )}
-
-              {/* Выбор мастера */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Мастер</label>
-                <select
-                  value={selectedMaster?.id || ''}
-                  onChange={(e) => setSelectedMaster(masters.find(m => m.id === e.target.value) || null)}
-                  className="form-select text-sm"
-                >
-                  <option value="">Любой свободный</option>
-                  {masters.map(m => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
+              {/* Сводка */}
+              <div className="mb-4 p-3 bg-gray-50 rounded-xl text-sm">
+                <p className="text-gray-900 font-medium">
+                  {new Date(selectedDate).toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}
+                </p>
+                <p className="text-gray-500 mt-0.5">
+                  {totalDuration} мин • {selectedMaster?.name || 'Любой мастер'}
+                </p>
               </div>
 
-              {/* Временные слоты */}
-              <label className="block text-sm font-medium text-gray-700 mb-2">Свободное время</label>
-              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+              {/* Слоты времени */}
+              <div className="grid grid-cols-2 gap-2">
                 {timeSlots.map(slot => (
                   <button
                     key={slot.time}
-                    onClick={() => slot.available && handleTimeClick(slot.time)}
+                    onClick={() => slot.available && setSelectedTime(slot.time)}
                     disabled={!slot.available}
-                    className={`py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
+                    className={`p-3 rounded-xl text-left transition-all ${
                       selectedTime === slot.time
                         ? 'bg-violet-600 text-white'
                         : slot.available
-                        ? 'bg-gray-100 text-gray-700 hover:bg-violet-100 hover:text-violet-700'
-                        : 'bg-gray-50 text-gray-300 cursor-not-allowed line-through'
+                        ? 'bg-gray-50 hover:bg-violet-50 border border-gray-200 hover:border-violet-300'
+                        : 'bg-gray-100 text-gray-300 cursor-not-allowed line-through'
                     }`}
                   >
-                    {slot.time}
+                    <p className={`font-semibold ${selectedTime === slot.time ? 'text-white' : slot.available ? 'text-gray-900' : 'text-gray-400'}`}>
+                      {slot.time}
+                    </p>
+                    <p className={`text-xs ${selectedTime === slot.time ? 'text-violet-200' : 'text-gray-500'}`}>
+                      до {slot.endTime}
+                    </p>
                   </button>
                 ))}
               </div>
@@ -895,75 +1335,150 @@ function QuickBookingModal({ salonId, services, masters, bookings, workingHours,
               {timeSlots.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   <Clock className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                  <p>Нет доступного времени на этот день</p>
+                  <p>Нет доступного времени</p>
                 </div>
               )}
             </div>
           )}
 
-          {/* Шаг 3: Данные клиента */}
-          {step === 'details' && (
-            <div className="space-y-5">
-              {/* Сводка */}
-              <div className="p-4 bg-gray-50 rounded-xl space-y-2">
-                <div className="flex justify-between text-sm">
+          {/* STEP 5: Клиент */}
+          {step === 'client' && (
+            <div className="space-y-4">
+              {/* Сводка записи */}
+              <div className="p-4 bg-gray-50 rounded-xl space-y-2 text-sm">
+                <div className="flex justify-between">
                   <span className="text-gray-500">Дата</span>
                   <span className="font-medium text-gray-900">
                     {new Date(selectedDate).toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'long' })}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between">
                   <span className="text-gray-500">Время</span>
                   <span className="font-medium text-gray-900">{selectedTime}</span>
                 </div>
-                {selectedService && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Услуга</span>
-                    <span className="font-medium text-gray-900">{selectedService.name} • {selectedService.price} ₴</span>
-                  </div>
-                )}
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Услуги</span>
+                  <span className="font-medium text-gray-900 text-right max-w-[60%]">
+                    {selectedServices.map(s => s.name).join(', ')}
+                  </span>
+                </div>
                 {selectedMaster && (
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between">
                     <span className="text-gray-500">Мастер</span>
                     <span className="font-medium text-gray-900">{selectedMaster.name}</span>
                   </div>
                 )}
+                <div className="flex justify-between pt-2 border-t border-gray-200">
+                  <span className="font-medium text-gray-900">Итого</span>
+                  <span className="font-bold text-violet-600">{totalPrice} ₴</span>
+                </div>
               </div>
 
-              {/* Форма клиента */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Имя клиента *</label>
-                  <input
-                    type="text"
-                    value={clientName}
-                    onChange={(e) => setClientName(e.target.value)}
-                    className="form-input"
-                    placeholder="Введите имя"
-                    autoFocus
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Телефон *</label>
-                  <input
-                    type="tel"
-                    value={clientPhone}
-                    onChange={(e) => setClientPhone(e.target.value)}
-                    className="form-input"
-                    placeholder="+380 XX XXX XX XX"
-                  />
-                </div>
-              </div>
+              {/* Выбор из базы или новый */}
+              {!isNewClient ? (
+                <>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Поиск клиента..."
+                      value={clientSearch}
+                      onChange={(e) => setClientSearch(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-violet-500"
+                    />
+                  </div>
+
+                  <div className="max-h-48 overflow-y-auto space-y-2">
+                    {filteredClients.slice(0, 10).map(client => (
+                      <button
+                        key={client.id}
+                        onClick={() => setSelectedClient(client)}
+                        className={`w-full p-3 rounded-xl border text-left transition-all ${
+                          selectedClient?.id === client.id
+                            ? 'border-violet-500 bg-violet-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-gray-900">{client.name}</p>
+                            <p className="text-sm text-gray-500">{client.visits_count} визитов</p>
+                          </div>
+                          {selectedClient?.id === client.id && (
+                            <a
+                              href={`tel:${client.phone}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"
+                            >
+                              <PhoneCall className="w-4 h-4" />
+                            </a>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => setIsNewClient(true)}
+                    className="w-full p-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-violet-400 hover:text-violet-600 transition-colors"
+                  >
+                    <Plus className="w-4 h-4 inline mr-2" />
+                    Новый клиент
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setIsNewClient(false)}
+                    className="text-sm text-violet-600 hover:text-violet-700 font-medium"
+                  >
+                    ← Выбрать из базы
+                  </button>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Имя *</label>
+                      <input
+                        type="text"
+                        value={clientName}
+                        onChange={(e) => setClientName(e.target.value)}
+                        className="form-input"
+                        placeholder="Введите имя"
+                        autoFocus
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Телефон *</label>
+                      <input
+                        type="tel"
+                        value={clientPhone}
+                        onChange={(e) => setClientPhone(e.target.value)}
+                        className="form-input"
+                        placeholder="+380 XX XXX XX XX"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        {step === 'details' && (
-          <div className="p-5 border-t border-gray-100 flex-shrink-0">
+        <div className="p-4 lg:p-5 border-t border-gray-100 flex-shrink-0 safe-area-bottom">
+          {step !== 'client' ? (
+            <Button
+              onClick={goNext}
+              disabled={!canGoNext()}
+              className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl h-12 disabled:opacity-50"
+            >
+              Далее
+              <ChevronRight className="w-5 h-5 ml-2" />
+            </Button>
+          ) : (
             <Button
               onClick={handleSubmit}
-              disabled={saving || !clientName || !clientPhone}
+              disabled={saving || (!selectedClient && (!clientName || !clientPhone))}
               className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl h-12 disabled:opacity-50"
             >
               {saving ? (
@@ -975,8 +1490,8 @@ function QuickBookingModal({ salonId, services, masters, bookings, workingHours,
                 </>
               )}
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
@@ -984,10 +1499,24 @@ function QuickBookingModal({ salonId, services, masters, bookings, workingHours,
 
 // ===================== SERVICES TAB =====================
 
-function ServicesTab({ services, salonId, onReload }: { services: ServiceData[]; salonId: string; onReload: () => void }) {
+function ServicesTab({ services, categories, salonId, onReload }: {
+  services: ServiceData[];
+  categories: CategoryData[];
+  salonId: string;
+  onReload: () => void
+}) {
   const [showModal, setShowModal] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingService, setEditingService] = useState<ServiceData | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+
+  // Группировка по категориям
+  const servicesByCategory = services.reduce((acc, service) => {
+    const cat = service.category || 'Без категории';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(service);
+    return acc;
+  }, {} as Record<string, ServiceData[]>);
 
   const handleEdit = (service: ServiceData) => {
     setEditingService(service);
@@ -1015,46 +1544,62 @@ function ServicesTab({ services, salonId, onReload }: { services: ServiceData[];
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">{services.length} услуг</p>
-        <Button onClick={() => { setEditingService(null); setShowModal(true); }} className="bg-violet-600 hover:bg-violet-700 text-white rounded-lg">
-          <Plus className="w-4 h-4 mr-2" />
-          Добавить услугу
-        </Button>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <p className="text-sm text-gray-500">{services.length} услуг в {Object.keys(servicesByCategory).length} категориях</p>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowCategoryModal(true)}
+            className="rounded-lg"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Категория
+          </Button>
+          <Button
+            onClick={() => { setEditingService(null); setShowModal(true); }}
+            className="bg-violet-600 hover:bg-violet-700 text-white rounded-lg"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Услуга
+          </Button>
+        </div>
       </div>
 
-      {services.length > 0 ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {services.map(service => (
-            <div key={service.id} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 bg-violet-100 rounded-lg flex items-center justify-center">
-                  <Scissors className="w-5 h-5 text-violet-600" />
+      {Object.entries(servicesByCategory).map(([category, categoryServices]) => (
+        <div key={category} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+            <h3 className="font-semibold text-gray-900">{category}</h3>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {categoryServices.map(service => (
+              <div key={service.id} className="p-4 flex items-center justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-gray-900 truncate">{service.name}</p>
+                  <p className="text-sm text-gray-500">{service.duration} мин • {service.price} ₴</p>
                 </div>
-                <div className="flex items-center gap-1">
-                  <button onClick={() => handleEdit(service)} className="p-1.5 text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg">
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    onClick={() => handleEdit(service)}
+                    className="p-2 text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg"
+                  >
                     <Edit className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(service.id)}
                     disabled={deleting === service.id}
-                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
                   >
                     {deleting === service.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
-              <h3 className="font-semibold text-gray-900 mb-1">{service.name}</h3>
-              <p className="text-sm text-gray-500 mb-3 line-clamp-2">{service.description || 'Без описания'}</p>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">{service.duration} мин</span>
-                <span className="font-semibold text-gray-900">{service.price} ₴</span>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+      ))}
+
+      {services.length === 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-8 lg:p-12 text-center">
           <Scissors className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500 mb-4">Услуги ещё не добавлены</p>
           <Button onClick={() => setShowModal(true)} className="bg-violet-600 hover:bg-violet-700 text-white rounded-lg">
@@ -1067,22 +1612,36 @@ function ServicesTab({ services, salonId, onReload }: { services: ServiceData[];
       {showModal && (
         <ServiceModal
           service={editingService}
+          categories={Object.keys(servicesByCategory)}
           onClose={() => { setShowModal(false); setEditingService(null); }}
           onSave={handleSave}
+        />
+      )}
+
+      {showCategoryModal && (
+        <CategoryModal
+          salonId={salonId}
+          onClose={() => setShowCategoryModal(false)}
+          onSave={onReload}
         />
       )}
     </div>
   );
 }
 
-function ServiceModal({ service, onClose, onSave }: { service: ServiceData | null; onClose: () => void; onSave: (data: Partial<ServiceData>) => void }) {
+function ServiceModal({ service, categories, onClose, onSave }: {
+  service: ServiceData | null;
+  categories: string[];
+  onClose: () => void;
+  onSave: (data: Partial<ServiceData>) => void
+}) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: service?.name || '',
     description: service?.description || '',
     price: service?.price || 0,
     duration: service?.duration || 30,
-    category: service?.category || '',
+    category: service?.category || categories[0] || '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1093,15 +1652,15 @@ function ServiceModal({ service, onClose, onSave }: { service: ServiceData | nul
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg">
-        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">{service ? 'Редактировать услугу' : 'Новая услуга'}</h2>
+    <div className="fixed inset-0 bg-black/50 flex items-end lg:items-center justify-center z-50">
+      <div className="bg-white w-full lg:w-full lg:max-w-lg lg:rounded-2xl rounded-t-2xl max-h-[90vh] overflow-y-auto">
+        <div className="p-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white">
+          <h2 className="text-lg font-semibold text-gray-900">{service ? 'Редактировать' : 'Новая услуга'}</h2>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
             <X className="w-5 h-5" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Название</label>
             <input
@@ -1114,14 +1673,18 @@ function ServiceModal({ service, onClose, onSave }: { service: ServiceData | nul
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Описание</label>
-            <textarea
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              rows={3}
-              className="form-input resize-none"
-              placeholder="Краткое описание услуги"
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Категория</label>
+            <input
+              type="text"
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+              className="form-input"
+              placeholder="Например: Стрижки"
+              list="categories"
             />
+            <datalist id="categories">
+              {categories.map(c => <option key={c} value={c} />)}
+            </datalist>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -1136,31 +1699,22 @@ function ServiceModal({ service, onClose, onSave }: { service: ServiceData | nul
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Длительность (мин)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Длительность</label>
               <select
                 value={form.duration}
                 onChange={(e) => setForm({ ...form, duration: Number(e.target.value) })}
-                className="form-input"
+                className="form-select"
               >
-                <option value={15}>15 минут</option>
-                <option value={30}>30 минут</option>
-                <option value={45}>45 минут</option>
+                <option value={15}>15 мин</option>
+                <option value={30}>30 мин</option>
+                <option value={45}>45 мин</option>
                 <option value={60}>1 час</option>
                 <option value={90}>1.5 часа</option>
                 <option value={120}>2 часа</option>
                 <option value={180}>3 часа</option>
+                <option value={240}>4 часа</option>
               </select>
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Категория</label>
-            <input
-              type="text"
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-              className="form-input"
-              placeholder="Например: Стрижки"
-            />
           </div>
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="outline" onClick={onClose} className="flex-1 rounded-xl">
@@ -1176,9 +1730,55 @@ function ServiceModal({ service, onClose, onSave }: { service: ServiceData | nul
   );
 }
 
+function CategoryModal({ salonId, onClose, onSave }: { salonId: string; onClose: () => void; onSave: () => void }) {
+  const [saving, setSaving] = useState(false);
+  const [name, setName] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    await supabase.from('service_categories').insert({ salon_id: salonId, name });
+    setSaving(false);
+    onSave();
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-sm">
+        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">Новая категория</h2>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            className="form-input"
+            placeholder="Название категории"
+            autoFocus
+          />
+          <Button type="submit" disabled={saving} className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Создать'}
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ===================== TEAM TAB =====================
 
-function TeamTab({ masters, salonId, onReload }: { masters: MasterData[]; salonId: string; onReload: () => void }) {
+function TeamTab({ masters, services, salonId, onReload }: {
+  masters: MasterData[];
+  services: ServiceData[];
+  salonId: string;
+  onReload: () => void
+}) {
   const [showModal, setShowModal] = useState(false);
   const [editingMaster, setEditingMaster] = useState<MasterData | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -1213,25 +1813,25 @@ function TeamTab({ masters, salonId, onReload }: { masters: MasterData[]; salonI
         <p className="text-sm text-gray-500">{masters.length} мастеров</p>
         <Button onClick={() => { setEditingMaster(null); setShowModal(true); }} className="bg-violet-600 hover:bg-violet-700 text-white rounded-lg">
           <Plus className="w-4 h-4 mr-2" />
-          Добавить мастера
+          Добавить
         </Button>
       </div>
 
       {masters.length > 0 ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {masters.map(master => (
-            <div key={master.id} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
+            <div key={master.id} className="bg-white rounded-xl border border-gray-200 p-4 lg:p-5">
               <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
                     {master.photo_url ? (
                       <img src={master.photo_url} alt={master.name} className="w-full h-full object-cover" />
                     ) : (
-                      <Users className="w-6 h-6 text-gray-400" />
+                      <Users className="w-5 h-5 text-gray-400" />
                     )}
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{master.name}</h3>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-gray-900 truncate">{master.name}</h3>
                     <p className="text-sm text-gray-500">{master.position || 'Мастер'}</p>
                   </div>
                 </div>
@@ -1250,19 +1850,19 @@ function TeamTab({ masters, salonId, onReload }: { masters: MasterData[]; salonI
               </div>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2 text-gray-500">
-                  <Phone className="w-4 h-4" />
-                  <span>{master.phone || 'Не указан'}</span>
+                  <Phone className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate">{master.phone || 'Не указан'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-500">
-                  <Mail className="w-4 h-4" />
-                  <span>{master.email || 'Не указан'}</span>
+                  <Mail className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate">{master.email || 'Не указан'}</span>
                 </div>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+        <div className="bg-white rounded-xl border border-gray-200 p-8 lg:p-12 text-center">
           <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500 mb-4">Мастера ещё не добавлены</p>
           <Button onClick={() => setShowModal(true)} className="bg-violet-600 hover:bg-violet-700 text-white rounded-lg">
@@ -1275,6 +1875,7 @@ function TeamTab({ masters, salonId, onReload }: { masters: MasterData[]; salonI
       {showModal && (
         <MasterModal
           master={editingMaster}
+          services={services}
           onClose={() => { setShowModal(false); setEditingMaster(null); }}
           onSave={handleSave}
         />
@@ -1283,7 +1884,12 @@ function TeamTab({ masters, salonId, onReload }: { masters: MasterData[]; salonI
   );
 }
 
-function MasterModal({ master, onClose, onSave }: { master: MasterData | null; onClose: () => void; onSave: (data: Partial<MasterData>) => void }) {
+function MasterModal({ master, services, onClose, onSave }: {
+  master: MasterData | null;
+  services: ServiceData[];
+  onClose: () => void;
+  onSave: (data: Partial<MasterData>) => void
+}) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: master?.name || '',
@@ -1301,15 +1907,15 @@ function MasterModal({ master, onClose, onSave }: { master: MasterData | null; o
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg">
-        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">{master ? 'Редактировать мастера' : 'Новый мастер'}</h2>
+    <div className="fixed inset-0 bg-black/50 flex items-end lg:items-center justify-center z-50">
+      <div className="bg-white w-full lg:w-full lg:max-w-lg lg:rounded-2xl rounded-t-2xl max-h-[90vh] overflow-y-auto">
+        <div className="p-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white">
+          <h2 className="text-lg font-semibold text-gray-900">{master ? 'Редактировать' : 'Новый мастер'}</h2>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
             <X className="w-5 h-5" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Имя</label>
             <input
@@ -1367,6 +1973,280 @@ function MasterModal({ master, onClose, onSave }: { master: MasterData | null; o
   );
 }
 
+// ===================== CLIENTS TAB =====================
+
+function ClientsTab({ clients, salonId, onReload }: {
+  clients: ClientData[];
+  salonId: string;
+  onReload: () => void;
+}) {
+  const [search, setSearch] = useState('');
+
+  const filteredClients = clients.filter(c =>
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    c.phone.includes(search)
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-xl border border-gray-200 p-3 lg:p-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Поиск по имени или телефону..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-violet-500"
+          />
+        </div>
+      </div>
+
+      {filteredClients.length > 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+          {filteredClients.map(client => (
+            <div key={client.id} className="p-4 flex items-center justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-gray-900">{client.name}</p>
+                <p className="text-sm text-gray-500">
+                  {client.visits_count} визитов • {client.total_spent} ₴
+                </p>
+              </div>
+              <a
+                href={`tel:${client.phone}`}
+                className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 flex-shrink-0"
+              >
+                <PhoneCall className="w-4 h-4" />
+              </a>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl border border-gray-200 p-8 lg:p-12 text-center">
+          <UserCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-500">
+            {search ? 'Клиенты не найдены' : 'База клиентов пока пуста'}
+          </p>
+          <p className="text-sm text-gray-400 mt-2">
+            Клиенты добавляются автоматически при создании записи
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ===================== SCHEDULE TAB =====================
+
+function ScheduleTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates: Partial<SalonData>) => void }) {
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [schedule, setSchedule] = useState<WorkingHour[]>(
+    salon.working_hours?.length ? salon.working_hours : [
+      { day: 'Понедельник', is_working: true, open: '09:00', close: '20:00' },
+      { day: 'Вторник', is_working: true, open: '09:00', close: '20:00' },
+      { day: 'Среда', is_working: true, open: '09:00', close: '20:00' },
+      { day: 'Четверг', is_working: true, open: '09:00', close: '20:00' },
+      { day: 'Пятница', is_working: true, open: '09:00', close: '20:00' },
+      { day: 'Суббота', is_working: true, open: '10:00', close: '18:00' },
+      { day: 'Воскресенье', is_working: false, open: '10:00', close: '18:00' },
+    ]
+  );
+
+  const timeOptions: string[] = [];
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      const time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+      timeOptions.push(time);
+    }
+  }
+
+  const updateDay = (index: number, updates: Partial<WorkingHour>) => {
+    const newSchedule = [...schedule];
+    newSchedule[index] = { ...newSchedule[index], ...updates };
+    setSchedule(newSchedule);
+    setSaved(false);
+  };
+
+  const getInvalidDays = () => {
+    return schedule
+      .map((day, index) => {
+        if (!day.is_working) return null;
+        const [openH, openM] = day.open.split(':').map(Number);
+        const [closeH, closeM] = day.close.split(':').map(Number);
+        const openMins = openH * 60 + openM;
+        const closeMins = closeH * 60 + closeM;
+        if (closeMins <= openMins) {
+          return { index, day: day.day };
+        }
+        return null;
+      })
+      .filter(Boolean) as { index: number; day: string }[];
+  };
+
+  const invalidDays = getInvalidDays();
+  const hasErrors = invalidDays.length > 0;
+
+  const handleSave = async () => {
+    if (hasErrors) return;
+
+    setSaving(true);
+    const { error } = await supabase
+      .from('salons')
+      .update({ working_hours: schedule, updated_at: new Date().toISOString() })
+      .eq('id', salon.id);
+
+    if (!error) {
+      onUpdate({ working_hours: schedule });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    }
+    setSaving(false);
+  };
+
+  const applyPreset = (type: 'weekdays' | 'everyday') => {
+    let newSchedule: WorkingHour[];
+
+    if (type === 'weekdays') {
+      newSchedule = schedule.map((day, i) => ({
+        ...day,
+        is_working: i < 5,
+        open: '09:00',
+        close: '18:00',
+      }));
+    } else {
+      newSchedule = schedule.map(day => ({
+        ...day,
+        is_working: true,
+        open: '10:00',
+        close: '22:00',
+      }));
+    }
+
+    setSchedule(newSchedule);
+    setSaved(false);
+  };
+
+  return (
+    <div className="max-w-2xl space-y-4">
+      {/* Пресеты */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <p className="text-sm font-medium text-gray-700 mb-3">Быстрые настройки</p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => applyPreset('weekdays')}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+          >
+            Пн-Пт (9:00-18:00)
+          </button>
+          <button
+            onClick={() => applyPreset('everyday')}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+          >
+            Каждый день (10:00-22:00)
+          </button>
+        </div>
+      </div>
+
+      {/* Расписание */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 lg:p-6">
+        <div className="flex items-center justify-between mb-4 lg:mb-6">
+          <h2 className="font-semibold text-gray-900">Часы работы</h2>
+          {saved && (
+            <span className="flex items-center gap-1 text-sm text-green-600">
+              <Check className="w-4 h-4" />
+              Сохранено
+            </span>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          {schedule.map((day, i) => {
+            const isInvalid = invalidDays.some(d => d.index === i);
+
+            return (
+              <div
+                key={day.day}
+                className={`flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-xl transition-colors ${
+                  isInvalid ? 'bg-red-50 border border-red-200' : 'hover:bg-gray-50'
+                }`}
+              >
+                {/* День + Toggle */}
+                <div className="flex items-center justify-between sm:justify-start gap-4 sm:w-40">
+                  <span className="text-sm font-medium text-gray-700">{day.day}</span>
+                  <button
+                    onClick={() => updateDay(i, { is_working: !day.is_working })}
+                    className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${
+                      day.is_working ? 'bg-violet-600' : 'bg-gray-300'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform shadow-sm ${
+                      day.is_working ? 'translate-x-5' : 'translate-x-0.5'
+                    }`} />
+                  </button>
+                </div>
+
+                {/* Время */}
+                {day.is_working ? (
+                  <div className="flex items-center gap-2 flex-1">
+                    <select
+                      value={day.open}
+                      onChange={(e) => updateDay(i, { open: e.target.value })}
+                      className="time-select flex-1 sm:flex-none"
+                    >
+                      {timeOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    <span className="text-gray-400 font-medium">—</span>
+                    <select
+                      value={day.close}
+                      onChange={(e) => updateDay(i, { close: e.target.value })}
+                      className={`time-select flex-1 sm:flex-none ${isInvalid ? 'border-red-400 bg-red-50' : ''}`}
+                    >
+                      {timeOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    {isInvalid && (
+                      <span className="text-xs text-red-600 hidden sm:inline">Ошибка</span>
+                    )}
+                  </div>
+                ) : (
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                    Выходной
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {hasErrors && (
+          <div className="mt-4 flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+            <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-red-800">Ошибка</p>
+              <p className="text-sm text-red-600 mt-1">
+                Время закрытия должно быть позже открытия: {invalidDays.map(d => d.day).join(', ')}
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-6 flex justify-end">
+          <Button
+            onClick={handleSave}
+            disabled={saving || hasErrors}
+            className={`rounded-xl px-6 ${
+              hasErrors ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-violet-600 hover:bg-violet-700 text-white'
+            }`}
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+            Сохранить
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ===================== PROFILE TAB =====================
 
 function ProfileTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates: Partial<SalonData>) => void }) {
@@ -1382,36 +2262,34 @@ function ProfileTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates:
 
   const handleSave = async () => {
     setSaving(true);
-    const { error } = await supabase
+    await supabase
       .from('salons')
       .update({ ...formData, updated_at: new Date().toISOString() })
       .eq('id', salon.id);
-
-    if (!error) {
-      onUpdate(formData);
-    }
+    onUpdate(formData);
     setSaving(false);
   };
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="font-semibold text-gray-900 mb-6">Основная информация</h2>
-        <div className="space-y-5">
-          <FormField label="Название салона">
+    <div className="max-w-2xl space-y-4 lg:space-y-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 lg:p-6">
+        <h2 className="font-semibold text-gray-900 mb-4 lg:mb-6">Основная информация</h2>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Название</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="form-input"
             />
-          </FormField>
-
-          <FormField label="Тип заведения">
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Тип</label>
             <select
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-              className="form-input"
+              className="form-select"
             >
               <option>Салон красоты</option>
               <option>Барбершоп</option>
@@ -1419,49 +2297,48 @@ function ProfileTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates:
               <option>Nail-студия</option>
               <option>SPA</option>
             </select>
-          </FormField>
-
-          <FormField label="Описание">
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Описание</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={4}
+              rows={3}
               className="form-input resize-none"
             />
-          </FormField>
+          </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="font-semibold text-gray-900 mb-6">Контакты</h2>
-        <div className="grid sm:grid-cols-2 gap-5">
-          <FormField label="Телефон">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 lg:p-6">
+        <h2 className="font-semibold text-gray-900 mb-4 lg:mb-6">Контакты</h2>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Телефон</label>
             <input
               type="tel"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               className="form-input"
             />
-          </FormField>
-
-          <FormField label="Email">
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
             <input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               className="form-input"
             />
-          </FormField>
-
+          </div>
           <div className="sm:col-span-2">
-            <FormField label="Адрес">
-              <input
-                type="text"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                className="form-input"
-              />
-            </FormField>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Адрес</label>
+            <input
+              type="text"
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              className="form-input"
+            />
           </div>
         </div>
       </div>
@@ -1473,7 +2350,7 @@ function ProfileTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates:
           className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl px-6"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-          Сохранить изменения
+          Сохранить
         </Button>
       </div>
     </div>
@@ -1494,10 +2371,7 @@ function PhotosTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates: 
     const filePath = `${path}/${fileName}`;
 
     const { error } = await supabase.storage.from('salon-media').upload(filePath, file);
-    if (error) {
-      console.error('Upload error:', error);
-      return null;
-    }
+    if (error) return null;
 
     const { data } = supabase.storage.from('salon-media').getPublicUrl(filePath);
     return data.publicUrl;
@@ -1553,12 +2427,12 @@ function PhotosTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates: 
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Logo */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 lg:p-6">
         <h2 className="font-semibold text-gray-900 mb-4">Логотип</h2>
-        <div className="flex items-center gap-6">
-          <div className="w-24 h-24 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden relative group">
+        <div className="flex items-center gap-4 lg:gap-6">
+          <div className="w-20 h-20 lg:w-24 lg:h-24 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden relative group flex-shrink-0">
             {salon.logo_url ? (
               <>
                 <img src={salon.logo_url} alt="Logo" className="w-full h-full object-cover" />
@@ -1573,13 +2447,7 @@ function PhotosTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates: 
             )}
           </div>
           <div>
-            <input
-              ref={logoInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleLogoUpload}
-              className="hidden"
-            />
+            <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
             <Button
               variant="outline"
               onClick={() => logoInputRef.current?.click()}
@@ -1587,38 +2455,26 @@ function PhotosTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates: 
               className="rounded-lg mb-2"
             >
               {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-              Загрузить логотип
+              Загрузить
             </Button>
-            <p className="text-xs text-gray-500">PNG, JPG до 2MB. Рекомендуемый размер 200x200px</p>
+            <p className="text-xs text-gray-500">PNG, JPG до 2MB</p>
           </div>
         </div>
       </div>
 
       {/* Photos */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 lg:p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-gray-900">Фотографии салона</h2>
-          <input
-            ref={photosInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handlePhotosUpload}
-            className="hidden"
-          />
-          <Button
-            variant="outline"
-            onClick={() => photosInputRef.current?.click()}
-            disabled={uploading}
-            className="rounded-lg"
-          >
+          <h2 className="font-semibold text-gray-900">Фотографии</h2>
+          <input ref={photosInputRef} type="file" accept="image/*" multiple onChange={handlePhotosUpload} className="hidden" />
+          <Button variant="outline" onClick={() => photosInputRef.current?.click()} disabled={uploading} className="rounded-lg">
             {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-            Добавить фото
+            Добавить
           </Button>
         </div>
 
         {(salon.photos || []).length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-4">
             {salon.photos.map((photo, i) => (
               <div key={i} className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative group">
                 <img src={photo} alt="" className="w-full h-full object-cover" />
@@ -1638,263 +2494,16 @@ function PhotosTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates: 
             ))}
           </div>
         ) : (
-          <div className="border-2 border-dashed border-gray-200 rounded-xl p-12 text-center">
+          <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 lg:p-12 text-center">
             <Image className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500 mb-4">Фотографии ещё не добавлены</p>
-            <Button
-              variant="outline"
-              onClick={() => photosInputRef.current?.click()}
-              disabled={uploading}
-              className="rounded-lg"
-            >
+            <Button variant="outline" onClick={() => photosInputRef.current?.click()} disabled={uploading} className="rounded-lg">
               <Upload className="w-4 h-4 mr-2" />
-              Загрузить фотографии
+              Загрузить
             </Button>
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-// ===================== SCHEDULE TAB =====================
-
-function ScheduleTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates: Partial<SalonData>) => void }) {
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [schedule, setSchedule] = useState<WorkingHour[]>(
-    salon.working_hours?.length ? salon.working_hours : [
-      { day: 'Понедельник', is_working: true, open: '09:00', close: '20:00' },
-      { day: 'Вторник', is_working: true, open: '09:00', close: '20:00' },
-      { day: 'Среда', is_working: true, open: '09:00', close: '20:00' },
-      { day: 'Четверг', is_working: true, open: '09:00', close: '20:00' },
-      { day: 'Пятница', is_working: true, open: '09:00', close: '20:00' },
-      { day: 'Суббота', is_working: true, open: '10:00', close: '18:00' },
-      { day: 'Воскресенье', is_working: false, open: '10:00', close: '18:00' },
-    ]
-  );
-
-  const timeOptions: string[] = [];
-  for (let h = 0; h < 24; h++) {
-    for (let m = 0; m < 60; m += 30) {
-      const time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-      timeOptions.push(time);
-    }
-  }
-
-  const updateDay = (index: number, updates: Partial<WorkingHour>) => {
-    const newSchedule = [...schedule];
-    newSchedule[index] = { ...newSchedule[index], ...updates };
-    setSchedule(newSchedule);
-    setSaved(false);
-  };
-
-  // Проверка валидности времени для каждого дня
-  const getInvalidDays = () => {
-    return schedule
-      .map((day, index) => {
-        if (!day.is_working) return null;
-        const [openH, openM] = day.open.split(':').map(Number);
-        const [closeH, closeM] = day.close.split(':').map(Number);
-        const openMins = openH * 60 + openM;
-        const closeMins = closeH * 60 + closeM;
-        if (closeMins <= openMins) {
-          return { index, day: day.day };
-        }
-        return null;
-      })
-      .filter(Boolean) as { index: number; day: string }[];
-  };
-
-  const invalidDays = getInvalidDays();
-  const hasErrors = invalidDays.length > 0;
-
-  const handleSave = async () => {
-    if (hasErrors) return;
-
-    setSaving(true);
-    const { error } = await supabase
-      .from('salons')
-      .update({ working_hours: schedule, updated_at: new Date().toISOString() })
-      .eq('id', salon.id);
-
-    if (!error) {
-      onUpdate({ working_hours: schedule });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    }
-    setSaving(false);
-  };
-
-  // Быстрые пресеты
-  const applyPreset = (type: 'weekdays' | 'everyday' | 'custom') => {
-    let newSchedule: WorkingHour[];
-
-    if (type === 'weekdays') {
-      newSchedule = schedule.map((day, i) => ({
-        ...day,
-        is_working: i < 5, // Пн-Пт
-        open: '09:00',
-        close: '18:00',
-      }));
-    } else if (type === 'everyday') {
-      newSchedule = schedule.map(day => ({
-        ...day,
-        is_working: true,
-        open: '10:00',
-        close: '22:00',
-      }));
-    } else {
-      return;
-    }
-
-    setSchedule(newSchedule);
-    setSaved(false);
-  };
-
-  return (
-    <div className="max-w-2xl space-y-4">
-      {/* Быстрые пресеты */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <p className="text-sm font-medium text-gray-700 mb-3">Быстрые настройки</p>
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => applyPreset('weekdays')}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-          >
-            Пн-Пт (9:00-18:00)
-          </button>
-          <button
-            onClick={() => applyPreset('everyday')}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-          >
-            Каждый день (10:00-22:00)
-          </button>
-        </div>
-      </div>
-
-      {/* Основное расписание */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="font-semibold text-gray-900">Часы работы</h2>
-          {saved && (
-            <span className="flex items-center gap-1 text-sm text-green-600">
-              <Check className="w-4 h-4" />
-              Сохранено
-            </span>
-          )}
-        </div>
-
-        <div className="space-y-3">
-          {schedule.map((day, i) => {
-            const isInvalid = invalidDays.some(d => d.index === i);
-
-            return (
-              <div
-                key={day.day}
-                className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${
-                  isInvalid ? 'bg-red-50 border border-red-200' : 'hover:bg-gray-50'
-                }`}
-              >
-                {/* День недели */}
-                <div className="w-28 flex-shrink-0">
-                  <span className="text-sm font-medium text-gray-700">{day.day}</span>
-                </div>
-
-                {/* Toggle */}
-                <button
-                  onClick={() => updateDay(i, { is_working: !day.is_working })}
-                  className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${
-                    day.is_working ? 'bg-violet-600' : 'bg-gray-300'
-                  }`}
-                >
-                  <div
-                    className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform shadow-sm ${
-                      day.is_working ? 'translate-x-5' : 'translate-x-0.5'
-                    }`}
-                  />
-                </button>
-
-                {/* Время или Выходной */}
-                {day.is_working ? (
-                  <div className="flex items-center gap-2 flex-1">
-                    <select
-                      value={day.open}
-                      onChange={(e) => updateDay(i, { open: e.target.value })}
-                      className="time-select"
-                    >
-                      {timeOptions.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                    <span className="text-gray-400 font-medium">—</span>
-                    <select
-                      value={day.close}
-                      onChange={(e) => updateDay(i, { close: e.target.value })}
-                      className={`time-select ${isInvalid ? 'border-red-400 bg-red-50' : ''}`}
-                    >
-                      {timeOptions.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-
-                    {isInvalid && (
-                      <span className="text-xs text-red-600 ml-2">Неверное время</span>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex-1">
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-                      Выходной
-                    </span>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Ошибка валидации */}
-        {hasErrors && (
-          <div className="mt-4 flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
-            <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-red-800">Невозможно сохранить расписание</p>
-              <p className="text-sm text-red-600 mt-1">
-                Время закрытия должно быть позже времени открытия: {invalidDays.map(d => d.day).join(', ')}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Кнопка сохранения */}
-        <div className="mt-6 flex justify-end">
-          <Button
-            onClick={handleSave}
-            disabled={saving || hasErrors}
-            className={`rounded-xl px-6 transition-all ${
-              hasErrors
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-violet-600 hover:bg-violet-700 text-white'
-            }`}
-          >
-            {saving ? (
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
-            ) : (
-              <Save className="w-4 h-4 mr-2" />
-            )}
-            Сохранить расписание
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ===================== PLACEHOLDER TAB =====================
-
-function PlaceholderTab({ icon: Icon, title, description }: { icon: any; title: string; description: string }) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-      <Icon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-      <h2 className="text-xl font-semibold text-gray-900 mb-2">{title}</h2>
-      <p className="text-gray-500">{description}</p>
     </div>
   );
 }
@@ -1910,14 +2519,14 @@ function StatCard({ title, value, icon: Icon, color }: { title: string; value: a
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
+    <div className="bg-white rounded-xl border border-gray-200 p-4 lg:p-5">
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-500">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+        <div className="min-w-0">
+          <p className="text-xs lg:text-sm text-gray-500 truncate">{title}</p>
+          <p className="text-xl lg:text-2xl font-bold text-gray-900 mt-1">{value}</p>
         </div>
-        <div className={`w-12 h-12 ${colors[color].bg} rounded-xl flex items-center justify-center`}>
-          <Icon className={`w-6 h-6 ${colors[color].icon}`} />
+        <div className={`w-10 h-10 lg:w-12 lg:h-12 ${colors[color].bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+          <Icon className={`w-5 h-5 lg:w-6 lg:h-6 ${colors[color].icon}`} />
         </div>
       </div>
     </div>
@@ -1933,16 +2542,16 @@ function BookingRow({ booking, showActions }: { booking: BookingData; showAction
   };
 
   const statusLabels: Record<string, string> = {
-    confirmed: 'Подтверждено',
+    confirmed: 'Подтв.',
     pending: 'Ожидает',
-    completed: 'Завершено',
+    completed: 'Готово',
     cancelled: 'Отменено',
   };
 
   return (
-    <div className="p-4 hover:bg-gray-50 transition-colors flex items-center justify-between">
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 bg-violet-100 rounded-xl flex flex-col items-center justify-center">
+    <div className="p-3 lg:p-4 hover:bg-gray-50 transition-colors">
+      <div className="flex items-center gap-3 lg:gap-4">
+        <div className="w-10 h-10 lg:w-12 lg:h-12 bg-violet-100 rounded-xl flex flex-col items-center justify-center flex-shrink-0">
           <span className="text-xs text-violet-600 font-medium">
             {new Date(booking.date).toLocaleDateString('ru-RU', { day: 'numeric' })}
           </span>
@@ -1950,22 +2559,22 @@ function BookingRow({ booking, showActions }: { booking: BookingData; showAction
             {new Date(booking.date).toLocaleDateString('ru-RU', { month: 'short' })}
           </span>
         </div>
-        <div>
-          <p className="font-medium text-gray-900">{booking.client_name}</p>
-          <p className="text-sm text-gray-500">
-            {booking.time} • {booking.service_name || 'Услуга'} • {booking.master_name || 'Мастер'}
+        <div className="min-w-0 flex-1">
+          <p className="font-medium text-gray-900 truncate">{booking.client_name}</p>
+          <p className="text-sm text-gray-500 truncate">
+            {booking.time} • {booking.service_name || 'Услуга'}
           </p>
         </div>
-      </div>
-      <div className="flex items-center gap-3">
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusStyles[booking.status] || 'bg-gray-100 text-gray-700'}`}>
-          {statusLabels[booking.status] || booking.status}
-        </span>
-        {showActions && (
-          <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
-            <MoreHorizontal className="w-5 h-5" />
-          </button>
-        )}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className={`px-2 lg:px-3 py-1 rounded-full text-xs font-medium ${statusStyles[booking.status] || 'bg-gray-100 text-gray-700'}`}>
+            {statusLabels[booking.status] || booking.status}
+          </span>
+          {showActions && (
+            <button className="p-1.5 lg:p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+              <MoreHorizontal className="w-4 h-4 lg:w-5 lg:h-5" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -1975,16 +2584,7 @@ function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value
   return (
     <div className="flex items-center gap-3 text-sm">
       <Icon className="w-4 h-4 text-gray-400 flex-shrink-0" />
-      <span className="text-gray-600">{value}</span>
-    </div>
-  );
-}
-
-function FormField({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>
-      {children}
+      <span className="text-gray-600 truncate">{value}</span>
     </div>
   );
 }
