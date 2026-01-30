@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { AuthUser } from '@/lib/auth';
 
@@ -17,20 +17,29 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const initialized = useRef(false);
 
   useEffect(() => {
+    // Prevent double initialization in React 18 StrictMode
+    if (initialized.current) return;
+    initialized.current = true;
+
     // Get initial session
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
 
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
 
-        setUser(profile as AuthUser | null);
+          setUser(profile as AuthUser | null);
+        }
+      } catch (err) {
+        console.error('Session error:', err);
       }
       setLoading(false);
     };
@@ -40,16 +49,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (session?.user) {
-          const { data: profile } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+        try {
+          if (session?.user) {
+            const { data: profile } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
 
-          setUser(profile as AuthUser | null);
-        } else {
-          setUser(null);
+            setUser(profile as AuthUser | null);
+          } else {
+            setUser(null);
+          }
+        } catch (err) {
+          console.error('Auth state change error:', err);
         }
         setLoading(false);
       }
@@ -59,31 +72,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      return { error: error.message };
+      if (error) {
+        return { error: error.message };
+      }
+
+      if (data.user) {
+        const { data: profile, error: profileError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profileError) {
+          return { error: 'Пользователь не найден в системе' };
+        }
+
+        setUser(profile as AuthUser | null);
+      }
+
+      return { error: null };
+    } catch (err) {
+      console.error('Sign in error:', err);
+      return { error: 'Ошибка подключения к серверу' };
     }
-
-    if (data.user) {
-      const { data: profile } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', data.user.id)
-        .single();
-
-      setUser(profile as AuthUser | null);
-    }
-
-    return { error: null };
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+    } catch (err) {
+      console.error('Sign out error:', err);
+    }
   };
 
   return (
