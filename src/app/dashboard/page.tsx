@@ -932,9 +932,9 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
     });
 
     const slots: { time: string; endTime: string; available: boolean; slotsNeeded: number; mins: number }[] = [];
-    const step = 30;
+    const step = 5; // Шаг 5 минут для админа
     const duration = totalDuration || 60;
-    const slotsNeeded = Math.ceil(duration / step); // Кількість 30-хв слотів
+    const slotsNeeded = Math.ceil(duration / step);
 
     for (let mins = openMins; mins + duration <= closeMins; mins += step) {
       const h = Math.floor(mins / 60);
@@ -1063,11 +1063,13 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
     }
 
     setSaving(true);
+    console.log('Starting booking creation...');
 
     try {
       // Если новый клиент - создаём его
       let clientId = selectedClient?.id;
       if (!clientId && isNewClient) {
+        console.log('Creating new client...');
         const { data: newClient, error: clientError } = await supabase
           .from('clients')
           .insert({
@@ -1087,6 +1089,7 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
           return;
         }
 
+        console.log('Client created:', newClient);
         if (newClient) {
           clientId = newClient.id;
         }
@@ -1099,9 +1102,10 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
       const endM = endMins % 60;
       const timeEnd = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
 
+      console.log('Creating booking...');
       const { error: bookingError } = await supabase.from('bookings').insert({
         salon_id: salonId,
-        client_id: clientId,
+        client_id: clientId || null,
         client_name: name,
         client_phone: phone,
         client_email: selectedClient?.email || '',
@@ -1117,6 +1121,8 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
         price: totalPrice,
         status: 'confirmed',
       });
+
+      console.log('Booking result:', bookingError ? 'error' : 'success', bookingError);
 
       if (bookingError) {
         console.error('Booking create error:', bookingError);
