@@ -228,14 +228,18 @@ export default function DashboardPage() {
     setUser(profile);
 
     if (profile.salon_id) {
-      await Promise.all([
-        loadSalon(profile.salon_id),
-        loadBookings(profile.salon_id),
-        loadServices(profile.salon_id),
-        loadCategories(profile.salon_id),
-        loadMasters(profile.salon_id),
-        loadClients(profile.salon_id),
-      ]);
+      try {
+        await Promise.all([
+          loadSalon(profile.salon_id),
+          loadBookings(profile.salon_id),
+          loadServices(profile.salon_id),
+          loadCategories(profile.salon_id),
+          loadMasters(profile.salon_id),
+          loadClients(profile.salon_id),
+        ]);
+      } catch (err) {
+        console.error('Error loading data:', err);
+      }
     }
 
     setLoading(false);
