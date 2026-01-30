@@ -263,15 +263,34 @@ export default function DashboardPage() {
   };
 
   const loadServices = async (salonId: string) => {
+    // Сначала загружаем категории для маппинга
+    const { data: cats } = await supabase
+      .from('service_categories')
+      .select('*')
+      .eq('salon_id', salonId)
+      .order('sort_order');
+
+    const categoryMap = new Map(cats?.map(c => [c.id, c.name]) || []);
+
     const { data } = await supabase
       .from('services')
       .select('*')
       .eq('salon_id', salonId)
-      .order('category', { ascending: true })
-      .order('name');
+      .order('sort_order', { ascending: true });
 
     if (data) {
-      setServices(data);
+      // Маппим поля из БД в формат, ожидаемый компонентами
+      const mapped = data.map(s => ({
+        ...s,
+        duration: s.duration_minutes || 30,
+        category: categoryMap.get(s.category_id) || 'Без категории',
+        description: s.description || '',
+      }));
+      setServices(mapped);
+    }
+
+    if (cats) {
+      setCategories(cats.map(c => ({ ...c, order_index: c.sort_order })));
     }
   };
 
@@ -280,10 +299,10 @@ export default function DashboardPage() {
       .from('service_categories')
       .select('*')
       .eq('salon_id', salonId)
-      .order('order_index');
+      .order('sort_order');
 
     if (data) {
-      setCategories(data);
+      setCategories(data.map(c => ({ ...c, order_index: c.sort_order })));
     }
   };
 
@@ -1509,6 +1528,7 @@ function ServicesTab({ services, categories, salonId, onReload }: {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingService, setEditingService] = useState<ServiceData | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   // Группировка по категориям
   const servicesByCategory = services.reduce((acc, service) => {
@@ -1517,6 +1537,18 @@ function ServicesTab({ services, categories, salonId, onReload }: {
     acc[cat].push(service);
     return acc;
   }, {} as Record<string, ServiceData[]>);
+
+  const toggleCategory = (category: string) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(category)) {
+        newSet.delete(category);
+      } else {
+        newSet.add(category);
+      }
+      return newSet;
+    });
+  };
 
   const handleEdit = (service: ServiceData) => {
     setEditingService(service);
@@ -1532,10 +1564,67 @@ function ServicesTab({ services, categories, salonId, onReload }: {
   };
 
   const handleSave = async (data: Partial<ServiceData>) => {
-    if (editingService) {
-      await supabase.from('services').update(data).eq('id', editingService.id);
+    // Находим или создаём категорию
+    let categoryId = editingService?.category_id;
+    const categoryName = data.category || 'Загальні';
+
+    // Ищем существующую категорию
+    const { data: existingCat } = await supabase
+      .from('service_categories')
+      .select('id')
+      .eq('salon_id', salonId)
+      .eq('name', categoryName)
+      .single();
+
+    if (existingCat) {
+      categoryId = existingCat.id;
     } else {
-      await supabase.from('services').insert({ ...data, salon_id: salonId, is_active: true });
+      // Создаём новую категорию
+      const { data: newCat, error: catError } = await supabase
+        .from('service_categories')
+        .insert({ salon_id: salonId, name: categoryName, sort_order: 99 })
+        .select()
+        .single();
+
+      if (catError) {
+        console.error('Error creating category:', catError);
+        alert('Помилка створення категорії');
+        return;
+      }
+      if (newCat) categoryId = newCat.id;
+    }
+
+    // Проверяем что categoryId есть (обязательное поле в БД)
+    if (!categoryId) {
+      console.error('Category ID is missing');
+      alert('Помилка: категорія не знайдена');
+      return;
+    }
+
+    // Подготавливаем данные для БД
+    const dbData = {
+      name: data.name,
+      price: data.price,
+      duration: `${data.duration} хв`,  // Текстовое поле (обязательное в БД)
+      duration_minutes: data.duration,    // Числовое поле
+      category_id: categoryId,
+      is_active: true,
+    };
+
+    if (editingService) {
+      const { error } = await supabase.from('services').update(dbData).eq('id', editingService.id);
+      if (error) {
+        console.error('Error updating service:', error);
+        alert('Помилка оновлення послуги');
+        return;
+      }
+    } else {
+      const { error } = await supabase.from('services').insert({ ...dbData, salon_id: salonId });
+      if (error) {
+        console.error('Error creating service:', error);
+        alert('Помилка створення послуги: ' + error.message);
+        return;
+      }
     }
     setShowModal(false);
     setEditingService(null);
@@ -1565,38 +1654,56 @@ function ServicesTab({ services, categories, salonId, onReload }: {
         </div>
       </div>
 
-      {Object.entries(servicesByCategory).map(([category, categoryServices]) => (
-        <div key={category} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-            <h3 className="font-semibold text-gray-900">{category}</h3>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {categoryServices.map(service => (
-              <div key={service.id} className="p-4 flex items-center justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-gray-900 truncate">{service.name}</p>
-                  <p className="text-sm text-gray-500">{service.duration} мин • {service.price} ₴</p>
-                </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <button
-                    onClick={() => handleEdit(service)}
-                    className="p-2 text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(service.id)}
-                    disabled={deleting === service.id}
-                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                  >
-                    {deleting === service.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                  </button>
-                </div>
+      {Object.entries(servicesByCategory).map(([category, categoryServices]) => {
+        const isExpanded = expandedCategories.has(category);
+        return (
+          <div key={category} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <button
+              onClick={() => toggleCategory(category)}
+              className="w-full px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between hover:bg-gray-100 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <h3 className="font-semibold text-gray-900">{category}</h3>
+                <span className="text-sm text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
+                  {categoryServices.length}
+                </span>
               </div>
-            ))}
+              <ChevronDown
+                className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+              />
+            </button>
+            <div
+              className={`divide-y divide-gray-100 transition-all duration-300 ease-in-out overflow-hidden ${
+                isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+              }`}
+            >
+              {categoryServices.map(service => (
+                <div key={service.id} className="p-4 flex items-center justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-gray-900 truncate">{service.name}</p>
+                    <p className="text-sm text-gray-500">{service.duration} • {service.price} ₴</p>
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => handleEdit(service)}
+                      className="p-2 text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(service.id)}
+                      disabled={deleting === service.id}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                    >
+                      {deleting === service.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {services.length === 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-8 lg:p-12 text-center">
@@ -1737,7 +1844,7 @@ function CategoryModal({ salonId, onClose, onSave }: { salonId: string; onClose:
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    await supabase.from('service_categories').insert({ salon_id: salonId, name });
+    await supabase.from('service_categories').insert({ salon_id: salonId, name, sort_order: 99 });
     setSaving(false);
     onSave();
     onClose();
