@@ -506,7 +506,7 @@ function BookingsTab({ bookings, salonId, services, masters, onReload }: {
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="px-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-violet-500"
+          className="status-select"
         >
           <option value="all">Все статусы</option>
           <option value="confirmed">Подтверждено</option>
@@ -548,7 +548,7 @@ function BookingsTab({ bookings, salonId, services, masters, onReload }: {
   );
 }
 
-// Быстрая модалка создания записи - максимально простая
+// Модалка создания записи с диапазоном времени
 function QuickBookingModal({ salonId, services, masters, onClose, onSave }: {
   salonId: string;
   services: ServiceData[];
@@ -561,21 +561,47 @@ function QuickBookingModal({ salonId, services, masters, onClose, onSave }: {
     client_name: '',
     client_phone: '',
     date: new Date().toISOString().split('T')[0],
-    time: '10:00',
-    service_id: services[0]?.id || '',
-    master_id: masters[0]?.id || '',
+    time_from: '10:00',
+    time_to: '11:00',
+    service_id: '',
+    master_id: '',
   });
 
   // Генерируем слоты времени
   const timeSlots: string[] = [];
-  for (let h = 8; h <= 21; h++) {
+  for (let h = 8; h <= 22; h++) {
     timeSlots.push(`${h.toString().padStart(2, '0')}:00`);
-    timeSlots.push(`${h.toString().padStart(2, '0')}:30`);
+    if (h < 22) timeSlots.push(`${h.toString().padStart(2, '0')}:30`);
   }
+
+  // Авто-расчёт времени окончания при выборе услуги
+  const handleServiceChange = (serviceId: string) => {
+    const service = services.find(s => s.id === serviceId);
+    if (service) {
+      const [hours, mins] = form.time_from.split(':').map(Number);
+      const totalMins = hours * 60 + mins + service.duration;
+      const endHours = Math.floor(totalMins / 60);
+      const endMins = totalMins % 60;
+      const endTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+      setForm({ ...form, service_id: serviceId, time_to: endTime });
+    } else {
+      setForm({ ...form, service_id: serviceId });
+    }
+  };
+
+  // Расчёт длительности в минутах
+  const getDuration = () => {
+    const [h1, m1] = form.time_from.split(':').map(Number);
+    const [h2, m2] = form.time_to.split(':').map(Number);
+    return (h2 * 60 + m2) - (h1 * 60 + m1);
+  };
+
+  const duration = getDuration();
+  const isValidTime = duration > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.client_name || !form.client_phone) return;
+    if (!form.client_name || !form.client_phone || !isValidTime) return;
 
     setSaving(true);
 
@@ -588,7 +614,9 @@ function QuickBookingModal({ salonId, services, masters, onClose, onSave }: {
       client_phone: form.client_phone,
       client_email: '',
       date: form.date,
-      time: form.time,
+      time: form.time_from,
+      time_end: form.time_to,
+      duration: duration,
       service_id: form.service_id || null,
       service_name: selectedService?.name || '',
       master_id: form.master_id || null,
@@ -604,107 +632,159 @@ function QuickBookingModal({ salonId, services, masters, onClose, onSave }: {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md">
+      <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl">
         <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Быстрая запись</h2>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Новая запись</h2>
+            <p className="text-sm text-gray-500 mt-0.5">Заполните данные клиента</p>
+          </div>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          {/* Имя и телефон в одной строке */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Имя клиента *</label>
-              <input
-                type="text"
-                value={form.client_name}
-                onChange={(e) => setForm({ ...form, client_name: e.target.value })}
-                required
-                autoFocus
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-violet-500"
-                placeholder="Имя"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Телефон *</label>
-              <input
-                type="tel"
-                value={form.client_phone}
-                onChange={(e) => setForm({ ...form, client_phone: e.target.value })}
-                required
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-violet-500"
-                placeholder="+380..."
-              />
+        <form onSubmit={handleSubmit} className="p-5 space-y-5">
+          {/* Клиент */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <UserCircle className="w-4 h-4 text-violet-500" />
+              Клиент
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">Имя *</label>
+                <input
+                  type="text"
+                  value={form.client_name}
+                  onChange={(e) => setForm({ ...form, client_name: e.target.value })}
+                  required
+                  autoFocus
+                  className="form-input text-sm"
+                  placeholder="Введите имя"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">Телефон *</label>
+                <input
+                  type="tel"
+                  value={form.client_phone}
+                  onChange={(e) => setForm({ ...form, client_phone: e.target.value })}
+                  required
+                  className="form-input text-sm"
+                  placeholder="+380 XX XXX XX XX"
+                />
+              </div>
             </div>
           </div>
 
           {/* Дата и время */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Дата</label>
-              <input
-                type="date"
-                value={form.date}
-                onChange={(e) => setForm({ ...form, date: e.target.value })}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-violet-500"
-              />
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-violet-500" />
+              Дата и время
+            </h3>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">Дата</label>
+                <input
+                  type="date"
+                  value={form.date}
+                  onChange={(e) => setForm({ ...form, date: e.target.value })}
+                  className="form-input text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">Начало</label>
+                <select
+                  value={form.time_from}
+                  onChange={(e) => setForm({ ...form, time_from: e.target.value })}
+                  className="time-select w-full"
+                >
+                  {timeSlots.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">Конец</label>
+                <select
+                  value={form.time_to}
+                  onChange={(e) => setForm({ ...form, time_to: e.target.value })}
+                  className="time-select w-full"
+                >
+                  {timeSlots.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Время</label>
-              <select
-                value={form.time}
-                onChange={(e) => setForm({ ...form, time: e.target.value })}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-violet-500 bg-white"
-              >
-                {timeSlots.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
+
+            {/* Показ длительности или ошибки */}
+            {isValidTime ? (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Clock className="w-3.5 h-3.5" />
+                <span>Длительность: <strong className="text-gray-700">{duration} мин</strong></span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+                <AlertTriangle className="w-4 h-4" />
+                <span>Время окончания должно быть позже начала</span>
+              </div>
+            )}
           </div>
 
           {/* Услуга и мастер */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Услуга</label>
-              <select
-                value={form.service_id}
-                onChange={(e) => setForm({ ...form, service_id: e.target.value })}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-violet-500 bg-white"
-              >
-                <option value="">Не выбрана</option>
-                {services.map(s => (
-                  <option key={s.id} value={s.id}>{s.name} - {s.price}₴</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Мастер</label>
-              <select
-                value={form.master_id}
-                onChange={(e) => setForm({ ...form, master_id: e.target.value })}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-violet-500 bg-white"
-              >
-                <option value="">Любой</option>
-                {masters.map(m => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
-                ))}
-              </select>
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <Scissors className="w-4 h-4 text-violet-500" />
+              Услуга
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">Услуга</label>
+                <select
+                  value={form.service_id}
+                  onChange={(e) => handleServiceChange(e.target.value)}
+                  className="form-select text-sm"
+                >
+                  <option value="">Выберите услугу</option>
+                  {services.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.duration} мин) — {s.price}₴
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">Мастер</label>
+                <select
+                  value={form.master_id}
+                  onChange={(e) => setForm({ ...form, master_id: e.target.value })}
+                  className="form-select text-sm"
+                >
+                  <option value="">Любой мастер</option>
+                  {masters.map(m => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
           {/* Кнопки */}
-          <div className="flex gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1 rounded-xl">
+          <div className="flex gap-3 pt-3 border-t border-gray-100">
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1 rounded-xl h-11">
               Отмена
             </Button>
             <Button
               type="submit"
-              disabled={saving || !form.client_name || !form.client_phone}
-              className="flex-1 bg-violet-600 hover:bg-violet-700 text-white rounded-xl"
+              disabled={saving || !form.client_name || !form.client_phone || !isValidTime}
+              className="flex-1 bg-violet-600 hover:bg-violet-700 text-white rounded-xl h-11 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
-              Записать
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  Создать запись
+                </>
+              )}
             </Button>
           </div>
         </form>
@@ -1392,6 +1472,7 @@ function PhotosTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates: 
 
 function ScheduleTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates: Partial<SalonData>) => void }) {
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [schedule, setSchedule] = useState<WorkingHour[]>(
     salon.working_hours?.length ? salon.working_hours : [
       { day: 'Понедельник', is_working: true, open: '09:00', close: '20:00' },
@@ -1416,9 +1497,32 @@ function ScheduleTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates
     const newSchedule = [...schedule];
     newSchedule[index] = { ...newSchedule[index], ...updates };
     setSchedule(newSchedule);
+    setSaved(false);
   };
 
+  // Проверка валидности времени для каждого дня
+  const getInvalidDays = () => {
+    return schedule
+      .map((day, index) => {
+        if (!day.is_working) return null;
+        const [openH, openM] = day.open.split(':').map(Number);
+        const [closeH, closeM] = day.close.split(':').map(Number);
+        const openMins = openH * 60 + openM;
+        const closeMins = closeH * 60 + closeM;
+        if (closeMins <= openMins) {
+          return { index, day: day.day };
+        }
+        return null;
+      })
+      .filter(Boolean) as { index: number; day: string }[];
+  };
+
+  const invalidDays = getInvalidDays();
+  const hasErrors = invalidDays.length > 0;
+
   const handleSave = async () => {
+    if (hasErrors) return;
+
     setSaving(true);
     const { error } = await supabase
       .from('salons')
@@ -1427,62 +1531,166 @@ function ScheduleTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates
 
     if (!error) {
       onUpdate({ working_hours: schedule });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
     }
     setSaving(false);
   };
 
+  // Быстрые пресеты
+  const applyPreset = (type: 'weekdays' | 'everyday' | 'custom') => {
+    let newSchedule: WorkingHour[];
+
+    if (type === 'weekdays') {
+      newSchedule = schedule.map((day, i) => ({
+        ...day,
+        is_working: i < 5, // Пн-Пт
+        open: '09:00',
+        close: '18:00',
+      }));
+    } else if (type === 'everyday') {
+      newSchedule = schedule.map(day => ({
+        ...day,
+        is_working: true,
+        open: '10:00',
+        close: '22:00',
+      }));
+    } else {
+      return;
+    }
+
+    setSchedule(newSchedule);
+    setSaved(false);
+  };
+
   return (
-    <div className="max-w-2xl">
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="font-semibold text-gray-900 mb-6">Часы работы</h2>
-        <div className="space-y-4">
-          {schedule.map((day, i) => (
-            <div key={day.day} className="flex items-center gap-4 py-2">
-              <div className="w-32">
-                <span className="text-sm font-medium text-gray-700">{day.day}</span>
-              </div>
-
-              <label className="flex items-center gap-2 cursor-pointer">
-                <div
-                  onClick={() => updateDay(i, { is_working: !day.is_working })}
-                  className={`w-10 h-6 rounded-full transition-colors relative ${day.is_working ? 'bg-violet-600' : 'bg-gray-300'}`}
-                >
-                  <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${day.is_working ? 'translate-x-5' : 'translate-x-1'}`} />
-                </div>
-              </label>
-
-              {day.is_working ? (
-                <div className="flex items-center gap-2 flex-1">
-                  <select
-                    value={day.open}
-                    onChange={(e) => updateDay(i, { open: e.target.value })}
-                    className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-violet-500 bg-white"
-                  >
-                    {timeOptions.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                  <span className="text-gray-400">—</span>
-                  <select
-                    value={day.close}
-                    onChange={(e) => updateDay(i, { close: e.target.value })}
-                    className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-violet-500 bg-white"
-                  >
-                    {timeOptions.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-              ) : (
-                <span className="text-sm text-red-500 font-medium">Выходной</span>
-              )}
-            </div>
-          ))}
+    <div className="max-w-2xl space-y-4">
+      {/* Быстрые пресеты */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <p className="text-sm font-medium text-gray-700 mb-3">Быстрые настройки</p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => applyPreset('weekdays')}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+          >
+            Пн-Пт (9:00-18:00)
+          </button>
+          <button
+            onClick={() => applyPreset('everyday')}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+          >
+            Каждый день (10:00-22:00)
+          </button>
         </div>
+      </div>
+
+      {/* Основное расписание */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="font-semibold text-gray-900">Часы работы</h2>
+          {saved && (
+            <span className="flex items-center gap-1 text-sm text-green-600">
+              <Check className="w-4 h-4" />
+              Сохранено
+            </span>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          {schedule.map((day, i) => {
+            const isInvalid = invalidDays.some(d => d.index === i);
+
+            return (
+              <div
+                key={day.day}
+                className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${
+                  isInvalid ? 'bg-red-50 border border-red-200' : 'hover:bg-gray-50'
+                }`}
+              >
+                {/* День недели */}
+                <div className="w-28 flex-shrink-0">
+                  <span className="text-sm font-medium text-gray-700">{day.day}</span>
+                </div>
+
+                {/* Toggle */}
+                <button
+                  onClick={() => updateDay(i, { is_working: !day.is_working })}
+                  className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${
+                    day.is_working ? 'bg-violet-600' : 'bg-gray-300'
+                  }`}
+                >
+                  <div
+                    className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform shadow-sm ${
+                      day.is_working ? 'translate-x-5' : 'translate-x-0.5'
+                    }`}
+                  />
+                </button>
+
+                {/* Время или Выходной */}
+                {day.is_working ? (
+                  <div className="flex items-center gap-2 flex-1">
+                    <select
+                      value={day.open}
+                      onChange={(e) => updateDay(i, { open: e.target.value })}
+                      className="time-select"
+                    >
+                      {timeOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    <span className="text-gray-400 font-medium">—</span>
+                    <select
+                      value={day.close}
+                      onChange={(e) => updateDay(i, { close: e.target.value })}
+                      className={`time-select ${isInvalid ? 'border-red-400 bg-red-50' : ''}`}
+                    >
+                      {timeOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+
+                    {isInvalid && (
+                      <span className="text-xs text-red-600 ml-2">Неверное время</span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex-1">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                      Выходной
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Ошибка валидации */}
+        {hasErrors && (
+          <div className="mt-4 flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+            <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-red-800">Невозможно сохранить расписание</p>
+              <p className="text-sm text-red-600 mt-1">
+                Время закрытия должно быть позже времени открытия: {invalidDays.map(d => d.day).join(', ')}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Кнопка сохранения */}
         <div className="mt-6 flex justify-end">
           <Button
             onClick={handleSave}
-            disabled={saving}
-            className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl px-6"
+            disabled={saving || hasErrors}
+            className={`rounded-xl px-6 transition-all ${
+              hasErrors
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-violet-600 hover:bg-violet-700 text-white'
+            }`}
           >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-            Сохранить
+            {saving ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            ) : (
+              <Save className="w-4 h-4 mr-2" />
+            )}
+            Сохранить расписание
           </Button>
         </div>
       </div>
