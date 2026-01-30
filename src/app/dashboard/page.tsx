@@ -139,6 +139,34 @@ interface ClientData {
   created_at: string;
 }
 
+// ===================== PHONE FORMATTER =====================
+
+function formatPhoneUA(value: string): string {
+  // Убираем всё кроме цифр
+  let digits = value.replace(/\D/g, '');
+
+  // Если начинается с 380, убираем (добавим +380 автоматически)
+  if (digits.startsWith('380')) {
+    digits = digits.slice(3);
+  }
+  // Если начинается с 0, убираем
+  if (digits.startsWith('0')) {
+    digits = digits.slice(1);
+  }
+
+  // Ограничиваем 9 цифрами (номер без кода страны)
+  digits = digits.slice(0, 9);
+
+  // Форматируем: XX XXX XX XX
+  let formatted = '+380';
+  if (digits.length > 0) formatted += ' ' + digits.slice(0, 2);
+  if (digits.length > 2) formatted += ' ' + digits.slice(2, 5);
+  if (digits.length > 5) formatted += ' ' + digits.slice(5, 7);
+  if (digits.length > 7) formatted += ' ' + digits.slice(7, 9);
+
+  return formatted;
+}
+
 // ===================== MAIN COMPONENT =====================
 
 export default function DashboardPage() {
@@ -773,7 +801,7 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
   // Клиент
   const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
   const [clientName, setClientName] = useState('');
-  const [clientPhone, setClientPhone] = useState('');
+  const [clientPhone, setClientPhone] = useState('+380');
   const [clientSearch, setClientSearch] = useState('');
   const [isNewClient, setIsNewClient] = useState(false);
 
@@ -1602,7 +1630,7 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
                       <input
                         type="tel"
                         value={clientPhone}
-                        onChange={(e) => setClientPhone(e.target.value)}
+                        onChange={(e) => setClientPhone(formatPhoneUA(e.target.value))}
                         className="form-input"
                         placeholder="+380 XX XXX XX XX"
                       />
@@ -2135,7 +2163,7 @@ function MasterModal({ master, services, onClose, onSave }: {
   const [form, setForm] = useState({
     name: master?.name || '',
     position: master?.position || '',
-    phone: master?.phone || '',
+    phone: master?.phone || '+380',
     email: master?.email || '',
     photo_url: master?.photo_url || '',
   });
@@ -2184,9 +2212,9 @@ function MasterModal({ master, services, onClose, onSave }: {
               <input
                 type="tel"
                 value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                onChange={(e) => setForm({ ...form, phone: formatPhoneUA(e.target.value) })}
                 className="form-input"
-                placeholder="+380..."
+                placeholder="+380 XX XXX XX XX"
               />
             </div>
             <div>
@@ -2317,7 +2345,7 @@ function ClientsTab({ clients, salonId, onReload }: {
 // Modal для додавання клієнта
 function AddClientModal({ salonId, onClose, onSave }: { salonId: string; onClose: () => void; onSave: () => void }) {
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: '', phone: '', email: '' });
+  const [form, setForm] = useState({ name: '', phone: '+380', email: '' });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2369,9 +2397,9 @@ function AddClientModal({ salonId, onClose, onSave }: { salonId: string; onClose
             <input
               type="tel"
               value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              onChange={(e) => setForm({ ...form, phone: formatPhoneUA(e.target.value) })}
               className="form-input"
-              placeholder="+380..."
+              placeholder="+380 XX XXX XX XX"
             />
           </div>
           <div>
@@ -2529,24 +2557,24 @@ function ScheduleTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates
             return (
               <div
                 key={day.day}
-                className={`flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-xl transition-colors ${
+                className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${
                   isInvalid ? 'bg-red-50 border border-red-200' : 'hover:bg-gray-50'
                 }`}
               >
-                {/* День + Toggle */}
-                <div className="flex items-center justify-between sm:justify-start gap-4 sm:w-40">
-                  <span className="text-sm font-medium text-gray-700">{day.day}</span>
-                  <button
-                    onClick={() => updateDay(i, { is_working: !day.is_working })}
-                    className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${
-                      day.is_working ? 'bg-violet-600' : 'bg-gray-300'
-                    }`}
-                  >
-                    <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform shadow-sm ${
-                      day.is_working ? 'translate-x-5' : 'translate-x-0.5'
-                    }`} />
-                  </button>
-                </div>
+                {/* День - фиксированная ширина */}
+                <span className="text-sm font-medium text-gray-700 w-28 flex-shrink-0">{day.day}</span>
+
+                {/* Toggle - фиксированная позиция */}
+                <button
+                  onClick={() => updateDay(i, { is_working: !day.is_working })}
+                  className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${
+                    day.is_working ? 'bg-violet-600' : 'bg-gray-300'
+                  }`}
+                >
+                  <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform shadow-sm ${
+                    day.is_working ? 'translate-x-5' : 'translate-x-0.5'
+                  }`} />
+                </button>
 
                 {/* Время */}
                 {day.is_working ? (
