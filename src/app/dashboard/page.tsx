@@ -899,9 +899,10 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
       return true;
     });
 
-    const slots: { time: string; endTime: string; available: boolean }[] = [];
+    const slots: { time: string; endTime: string; available: boolean; slotsNeeded: number; mins: number }[] = [];
     const step = 30;
     const duration = totalDuration || 60;
+    const slotsNeeded = Math.ceil(duration / step); // Кількість 30-хв слотів
 
     for (let mins = openMins; mins + duration <= closeMins; mins += step) {
       const h = Math.floor(mins / 60);
@@ -924,10 +925,19 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
         return (slotStart < bookingEnd && slotEnd > bookingStart);
       });
 
-      slots.push({ time: timeStr, endTime: endTimeStr, available: !isOverlapping });
+      slots.push({ time: timeStr, endTime: endTimeStr, available: !isOverlapping, slotsNeeded, mins });
     }
 
     return slots;
+  };
+
+  // Перевірка чи слот входить у вибраний діапазон
+  const isSlotInSelectedRange = (slotMins: number) => {
+    if (!selectedTime) return false;
+    const [selH, selM] = selectedTime.split(':').map(Number);
+    const selectedMins = selH * 60 + selM;
+    const duration = totalDuration || 60;
+    return slotMins >= selectedMins && slotMins < selectedMins + duration;
   };
 
   // Генерация календаря
@@ -1326,29 +1336,51 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
                 </p>
               </div>
 
+              {/* Інформація про слоти */}
+              {timeSlots[0] && (
+                <div className="text-xs text-gray-500 mb-2">
+                  Потрібно {timeSlots[0].slotsNeeded} слотів по 30 хв
+                </div>
+              )}
+
               {/* Слоты времени */}
               <div className="grid grid-cols-2 gap-2">
-                {timeSlots.map(slot => (
-                  <button
-                    key={slot.time}
-                    onClick={() => slot.available && setSelectedTime(slot.time)}
-                    disabled={!slot.available}
-                    className={`p-3 rounded-xl text-left transition-all ${
-                      selectedTime === slot.time
-                        ? 'bg-violet-600 text-white'
-                        : slot.available
-                        ? 'bg-gray-50 hover:bg-violet-50 border border-gray-200 hover:border-violet-300'
-                        : 'bg-gray-100 text-gray-300 cursor-not-allowed line-through'
-                    }`}
-                  >
-                    <p className={`font-semibold ${selectedTime === slot.time ? 'text-white' : slot.available ? 'text-gray-900' : 'text-gray-400'}`}>
-                      {slot.time}
-                    </p>
-                    <p className={`text-xs ${selectedTime === slot.time ? 'text-violet-200' : 'text-gray-500'}`}>
-                      до {slot.endTime}
-                    </p>
-                  </button>
-                ))}
+                {timeSlots.map(slot => {
+                  const isSelected = selectedTime === slot.time;
+                  const isInRange = isSlotInSelectedRange(slot.mins);
+
+                  return (
+                    <button
+                      key={slot.time}
+                      onClick={() => slot.available && setSelectedTime(slot.time)}
+                      disabled={!slot.available}
+                      className={`p-3 rounded-xl text-left transition-all duration-200 ${
+                        isSelected
+                          ? 'bg-violet-600 text-white ring-2 ring-violet-600 ring-offset-2'
+                          : isInRange
+                          ? 'bg-violet-100 border-2 border-violet-400'
+                          : slot.available
+                          ? 'bg-gray-50 hover:bg-violet-50 border border-gray-200 hover:border-violet-300'
+                          : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                      }`}
+                    >
+                      <p className={`font-semibold ${
+                        isSelected ? 'text-white' :
+                        isInRange ? 'text-violet-700' :
+                        slot.available ? 'text-gray-900' : 'text-gray-400'
+                      }`}>
+                        {slot.time}
+                      </p>
+                      <p className={`text-xs ${
+                        isSelected ? 'text-violet-200' :
+                        isInRange ? 'text-violet-500' :
+                        'text-gray-500'
+                      }`}>
+                        {isSelected ? `до ${slot.endTime}` : isInRange ? 'зайнято' : `до ${slot.endTime}`}
+                      </p>
+                    </button>
+                  );
+                })}
               </div>
 
               {timeSlots.length === 0 && (
@@ -1669,11 +1701,11 @@ function ServicesTab({ services, categories, salonId, onReload }: {
                 </span>
               </div>
               <ChevronDown
-                className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+                className={`w-5 h-5 text-gray-400 transition-transform duration-500 ${isExpanded ? 'rotate-180' : ''}`}
               />
             </button>
             <div
-              className={`divide-y divide-gray-100 transition-all duration-300 ease-in-out overflow-hidden ${
+              className={`divide-y divide-gray-100 transition-all duration-500 ease-out overflow-hidden ${
                 isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
               }`}
             >
