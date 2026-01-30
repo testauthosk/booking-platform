@@ -13,63 +13,109 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const [error, setError] = useState('');
 
-  // При загрузке страницы - очищаем старую сессию
+  // Проверяем существующую сессию при загрузке
   useEffect(() => {
-    supabase.auth.signOut();
-  }, []);
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session?.user) {
+        // Есть активная сессия - проверяем роль и редиректим
+        const { data: profile } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile?.role === 'super_admin') {
+          window.location.href = '/admin';
+          return;
+        } else if (profile) {
+          window.location.href = '/dashboard';
+          return;
+        }
+      }
+      setCheckingSession(false);
+    };
+
+    checkSession();
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    // 1. Логинимся
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      // 1. Логинимся
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
 
-    if (authError) {
-      if (authError.message.includes('Invalid login credentials')) {
-        setError('Неверный email или пароль');
-      } else if (authError.message.includes('Email not confirmed')) {
-        setError('Подтвердите email для входа');
-      } else {
-        setError(authError.message);
+      if (authError) {
+        console.error('Auth error:', authError);
+        if (authError.message.includes('Invalid login credentials')) {
+          setError('Неверный email или пароль');
+        } else if (authError.message.includes('Email not confirmed')) {
+          setError('Подтвердите email для входа');
+        } else {
+          setError(authError.message);
+        }
+        setLoading(false);
+        return;
       }
+
+      if (!authData.user) {
+        setError('Ошибка авторизации');
+        setLoading(false);
+        return;
+      }
+
+      console.log('Auth successful, user:', authData.user.id);
+
+      // 2. Получаем профиль из таблицы users
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authData.user.id)
+        .single();
+
+      console.log('Profile fetch:', { profile, profileError });
+
+      if (profileError || !profile) {
+        setError('Пользователь не найден в системе. Обратитесь к администратору.');
+        await supabase.auth.signOut();
+        setLoading(false);
+        return;
+      }
+
+      // 3. Редирект по роли
+      console.log('Redirecting, role:', profile.role);
+
+      // Используем window.location для надёжного редиректа
+      if (profile.role === 'super_admin') {
+        window.location.href = '/admin';
+      } else {
+        window.location.href = '/dashboard';
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Произошла ошибка при входе');
       setLoading(false);
-      return;
-    }
-
-    if (!authData.user) {
-      setError('Ошибка авторизации');
-      setLoading(false);
-      return;
-    }
-
-    // 2. Получаем профиль из таблицы users
-    const { data: profile, error: profileError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', authData.user.id)
-      .single();
-
-    if (profileError || !profile) {
-      setError('Пользователь не найден в системе. Обратитесь к администратору.');
-      await supabase.auth.signOut();
-      setLoading(false);
-      return;
-    }
-
-    // 3. Редирект по роли
-    if (profile.role === 'super_admin') {
-      router.push('/admin');
-    } else {
-      router.push('/dashboard');
     }
   };
+
+  // Показываем лоадер пока проверяем сессию
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-violet-50 to-pink-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 to-pink-50 flex items-center justify-center px-4">
@@ -98,6 +144,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="email@example.com"
                 required
+                autoComplete="email"
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-gray-900"
               />
             </div>
@@ -115,6 +162,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
+                  autoComplete="current-password"
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-gray-900 pr-12"
                 />
                 <button
