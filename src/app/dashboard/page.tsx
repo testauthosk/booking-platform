@@ -808,8 +808,12 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
   const [clientSearch, setClientSearch] = useState('');
   const [isNewClient, setIsNewClient] = useState(false);
 
-  // Общая длительность выбранных услуг
-  const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration, 0);
+  // Доп. время (запас для мастера)
+  const [extraTime, setExtraTime] = useState(0); // в минутах: 0, 5, 10, 15, 20, 30
+
+  // Общая длительность выбранных услуг + доп. время
+  const baseDuration = selectedServices.reduce((sum, s) => sum + s.duration, 0);
+  const totalDuration = baseDuration + extraTime;
   const totalPrice = selectedServices.reduce((sum, s) => sum + s.price, 0);
 
   // Группировка услуг по категориям
@@ -1417,16 +1421,39 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
                   {new Date(selectedDate).toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </p>
                 <p className="text-gray-500 mt-0.5">
-                  {totalDuration} мин • {selectedMaster?.name || 'Любой мастер'}
+                  {baseDuration} мин{extraTime > 0 ? ` + ${extraTime} мин запас` : ''} • {selectedMaster?.name || 'Любой мастер'}
                 </p>
               </div>
 
-              {/* Інформація про слоти */}
-              {timeSlots[0] && (
-                <div className="text-xs text-gray-500 mb-2">
-                  Потрібно {timeSlots[0].slotsNeeded} слотів по 30 хв
+              {/* Доп. время (запас) */}
+              <div className="mb-4 p-3 bg-violet-50 rounded-xl">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700">Доп. час (запас)</span>
+                  <span className="text-sm text-violet-600 font-medium">
+                    {extraTime > 0 ? `+${extraTime} хв` : 'Без запасу'}
+                  </span>
                 </div>
-              )}
+                <div className="flex gap-2">
+                  {[0, 5, 10, 15, 20, 30].map(mins => (
+                    <button
+                      key={mins}
+                      onClick={() => setExtraTime(mins)}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        extraTime === mins
+                          ? 'bg-violet-600 text-white'
+                          : 'bg-white text-gray-600 hover:bg-violet-100'
+                      }`}
+                    >
+                      {mins === 0 ? '—' : `+${mins}`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Загальний час */}
+              <div className="text-xs text-gray-500 mb-2">
+                Загальний час: {totalDuration} хв
+              </div>
 
               {/* Слоты времени */}
               <div className="grid grid-cols-2 gap-2">
