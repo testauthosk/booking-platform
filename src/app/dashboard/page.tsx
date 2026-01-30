@@ -367,6 +367,7 @@ export default function DashboardPage() {
               salonId={salon.id}
               services={services}
               masters={masters}
+              workingHours={salon.working_hours || []}
               onReload={() => loadBookings(salon.id)}
             />
           )}
@@ -473,11 +474,12 @@ function OverviewTab({ salon, bookings, stats, onViewAll }: { salon: SalonData; 
 
 // ===================== BOOKINGS TAB =====================
 
-function BookingsTab({ bookings, salonId, services, masters, onReload }: {
+function BookingsTab({ bookings, salonId, services, masters, workingHours, onReload }: {
   bookings: BookingData[];
   salonId: string;
   services: ServiceData[];
   masters: MasterData[];
+  workingHours: WorkingHour[];
   onReload: () => void;
 }) {
   const [filter, setFilter] = useState('all');
@@ -540,6 +542,8 @@ function BookingsTab({ bookings, salonId, services, masters, onReload }: {
           salonId={salonId}
           services={services}
           masters={masters}
+          bookings={bookings}
+          workingHours={workingHours}
           onClose={() => setShowModal(false)}
           onSave={onReload}
         />
@@ -548,78 +552,154 @@ function BookingsTab({ bookings, salonId, services, masters, onReload }: {
   );
 }
 
-// Модалка создания записи с диапазоном времени
-function QuickBookingModal({ salonId, services, masters, onClose, onSave }: {
+// Модалка создания записи с календарём
+function QuickBookingModal({ salonId, services, masters, bookings, workingHours, onClose, onSave }: {
   salonId: string;
   services: ServiceData[];
   masters: MasterData[];
+  bookings: BookingData[];
+  workingHours: WorkingHour[];
   onClose: () => void;
   onSave: () => void;
 }) {
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    client_name: '',
-    client_phone: '',
-    date: new Date().toISOString().split('T')[0],
-    time_from: '10:00',
-    time_to: '11:00',
-    service_id: '',
-    master_id: '',
-  });
+  const [step, setStep] = useState<'calendar' | 'time' | 'details'>('calendar');
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedTime, setSelectedTime] = useState<string>('');
+  const [selectedService, setSelectedService] = useState<ServiceData | null>(null);
+  const [selectedMaster, setSelectedMaster] = useState<MasterData | null>(null);
+  const [clientName, setClientName] = useState('');
+  const [clientPhone, setClientPhone] = useState('');
 
-  // Генерируем слоты времени
-  const timeSlots: string[] = [];
-  for (let h = 8; h <= 22; h++) {
-    timeSlots.push(`${h.toString().padStart(2, '0')}:00`);
-    if (h < 22) timeSlots.push(`${h.toString().padStart(2, '0')}:30`);
-  }
+  // Текущий месяц для календаря
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  // Авто-расчёт времени окончания при выборе услуги
-  const handleServiceChange = (serviceId: string) => {
-    const service = services.find(s => s.id === serviceId);
-    if (service) {
-      const [hours, mins] = form.time_from.split(':').map(Number);
-      const totalMins = hours * 60 + mins + service.duration;
-      const endHours = Math.floor(totalMins / 60);
-      const endMins = totalMins % 60;
-      const endTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
-      setForm({ ...form, service_id: serviceId, time_to: endTime });
-    } else {
-      setForm({ ...form, service_id: serviceId });
+  // Генерация дней календаря
+  const generateCalendarDays = () => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDayOfWeek = (firstDay.getDay() + 6) % 7; // Понедельник = 0
+
+    const days: (Date | null)[] = [];
+
+    // Пустые ячейки до первого дня
+    for (let i = 0; i < startDayOfWeek; i++) {
+      days.push(null);
     }
+
+    // Дни месяца
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+      days.push(new Date(year, month, d));
+    }
+
+    return days;
   };
 
-  // Расчёт длительности в минутах
-  const getDuration = () => {
-    const [h1, m1] = form.time_from.split(':').map(Number);
-    const [h2, m2] = form.time_to.split(':').map(Number);
-    return (h2 * 60 + m2) - (h1 * 60 + m1);
+  // Проверка рабочий ли день
+  const isWorkingDay = (date: Date) => {
+    const dayNames = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+    const dayName = dayNames[date.getDay()];
+    const wh = workingHours.find(h => h.day === dayName);
+    return wh?.is_working ?? false;
   };
 
-  const duration = getDuration();
-  const isValidTime = duration > 0;
+  // Проверка прошедшая ли дата
+  const isPastDate = (date: Date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return date < today;
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.client_name || !form.client_phone || !isValidTime) return;
+  // Генерация свободных слотов на выбранную дату
+  const generateTimeSlots = () => {
+    if (!selectedDate) return [];
+
+    const dayNames = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+    const date = new Date(selectedDate);
+    const dayName = dayNames[date.getDay()];
+    const wh = workingHours.find(h => h.day === dayName);
+
+    if (!wh?.is_working) return [];
+
+    const [openH, openM] = wh.open.split(':').map(Number);
+    const [closeH, closeM] = wh.close.split(':').map(Number);
+    const openMins = openH * 60 + openM;
+    const closeMins = closeH * 60 + closeM;
+
+    // Получаем занятые слоты на этот день
+    const dayBookings = bookings.filter(b => b.date === selectedDate);
+
+    const slots: { time: string; available: boolean }[] = [];
+    const step = 30; // Шаг 30 минут
+
+    for (let mins = openMins; mins < closeMins; mins += step) {
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+
+      // Проверяем занятость
+      const isBooked = dayBookings.some(b => {
+        const [bh, bm] = b.time.split(':').map(Number);
+        const bookingStart = bh * 60 + bm;
+        const duration = selectedService?.duration || 60;
+        const bookingEnd = bookingStart + duration;
+        const slotEnd = mins + (selectedService?.duration || 30);
+
+        // Проверка пересечения
+        return (mins < bookingEnd && slotEnd > bookingStart);
+      });
+
+      // Проверка что слот + длительность услуги не выходит за рамки
+      const slotEnd = mins + (selectedService?.duration || 30);
+      const fitsInSchedule = slotEnd <= closeMins;
+
+      slots.push({ time: timeStr, available: !isBooked && fitsInSchedule });
+    }
+
+    return slots;
+  };
+
+  const timeSlots = generateTimeSlots();
+  const calendarDays = generateCalendarDays();
+
+  const handleDateClick = (date: Date) => {
+    if (isPastDate(date) || !isWorkingDay(date)) return;
+    setSelectedDate(date.toISOString().split('T')[0]);
+    setSelectedTime('');
+    setStep('time');
+  };
+
+  const handleTimeClick = (time: string) => {
+    setSelectedTime(time);
+    setStep('details');
+  };
+
+  const handleSubmit = async () => {
+    if (!clientName || !clientPhone || !selectedDate || !selectedTime) return;
 
     setSaving(true);
 
-    const selectedService = services.find(s => s.id === form.service_id);
-    const selectedMaster = masters.find(m => m.id === form.master_id);
+    // Расчёт времени окончания
+    const [h, m] = selectedTime.split(':').map(Number);
+    const endMins = h * 60 + m + (selectedService?.duration || 60);
+    const endH = Math.floor(endMins / 60);
+    const endM = endMins % 60;
+    const timeEnd = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
 
     await supabase.from('bookings').insert({
       salon_id: salonId,
-      client_name: form.client_name,
-      client_phone: form.client_phone,
+      client_name: clientName,
+      client_phone: clientPhone,
       client_email: '',
-      date: form.date,
-      time: form.time_from,
-      time_end: form.time_to,
-      duration: duration,
-      service_id: form.service_id || null,
+      date: selectedDate,
+      time: selectedTime,
+      time_end: timeEnd,
+      duration: selectedService?.duration || 60,
+      service_id: selectedService?.id || null,
       service_name: selectedService?.name || '',
-      master_id: form.master_id || null,
+      master_id: selectedMaster?.id || null,
       master_name: selectedMaster?.name || '',
       price: selectedService?.price || 0,
       status: 'confirmed',
@@ -630,164 +710,273 @@ function QuickBookingModal({ salonId, services, masters, onClose, onSave }: {
     onClose();
   };
 
+  const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+  const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl">
-        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Новая запись</h2>
-            <p className="text-sm text-gray-500 mt-0.5">Заполните данные клиента</p>
+      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-xl max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="p-5 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-4">
+            {step !== 'calendar' && (
+              <button
+                onClick={() => setStep(step === 'details' ? 'time' : 'calendar')}
+                className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+              >
+                <ChevronRight className="w-5 h-5 rotate-180" />
+              </button>
+            )}
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Новая запись</h2>
+              <p className="text-sm text-gray-500 mt-0.5">
+                {step === 'calendar' && 'Выберите дату'}
+                {step === 'time' && `Выберите время на ${new Date(selectedDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}`}
+                {step === 'details' && 'Данные клиента'}
+              </p>
+            </div>
           </div>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-5">
-          {/* Клиент */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
-              <UserCircle className="w-4 h-4 text-violet-500" />
-              Клиент
-            </h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Имя *</label>
-                <input
-                  type="text"
-                  value={form.client_name}
-                  onChange={(e) => setForm({ ...form, client_name: e.target.value })}
-                  required
-                  autoFocus
-                  className="form-input text-sm"
-                  placeholder="Введите имя"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Телефон *</label>
-                <input
-                  type="tel"
-                  value={form.client_phone}
-                  onChange={(e) => setForm({ ...form, client_phone: e.target.value })}
-                  required
-                  className="form-input text-sm"
-                  placeholder="+380 XX XXX XX XX"
-                />
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-5">
+          {/* Шаг 1: Выбор услуги (всегда видно сверху) */}
+          {step === 'calendar' && (
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Выберите услугу</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {services.map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => setSelectedService(s)}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      selectedService?.id === s.id
+                        ? 'border-violet-500 bg-violet-50 ring-2 ring-violet-500/20'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <p className="font-medium text-gray-900 text-sm">{s.name}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{s.duration} мин • {s.price} ₴</p>
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Дата и время */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-violet-500" />
-              Дата и время
-            </h3>
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Дата</label>
-                <input
-                  type="date"
-                  value={form.date}
-                  onChange={(e) => setForm({ ...form, date: e.target.value })}
-                  className="form-input text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Начало</label>
-                <select
-                  value={form.time_from}
-                  onChange={(e) => setForm({ ...form, time_from: e.target.value })}
-                  className="time-select w-full"
+          {/* Шаг 1: Календарь */}
+          {step === 'calendar' && (
+            <div>
+              {/* Навигация по месяцам */}
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
+                  className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
                 >
-                  {timeSlots.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Конец</label>
-                <select
-                  value={form.time_to}
-                  onChange={(e) => setForm({ ...form, time_to: e.target.value })}
-                  className="time-select w-full"
+                  <ChevronRight className="w-5 h-5 rotate-180" />
+                </button>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                </h3>
+                <button
+                  onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
+                  className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
                 >
-                  {timeSlots.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Дни недели */}
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {dayNames.map(d => (
+                  <div key={d} className="text-center text-xs font-medium text-gray-500 py-2">
+                    {d}
+                  </div>
+                ))}
+              </div>
+
+              {/* Календарь */}
+              <div className="grid grid-cols-7 gap-1">
+                {calendarDays.map((date, i) => {
+                  if (!date) {
+                    return <div key={i} className="aspect-square" />;
+                  }
+
+                  const isToday = date.toDateString() === new Date().toDateString();
+                  const isPast = isPastDate(date);
+                  const isWorking = isWorkingDay(date);
+                  const isSelected = date.toISOString().split('T')[0] === selectedDate;
+                  const isDisabled = isPast || !isWorking;
+
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleDateClick(date)}
+                      disabled={isDisabled}
+                      className={`aspect-square rounded-xl flex items-center justify-center text-sm font-medium transition-all ${
+                        isSelected
+                          ? 'bg-violet-600 text-white'
+                          : isToday
+                          ? 'bg-violet-100 text-violet-700 hover:bg-violet-200'
+                          : isDisabled
+                          ? 'text-gray-300 cursor-not-allowed'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {date.getDate()}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Легенда */}
+              <div className="mt-4 flex items-center gap-4 text-xs text-gray-500">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded bg-violet-100"></span>
+                  Сегодня
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded bg-gray-100"></span>
+                  Выходной
+                </span>
               </div>
             </div>
+          )}
 
-            {/* Показ длительности или ошибки */}
-            {isValidTime ? (
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <Clock className="w-3.5 h-3.5" />
-                <span>Длительность: <strong className="text-gray-700">{duration} мин</strong></span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
-                <AlertTriangle className="w-4 h-4" />
-                <span>Время окончания должно быть позже начала</span>
-              </div>
-            )}
-          </div>
+          {/* Шаг 2: Выбор времени */}
+          {step === 'time' && (
+            <div>
+              {/* Выбранная услуга */}
+              {selectedService && (
+                <div className="mb-4 p-3 bg-violet-50 rounded-xl">
+                  <p className="text-sm font-medium text-violet-900">{selectedService.name}</p>
+                  <p className="text-xs text-violet-600">{selectedService.duration} мин • {selectedService.price} ₴</p>
+                </div>
+              )}
 
-          {/* Услуга и мастер */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
-              <Scissors className="w-4 h-4 text-violet-500" />
-              Услуга
-            </h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Услуга</label>
+              {/* Выбор мастера */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Мастер</label>
                 <select
-                  value={form.service_id}
-                  onChange={(e) => handleServiceChange(e.target.value)}
+                  value={selectedMaster?.id || ''}
+                  onChange={(e) => setSelectedMaster(masters.find(m => m.id === e.target.value) || null)}
                   className="form-select text-sm"
                 >
-                  <option value="">Выберите услугу</option>
-                  {services.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} ({s.duration} мин) — {s.price}₴
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Мастер</label>
-                <select
-                  value={form.master_id}
-                  onChange={(e) => setForm({ ...form, master_id: e.target.value })}
-                  className="form-select text-sm"
-                >
-                  <option value="">Любой мастер</option>
+                  <option value="">Любой свободный</option>
                   {masters.map(m => (
                     <option key={m.id} value={m.id}>{m.name}</option>
                   ))}
                 </select>
               </div>
-            </div>
-          </div>
 
-          {/* Кнопки */}
-          <div className="flex gap-3 pt-3 border-t border-gray-100">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1 rounded-xl h-11">
-              Отмена
-            </Button>
+              {/* Временные слоты */}
+              <label className="block text-sm font-medium text-gray-700 mb-2">Свободное время</label>
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                {timeSlots.map(slot => (
+                  <button
+                    key={slot.time}
+                    onClick={() => slot.available && handleTimeClick(slot.time)}
+                    disabled={!slot.available}
+                    className={`py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
+                      selectedTime === slot.time
+                        ? 'bg-violet-600 text-white'
+                        : slot.available
+                        ? 'bg-gray-100 text-gray-700 hover:bg-violet-100 hover:text-violet-700'
+                        : 'bg-gray-50 text-gray-300 cursor-not-allowed line-through'
+                    }`}
+                  >
+                    {slot.time}
+                  </button>
+                ))}
+              </div>
+
+              {timeSlots.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <Clock className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                  <p>Нет доступного времени на этот день</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Шаг 3: Данные клиента */}
+          {step === 'details' && (
+            <div className="space-y-5">
+              {/* Сводка */}
+              <div className="p-4 bg-gray-50 rounded-xl space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Дата</span>
+                  <span className="font-medium text-gray-900">
+                    {new Date(selectedDate).toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'long' })}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Время</span>
+                  <span className="font-medium text-gray-900">{selectedTime}</span>
+                </div>
+                {selectedService && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Услуга</span>
+                    <span className="font-medium text-gray-900">{selectedService.name} • {selectedService.price} ₴</span>
+                  </div>
+                )}
+                {selectedMaster && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Мастер</span>
+                    <span className="font-medium text-gray-900">{selectedMaster.name}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Форма клиента */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Имя клиента *</label>
+                  <input
+                    type="text"
+                    value={clientName}
+                    onChange={(e) => setClientName(e.target.value)}
+                    className="form-input"
+                    placeholder="Введите имя"
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Телефон *</label>
+                  <input
+                    type="tel"
+                    value={clientPhone}
+                    onChange={(e) => setClientPhone(e.target.value)}
+                    className="form-input"
+                    placeholder="+380 XX XXX XX XX"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        {step === 'details' && (
+          <div className="p-5 border-t border-gray-100 flex-shrink-0">
             <Button
-              type="submit"
-              disabled={saving || !form.client_name || !form.client_phone || !isValidTime}
-              className="flex-1 bg-violet-600 hover:bg-violet-700 text-white rounded-xl h-11 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleSubmit}
+              disabled={saving || !clientName || !clientPhone}
+              className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl h-12 disabled:opacity-50"
             >
               {saving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <>
-                  <Check className="w-4 h-4 mr-2" />
+                  <Check className="w-5 h-5 mr-2" />
                   Создать запись
                 </>
               )}
             </Button>
           </div>
-        </form>
+        )}
       </div>
     </div>
   );
