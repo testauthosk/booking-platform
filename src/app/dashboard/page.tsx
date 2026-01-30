@@ -122,7 +122,6 @@ interface MasterData {
   position: string;
   photo_url: string;
   phone: string;
-  email: string;
   is_active: boolean;
   working_hours?: WorkingHour[];
   services?: { service_id: string; price?: number }[];
@@ -2176,10 +2175,6 @@ function TeamTab({ masters, services, salonId, onReload }: {
                   <Phone className="w-4 h-4 flex-shrink-0" />
                   <span className="truncate">{master.phone || 'Не указан'}</span>
                 </div>
-                <div className="flex items-center gap-2 text-gray-500">
-                  <Mail className="w-4 h-4 flex-shrink-0" />
-                  <span className="truncate">{master.email || 'Не указан'}</span>
-                </div>
               </div>
             </div>
           ))}
@@ -2218,7 +2213,6 @@ function MasterModal({ master, services, onClose, onSave }: {
     name: master?.name || '',
     position: master?.position || '',
     phone: master?.phone || '+380',
-    email: master?.email || '',
     photo_url: master?.photo_url || '',
   });
 
@@ -2260,27 +2254,15 @@ function MasterModal({ master, services, onClose, onSave }: {
               placeholder="Например: Парикмахер-стилист"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Телефон</label>
-              <input
-                type="tel"
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: formatPhoneUA(e.target.value) })}
-                className="form-input"
-                placeholder="+380 XX XXX XX XX"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
-              <input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="form-input"
-                placeholder="email@example.com"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Телефон</label>
+            <input
+              type="tel"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: formatPhoneUA(e.target.value) })}
+              className="form-input"
+              placeholder="+380 XX XXX XX XX"
+            />
           </div>
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="outline" onClick={onClose} className="flex-1 rounded-xl">
