@@ -122,6 +122,7 @@ interface MasterData {
   position: string;
   photo_url: string;
   phone: string;
+  email: string;
   is_active: boolean;
   working_hours?: WorkingHour[];
   services?: { service_id: string; price?: number }[];
@@ -2213,6 +2214,7 @@ function MasterModal({ master, services, onClose, onSave }: {
     name: master?.name || '',
     position: master?.position || '',
     phone: master?.phone || '+380',
+    email: master?.email || '',
     photo_url: master?.photo_url || '',
   });
 
@@ -2254,15 +2256,27 @@ function MasterModal({ master, services, onClose, onSave }: {
               placeholder="Например: Парикмахер-стилист"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Телефон</label>
-            <input
-              type="tel"
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: formatPhoneUA(e.target.value) })}
-              className="form-input"
-              placeholder="+380 XX XXX XX XX"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Телефон</label>
+              <input
+                type="tel"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: formatPhoneUA(e.target.value) })}
+                className="form-input"
+                placeholder="+380 XX XXX XX XX"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className="form-input"
+                placeholder="email@example.com"
+              />
+            </div>
           </div>
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="outline" onClick={onClose} className="flex-1 rounded-xl">
@@ -2796,10 +2810,16 @@ function PhotosTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates: 
     const fileName = `${Date.now()}.${fileExt}`;
     const filePath = `${path}/${fileName}`;
 
+    console.log('Storage upload:', filePath);
     const { error } = await supabase.storage.from('salon-media').upload(filePath, file);
-    if (error) return null;
+    if (error) {
+      console.error('Storage error:', error);
+      alert('Помилка storage: ' + error.message);
+      return null;
+    }
 
     const { data } = supabase.storage.from('salon-media').getPublicUrl(filePath);
+    console.log('Public URL:', data.publicUrl);
     return data.publicUrl;
   };
 
@@ -2808,10 +2828,19 @@ function PhotosTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates: 
     if (!file) return;
 
     setUploading(true);
+    console.log('Uploading logo...', file.name);
     const url = await uploadFile(file, `logos/${salon.id}`);
+    console.log('Upload result:', url);
     if (url) {
-      await supabase.from('salons').update({ logo_url: url }).eq('id', salon.id);
-      onUpdate({ logo_url: url });
+      const { error } = await supabase.from('salons').update({ logo_url: url }).eq('id', salon.id);
+      console.log('DB update:', error ? error : 'success');
+      if (!error) {
+        onUpdate({ logo_url: url });
+      } else {
+        alert('Помилка збереження: ' + error.message);
+      }
+    } else {
+      alert('Помилка завантаження файлу');
     }
     setUploading(false);
     if (logoInputRef.current) logoInputRef.current.value = '';
