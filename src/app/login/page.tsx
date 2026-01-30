@@ -46,15 +46,24 @@ export default function LoginPage() {
       console.log('Auth successful, user:', authData.user.id);
 
       // 2. Получаем профиль из таблицы users
+      console.log('Fetching profile...');
       const { data: profile, error: profileError } = await supabase
         .from('users')
         .select('*')
         .eq('id', authData.user.id)
         .single();
 
-      console.log('Profile fetch:', { profile, profileError });
+      console.log('Profile fetch result:', { profile, profileError });
 
-      if (profileError || !profile) {
+      if (profileError) {
+        console.error('Profile error:', profileError);
+        setError('Ошибка загрузки профиля: ' + profileError.message);
+        await supabase.auth.signOut();
+        setLoading(false);
+        return;
+      }
+
+      if (!profile) {
         setError('Пользователь не найден в системе. Обратитесь к администратору.');
         await supabase.auth.signOut();
         setLoading(false);
