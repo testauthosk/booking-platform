@@ -416,13 +416,12 @@ export default function DashboardPage() {
 
   const tabs = [
     { id: 'overview', label: 'Обзор', icon: LayoutDashboard },
-    { id: 'bookings', label: 'Записи', icon: Calendar },
+    { id: 'calendar', label: 'Календарь', icon: Calendar },
+    { id: 'bookings', label: 'Записи', icon: CalendarCheck },
     { id: 'services', label: 'Услуги', icon: Scissors },
     { id: 'team', label: 'Команда', icon: Users },
     { id: 'clients', label: 'Клиенты', icon: UserCircle },
-    { id: 'schedule', label: 'Расписание', icon: Clock },
-    { id: 'profile', label: 'Профиль', icon: Store },
-    { id: 'photos', label: 'Фото', icon: Image },
+    { id: 'settings', label: 'Настройки', icon: Settings },
   ];
 
   return (
@@ -557,6 +556,16 @@ export default function DashboardPage() {
           {activeTab === 'overview' && (
             <OverviewTab salon={salon} bookings={bookings} stats={stats} onViewAll={() => setActiveTab('bookings')} />
           )}
+          {activeTab === 'calendar' && (
+            <CalendarTab
+              bookings={bookings}
+              masters={masters}
+              services={services}
+              salonId={salon.id}
+              workingHours={salon.working_hours || []}
+              onReload={() => loadBookings(salon.id)}
+            />
+          )}
           {activeTab === 'bookings' && (
             <BookingsTab
               bookings={bookings}
@@ -598,14 +607,8 @@ export default function DashboardPage() {
               onReload={() => loadClients(salon.id)}
             />
           )}
-          {activeTab === 'schedule' && (
-            <ScheduleTab salon={salon} onUpdate={(updates) => setSalon({ ...salon, ...updates })} />
-          )}
-          {activeTab === 'profile' && (
-            <ProfileTab salon={salon} onUpdate={(updates) => setSalon({ ...salon, ...updates })} />
-          )}
-          {activeTab === 'photos' && (
-            <PhotosTab salon={salon} onUpdate={(updates) => setSalon({ ...salon, ...updates })} />
+          {activeTab === 'settings' && (
+            <SettingsTab salon={salon} onUpdate={(updates) => setSalon({ ...salon, ...updates })} />
           )}
         </div>
       </main>
@@ -2892,6 +2895,518 @@ function PhotosTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates: 
               Загрузить
             </Button>
           </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ===================== CALENDAR TAB (Main Schedule View) =====================
+
+function CalendarTab({ bookings, masters, services, salonId, workingHours, onReload }: {
+  bookings: BookingData[];
+  masters: MasterData[];
+  services: ServiceData[];
+  salonId: string;
+  workingHours: WorkingHour[];
+  onReload: () => void;
+}) {
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showAllMasters, setShowAllMasters] = useState(true);
+  const [selectedMasterFilter, setSelectedMasterFilter] = useState<string | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<BookingData | null>(null);
+
+  // Генерируем временные слоты с шагом 5 минут для админа
+  const generateTimeSlots = () => {
+    const slots: string[] = [];
+    const dayName = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'][selectedDate.getDay()];
+    const daySchedule = workingHours.find(wh => wh.day === dayName);
+
+    if (!daySchedule?.is_working) return slots;
+
+    const [startH, startM] = daySchedule.open.split(':').map(Number);
+    const [endH, endM] = daySchedule.close.split(':').map(Number);
+    const startMins = startH * 60 + startM;
+    const endMins = endH * 60 + endM;
+
+    // Шаг 5 минут для админа
+    for (let mins = startMins; mins < endMins; mins += 5) {
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      slots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+    }
+    return slots;
+  };
+
+  const timeSlots = generateTimeSlots();
+  const dateStr = selectedDate.toISOString().split('T')[0];
+  const dayBookings = bookings.filter(b => b.date === dateStr);
+
+  // Получаем записи для конкретного мастера
+  const getBookingsForMaster = (masterId: string) => {
+    return dayBookings.filter(b => b.master_id === masterId);
+  };
+
+  // Проверяем, попадает ли слот в запись
+  const getBookingAtSlot = (masterId: string, time: string): BookingData | null => {
+    const masterBookings = getBookingsForMaster(masterId);
+    const [slotH, slotM] = time.split(':').map(Number);
+    const slotMins = slotH * 60 + slotM;
+
+    for (const booking of masterBookings) {
+      const [startH, startM] = booking.time.split(':').map(Number);
+      const startMins = startH * 60 + startM;
+      const duration = booking.duration || 30;
+      const endMins = startMins + duration;
+
+      if (slotMins >= startMins && slotMins < endMins) {
+        return booking;
+      }
+    }
+    return null;
+  };
+
+  // Проверяем, является ли слот началом записи
+  const isBookingStart = (masterId: string, time: string): boolean => {
+    const masterBookings = getBookingsForMaster(masterId);
+    return masterBookings.some(b => b.time === time);
+  };
+
+  // Навигация по дням
+  const goToPrevDay = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() - 1);
+    setSelectedDate(newDate);
+  };
+
+  const goToNextDay = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + 1);
+    setSelectedDate(newDate);
+  };
+
+  const goToToday = () => {
+    setSelectedDate(new Date());
+  };
+
+  // Генерируем дни недели для нижней навигации
+  const getWeekDays = () => {
+    const days = [];
+    const startOfWeek = new Date(selectedDate);
+    const dayOfWeek = startOfWeek.getDay();
+    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    startOfWeek.setDate(startOfWeek.getDate() + diff);
+
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(startOfWeek);
+      day.setDate(startOfWeek.getDate() + i);
+      days.push(day);
+    }
+    return days;
+  };
+
+  const weekDays = getWeekDays();
+  const dayNames = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'НД'];
+
+  const formatDate = (date: Date) => {
+    const months = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
+    return `${date.getDate()} ${months[date.getMonth()]}`;
+  };
+
+  const isToday = (date: Date) => {
+    const today = new Date();
+    return date.toDateString() === today.toDateString();
+  };
+
+  const filteredMasters = selectedMasterFilter
+    ? masters.filter(m => m.id === selectedMasterFilter)
+    : masters;
+
+  // Получаем цвет для записи на основе статуса
+  const getBookingColor = (booking: BookingData) => {
+    if (booking.status === 'confirmed') return 'bg-green-100 border-green-300 text-green-800';
+    if (booking.status === 'pending') return 'bg-yellow-100 border-yellow-300 text-yellow-800';
+    if (booking.status === 'cancelled') return 'bg-red-100 border-red-300 text-red-800';
+    return 'bg-violet-100 border-violet-300 text-violet-800';
+  };
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-120px)]">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <button onClick={goToPrevDay} className="p-2 hover:bg-gray-100 rounded-lg">
+            <ChevronRight className="w-5 h-5 rotate-180" />
+          </button>
+          <button onClick={() => {}} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-lg">
+            <span className="font-semibold text-gray-900">{formatDate(selectedDate)}</span>
+            <ChevronDown className="w-4 h-4 text-gray-500" />
+          </button>
+          <button onClick={goToNextDay} className="p-2 hover:bg-gray-100 rounded-lg">
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowAllMasters(!showAllMasters)}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${showAllMasters ? 'bg-gray-100 border-gray-300' : 'border-gray-200'}`}
+          >
+            <Users className="w-4 h-4" />
+            <span className="text-sm">Усі</span>
+          </button>
+          <button className="p-2 hover:bg-gray-100 rounded-lg border border-gray-200">
+            <Filter className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+      </div>
+
+      {/* Calendar Grid */}
+      <div className="flex-1 bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col">
+        {/* Masters Header */}
+        <div className="flex border-b border-gray-200 bg-gray-50 sticky top-0 z-10">
+          <div className="w-16 flex-shrink-0 p-2 border-r border-gray-200">
+            <button className="w-8 h-8 bg-yellow-400 rounded-lg flex items-center justify-center text-white">
+              <Plus className="w-5 h-5" />
+            </button>
+          </div>
+          {filteredMasters.map(master => (
+            <div key={master.id} className="flex-1 min-w-[140px] p-3 border-r border-gray-200 text-center">
+              <div className="w-10 h-10 mx-auto mb-1 rounded-full bg-gray-200 overflow-hidden">
+                {master.photo_url ? (
+                  <img src={master.photo_url} alt={master.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-400">
+                    <Users className="w-5 h-5" />
+                  </div>
+                )}
+              </div>
+              <p className="text-sm font-medium text-gray-900 truncate">{master.name}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Time Grid */}
+        <div className="flex-1 overflow-y-auto">
+          {timeSlots.map((time, idx) => {
+            const isHourStart = time.endsWith(':00');
+            const showTime = isHourStart || time.endsWith(':30');
+
+            return (
+              <div key={time} className={`flex ${isHourStart ? 'border-t border-gray-200' : ''}`}>
+                {/* Time Label */}
+                <div className="w-16 flex-shrink-0 border-r border-gray-100 text-right pr-2 py-1">
+                  {showTime && (
+                    <span className="text-xs text-gray-400">{time}</span>
+                  )}
+                </div>
+
+                {/* Master Columns */}
+                {filteredMasters.map(master => {
+                  const booking = getBookingAtSlot(master.id, time);
+                  const isStart = booking && isBookingStart(master.id, time);
+
+                  return (
+                    <div
+                      key={master.id}
+                      className={`flex-1 min-w-[140px] border-r border-gray-100 h-4 relative ${
+                        !booking ? 'hover:bg-violet-50 cursor-pointer' : ''
+                      }`}
+                    >
+                      {isStart && booking && (
+                        <div
+                          onClick={() => setSelectedBooking(booking)}
+                          className={`absolute left-1 right-1 rounded-lg p-2 border z-10 cursor-pointer hover:shadow-md transition-shadow ${getBookingColor(booking)}`}
+                          style={{ height: `${((booking.duration || 30) / 5) * 16}px`, minHeight: '60px' }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium">
+                              {booking.time}-{booking.time_end || ''}
+                            </span>
+                            <Phone className="w-3 h-3" />
+                          </div>
+                          <p className="text-sm font-semibold truncate">{booking.client_name}</p>
+                          <p className="text-xs opacity-75">{booking.client_phone}</p>
+                          {booking.service_name && (
+                            <p className="text-xs mt-1 truncate">{booking.service_name}</p>
+                          )}
+                          {booking.status === 'pending' && (
+                            <span className="inline-block mt-1 px-2 py-0.5 bg-yellow-400 text-yellow-900 text-xs rounded font-medium">
+                              new
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Bottom Navigation - Week Days */}
+      <div className="mt-4 bg-white rounded-xl border border-gray-200 p-2">
+        <div className="flex items-center justify-between">
+          {weekDays.map((day, idx) => {
+            const isSelected = day.toDateString() === selectedDate.toDateString();
+            const isTodayDate = isToday(day);
+
+            return (
+              <button
+                key={idx}
+                onClick={() => setSelectedDate(day)}
+                className={`flex-1 py-2 px-1 rounded-lg text-center transition-colors ${
+                  isSelected
+                    ? 'bg-yellow-400 text-yellow-900'
+                    : isTodayDate
+                    ? 'text-yellow-600 font-semibold'
+                    : 'hover:bg-gray-100'
+                }`}
+              >
+                <span className={`text-xs ${isSelected ? 'text-yellow-800' : 'text-gray-500'}`}>
+                  {dayNames[idx]}
+                </span>
+                <p className={`text-lg font-semibold ${isSelected ? 'text-yellow-900' : 'text-gray-900'}`}>
+                  {day.getDate()}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+        {!isToday(selectedDate) && (
+          <button
+            onClick={goToToday}
+            className="w-full mt-2 py-2 text-center text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg"
+          >
+            Сьогодні
+          </button>
+        )}
+      </div>
+
+      {/* Booking Detail Modal */}
+      {selectedBooking && (
+        <BookingDetailModal
+          booking={selectedBooking}
+          masters={masters}
+          services={services}
+          onClose={() => setSelectedBooking(null)}
+          onUpdate={onReload}
+        />
+      )}
+    </div>
+  );
+}
+
+// ===================== BOOKING DETAIL MODAL =====================
+
+function BookingDetailModal({ booking, masters, services, onClose, onUpdate }: {
+  booking: BookingData;
+  masters: MasterData[];
+  services: ServiceData[];
+  onClose: () => void;
+  onUpdate: () => void;
+}) {
+  const [status, setStatus] = useState(booking.status);
+  const [saving, setSaving] = useState(false);
+
+  const master = masters.find(m => m.id === booking.master_id);
+  const service = services.find(s => s.id === booking.service_id);
+
+  const handleStatusChange = async (newStatus: string) => {
+    setSaving(true);
+    await supabase
+      .from('bookings')
+      .update({ status: newStatus })
+      .eq('id', booking.id);
+    setStatus(newStatus);
+    setSaving(false);
+    onUpdate();
+  };
+
+  const handleCall = () => {
+    window.location.href = `tel:${booking.client_phone}`;
+  };
+
+  const getStatusLabel = (s: string) => {
+    const labels: Record<string, string> = {
+      pending: 'Нова',
+      confirmed: 'Підтверджено',
+      completed: 'Завершено',
+      cancelled: 'Скасовано',
+    };
+    return labels[s] || s;
+  };
+
+  const getStatusColor = (s: string) => {
+    const colors: Record<string, string> = {
+      pending: 'bg-yellow-100 text-yellow-800',
+      confirmed: 'bg-green-100 text-green-800',
+      completed: 'bg-blue-100 text-blue-800',
+      cancelled: 'bg-red-100 text-red-800',
+    };
+    return colors[s] || 'bg-gray-100 text-gray-800';
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-end lg:items-center justify-center z-50" onClick={onClose}>
+      <div
+        className="bg-white w-full lg:max-w-md lg:rounded-2xl rounded-t-2xl max-h-[85vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">Деталі запису</h2>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-4 space-y-4">
+          {/* Client Info */}
+          <div className="bg-gray-50 rounded-xl p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">{booking.client_name}</h3>
+                <p className="text-gray-500 mt-1">{booking.client_phone}</p>
+                {booking.client_email && (
+                  <p className="text-gray-500 text-sm">{booking.client_email}</p>
+                )}
+              </div>
+              <button
+                onClick={handleCall}
+                className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl font-medium transition-colors"
+              >
+                <PhoneCall className="w-5 h-5" />
+                Зателефонувати
+              </button>
+            </div>
+          </div>
+
+          {/* Booking Info */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between py-2 border-b border-gray-100">
+              <span className="text-gray-500">Дата</span>
+              <span className="font-medium text-gray-900">{new Date(booking.date).toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+            </div>
+            <div className="flex items-center justify-between py-2 border-b border-gray-100">
+              <span className="text-gray-500">Час</span>
+              <span className="font-medium text-gray-900">{booking.time} - {booking.time_end || ''}</span>
+            </div>
+            <div className="flex items-center justify-between py-2 border-b border-gray-100">
+              <span className="text-gray-500">Тривалість</span>
+              <span className="font-medium text-gray-900">{booking.duration || 30} хв</span>
+            </div>
+            {service && (
+              <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                <span className="text-gray-500">Послуга</span>
+                <span className="font-medium text-gray-900">{service.name}</span>
+              </div>
+            )}
+            {master && (
+              <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                <span className="text-gray-500">Майстер</span>
+                <div className="flex items-center gap-2">
+                  {master.photo_url && (
+                    <img src={master.photo_url} alt={master.name} className="w-6 h-6 rounded-full object-cover" />
+                  )}
+                  <span className="font-medium text-gray-900">{master.name}</span>
+                </div>
+              </div>
+            )}
+            {booking.price && (
+              <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                <span className="text-gray-500">Вартість</span>
+                <span className="font-bold text-gray-900">{booking.price} грн</span>
+              </div>
+            )}
+          </div>
+
+          {/* Status */}
+          <div>
+            <p className="text-sm font-medium text-gray-700 mb-2">Статус</p>
+            <div className="flex flex-wrap gap-2">
+              {['pending', 'confirmed', 'completed', 'cancelled'].map(s => (
+                <button
+                  key={s}
+                  onClick={() => handleStatusChange(s)}
+                  disabled={saving}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    status === s
+                      ? getStatusColor(s) + ' ring-2 ring-offset-2 ring-gray-300'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {getStatusLabel(s)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="sticky bottom-0 bg-white border-t border-gray-100 p-4 flex gap-3">
+          <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl">
+            Закрити
+          </Button>
+          <Button
+            onClick={handleCall}
+            className="flex-1 bg-green-500 hover:bg-green-600 text-white rounded-xl"
+          >
+            <PhoneCall className="w-4 h-4 mr-2" />
+            Зателефонувати
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===================== SETTINGS TAB =====================
+
+function SettingsTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates: Partial<SalonData>) => void }) {
+  const [activeSection, setActiveSection] = useState('profile');
+
+  const sections = [
+    { id: 'profile', label: 'Профіль', icon: Store },
+    { id: 'schedule', label: 'Графік роботи', icon: Clock },
+    { id: 'photos', label: 'Фото', icon: Image },
+  ];
+
+  return (
+    <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+      {/* Sidebar */}
+      <div className="lg:w-64 flex-shrink-0">
+        <div className="bg-white rounded-xl border border-gray-200 p-2">
+          {sections.map(section => (
+            <button
+              key={section.id}
+              onClick={() => setActiveSection(section.id)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                activeSection === section.id
+                  ? 'bg-violet-50 text-violet-700'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <section.icon className="w-5 h-5" />
+              <span className="font-medium">{section.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1">
+        {activeSection === 'profile' && (
+          <ProfileTab salon={salon} onUpdate={onUpdate} />
+        )}
+        {activeSection === 'schedule' && (
+          <ScheduleTab salon={salon} onUpdate={onUpdate} />
+        )}
+        {activeSection === 'photos' && (
+          <PhotosTab salon={salon} onUpdate={onUpdate} />
         )}
       </div>
     </div>
