@@ -46,7 +46,7 @@ export default function AdminLoginPage() {
     setError('');
     setLoading(true);
 
-    const { error, user: loggedUser } = await signIn(email, password);
+    const { error } = await signIn(email, password);
 
     if (error) {
       setError(translateError(error));
