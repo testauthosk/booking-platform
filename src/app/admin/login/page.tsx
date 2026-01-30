@@ -4,42 +4,17 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Loader2, Eye, EyeOff, Shield } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Shield, LogOut, Scissors } from 'lucide-react';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const { signIn, user, loading: authLoading } = useAuth();
+  const { signIn, signOut, user, loading: authLoading } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  // Редирект если уже залогинен как super_admin
-  if (user) {
-    if (user.role === 'super_admin') {
-      router.push('/admin');
-      return null;
-    } else {
-      // Не супер админ - показать ошибку
-      return (
-        <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
-          <div className="text-center">
-            <Shield className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-white mb-2">Доступ запрещён</h1>
-            <p className="text-slate-400 mb-6">У вас нет прав супер администратора</p>
-            <Button
-              onClick={() => router.push('/dashboard')}
-              className="bg-slate-700 hover:bg-slate-600 text-white"
-            >
-              Перейти в панель салона
-            </Button>
-          </div>
-        </div>
-      );
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +29,8 @@ export default function AdminLoginPage() {
       return;
     }
 
-    // Проверка роли будет в useEffect после обновления user
+    // После успешного входа перенаправляем в консоль админа
+    router.push('/admin');
   };
 
   const translateError = (error: string) => {
@@ -64,16 +40,63 @@ export default function AdminLoginPage() {
     if (error.includes('Email not confirmed')) {
       return 'Подтвердите email для входа';
     }
-    if (error.includes('not_super_admin')) {
-      return 'У вас нет прав супер администратора';
-    }
     return 'Ошибка входа. Попробуйте ещё раз.';
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
   };
 
   if (authLoading) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+      </div>
+    );
+  }
+
+  // Если уже залогинен - показать кнопки навигации
+  if (user) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
+        <div className="w-full max-w-md text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-slate-800 rounded-2xl mb-4">
+            <Shield className="w-8 h-8 text-violet-500" />
+          </div>
+          <h1 className="text-2xl font-bold text-white mb-2">Вы уже вошли</h1>
+          <p className="text-slate-400 mb-6">
+            {user.email} ({user.role === 'super_admin' ? 'Супер админ' : 'Владелец салона'})
+          </p>
+
+          <div className="space-y-3">
+            {user.role === 'super_admin' ? (
+              <Button
+                onClick={() => router.push('/admin')}
+                className="w-full bg-violet-600 hover:bg-violet-500 text-white rounded-xl h-12"
+              >
+                <Shield className="w-5 h-5 mr-2" />
+                Открыть консоль админа
+              </Button>
+            ) : (
+              <Button
+                onClick={() => router.push('/dashboard')}
+                className="w-full bg-slate-700 hover:bg-slate-600 text-white rounded-xl h-12"
+              >
+                <Scissors className="w-5 h-5 mr-2" />
+                Открыть панель салона
+              </Button>
+            )}
+
+            <Button
+              onClick={handleSignOut}
+              variant="outline"
+              className="w-full rounded-xl h-12 border-slate-600 text-slate-300 hover:bg-slate-800"
+            >
+              <LogOut className="w-5 h-5 mr-2" />
+              Выйти и войти другим пользователем
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }

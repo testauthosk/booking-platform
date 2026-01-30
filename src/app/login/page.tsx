@@ -4,30 +4,17 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Loader2, Eye, EyeOff, Scissors } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Scissors, LogOut, Shield } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signIn, user, loading: authLoading } = useAuth();
+  const { signIn, signOut, user, loading: authLoading } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  // Редирект если уже залогинен
-  if (user) {
-    if (user.role === 'super_admin') {
-      // Супер админ - перенаправить в админку
-      router.push('/admin');
-      return null;
-    } else {
-      // Владелец салона - в дашборд
-      router.push('/dashboard');
-      return null;
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +29,8 @@ export default function LoginPage() {
       return;
     }
 
-    // Редирект произойдёт автоматически после обновления user
+    // После успешного входа перенаправляем в дашборд
+    router.push('/dashboard');
   };
 
   const translateError = (error: string) => {
@@ -55,10 +43,59 @@ export default function LoginPage() {
     return 'Ошибка входа. Попробуйте ещё раз.';
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  // Если уже залогинен - показать кнопки навигации
+  if (user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-violet-50 to-pink-50 flex items-center justify-center px-4">
+        <div className="w-full max-w-md text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-sm mb-4">
+            <Scissors className="w-8 h-8 text-violet-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Вы уже вошли</h1>
+          <p className="text-gray-500 mb-6">
+            {user.email} ({user.role === 'super_admin' ? 'Супер админ' : 'Владелец салона'})
+          </p>
+
+          <div className="space-y-3">
+            {user.role === 'super_admin' ? (
+              <Button
+                onClick={() => router.push('/admin')}
+                className="w-full bg-slate-800 hover:bg-slate-700 text-white rounded-xl h-12"
+              >
+                <Shield className="w-5 h-5 mr-2" />
+                Открыть консоль админа
+              </Button>
+            ) : (
+              <Button
+                onClick={() => router.push('/dashboard')}
+                className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl h-12"
+              >
+                Открыть панель салона
+              </Button>
+            )}
+
+            <Button
+              onClick={handleSignOut}
+              variant="outline"
+              className="w-full rounded-xl h-12 border-gray-200"
+            >
+              <LogOut className="w-5 h-5 mr-2" />
+              Выйти и войти другим пользователем
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
