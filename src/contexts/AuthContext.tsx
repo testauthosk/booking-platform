@@ -24,8 +24,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (initialized.current) return;
     initialized.current = true;
 
-    // Get initial session
+    // Get initial session with timeout
     const getSession = async () => {
+      const timeout = setTimeout(() => {
+        console.warn('Session check timeout - continuing without user');
+        setLoading(false);
+      }, 3000);
+
       try {
         const { data: { session } } = await supabase.auth.getSession();
 
@@ -41,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         console.error('Session error:', err);
       }
+      clearTimeout(timeout);
       setLoading(false);
     };
 
