@@ -4,17 +4,31 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Loader2, Eye, EyeOff, Scissors, LogOut, Shield } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Scissors, LogOut, Trash2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signIn, signOut, user, loading: authLoading } = useAuth();
+  const { signIn, user, loading: authLoading } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Принудительный выход - очищает всё
+  const forceLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      // ignore
+    }
+    // Очищаем localStorage
+    localStorage.clear();
+    // Перезагружаем страницу
+    window.location.reload();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,32 +54,47 @@ export default function LoginPage() {
     if (error.includes('Email not confirmed')) {
       return 'Подтвердите email для входа';
     }
-    return 'Ошибка входа. Попробуйте ещё раз.';
+    return error;
   };
 
-  const handleSignOut = async () => {
-    await signOut();
-  };
+  // Кнопка выхода всегда видна в углу
+  const LogoutButton = () => (
+    <button
+      onClick={forceLogout}
+      className="fixed top-4 right-4 flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors z-50"
+    >
+      <Trash2 className="w-4 h-4" />
+      Сбросить сессию
+    </button>
+  );
 
+  // При загрузке показываем спиннер + кнопку выхода
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+        <LogoutButton />
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-500">Загрузка...</p>
+          <p className="text-gray-400 text-sm mt-2">Если долго грузится - нажмите "Сбросить сессию"</p>
+        </div>
       </div>
     );
   }
 
-  // Если уже залогинен - показать кнопки навигации
+  // Если залогинен - показать информацию и кнопки
   if (user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-violet-50 to-pink-50 flex items-center justify-center px-4">
+        <LogoutButton />
         <div className="w-full max-w-md text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-sm mb-4">
             <Scissors className="w-8 h-8 text-violet-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Вы уже вошли</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Вы вошли как</h1>
+          <p className="text-gray-700 font-medium">{user.email}</p>
           <p className="text-gray-500 mb-6">
-            {user.email} ({user.role === 'super_admin' ? 'Супер админ' : 'Владелец салона'})
+            Роль: {user.role === 'super_admin' ? 'Супер админ' : 'Владелец салона'}
           </p>
 
           <div className="space-y-3">
@@ -74,7 +103,6 @@ export default function LoginPage() {
                 onClick={() => router.push('/admin')}
                 className="w-full bg-slate-800 hover:bg-slate-700 text-white rounded-xl h-12"
               >
-                <Shield className="w-5 h-5 mr-2" />
                 Открыть консоль админа
               </Button>
             ) : (
@@ -87,12 +115,12 @@ export default function LoginPage() {
             )}
 
             <Button
-              onClick={handleSignOut}
+              onClick={forceLogout}
               variant="outline"
-              className="w-full rounded-xl h-12 border-gray-200"
+              className="w-full rounded-xl h-12 border-gray-300"
             >
               <LogOut className="w-5 h-5 mr-2" />
-              Выйти и войти другим пользователем
+              Выйти
             </Button>
           </div>
         </div>
@@ -100,6 +128,7 @@ export default function LoginPage() {
     );
   }
 
+  // Форма входа
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 to-pink-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
