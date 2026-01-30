@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Scissors } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,14 +16,17 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Redirect if already logged in
+  // Редирект если уже залогинен
   if (user) {
     if (user.role === 'super_admin') {
+      // Супер админ - перенаправить в админку
       router.push('/admin');
+      return null;
     } else {
+      // Владелец салона - в дашборд
       router.push('/dashboard');
+      return null;
     }
-    return null;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,17 +42,17 @@ export default function LoginPage() {
       return;
     }
 
-    // Redirect based on role (will be handled by the redirect above after state update)
+    // Редирект произойдёт автоматически после обновления user
   };
 
   const translateError = (error: string) => {
     if (error.includes('Invalid login credentials')) {
-      return 'Невірний email або пароль';
+      return 'Неверный email или пароль';
     }
     if (error.includes('Email not confirmed')) {
-      return 'Підтвердіть email для входу';
+      return 'Подтвердите email для входа';
     }
-    return 'Помилка входу. Спробуйте ще раз.';
+    return 'Ошибка входа. Попробуйте ещё раз.';
   };
 
   if (authLoading) {
@@ -61,16 +64,19 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 to-pink-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">booking</h1>
-          <p className="text-gray-500 mt-2">Увійдіть в панель управління</p>
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-sm mb-4">
+            <Scissors className="w-8 h-8 text-violet-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">Панель салона</h1>
+          <p className="text-gray-500 mt-2">Войдите для управления вашим салоном</p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email */}
             <div>
@@ -82,9 +88,9 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@example.com"
+                placeholder="salon@example.com"
                 required
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none transition-colors text-gray-900"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-gray-900"
               />
             </div>
 
@@ -101,7 +107,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none transition-colors text-gray-900 pr-12"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-gray-900 pr-12"
                 />
                 <button
                   type="button"
@@ -124,12 +130,12 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-xl h-12 text-base font-medium"
+              className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl h-12 text-base font-medium shadow-lg shadow-violet-500/25"
             >
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                'Увійти'
+                'Войти'
               )}
             </Button>
           </form>
@@ -137,7 +143,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="text-center text-gray-400 text-sm mt-6">
-          Проблеми з входом? Зверніться до адміністратора
+          Проблемы с входом? Обратитесь к администратору платформы
         </p>
       </div>
     </div>

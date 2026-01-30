@@ -60,8 +60,11 @@ export default function AdminPage() {
 
   // Redirect if not super admin
   useEffect(() => {
-    if (!authLoading && (!user || !isSuperAdmin)) {
-      router.push('/login');
+    if (!authLoading && !user) {
+      router.push('/admin/login');
+    } else if (!authLoading && user && !isSuperAdmin) {
+      // Залогинен но не супер админ - в дашборд салона
+      router.push('/dashboard');
     }
   }, [authLoading, user, isSuperAdmin, router]);
 

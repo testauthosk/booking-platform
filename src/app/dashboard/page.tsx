@@ -67,10 +67,13 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState({ today: 0, week: 0, month: 0, revenue: 0 });
 
-  // Redirect if not logged in
+  // Redirect based on auth status
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login');
+    } else if (!authLoading && user?.role === 'super_admin') {
+      // Супер админ - в консоль администратора
+      router.push('/admin');
     }
   }, [authLoading, user, router]);
 
