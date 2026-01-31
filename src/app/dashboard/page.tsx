@@ -800,7 +800,7 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
 
   // Проверка рабочий ли день
   const isWorkingDay = (date: Date) => {
-    const dayNames = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П'ятниця', 'Субота'];
+    const dayNames = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', "П'ятниця", 'Субота'];
     const dayName = dayNames[date.getDay()];
     const wh = getWorkingHours().find(h => h.day === dayName);
     return wh?.is_working ?? false;
@@ -815,7 +815,7 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
 
   // Подсчёт доступных слотов на день
   const getAvailableSlots = (dateStr: string) => {
-    const dayNames = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П'ятниця', 'Субота'];
+    const dayNames = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', "П'ятниця", 'Субота'];
     const date = new Date(dateStr);
     const dayName = dayNames[date.getDay()];
     const wh = getWorkingHours().find(h => h.day === dayName);
@@ -865,7 +865,7 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
   const generateTimeSlots = () => {
     if (!selectedDate) return [];
 
-    const dayNames = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П'ятниця', 'Субота'];
+    const dayNames = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', "П'ятниця", 'Субота'];
     const date = new Date(selectedDate);
     const dayName = dayNames[date.getDay()];
     const wh = getWorkingHours().find(h => h.day === dayName);
