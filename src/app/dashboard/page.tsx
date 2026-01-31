@@ -3156,10 +3156,10 @@ function CalendarTab({ bookings, masters, services, salonId, workingHours, onRel
       {/* Calendar Grid */}
       <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col shadow-sm">
         {/* Masters Header */}
-        <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+        <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50" style={{ minWidth: `${filteredMasters.length * 200 + 64}px` }}>
           <div className="w-16 flex-shrink-0 border-r border-gray-200 dark:border-gray-700" />
           {filteredMasters.map(master => (
-            <div key={master.id} className="flex-1 min-w-[180px] p-3 border-r border-gray-200 dark:border-gray-700 last:border-r-0">
+            <div key={master.id} className="w-[200px] flex-shrink-0 p-3 border-r border-gray-200 dark:border-gray-700 last:border-r-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden flex-shrink-0">
                   {master.photo_url ? (
@@ -3181,7 +3181,7 @@ function CalendarTab({ bookings, masters, services, salonId, workingHours, onRel
 
         {/* Scrollable Time Grid */}
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-auto">
-            <div className="relative pt-4" style={{ height: `${gridHeight + 16}px` }}>
+            <div className="relative pt-4" style={{ height: `${gridHeight + 16}px`, minWidth: `${filteredMasters.length * 200 + 64}px` }}>
               
               {/* Overlay для выходного дня */}
               {!daySchedule?.is_working && (
@@ -3211,7 +3211,7 @@ function CalendarTab({ bookings, masters, services, salonId, workingHours, onRel
                   {filteredMasters.map((master, mIdx) => (
                     <div 
                       key={master.id}
-                      className={`flex-1 min-w-[180px] border-r border-gray-100 dark:border-gray-700 last:border-r-0 ${
+                      className={`w-[200px] flex-shrink-0 border-r border-gray-100 dark:border-gray-700 last:border-r-0 ${
                         mIdx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50/50 dark:bg-gray-800/50'
                       }`}
                     >
@@ -3256,10 +3256,10 @@ function CalendarTab({ bookings, masters, services, salonId, workingHours, onRel
                       onClick={() => setSelectedBooking(booking)}
                       className={`absolute cursor-pointer rounded-lg border-l-4 shadow-sm hover:shadow-md transition-all overflow-hidden ${styles.bg} ${styles.border}`}
                       style={{
-                        top: `${top}px`,
+                        top: `${top + 16}px`,
                         height: `${height}px`,
-                        left: `${64 + masterIndex * 160 + 4}px`,
-                        width: '152px',
+                        left: `${64 + masterIndex * 200 + 4}px`,
+                        width: '192px',
                       }}
                     >
                       <div className="p-2 h-full flex flex-col">
