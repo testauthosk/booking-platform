@@ -46,6 +46,7 @@ import {
   Menu,
   PhoneCall,
 } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 // ===================== INTERFACES =====================
 
@@ -448,18 +449,18 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col lg:flex-row">
       {/* Mobile Header */}
-      <header className="lg:hidden bg-white border-b border-gray-200 sticky top-0 z-30">
+      <header className="lg:hidden bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30">
         <div className="flex items-center justify-between px-4 py-3">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+            className="p-2 -ml-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
           >
             <Menu className="w-6 h-6" />
           </button>
-          <h1 className="font-semibold text-gray-900 truncate">{salon.name}</h1>
-          <button className="p-2 -mr-2 text-gray-500 hover:text-gray-700 relative">
+          <h1 className="font-semibold text-gray-900 dark:text-white truncate">{salon.name}</h1>
+          <button className="p-2 -mr-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 relative">
             <Bell className="w-5 h-5" />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
           </button>
@@ -476,30 +477,30 @@ export default function DashboardPage() {
 
       {/* Sidebar */}
       <aside className={`
-        fixed lg:sticky top-0 left-0 h-full lg:h-screen w-72 bg-white border-r border-gray-200 z-50
+        fixed lg:sticky top-0 left-0 h-full lg:h-screen w-72 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-50
         transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         flex flex-col
       `}>
         {/* Sidebar Header */}
-        <div className="p-5 border-b border-gray-100">
+        <div className="p-5 border-b border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-violet-100 dark:bg-violet-900/30 rounded-xl flex items-center justify-center">
                 {salon.logo_url ? (
                   <img src={salon.logo_url} alt="" className="w-full h-full object-cover rounded-xl" />
                 ) : (
-                  <Store className="w-5 h-5 text-violet-600" />
+                  <Store className="w-5 h-5 text-violet-600 dark:text-violet-400" />
                 )}
               </div>
               <div className="min-w-0">
-                <h2 className="font-semibold text-gray-900 truncate">{salon.name}</h2>
-                <p className="text-xs text-gray-500">{salon.type}</p>
+                <h2 className="font-semibold text-gray-900 dark:text-white truncate">{salon.name}</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{salon.type}</p>
               </div>
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-2 text-gray-400 hover:text-gray-600 rounded-lg"
+              className="lg:hidden p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg"
             >
               <X className="w-5 h-5" />
             </button>
@@ -515,8 +516,8 @@ export default function DashboardPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                   activeTab === tab.id
-                    ? 'bg-violet-100 text-violet-700'
-                    : 'text-gray-600 hover:bg-gray-100'
+                    ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
                 <tab.icon className="w-5 h-5 flex-shrink-0" />
@@ -527,18 +528,22 @@ export default function DashboardPage() {
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="p-3 border-t border-gray-100">
+        <div className="p-3 border-t border-gray-100 dark:border-gray-800">
+          <div className="flex items-center justify-between px-3 py-2">
+            <span className="text-sm text-gray-500 dark:text-gray-400">Тема</span>
+            <ThemeToggle />
+          </div>
           <a
             href={`/s/${salon.slug}`}
             target="_blank"
-            className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+            className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
           >
             <ExternalLink className="w-5 h-5" />
             Открыть сайт
           </a>
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors mt-1"
+            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors mt-1"
           >
             <LogOut className="w-5 h-5" />
             Выйти
@@ -549,24 +554,24 @@ export default function DashboardPage() {
       {/* Main Content */}
       <main className="flex-1 min-w-0 lg:overflow-auto">
         {/* Desktop Header */}
-        <header className="hidden lg:block bg-white border-b border-gray-200 sticky top-0 z-10">
+        <header className="hidden lg:block bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
           <div className="px-6 py-4 flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-semibold text-gray-900">
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
                 {tabs.find(t => t.id === activeTab)?.label || 'Обзор'}
               </h1>
-              <p className="text-sm text-gray-500 mt-0.5">{salon.name}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{salon.name}</p>
             </div>
             <div className="flex items-center gap-3">
               <a
                 href={`/s/${salon.slug}`}
                 target="_blank"
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors"
               >
                 <ExternalLink className="w-4 h-4" />
                 Открыть сайт
               </a>
-              <button className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg relative">
+              <button className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg relative">
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
