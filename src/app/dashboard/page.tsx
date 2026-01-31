@@ -3181,7 +3181,7 @@ function CalendarTab({ bookings, masters, services, salonId, workingHours, onRel
 
         {/* Scrollable Time Grid */}
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-auto">
-            <div className="relative pt-4" style={{ height: `${gridHeight + 16}px`, minWidth: `${filteredMasters.length * 200 + 64}px` }}>
+            <div className="relative" style={{ height: `${gridHeight}px`, minWidth: `${filteredMasters.length * 200 + 64}px` }}>
               
               {/* Overlay для выходного дня */}
               {!daySchedule?.is_working && (
@@ -3202,7 +3202,7 @@ function CalendarTab({ bookings, masters, services, salonId, workingHours, onRel
                 >
                   {/* Time label */}
                   <div className="w-16 flex-shrink-0 border-r border-gray-100 dark:border-gray-700 relative">
-                    <span className="absolute -top-2.5 right-2 text-xs font-medium text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-800 px-1">
+                    <span className={`absolute right-2 text-xs font-medium text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-800 px-1 ${idx === 0 ? 'top-0' : '-top-2.5'}`}>
                       {hour.toString().padStart(2, '0')}:00
                     </span>
                   </div>
@@ -3256,7 +3256,7 @@ function CalendarTab({ bookings, masters, services, salonId, workingHours, onRel
                       onClick={() => setSelectedBooking(booking)}
                       className={`absolute cursor-pointer rounded-lg border-l-4 shadow-sm hover:shadow-md transition-all overflow-hidden ${styles.bg} ${styles.border}`}
                       style={{
-                        top: `${top + 16}px`,
+                        top: `${top}px`,
                         height: `${height}px`,
                         left: `${64 + masterIndex * 200 + 4}px`,
                         width: '192px',
