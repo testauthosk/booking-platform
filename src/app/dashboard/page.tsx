@@ -214,34 +214,50 @@ export default function DashboardPage() {
       return;
     }
 
-    // Use session data from NextAuth
-    const profile = {
-      id: session.user.id,
-      email: session.user.email || '',
-      role: session.user.role || 'SALON_OWNER',
-      salon_id: session.user.salonId,
-    };
+    try {
+      // Fetch all dashboard data from API
+      const response = await fetch('/api/dashboard/data');
+      const data = await response.json();
 
-    if (profile.role === 'SUPER_ADMIN') {
-      router.push('/admin');
-      return;
-    }
-
-    setUser(profile as any);
-
-    if (profile.salon_id) {
-      try {
-        await Promise.all([
-          loadSalon(profile.salon_id),
-          loadBookings(profile.salon_id),
-          loadServices(profile.salon_id),
-          loadCategories(profile.salon_id),
-          loadMasters(profile.salon_id),
-          loadClients(profile.salon_id),
-        ]);
-      } catch (err) {
-        console.error('Error loading data:', err);
+      if (!response.ok) {
+        console.error('Dashboard API error:', data.error);
+        setLoading(false);
+        return;
       }
+
+      if (data.user?.role === 'SUPER_ADMIN') {
+        router.push('/admin');
+        return;
+      }
+
+      setUser({
+        id: data.user.id,
+        email: data.user.email,
+        role: data.user.role,
+        salon_id: data.user.salonId,
+      } as any);
+
+      if (data.salon) {
+        setSalon(data.salon);
+        setServices(data.services || []);
+        setCategories(data.categories || []);
+        setMasters(data.masters || []);
+        setClients(data.clients || []);
+        setBookings(data.bookings || []);
+
+        // Calculate stats
+        const today = new Date().toISOString().split('T')[0];
+        const todayBookings = (data.bookings || []).filter((b: any) => b.date === today).length;
+        const weekBookings = (data.bookings || []).filter((b: any) => {
+          const bookingDate = new Date(b.date);
+          const now = new Date();
+          const weekAgo = new Date(now.setDate(now.getDate() - 7));
+          return bookingDate >= weekAgo;
+        }).length;
+        setStats(prev => ({ ...prev, today: todayBookings, week: weekBookings }));
+      }
+    } catch (err) {
+      console.error('Error loading data:', err);
     }
 
     setLoading(false);
