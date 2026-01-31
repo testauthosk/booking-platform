@@ -2946,12 +2946,25 @@ function CalendarTab({ bookings, masters, services, salonId, workingHours, onRel
   const daySchedule = getDaySchedule();
 
   // Генерируем временные слоты (только полные часы для отображения)
+  // Всегда показываем сетку — в выходные используем дефолтные часы
   const generateHourSlots = () => {
     const slots: number[] = [];
-    if (!daySchedule?.is_working) return slots;
-
-    const [startH] = daySchedule.open.split(':').map(Number);
-    const [endH] = daySchedule.close.split(':').map(Number);
+    
+    // Берём часы из расписания или дефолтные 9:00-20:00
+    let startH = 9;
+    let endH = 20;
+    
+    if (daySchedule?.is_working && daySchedule.open && daySchedule.close) {
+      [startH] = daySchedule.open.split(':').map(Number);
+      [endH] = daySchedule.close.split(':').map(Number);
+    } else {
+      // Пробуем взять часы из любого рабочего дня
+      const anyWorkingDay = workingHours.find(wh => wh.is_working);
+      if (anyWorkingDay) {
+        [startH] = anyWorkingDay.open.split(':').map(Number);
+        [endH] = anyWorkingDay.close.split(':').map(Number);
+      }
+    }
 
     for (let h = startH; h <= endH; h++) {
       slots.push(h);
@@ -3161,16 +3174,18 @@ function CalendarTab({ bookings, masters, services, salonId, workingHours, onRel
 
         {/* Scrollable Time Grid */}
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-auto">
-          {!daySchedule?.is_working ? (
-            <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400 py-20">
-              <div className="text-center">
-                <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p className="font-medium">Вихідний день</p>
-                <p className="text-sm mt-1">Салон не працює в цей день</p>
-              </div>
-            </div>
-          ) : (
             <div className="relative" style={{ height: `${gridHeight}px`, minWidth: `${filteredMasters.length * 160 + 64}px` }}>
+              
+              {/* Overlay для выходного дня */}
+              {!daySchedule?.is_working && (
+                <div className="absolute inset-0 bg-gray-100/80 dark:bg-gray-900/80 z-30 flex items-center justify-center">
+                  <div className="text-center bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+                    <Calendar className="w-10 h-10 mx-auto mb-2 text-gray-400" />
+                    <p className="font-medium text-gray-600 dark:text-gray-300">Вихідний день</p>
+                    <p className="text-sm text-gray-400 mt-1">Салон не працює</p>
+                  </div>
+                </div>
+              )}
               {/* Time labels and grid lines */}
               {hourSlots.map((hour, idx) => (
                 <div 
@@ -3277,7 +3292,6 @@ function CalendarTab({ bookings, masters, services, salonId, workingHours, onRel
                 });
               })}
             </div>
-          )}
         </div>
       </div>
 
