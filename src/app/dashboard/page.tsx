@@ -2737,12 +2737,29 @@ function PhotosTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates: 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const photosInputRef = useRef<HTMLInputElement>(null);
 
-  // TODO: Implement file upload API (currently disabled)
-  const uploadFile = async (file: File, path: string): Promise<string | null> => {
-    // File upload needs to be implemented with a storage provider
-    // For now, return null (disabled)
-    alert('Завантаження файлів тимчасово недоступне. Буде додано пізніше.');
-    return null;
+  // Upload file to Cloudinary via API
+  const uploadFile = async (file: File, folder: string): Promise<string | null> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', folder);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await res.json();
+      return data.url;
+    } catch (err) {
+      console.error('Upload error:', err);
+      alert('Помилка завантаження файлу');
+      return null;
+    }
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
