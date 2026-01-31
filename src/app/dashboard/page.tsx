@@ -2978,8 +2978,14 @@ function CalendarTab({ bookings, masters, services, salonId, workingHours, onRel
   const dayBookings = bookings.filter(b => b.date === dateStr);
 
   // Получаем записи для конкретного мастера
-  const getBookingsForMaster = (masterId: string) => {
-    return dayBookings.filter(b => b.master_id === masterId);
+  // Записи без мастера показываем в первой колонке
+  const getBookingsForMaster = (masterId: string, isFirstMaster: boolean = false) => {
+    return dayBookings.filter(b => {
+      if (b.master_id === masterId) return true;
+      // Записи без мастера показываем в первой колонке
+      if (isFirstMaster && !b.master_id) return true;
+      return false;
+    });
   };
 
   // Расчёт позиции записи
@@ -3239,7 +3245,7 @@ function CalendarTab({ bookings, masters, services, salonId, workingHours, onRel
 
               {/* Bookings */}
               {filteredMasters.map((master, masterIndex) => {
-                const masterBookings = getBookingsForMaster(master.id);
+                const masterBookings = getBookingsForMaster(master.id, masterIndex === 0);
                 return masterBookings.map(booking => {
                   const { top, height } = getBookingPosition(booking);
                   const styles = getBookingStyles(booking);
