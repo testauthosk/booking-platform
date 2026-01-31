@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import {
@@ -191,9 +192,16 @@ export default function DashboardPage() {
     avgRating: 0
   });
 
+  const { data: session, status } = useSession();
+
   useEffect(() => {
+    if (status === 'loading') return;
+    if (!session) {
+      router.push('/login');
+      return;
+    }
     loadUserData();
-  }, []);
+  }, [session, status]);
 
   // Закрытие сайдбара при изменении таба на мобильном
   useEffect(() => {
@@ -201,31 +209,25 @@ export default function DashboardPage() {
   }, [activeTab]);
 
   const loadUserData = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-
     if (!session?.user) {
       router.push('/login');
       return;
     }
 
-    const { data: profile } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', session.user.id)
-      .single();
+    // Use session data from NextAuth
+    const profile = {
+      id: session.user.id,
+      email: session.user.email || '',
+      role: session.user.role || 'SALON_OWNER',
+      salon_id: session.user.salonId,
+    };
 
-    if (!profile) {
-      await supabase.auth.signOut();
-      router.push('/login');
-      return;
-    }
-
-    if (profile.role === 'super_admin') {
+    if (profile.role === 'SUPER_ADMIN') {
       router.push('/admin');
       return;
     }
 
-    setUser(profile);
+    setUser(profile as any);
 
     if (profile.salon_id) {
       try {
@@ -363,7 +365,8 @@ export default function DashboardPage() {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    const { signOut } = await import('next-auth/react');
+    await signOut({ redirect: false });
     router.push('/login');
   };
 
