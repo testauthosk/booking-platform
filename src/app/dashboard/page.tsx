@@ -800,7 +800,7 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
 
   // Проверка рабочий ли день
   const isWorkingDay = (date: Date) => {
-    const dayNames = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+    const dayNames = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П'ятниця', 'Субота'];
     const dayName = dayNames[date.getDay()];
     const wh = getWorkingHours().find(h => h.day === dayName);
     return wh?.is_working ?? false;
@@ -815,7 +815,7 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
 
   // Подсчёт доступных слотов на день
   const getAvailableSlots = (dateStr: string) => {
-    const dayNames = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+    const dayNames = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П'ятниця', 'Субота'];
     const date = new Date(dateStr);
     const dayName = dayNames[date.getDay()];
     const wh = getWorkingHours().find(h => h.day === dayName);
@@ -865,7 +865,7 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
   const generateTimeSlots = () => {
     if (!selectedDate) return [];
 
-    const dayNames = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+    const dayNames = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П'ятниця', 'Субота'];
     const date = new Date(selectedDate);
     const dayName = dayNames[date.getDay()];
     const wh = getWorkingHours().find(h => h.day === dayName);
@@ -2413,13 +2413,13 @@ function ScheduleTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates
   const [saved, setSaved] = useState(false);
   const [schedule, setSchedule] = useState<WorkingHour[]>(
     salon.working_hours?.length ? salon.working_hours : [
-      { day: 'Понедельник', is_working: true, open: '09:00', close: '20:00' },
-      { day: 'Вторник', is_working: true, open: '09:00', close: '20:00' },
-      { day: 'Среда', is_working: true, open: '09:00', close: '20:00' },
-      { day: 'Четверг', is_working: true, open: '09:00', close: '20:00' },
-      { day: 'Пятница', is_working: true, open: '09:00', close: '20:00' },
-      { day: 'Суббота', is_working: true, open: '10:00', close: '18:00' },
-      { day: 'Воскресенье', is_working: false, open: '10:00', close: '18:00' },
+      { day: 'Понеділок', is_working: true, open: '09:00', close: '20:00' },
+      { day: 'Вівторок', is_working: true, open: '09:00', close: '20:00' },
+      { day: 'Середа', is_working: true, open: '09:00', close: '20:00' },
+      { day: 'Четвер', is_working: true, open: '09:00', close: '20:00' },
+      { day: 'П\'ятниця', is_working: true, open: '09:00', close: '20:00' },
+      { day: 'Субота', is_working: true, open: '10:00', close: '18:00' },
+      { day: 'Неділя', is_working: false, open: '10:00', close: '18:00' },
     ]
   );
 
