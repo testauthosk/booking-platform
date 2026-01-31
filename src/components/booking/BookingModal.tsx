@@ -554,15 +554,14 @@ export function BookingModal({
         setIsSubmitting(true);
         try {
           const booking = await createBooking({
-            salon_id: salonId,
-            service_id: selectedServices[0], // Primary service
-            master_id: selectedSpecialist === 'any' ? specialists[0]?.id : selectedSpecialist!,
-            client_name: `${firstName} ${lastName}`,
-            client_phone: `+380${phone.replace(/\s/g, '')}`,
+            salonId: salonId,
+            serviceId: selectedServices[0], // Primary service
+            masterId: selectedSpecialist === 'any' ? specialists[0]?.id : selectedSpecialist!,
+            clientName: `${firstName} ${lastName}`,
+            clientPhone: `+380${phone.replace(/\s/g, '')}`,
             date: selectedDate!.toISOString().split('T')[0],
             time: selectedTimes[0],
-            duration_minutes: roundedDuration,
-            status: 'pending',
+            duration: roundedDuration,
             price: selectedServiceItems.reduce((sum, s) => sum + s.price, 0),
             notes: selectedServices.length > 1
               ? `Додаткові послуги: ${selectedServiceItems.slice(1).map(s => s.name).join(', ')}`
