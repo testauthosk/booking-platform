@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { supabase } from '@/lib/supabase';
+
 import { Button } from '@/components/ui/button';
 import {
   Loader2,
@@ -264,122 +264,42 @@ export default function DashboardPage() {
     setLoading(false);
   };
 
-  const loadSalon = async (salonId: string) => {
-    const { data } = await supabase
-      .from('salons')
-      .select('*')
-      .eq('id', salonId)
-      .single();
+  // Reload all data from API
+  const reloadData = async () => {
+    try {
+      const response = await fetch('/api/dashboard/data');
+      const data = await response.json();
 
-    if (data) {
-      const defaultHours: WorkingHour[] = [
-        { day: 'Понедельник', is_working: true, open: '09:00', close: '20:00' },
-        { day: 'Вторник', is_working: true, open: '09:00', close: '20:00' },
-        { day: 'Среда', is_working: true, open: '09:00', close: '20:00' },
-        { day: 'Четверг', is_working: true, open: '09:00', close: '20:00' },
-        { day: 'Пятница', is_working: true, open: '09:00', close: '20:00' },
-        { day: 'Суббота', is_working: true, open: '10:00', close: '18:00' },
-        { day: 'Воскресенье', is_working: false, open: '10:00', close: '18:00' },
-      ];
+      if (response.ok && data.salon) {
+        setSalon(data.salon);
+        setServices(data.services || []);
+        setCategories(data.categories || []);
+        setMasters(data.masters || []);
+        setClients(data.clients || []);
+        setBookings(data.bookings || []);
 
-      setSalon({
-        ...data,
-        working_hours: data.working_hours?.length ? data.working_hours : defaultHours,
-        photos: data.photos || [],
-      });
+        // Calculate stats
+        const today = new Date().toISOString().split('T')[0];
+        const todayBookings = (data.bookings || []).filter((b: any) => b.date === today).length;
+        const weekBookings = (data.bookings || []).filter((b: any) => {
+          const bookingDate = new Date(b.date);
+          const now = new Date();
+          const weekAgo = new Date(now.setDate(now.getDate() - 7));
+          return bookingDate >= weekAgo;
+        }).length;
+        setStats(prev => ({ ...prev, today: todayBookings, week: weekBookings }));
+      }
+    } catch (err) {
+      console.error('Reload error:', err);
     }
   };
 
-  const loadBookings = async (salonId: string) => {
-    const today = new Date().toISOString().split('T')[0];
-
-    const { data } = await supabase
-      .from('bookings')
-      .select('*')
-      .eq('salon_id', salonId)
-      .order('date', { ascending: false })
-      .limit(100);
-
-    if (data) {
-      setBookings(data);
-      const todayBookings = data.filter(b => b.date === today).length;
-      const weekBookings = data.filter(b => {
-        const bookingDate = new Date(b.date);
-        const now = new Date();
-        const weekAgo = new Date(now.setDate(now.getDate() - 7));
-        return bookingDate >= weekAgo;
-      }).length;
-      setStats(prev => ({ ...prev, today: todayBookings, week: weekBookings }));
-    }
-  };
-
-  const loadServices = async (salonId: string) => {
-    // Сначала загружаем категории для маппинга
-    const { data: cats } = await supabase
-      .from('service_categories')
-      .select('*')
-      .eq('salon_id', salonId)
-      .order('sort_order');
-
-    const categoryMap = new Map(cats?.map(c => [c.id, c.name]) || []);
-
-    const { data } = await supabase
-      .from('services')
-      .select('*')
-      .eq('salon_id', salonId)
-      .order('sort_order', { ascending: true });
-
-    if (data) {
-      // Маппим поля из БД в формат, ожидаемый компонентами
-      const mapped = data.map(s => ({
-        ...s,
-        duration: s.duration_minutes || 30,
-        category: categoryMap.get(s.category_id) || 'Без категории',
-        description: s.description || '',
-      }));
-      setServices(mapped);
-    }
-
-    if (cats) {
-      setCategories(cats.map(c => ({ ...c, order_index: c.sort_order })));
-    }
-  };
-
-  const loadCategories = async (salonId: string) => {
-    const { data } = await supabase
-      .from('service_categories')
-      .select('*')
-      .eq('salon_id', salonId)
-      .order('sort_order');
-
-    if (data) {
-      setCategories(data.map(c => ({ ...c, order_index: c.sort_order })));
-    }
-  };
-
-  const loadMasters = async (salonId: string) => {
-    const { data } = await supabase
-      .from('masters')
-      .select('*')
-      .eq('salon_id', salonId)
-      .order('name');
-
-    if (data) {
-      setMasters(data);
-    }
-  };
-
-  const loadClients = async (salonId: string) => {
-    const { data } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('salon_id', salonId)
-      .order('name');
-
-    if (data) {
-      setClients(data);
-    }
-  };
+  // Alias functions for backward compatibility
+  const loadBookings = async () => reloadData();
+  const loadServices = async () => reloadData();
+  const loadCategories = async () => reloadData();
+  const loadMasters = async () => reloadData();
+  const loadClients = async () => reloadData();
 
   const handleSignOut = async () => {
     const { signOut } = await import('next-auth/react');
@@ -1102,29 +1022,21 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
       let clientId = selectedClient?.id;
       if (!clientId && isNewClient) {
         console.log('Creating new client...');
-        const { data: newClient, error: clientError } = await supabase
-          .from('clients')
-          .insert({
-            salon_id: salonId,
-            name: clientName,
-            phone: clientPhone,
-            visits_count: 0,
-            total_spent: 0,
-          })
-          .select()
-          .single();
+        const clientRes = await fetch('/api/clients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: clientName, phone: clientPhone }),
+        });
 
-        if (clientError) {
-          console.error('Client create error:', clientError);
-          alert('Помилка створення клієнта: ' + clientError.message);
+        if (!clientRes.ok) {
+          alert('Помилка створення клієнта');
           setSaving(false);
           return;
         }
 
+        const newClient = await clientRes.json();
         console.log('Client created:', newClient);
-        if (newClient) {
-          clientId = newClient.id;
-        }
+        clientId = newClient.id;
       }
 
       // Расчёт времени окончания
@@ -1135,43 +1047,33 @@ function QuickBookingModal({ salonId, services, categories, masters, clients, bo
       const timeEnd = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
 
       console.log('Creating booking...');
-      const { error: bookingError } = await supabase.from('bookings').insert({
-        salon_id: salonId,
-        client_name: name,
-        client_phone: phone,
-        client_email: selectedClient?.email || '',
-        date: selectedDate,
-        time: selectedTime,
-        time_end: timeEnd,
-        duration: totalDuration,
-        services: selectedServices.map(s => ({ id: s.id, name: s.name, duration: s.duration, price: s.price })),
-        service_id: selectedServices[0]?.id || null,
-        service_name: selectedServices.map(s => s.name).join(', '),
-        master_id: selectedMaster?.id || null,
-        master_name: selectedMaster?.name || '',
-        price: totalPrice,
-        status: 'confirmed',
+      const bookingRes = await fetch('/api/booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          salonId,
+          clientId,
+          clientName: name,
+          clientPhone: phone,
+          clientEmail: selectedClient?.email || '',
+          date: selectedDate,
+          time: selectedTime,
+          timeEnd,
+          duration: totalDuration,
+          serviceId: selectedServices[0]?.id || null,
+          serviceName: selectedServices.map(s => s.name).join(', '),
+          masterId: selectedMaster?.id || null,
+          masterName: selectedMaster?.name || '',
+          price: totalPrice,
+        }),
       });
 
-      console.log('Booking result:', bookingError ? 'error' : 'success', bookingError);
+      console.log('Booking result:', bookingRes.ok ? 'success' : 'error');
 
-      if (bookingError) {
-        console.error('Booking create error:', bookingError);
-        alert('Помилка створення запису: ' + bookingError.message);
+      if (!bookingRes.ok) {
+        alert('Помилка створення запису');
         setSaving(false);
         return;
-      }
-
-      // Обновляем статистику клиента
-      if (clientId) {
-        await supabase
-          .from('clients')
-          .update({
-            visits_count: (selectedClient?.visits_count || 0) + 1,
-            total_spent: (selectedClient?.total_spent || 0) + totalPrice,
-            last_visit: selectedDate,
-          })
-          .eq('id', clientId);
       }
 
       setSaving(false);
@@ -1780,7 +1682,7 @@ function ServicesTab({ services, categories, salonId, onReload }: {
   const handleDelete = async (id: string) => {
     if (!confirm('Удалить эту услугу?')) return;
     setDeleting(id);
-    await supabase.from('services').delete().eq('id', id);
+    await fetch(`/api/services?id=${id}`, { method: 'DELETE' });
     onReload();
     setDeleting(null);
   };
@@ -1790,61 +1692,54 @@ function ServicesTab({ services, categories, salonId, onReload }: {
     let categoryId = editingService?.category_id;
     const categoryName = data.category || 'Загальні';
 
-    // Ищем существующую категорию
-    const { data: existingCat } = await supabase
-      .from('service_categories')
-      .select('id')
-      .eq('salon_id', salonId)
-      .eq('name', categoryName)
-      .single();
+    // Получаем или создаём категорию через API
+    const catRes = await fetch('/api/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: categoryName }),
+    });
 
-    if (existingCat) {
-      categoryId = existingCat.id;
-    } else {
-      // Создаём новую категорию
-      const { data: newCat, error: catError } = await supabase
-        .from('service_categories')
-        .insert({ salon_id: salonId, name: categoryName, sort_order: 99 })
-        .select()
-        .single();
-
-      if (catError) {
-        console.error('Error creating category:', catError);
-        alert('Помилка створення категорії');
-        return;
-      }
-      if (newCat) categoryId = newCat.id;
+    if (catRes.ok) {
+      const cat = await catRes.json();
+      categoryId = cat.id;
     }
 
-    // Проверяем что categoryId есть (обязательное поле в БД)
     if (!categoryId) {
-      console.error('Category ID is missing');
       alert('Помилка: категорія не знайдена');
       return;
     }
 
-    // Подготавливаем данные для БД
-    const dbData = {
-      name: data.name,
-      price: data.price,
-      duration: `${data.duration} хв`,  // Текстовое поле (обязательное в БД)
-      duration_minutes: data.duration,    // Числовое поле
-      category_id: categoryId,
-      is_active: true,
-    };
-
     if (editingService) {
-      const { error } = await supabase.from('services').update(dbData).eq('id', editingService.id);
-      if (error) {
-        console.error('Error updating service:', error);
+      const res = await fetch('/api/services', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingService.id,
+          name: data.name,
+          price: data.price,
+          duration: data.duration,
+          categoryId,
+          isActive: true,
+        }),
+      });
+      if (!res.ok) {
         alert('Помилка оновлення послуги');
         return;
       }
     } else {
-      const { error } = await supabase.from('services').insert({ ...dbData, salon_id: salonId });
-      if (error) {
-        console.error('Error creating service:', error);
-        alert('Помилка створення послуги: ' + error.message);
+      const res = await fetch('/api/services', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          price: data.price,
+          duration: data.duration,
+          categoryId,
+          isActive: true,
+        }),
+      });
+      if (!res.ok) {
+        alert('Помилка створення послуги');
         return;
       }
     }
@@ -2069,7 +1964,11 @@ function CategoryModal({ salonId, onClose, onSave }: { salonId: string; onClose:
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    await supabase.from('service_categories').insert({ salon_id: salonId, name, sort_order: 99 });
+    await fetch('/api/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
     setSaving(false);
     onSave();
     onClose();
@@ -2123,7 +2022,7 @@ function TeamTab({ masters, services, salonId, onReload }: {
   const handleDelete = async (id: string) => {
     if (!confirm('Удалить этого мастера?')) return;
     setDeleting(id);
-    await supabase.from('masters').delete().eq('id', id);
+    await fetch(`/api/masters?id=${id}`, { method: 'DELETE' });
     onReload();
     setDeleting(null);
   };
@@ -2131,17 +2030,23 @@ function TeamTab({ masters, services, salonId, onReload }: {
   const handleSave = async (data: Partial<MasterData>) => {
     try {
       if (editingMaster) {
-        const { error } = await supabase.from('masters').update(data).eq('id', editingMaster.id);
-        if (error) {
-          console.error('Update master error:', error);
-          alert('Помилка: ' + error.message);
+        const res = await fetch('/api/masters', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingMaster.id, ...data }),
+        });
+        if (!res.ok) {
+          alert('Помилка оновлення');
           return;
         }
       } else {
-        const { error } = await supabase.from('masters').insert({ ...data, salon_id: salonId, is_active: true });
-        if (error) {
-          console.error('Insert master error:', error);
-          alert('Помилка: ' + error.message);
+        const res = await fetch('/api/masters', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...data, isActive: true }),
+        });
+        if (!res.ok) {
+          alert('Помилка створення');
           return;
         }
       }
@@ -2335,7 +2240,7 @@ function ClientsTab({ clients, salonId, onReload }: {
   const handleDelete = async (id: string) => {
     if (!confirm('Видалити цього клієнта?')) return;
     setDeleting(id);
-    await supabase.from('clients').delete().eq('id', id);
+    await fetch(`/api/clients?id=${id}`, { method: 'DELETE' });
     onReload();
     setDeleting(null);
   };
@@ -2428,16 +2333,17 @@ function AddClientModal({ salonId, onClose, onSave }: { salonId: string; onClose
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from('clients').insert({
-      salon_id: salonId,
-      name: form.name,
-      phone: form.phone,
-      email: form.email || null,
-      visits_count: 0,
-      total_spent: 0,
+    const res = await fetch('/api/clients', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: form.name,
+        phone: form.phone,
+        email: form.email || null,
+      }),
     });
-    if (error) {
-      alert('Помилка: ' + error.message);
+    if (!res.ok) {
+      alert('Помилка створення клієнта');
       setSaving(false);
       return;
     }
@@ -2555,12 +2461,13 @@ function ScheduleTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates
     if (hasErrors) return;
 
     setSaving(true);
-    const { error } = await supabase
-      .from('salons')
-      .update({ working_hours: schedule, updated_at: new Date().toISOString() })
-      .eq('id', salon.id);
+    const res = await fetch('/api/salon/update', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workingHours: schedule }),
+    });
 
-    if (!error) {
+    if (res.ok) {
       onUpdate({ working_hours: schedule });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -2726,10 +2633,11 @@ function ProfileTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates:
 
   const handleSave = async () => {
     setSaving(true);
-    await supabase
-      .from('salons')
-      .update({ ...formData, updated_at: new Date().toISOString() })
-      .eq('id', salon.id);
+    await fetch('/api/salon/update', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+    });
     onUpdate(formData);
     setSaving(false);
   };
@@ -2829,22 +2737,12 @@ function PhotosTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates: 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const photosInputRef = useRef<HTMLInputElement>(null);
 
+  // TODO: Implement file upload API (currently disabled)
   const uploadFile = async (file: File, path: string): Promise<string | null> => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = `${path}/${fileName}`;
-
-    console.log('Storage upload:', filePath);
-    const { error } = await supabase.storage.from('salon-media').upload(filePath, file);
-    if (error) {
-      console.error('Storage error:', error);
-      alert('Помилка storage: ' + error.message);
-      return null;
-    }
-
-    const { data } = supabase.storage.from('salon-media').getPublicUrl(filePath);
-    console.log('Public URL:', data.publicUrl);
-    return data.publicUrl;
+    // File upload needs to be implemented with a storage provider
+    // For now, return null (disabled)
+    alert('Завантаження файлів тимчасово недоступне. Буде додано пізніше.');
+    return null;
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2852,19 +2750,16 @@ function PhotosTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates: 
     if (!file) return;
 
     setUploading(true);
-    console.log('Uploading logo...', file.name);
     const url = await uploadFile(file, `logos/${salon.id}`);
-    console.log('Upload result:', url);
     if (url) {
-      const { error } = await supabase.from('salons').update({ logo_url: url }).eq('id', salon.id);
-      console.log('DB update:', error ? error : 'success');
-      if (!error) {
+      const res = await fetch('/api/salon/update', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logo: url }),
+      });
+      if (res.ok) {
         onUpdate({ logo_url: url });
-      } else {
-        alert('Помилка збереження: ' + error.message);
       }
-    } else {
-      alert('Помилка завантаження файлу');
     }
     setUploading(false);
     if (logoInputRef.current) logoInputRef.current.value = '';
@@ -2884,8 +2779,14 @@ function PhotosTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates: 
 
     if (newPhotos.length > 0) {
       const updatedPhotos = [...(salon.photos || []), ...newPhotos];
-      await supabase.from('salons').update({ photos: updatedPhotos }).eq('id', salon.id);
-      onUpdate({ photos: updatedPhotos });
+      const res = await fetch('/api/salon/update', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photos: updatedPhotos }),
+      });
+      if (res.ok) {
+        onUpdate({ photos: updatedPhotos });
+      }
     }
     setUploading(false);
     if (photosInputRef.current) photosInputRef.current.value = '';
@@ -2894,15 +2795,27 @@ function PhotosTab({ salon, onUpdate }: { salon: SalonData; onUpdate: (updates: 
   const handleDeletePhoto = async (index: number) => {
     setDeletingPhoto(index);
     const updatedPhotos = salon.photos.filter((_, i) => i !== index);
-    await supabase.from('salons').update({ photos: updatedPhotos }).eq('id', salon.id);
-    onUpdate({ photos: updatedPhotos });
+    const res = await fetch('/api/salon/update', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ photos: updatedPhotos }),
+    });
+    if (res.ok) {
+      onUpdate({ photos: updatedPhotos });
+    }
     setDeletingPhoto(null);
   };
 
   const handleDeleteLogo = async () => {
     if (!confirm('Удалить логотип?')) return;
-    await supabase.from('salons').update({ logo_url: null }).eq('id', salon.id);
-    onUpdate({ logo_url: '' });
+    const res = await fetch('/api/salon/update', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ logo: null }),
+    });
+    if (res.ok) {
+      onUpdate({ logo_url: '' });
+    }
   };
 
   return (
@@ -3302,10 +3215,11 @@ function BookingDetailModal({ booking, masters, services, onClose, onUpdate }: {
 
   const handleStatusChange = async (newStatus: string) => {
     setSaving(true);
-    await supabase
-      .from('bookings')
-      .update({ status: newStatus })
-      .eq('id', booking.id);
+    await fetch('/api/booking', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: booking.id, status: newStatus }),
+    });
     setStatus(newStatus);
     setSaving(false);
     onUpdate();

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+
 import { Button } from '@/components/ui/button';
 import {
   Loader2,
@@ -76,32 +76,38 @@ export default function AdminPage() {
   }, [isSuperAdmin]);
 
   const loadSalons = async () => {
-    const { data } = await supabase
-      .from('salons')
-      .select(`
-        *,
-        users!salons_owner_id_fkey (email)
-      `)
-      .order('created_at', { ascending: false });
-
-    if (data) {
-      setSalons(data);
-      setStats({
-        total: data.length,
-        active: data.filter(s => s.is_active).length,
-        inactive: data.filter(s => !s.is_active).length,
-        withOwners: data.filter(s => s.owner_id).length,
-      });
+    try {
+      const res = await fetch('/api/admin/salons');
+      if (res.ok) {
+        const data = await res.json();
+        // Map to expected format
+        const mapped = data.map((s: any) => ({
+          ...s,
+          is_active: s.isActive,
+          created_at: s.createdAt,
+          owner_id: s.ownerId,
+          users: s.owner ? { email: s.owner.email } : null,
+        }));
+        setSalons(mapped);
+        setStats({
+          total: mapped.length,
+          active: mapped.filter((s: any) => s.is_active).length,
+          inactive: mapped.filter((s: any) => !s.is_active).length,
+          withOwners: mapped.filter((s: any) => s.owner_id).length,
+        });
+      }
+    } catch (err) {
+      console.error('Load salons error:', err);
     }
     setLoading(false);
   };
 
   const toggleSalonActive = async (salonId: string, isActive: boolean) => {
-    await supabase
-      .from('salons')
-      .update({ is_active: !isActive, updated_at: new Date().toISOString() })
-      .eq('id', salonId);
-
+    await fetch('/api/admin/salons', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: salonId, isActive: !isActive }),
+    });
     loadSalons();
   };
 
@@ -484,70 +490,27 @@ function NewSalonModal({ onClose, onCreated }: { onClose: () => void; onCreated:
     setCreating(true);
 
     try {
-      // Create salon
-      const { data: salon, error: salonError } = await supabase
-        .from('salons')
-        .insert({
+      const res = await fetch('/api/admin/salons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           name,
           slug,
           type,
-          description: '',
-          phone: '',
-          address: '',
-          short_address: '',
-          coordinates_lat: 0,
-          coordinates_lng: 0,
-          photos: [],
-          working_hours: [
-            { day: 'Понеділок', hours: '09:00 - 19:00' },
-            { day: 'Вівторок', hours: '09:00 - 19:00' },
-            { day: 'Середа', hours: '09:00 - 19:00' },
-            { day: 'Четвер', hours: '09:00 - 19:00' },
-            { day: "П'ятниця", hours: '09:00 - 19:00' },
-            { day: 'Субота', hours: '10:00 - 17:00' },
-            { day: 'Неділя', hours: 'Зачинено' },
-          ],
-          amenities: [],
-          rating: 0,
-          review_count: 0,
-          is_active: true,
-        })
-        .select()
-        .single();
+          ownerEmail: ownerEmail || undefined,
+          ownerPassword: ownerPassword || undefined,
+        }),
+      });
 
-      if (salonError) throw salonError;
-
-      // Create owner account if email provided
-      if (ownerEmail && ownerPassword) {
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: ownerEmail,
-          password: ownerPassword,
-        });
-
-        if (authError) throw authError;
-
-        if (authData.user) {
-          // Create user profile
-          await supabase.from('users').insert({
-            id: authData.user.id,
-            email: ownerEmail,
-            role: 'salon_owner',
-            salon_id: salon.id,
-            notifications_enabled: true,
-          });
-
-          // Link salon to owner
-          await supabase
-            .from('salons')
-            .update({ owner_id: authData.user.id })
-            .eq('id', salon.id);
-        }
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Error creating salon');
       }
 
       onCreated();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating salon:', error);
-      alert('Помилка при створенні салону');
+      alert('Помилка при створенні салону: ' + error.message);
     }
 
     setCreating(false);

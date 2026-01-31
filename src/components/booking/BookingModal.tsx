@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { X, ChevronLeft, ChevronRight, Star, Check, Plus, Calendar, Clock, User, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/supabase";
+// supabase removed - using API instead
 import { createBooking, getAvailableSlots } from "@/lib/api";
 
 // Types
@@ -354,51 +354,34 @@ export function BookingModal({
   const fetchTimeSlots = async (date: Date, masterId: string | null): Promise<TimeSlot[]> => {
     const dateStr = date.toISOString().split('T')[0];
 
-    // Get all time slots for the day
+    // Get slots from API
+    try {
+      const params = new URLSearchParams({
+        salonId,
+        date: dateStr,
+        ...(masterId && masterId !== 'any' ? { masterId } : {}),
+      });
+      const res = await fetch(`/api/slots?${params}`);
+      if (res.ok) {
+        const slots = await res.json();
+        return slots.map((s: any) => ({
+          time: s.time,
+          available: s.available,
+          booked: !s.available,
+        }));
+      }
+    } catch (err) {
+      console.error('Error loading slots:', err);
+    }
+
+    // Fallback: all times available
     const allTimes = [
       "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
       "12:00", "12:30", "13:00", "13:30", "14:00", "14:30",
       "15:00", "15:30", "16:00", "16:30", "17:00", "17:30",
       "18:00", "18:30", "19:00"
     ];
-
-    // Get blocked/booked slots from database
-    let query = supabase
-      .from('schedule')
-      .select('time_start, time_end')
-      .eq('salon_id', salonId)
-      .eq('date', dateStr)
-      .eq('is_blocked', true);
-
-    if (masterId && masterId !== 'any') {
-      query = query.eq('master_id', masterId);
-    }
-
-    const { data: blockedSlots } = await query;
-
-    // Build set of blocked times
-    const blockedTimes = new Set<string>();
-    if (blockedSlots) {
-      blockedSlots.forEach(slot => {
-        // Mark all 30-minute slots between start and end as blocked
-        let current = slot.time_start;
-        while (current < slot.time_end) {
-          blockedTimes.add(current);
-          // Add 30 minutes
-          const [hours, mins] = current.split(':').map(Number);
-          const totalMins = hours * 60 + mins + 30;
-          const newHours = Math.floor(totalMins / 60);
-          const newMins = totalMins % 60;
-          current = `${newHours.toString().padStart(2, '0')}:${newMins.toString().padStart(2, '0')}`;
-        }
-      });
-    }
-
-    return allTimes.map(time => ({
-      time,
-      available: !blockedTimes.has(time),
-      booked: blockedTimes.has(time)
-    }));
+    return allTimes.map(time => ({ time, available: true, booked: false }));
   };
 
   const dates = generateDates();
