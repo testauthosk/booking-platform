@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import prisma from '@/lib/prisma';
 import { sendTelegramMessage, formatBookingNotification } from '@/lib/telegram';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,29 +11,32 @@ export async function POST(request: NextRequest) {
     }
 
     // Get booking details with related data
-    const { data: booking, error: bookingError } = await supabase
-      .from('bookings')
-      .select(`
-        *,
-        salons (name, owner_id),
-        services (name),
-        masters (name)
-      `)
-      .eq('id', bookingId)
-      .single();
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        salon: {
+          select: { name: true, ownerId: true }
+        },
+        service: {
+          select: { name: true }
+        },
+        master: {
+          select: { name: true }
+        }
+      }
+    });
 
-    if (bookingError || !booking) {
+    if (!booking) {
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 
     // Get salon owner's telegram chat ID
-    const { data: owner } = await supabase
-      .from('users')
-      .select('telegram_chat_id, notifications_enabled')
-      .eq('id', booking.salons.owner_id)
-      .single();
+    const owner = booking.salon.ownerId ? await prisma.user.findUnique({
+      where: { id: booking.salon.ownerId },
+      select: { telegramChatId: true, notificationsEnabled: true }
+    }) : null;
 
-    if (!owner?.telegram_chat_id || !owner.notifications_enabled) {
+    if (!owner?.telegramChatId || !owner.notificationsEnabled) {
       return NextResponse.json({
         ok: true,
         message: 'Owner has not enabled notifications'
@@ -47,28 +45,28 @@ export async function POST(request: NextRequest) {
 
     // Send notification
     const message = formatBookingNotification({
-      clientName: booking.client_name,
-      clientPhone: booking.client_phone,
-      serviceName: booking.services.name,
-      masterName: booking.masters?.name,
+      clientName: booking.clientName,
+      clientPhone: booking.clientPhone,
+      serviceName: booking.service?.name || booking.serviceName || 'Не указана',
+      masterName: booking.master?.name || booking.masterName,
       date: booking.date,
       time: booking.time,
-      duration: booking.duration_minutes,
+      duration: booking.duration,
       price: booking.price,
-      salonName: booking.salons.name,
+      salonName: booking.salon.name,
     });
 
     const sent = await sendTelegramMessage({
-      chatId: owner.telegram_chat_id,
+      chatId: owner.telegramChatId,
       text: message,
     });
 
     if (sent) {
       // Mark notification as sent
-      await supabase
-        .from('bookings')
-        .update({ notification_sent: true })
-        .eq('id', bookingId);
+      await prisma.booking.update({
+        where: { id: bookingId },
+        data: { notificationSent: true }
+      });
     }
 
     return NextResponse.json({ ok: true, sent });

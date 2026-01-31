@@ -1,11 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-// Use service role key for admin operations
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+import prisma from '@/lib/prisma';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
@@ -50,7 +44,6 @@ export async function POST(request: NextRequest) {
 
     const chatId = update.message.chat.id;
     const text = update.message.text;
-    const username = update.message.from?.username;
 
     // Handle /start command
     if (text === '/start') {
@@ -90,11 +83,10 @@ export async function POST(request: NextRequest) {
     // Handle /status command
     if (text === '/status') {
       // Check if this chat ID is linked to any user
-      const { data: user } = await supabase
-        .from('users')
-        .select('email, salon_id')
-        .eq('telegram_chat_id', chatId.toString())
-        .single();
+      const user = await prisma.user.findFirst({
+        where: { telegramChatId: chatId.toString() },
+        select: { email: true, salonId: true }
+      });
 
       if (user) {
         await sendMessage(
@@ -124,8 +116,6 @@ export async function POST(request: NextRequest) {
 
     // Handle connection code (6-digit number)
     if (/^\d{6}$/.test(text)) {
-      // This would be a verification code flow
-      // For now, just acknowledge
       await sendMessage(
         chatId,
         `🔍 Шукаємо код підтвердження...

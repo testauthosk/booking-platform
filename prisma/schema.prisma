@@ -1,5 +1,5 @@
-// Salon Booking Platform - Prisma Schema
-// Style: Fresha-like, focusing on salon business card (vizitka)
+// Booking Platform - Prisma Schema
+// Style: Fresha-like booking platform for salons/barbershops
 
 generator client {
   provider = "prisma-client-js"
@@ -7,16 +7,14 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ==================== ENUMS ====================
 
 enum UserRole {
-  OWNER
-  ADMIN
+  SUPER_ADMIN
+  SALON_OWNER
   MASTER
-  RECEPTIONIST
 }
 
 enum BookingStatus {
@@ -27,69 +25,50 @@ enum BookingStatus {
   NO_SHOW
 }
 
-enum BookingSource {
-  WEBSITE
-  PHONE
-  WALK_IN
-  SOCIAL
-  DIRECT_LINK
-}
+// ==================== SALON ====================
 
-enum ScheduleChangeStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
-enum SubscriptionPlan {
-  FREE
-  BASIC
-  BUSINESS
-  PREMIUM
-}
-
-// ==================== ORGANIZATION (Salon) ====================
-
-model Organization {
+model Salon {
   id          String   @id @default(uuid())
   name        String
   slug        String   @unique
+  type        String   @default("Барбершоп")
   description String?
 
   // Contact info
   phone       String?
   email       String?
-  website     String?
 
   // Address
-  address     String?
-  city        String?
-  country     String   @default("Ukraine")
-
+  address      String?
+  shortAddress String?
+  
   // Map coordinates
   latitude    Float?
   longitude   Float?
 
   // Branding
   logo        String?
-  coverImage  String?
   photos      String[] @default([])
 
   // Working hours (JSON for flexibility)
   workingHours Json?
 
+  // Features/amenities
+  amenities   String[] @default([])
+
   // Settings
   timezone    String   @default("Europe/Kiev")
   currency    String   @default("UAH")
-  plan        SubscriptionPlan @default(FREE)
 
   // Stats (denormalized for performance)
-  rating      Float    @default(0)
+  rating      Float    @default(5.0)
   reviewCount Int      @default(0)
 
-  // Meta
+  // Status
   isActive    Boolean  @default(true)
-  metadata    Json?
+
+  // Owner
+  ownerId     String?
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -102,10 +81,9 @@ model Organization {
   clients     Client[]
   bookings    Booking[]
   reviews     Review[]
-  auditLogs   AuditLog[]
 
   @@index([slug])
-  @@index([city])
+  @@index([isActive])
 }
 
 // ==================== USER ====================
@@ -115,32 +93,24 @@ model User {
   email         String    @unique
   passwordHash  String
 
-  firstName     String
-  lastName      String
+  name          String?
   phone         String?
   avatar        String?
 
-  role          UserRole
+  role          UserRole  @default(SALON_OWNER)
 
-  emailVerified DateTime?
+  salonId       String?
+  salon         Salon?    @relation(fields: [salonId], references: [id], onDelete: SetNull)
 
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  // If user is a master
-  masterProfile Master?
-
-  // Auth
-  lastLoginAt   DateTime?
+  // Telegram for notifications
+  telegramChatId       String?
+  notificationsEnabled Boolean @default(true)
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  // Relations
-  auditLogs     AuditLog[]
-
   @@index([email])
-  @@index([organizationId])
+  @@index([salonId])
 }
 
 // ==================== MASTER ====================
@@ -148,47 +118,40 @@ model User {
 model Master {
   id              String   @id @default(uuid())
 
-  // Link to user account (optional - master may not have login)
-  userId          String?  @unique
-  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  salonId         String
+  salon           Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
 
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  // Profile
   name            String
+  role            String?  // "Барбер", "Стиліст"
   phone           String?
   email           String?
   avatar          String?
   bio             String?
 
-  specialization  String[]
-  experienceYears Int      @default(0)
-
   // Stats
-  rating          Float    @default(0)
+  rating          Float    @default(5.0)
   reviewCount     Int      @default(0)
 
-  // Booking settings
-  slotDuration    Int      @default(30) // minutes
+  // Base price (for display)
+  price           Int      @default(0)
+
+  // Working hours (JSON, overrides salon if set)
+  workingHours    Json?
 
   // Status
   isActive        Boolean  @default(true)
-  isVisible       Boolean  @default(true)
+  sortOrder       Int      @default(0)
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   // Relations
   services        MasterService[]
-  schedules       Schedule[]
   bookings        Booking[]
   reviews         Review[]
-  gallery         GalleryItem[]
-  scheduleChanges ScheduleChangeRequest[]
 
-  @@index([organizationId])
-  @@index([isActive, isVisible])
+  @@index([salonId])
+  @@index([isActive])
 }
 
 // ==================== SERVICES ====================
@@ -196,47 +159,41 @@ model Master {
 model ServiceCategory {
   id              String   @id @default(uuid())
 
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  salonId         String
+  salon           Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
 
   name            String
-  slug            String
-  order           Int      @default(0)
+  sortOrder       Int      @default(0)
 
   services        Service[]
 
-  @@unique([organizationId, slug])
-  @@index([organizationId])
+  createdAt       DateTime @default(now())
+
+  @@index([salonId])
 }
 
 model Service {
   id              String   @id @default(uuid())
 
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  salonId         String
+  salon           Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
 
   categoryId      String?
   category        ServiceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   name            String
-  slug            String
   description     String?
 
   // Pricing
-  price           Decimal  @db.Decimal(10, 2)
-  currency        String   @default("UAH")
+  price           Int
+  priceFrom       Boolean  @default(false)
 
   // Duration in minutes
-  duration        Int
-
-  // Buffer time
-  bufferBefore    Int      @default(0)
-  bufferAfter     Int      @default(0)
+  duration        Int      @default(30)
 
   // Status
   isActive        Boolean  @default(true)
-
-  order           Int      @default(0)
+  sortOrder       Int      @default(0)
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -245,8 +202,7 @@ model Service {
   masters         MasterService[]
   bookings        Booking[]
 
-  @@unique([organizationId, slug])
-  @@index([organizationId])
+  @@index([salonId])
   @@index([categoryId])
 }
 
@@ -260,7 +216,7 @@ model MasterService {
   service     Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 
   // Custom pricing/duration for this master
-  customPrice    Decimal? @db.Decimal(10, 2)
+  customPrice    Int?
   customDuration Int?
 
   @@unique([masterId, serviceId])
@@ -268,84 +224,21 @@ model MasterService {
   @@index([serviceId])
 }
 
-// ==================== SCHEDULE ====================
-
-model Schedule {
-  id          String   @id @default(uuid())
-
-  masterId    String
-  master      Master   @relation(fields: [masterId], references: [id], onDelete: Cascade)
-
-  // 0 = Monday, 6 = Sunday
-  dayOfWeek   Int
-
-  isWorking   Boolean  @default(true)
-  startTime   String   // "09:00"
-  endTime     String   // "18:00"
-
-  // Break
-  breakStart  String?
-  breakEnd    String?
-
-  @@unique([masterId, dayOfWeek])
-  @@index([masterId])
-}
-
-model ScheduleException {
-  id          String   @id @default(uuid())
-
-  masterId    String
-
-  date        DateTime @db.Date
-  isWorking   Boolean  @default(false)
-  startTime   String?
-  endTime     String?
-  reason      String?
-
-  @@unique([masterId, date])
-  @@index([masterId])
-  @@index([date])
-}
-
-model ScheduleChangeRequest {
-  id          String   @id @default(uuid())
-
-  masterId    String
-  master      Master   @relation(fields: [masterId], references: [id], onDelete: Cascade)
-
-  // What they want to change
-  changeType  String   // "schedule" | "exception" | "day_off"
-  changeData  Json     // The proposed changes
-
-  status      ScheduleChangeStatus @default(PENDING)
-
-  // Admin response
-  reviewedAt  DateTime?
-  reviewedBy  String?
-  rejectReason String?
-
-  createdAt   DateTime @default(now())
-
-  @@index([masterId])
-  @@index([status])
-}
-
 // ==================== CLIENTS ====================
 
 model Client {
   id              String   @id @default(uuid())
 
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  salonId         String
+  salon           Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
 
-  firstName       String
-  lastName        String?
+  name            String
   phone           String
   email           String?
 
   // Stats
-  totalVisits     Int      @default(0)
-  totalSpent      Decimal  @default(0) @db.Decimal(10, 2)
+  visitsCount     Int      @default(0)
+  totalSpent      Int      @default(0)
   lastVisit       DateTime?
 
   notes           String?
@@ -357,8 +250,8 @@ model Client {
   bookings        Booking[]
   reviews         Review[]
 
-  @@unique([organizationId, phone])
-  @@index([organizationId])
+  @@unique([salonId, phone])
+  @@index([salonId])
   @@index([phone])
 }
 
@@ -366,38 +259,45 @@ model Client {
 
 model Booking {
   id              String   @id @default(uuid())
-  uid             String   @unique @default(uuid())
 
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  salonId         String
+  salon           Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
 
-  clientId        String
-  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId        String?
+  client          Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
 
-  masterId        String
-  master          Master   @relation(fields: [masterId], references: [id], onDelete: Cascade)
+  masterId        String?
+  master          Master?  @relation(fields: [masterId], references: [id], onDelete: SetNull)
 
-  serviceId       String
-  service         Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  serviceId       String?
+  service         Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  // Client info (denormalized for history)
+  clientName      String
+  clientPhone     String
+  clientEmail     String?
+
+  // Service info (denormalized)
+  serviceName     String?
+  masterName      String?
 
   // Time
-  startTime       DateTime
-  endTime         DateTime
+  date            String   // "2024-01-15"
+  time            String   // "14:00"
+  timeEnd         String?  // "15:00"
+  duration        Int      @default(60)
+
+  // Price at time of booking
+  price           Int      @default(0)
 
   // Status
   status          BookingStatus @default(CONFIRMED)
-  source          BookingSource @default(WEBSITE)
-
-  // Price at time of booking
-  price           Decimal  @db.Decimal(10, 2)
 
   // Notes
-  clientNote      String?
-  internalNote    String?
+  notes           String?
 
-  // Cancellation
-  cancelledAt     DateTime?
-  cancelReason    String?
+  // Notification
+  notificationSent Boolean @default(false)
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -405,12 +305,11 @@ model Booking {
   // Relations
   review          Review?
 
-  @@index([organizationId])
+  @@index([salonId])
   @@index([masterId])
   @@index([clientId])
-  @@index([startTime])
+  @@index([date])
   @@index([status])
-  @@index([masterId, startTime])
 }
 
 // ==================== REVIEWS ====================
@@ -418,11 +317,11 @@ model Booking {
 model Review {
   id              String   @id @default(uuid())
 
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  salonId         String
+  salon           Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
 
-  clientId        String
-  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId        String?
+  client          Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
 
   masterId        String?
   master          Master?  @relation(fields: [masterId], references: [id], onDelete: SetNull)
@@ -430,66 +329,20 @@ model Review {
   bookingId       String?  @unique
   booking         Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
 
-  rating          Int      // 1-5
-  comment         String?
+  // Author info (for display)
+  authorName      String
+  authorInitial   String
+  authorColor     String   @default("bg-blue-500")
 
-  // Admin can hide inappropriate reviews
+  rating          Int      // 1-5
+  text            String?
+  serviceName     String?
+
   isVisible       Boolean  @default(true)
 
   createdAt       DateTime @default(now())
 
-  @@index([organizationId])
+  @@index([salonId])
   @@index([masterId])
   @@index([rating])
-}
-
-// ==================== GALLERY ====================
-
-model GalleryItem {
-  id          String   @id @default(uuid())
-
-  masterId    String
-  master      Master   @relation(fields: [masterId], references: [id], onDelete: Cascade)
-
-  imageUrl    String
-  title       String?
-  description String?
-
-  order       Int      @default(0)
-
-  createdAt   DateTime @default(now())
-
-  @@index([masterId])
-}
-
-// ==================== AUDIT LOG ====================
-
-model AuditLog {
-  id              String   @id @default(uuid())
-
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  userId          String?
-  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  // What happened
-  action          String   // "create" | "update" | "delete"
-  entityType      String   // "booking" | "service" | "master" | etc
-  entityId        String?
-
-  // Changes
-  oldValue        Json?
-  newValue        Json?
-
-  // Context
-  ipAddress       String?
-  userAgent       String?
-
-  createdAt       DateTime @default(now())
-
-  @@index([organizationId])
-  @@index([userId])
-  @@index([entityType])
-  @@index([createdAt])
 }

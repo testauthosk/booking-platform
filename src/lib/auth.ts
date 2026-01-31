@@ -1,154 +1,130 @@
-import { supabase } from './supabase';
+import { getServerSession } from 'next-auth'
+import { authOptions } from './auth-config'
+import prisma from './prisma'
+import bcrypt from 'bcryptjs'
 
-export type UserRole = 'super_admin' | 'salon_owner';
+export type UserRole = 'SUPER_ADMIN' | 'SALON_OWNER' | 'MASTER'
 
 export interface AuthUser {
-  id: string;
-  email: string;
-  role: UserRole;
-  salon_id: string | null;
-  telegram_chat_id: string | null;
-  notifications_enabled: boolean;
+  id: string
+  email: string
+  name: string | null
+  role: UserRole
+  salonId: string | null
+  telegramChatId: string | null
+  notificationsEnabled: boolean
 }
 
-// Sign in with email and password
-export async function signIn(email: string, password: string) {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    return { user: null, error: error.message };
-  }
-
-  // Get user profile with role
-  const { data: profile } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', data.user.id)
-    .single();
-
-  return { user: profile as AuthUser | null, error: null };
-}
-
-// Sign out
-export async function signOut() {
-  const { error } = await supabase.auth.signOut();
-  return !error;
-}
-
-// Get current user with profile
+// Get current user from session
 export async function getCurrentUser(): Promise<AuthUser | null> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const session = await getServerSession(authOptions)
+  
+  if (!session?.user?.id) return null
 
-  if (!user) return null;
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id }
+  })
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', user.id)
-    .single();
+  if (!user) return null
 
-  return profile as AuthUser | null;
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role as UserRole,
+    salonId: user.salonId,
+    telegramChatId: user.telegramChatId,
+    notificationsEnabled: user.notificationsEnabled,
+  }
 }
 
 // Check if user is super admin
 export async function isSuperAdmin(): Promise<boolean> {
-  const user = await getCurrentUser();
-  return user?.role === 'super_admin';
+  const user = await getCurrentUser()
+  return user?.role === 'SUPER_ADMIN'
 }
 
 // Check if user owns a specific salon
 export async function ownsSalon(salonId: string): Promise<boolean> {
-  const user = await getCurrentUser();
-  if (!user) return false;
-  if (user.role === 'super_admin') return true;
-  return user.salon_id === salonId;
+  const user = await getCurrentUser()
+  if (!user) return false
+  if (user.role === 'SUPER_ADMIN') return true
+  return user.salonId === salonId
 }
 
-// Create new salon owner account (super admin only)
-export async function createSalonOwner(
+// Create new user (admin function)
+export async function createUser(
   email: string,
   password: string,
-  salonId: string
-): Promise<{ success: boolean; error?: string }> {
-  // This should be called from a server action/API route with service role key
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-  });
+  role: UserRole = 'SALON_OWNER',
+  salonId?: string
+): Promise<{ success: boolean; error?: string; userId?: string }> {
+  try {
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    })
 
-  if (error) {
-    return { success: false, error: error.message };
-  }
-
-  if (data.user) {
-    // Create user profile
-    const { error: profileError } = await supabase
-      .from('users')
-      .insert({
-        id: data.user.id,
-        email,
-        role: 'salon_owner',
-        salon_id: salonId,
-      });
-
-    if (profileError) {
-      return { success: false, error: profileError.message };
+    if (existingUser) {
+      return { success: false, error: 'User already exists' }
     }
 
-    // Link salon to owner
-    await supabase
-      .from('salons')
-      .update({ owner_id: data.user.id })
-      .eq('id', salonId);
+    const passwordHash = await bcrypt.hash(password, 10)
+
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash,
+        role,
+        salonId,
+      }
+    })
+
+    return { success: true, userId: user.id }
+  } catch (error) {
+    return { success: false, error: 'Failed to create user' }
   }
-
-  return { success: true };
 }
 
-// Check salon is active (for public pages)
+// Check salon is active
 export async function isSalonActive(salonId: string): Promise<boolean> {
-  const { data } = await supabase
-    .from('salons')
-    .select('is_active')
-    .eq('id', salonId)
-    .single();
-
-  return data?.is_active ?? false;
+  const salon = await prisma.salon.findUnique({
+    where: { id: salonId },
+    select: { isActive: true }
+  })
+  return salon?.isActive ?? false
 }
 
-// Check salon is active by slug (for public pages)
+// Check salon is active by slug
 export async function isSalonActiveBySlug(slug: string): Promise<boolean> {
-  const { data } = await supabase
-    .from('salons')
-    .select('is_active')
-    .eq('slug', slug)
-    .single();
-
-  return data?.is_active ?? false;
+  const salon = await prisma.salon.findUnique({
+    where: { slug },
+    select: { isActive: true }
+  })
+  return salon?.isActive ?? false
 }
 
 // Toggle salon active status (super admin only)
 export async function toggleSalonActive(salonId: string, isActive: boolean): Promise<boolean> {
-  const { error } = await supabase
-    .from('salons')
-    .update({ is_active: isActive, updated_at: new Date().toISOString() })
-    .eq('id', salonId);
-
-  return !error;
+  try {
+    await prisma.salon.update({
+      where: { id: salonId },
+      data: { isActive }
+    })
+    return true
+  } catch {
+    return false
+  }
 }
 
 // Get all salons (super admin only)
 export async function getAllSalons() {
-  const { data } = await supabase
-    .from('salons')
-    .select(`
-      *,
-      users!salons_owner_id_fkey (email)
-    `)
-    .order('created_at', { ascending: false });
-
-  return data || [];
+  return prisma.salon.findMany({
+    include: {
+      users: {
+        where: { role: 'SALON_OWNER' },
+        select: { email: true }
+      }
+    },
+    orderBy: { createdAt: 'desc' }
+  })
 }

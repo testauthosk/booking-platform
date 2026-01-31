@@ -1,8 +1,15 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
-import type { AuthUser } from '@/lib/auth';
+import { SessionProvider, useSession, signIn as nextAuthSignIn, signOut as nextAuthSignOut } from 'next-auth/react';
+import { createContext, useContext, ReactNode } from 'react';
+
+interface AuthUser {
+  id: string;
+  email: string;
+  name: string | null;
+  role: string;
+  salonId: string | null;
+}
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -14,86 +21,28 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
-  const initialized = useRef(false);
+function AuthContextProvider({ children }: { children: ReactNode }) {
+  const { data: session, status } = useSession();
+  const loading = status === 'loading';
 
-  useEffect(() => {
-    // Prevent double initialization in React 18 StrictMode
-    if (initialized.current) return;
-    initialized.current = true;
-
-    // Get initial session
-    const getSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (session?.user) {
-          const { data: profile } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-          setUser(profile as AuthUser | null);
-        }
-      } catch (err) {
-        console.error('Session error:', err);
-      }
-      setLoading(false);
-    };
-
-    getSession();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        try {
-          if (session?.user) {
-            const { data: profile } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-
-            setUser(profile as AuthUser | null);
-          } else {
-            setUser(null);
-          }
-        } catch (err) {
-          console.error('Auth state change error:', err);
-        }
-        setLoading(false);
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const user: AuthUser | null = session?.user ? {
+    id: session.user.id,
+    email: session.user.email || '',
+    name: session.user.name || null,
+    role: session.user.role || 'SALON_OWNER',
+    salonId: session.user.salonId || null,
+  } : null;
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const result = await nextAuthSignIn('credentials', {
         email,
         password,
+        redirect: false,
       });
 
-      if (error) {
-        return { error: error.message };
-      }
-
-      if (data.user) {
-        const { data: profile, error: profileError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-
-        if (profileError) {
-          return { error: 'Пользователь не найден в системе' };
-        }
-
-        setUser(profile as AuthUser | null);
+      if (result?.error) {
+        return { error: 'Неверный email или пароль' };
       }
 
       return { error: null };
@@ -105,8 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
-      setUser(null);
+      await nextAuthSignOut({ redirect: false });
     } catch (err) {
       console.error('Sign out error:', err);
     }
@@ -119,11 +67,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         signIn,
         signOut,
-        isSuperAdmin: user?.role === 'super_admin',
+        isSuperAdmin: user?.role === 'SUPER_ADMIN',
       }}
     >
       {children}
     </AuthContext.Provider>
+  );
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  return (
+    <SessionProvider>
+      <AuthContextProvider>
+        {children}
+      </AuthContextProvider>
+    </SessionProvider>
   );
 }
 

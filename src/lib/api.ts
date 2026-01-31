@@ -1,350 +1,431 @@
-import { supabase } from './supabase';
-import type {
-  Salon,
-  Service,
-  ServiceCategory,
-  Master,
-  Review,
-  Booking,
-  SalonWithRelations
-} from '@/types/database';
+import prisma from './prisma'
+
+// ==================== TYPES ====================
+
+export interface SalonWithRelations {
+  id: string
+  name: string
+  slug: string
+  type: string
+  description: string | null
+  phone: string | null
+  email: string | null
+  address: string | null
+  shortAddress: string | null
+  latitude: number | null
+  longitude: number | null
+  photos: string[]
+  workingHours: any
+  amenities: string[]
+  rating: number
+  reviewCount: number
+  isActive: boolean
+  services: Array<{
+    id: string
+    name: string
+    sortOrder: number
+    items: Array<{
+      id: string
+      name: string
+      description: string | null
+      price: number
+      priceFrom: boolean
+      duration: number
+      isActive: boolean
+    }>
+  }>
+  masters: Array<{
+    id: string
+    name: string
+    role: string | null
+    avatar: string | null
+    rating: number
+    reviewCount: number
+    price: number
+  }>
+  reviews: Array<{
+    id: string
+    authorName: string
+    authorInitial: string
+    authorColor: string
+    rating: number
+    text: string | null
+    serviceName: string | null
+    createdAt: Date
+  }>
+}
 
 // ==================== SALON ====================
 
 export async function getSalonBySlug(slug: string): Promise<SalonWithRelations | null> {
-  // Get salon
-  const { data: salon, error } = await supabase
-    .from('salons')
-    .select('*')
-    .eq('slug', slug)
-    .eq('is_active', true)
-    .single();
+  const salon = await prisma.salon.findUnique({
+    where: { slug, isActive: true },
+    include: {
+      categories: {
+        orderBy: { sortOrder: 'asc' },
+        include: {
+          services: {
+            where: { isActive: true },
+            orderBy: { sortOrder: 'asc' }
+          }
+        }
+      },
+      masters: {
+        where: { isActive: true },
+        orderBy: { sortOrder: 'asc' }
+      },
+      reviews: {
+        where: { isVisible: true },
+        orderBy: { createdAt: 'desc' },
+        take: 10
+      }
+    }
+  })
 
-  if (error || !salon) return null;
-
-  // Get service categories with services
-  const { data: categories } = await supabase
-    .from('service_categories')
-    .select('*')
-    .eq('salon_id', salon.id)
-    .order('sort_order');
-
-  const { data: services } = await supabase
-    .from('services')
-    .select('*')
-    .eq('salon_id', salon.id)
-    .eq('is_active', true)
-    .order('sort_order');
-
-  // Group services by category
-  const servicesWithCategories = (categories || []).map(cat => ({
-    ...cat,
-    items: (services || []).filter(s => s.category_id === cat.id)
-  }));
-
-  // Get masters
-  const { data: masters } = await supabase
-    .from('masters')
-    .select('*')
-    .eq('salon_id', salon.id)
-    .eq('is_active', true)
-    .order('sort_order');
-
-  // Get reviews
-  const { data: reviews } = await supabase
-    .from('reviews')
-    .select('*')
-    .eq('salon_id', salon.id)
-    .order('created_at', { ascending: false })
-    .limit(10);
+  if (!salon) return null
 
   return {
     ...salon,
-    services: servicesWithCategories,
-    masters: masters || [],
-    reviews: reviews || []
-  };
+    services: salon.categories.map(cat => ({
+      id: cat.id,
+      name: cat.name,
+      sortOrder: cat.sortOrder,
+      items: cat.services.map(s => ({
+        id: s.id,
+        name: s.name,
+        description: s.description,
+        price: s.price,
+        priceFrom: s.priceFrom,
+        duration: s.duration,
+        isActive: s.isActive,
+      }))
+    })),
+    masters: salon.masters.map(m => ({
+      id: m.id,
+      name: m.name,
+      role: m.role,
+      avatar: m.avatar,
+      rating: m.rating,
+      reviewCount: m.reviewCount,
+      price: m.price,
+    })),
+    reviews: salon.reviews.map(r => ({
+      id: r.id,
+      authorName: r.authorName,
+      authorInitial: r.authorInitial,
+      authorColor: r.authorColor,
+      rating: r.rating,
+      text: r.text,
+      serviceName: r.serviceName,
+      createdAt: r.createdAt,
+    }))
+  }
 }
 
-export async function getSalonById(id: string): Promise<Salon | null> {
-  const { data, error } = await supabase
-    .from('salons')
-    .select('*')
-    .eq('id', id)
-    .single();
-
-  if (error) return null;
-  return data;
+export async function getSalonById(id: string) {
+  return prisma.salon.findUnique({
+    where: { id }
+  })
 }
 
 // ==================== SERVICES ====================
 
 export async function getServicesBySalon(salonId: string) {
-  const { data: categories } = await supabase
-    .from('service_categories')
-    .select('*')
-    .eq('salon_id', salonId)
-    .order('sort_order');
+  const categories = await prisma.serviceCategory.findMany({
+    where: { salonId },
+    orderBy: { sortOrder: 'asc' },
+    include: {
+      services: {
+        orderBy: { sortOrder: 'asc' }
+      }
+    }
+  })
 
-  const { data: services } = await supabase
-    .from('services')
-    .select('*')
-    .eq('salon_id', salonId)
-    .order('sort_order');
-
-  return (categories || []).map(cat => ({
+  return categories.map(cat => ({
     ...cat,
-    items: (services || []).filter(s => s.category_id === cat.id)
-  }));
+    items: cat.services
+  }))
 }
 
-export async function updateService(serviceId: string, data: Partial<Service>) {
-  const { error } = await supabase
-    .from('services')
-    .update(data)
-    .eq('id', serviceId);
-
-  return !error;
+export async function createService(data: {
+  salonId: string
+  categoryId?: string
+  name: string
+  description?: string
+  price: number
+  priceFrom?: boolean
+  duration?: number
+}) {
+  return prisma.service.create({
+    data: {
+      salonId: data.salonId,
+      categoryId: data.categoryId,
+      name: data.name,
+      description: data.description,
+      price: data.price,
+      priceFrom: data.priceFrom ?? false,
+      duration: data.duration ?? 30,
+    }
+  })
 }
 
-export async function createService(data: Omit<Service, 'id' | 'created_at'>) {
-  const { data: newService, error } = await supabase
-    .from('services')
-    .insert(data)
-    .select()
-    .single();
-
-  if (error) return null;
-  return newService;
+export async function updateService(serviceId: string, data: Partial<{
+  name: string
+  description: string
+  price: number
+  priceFrom: boolean
+  duration: number
+  isActive: boolean
+  categoryId: string
+  sortOrder: number
+}>) {
+  return prisma.service.update({
+    where: { id: serviceId },
+    data
+  })
 }
 
 export async function deleteService(serviceId: string) {
-  const { error } = await supabase
-    .from('services')
-    .delete()
-    .eq('id', serviceId);
+  await prisma.service.delete({
+    where: { id: serviceId }
+  })
+  return true
+}
 
-  return !error;
+// ==================== SERVICE CATEGORIES ====================
+
+export async function createCategory(salonId: string, name: string) {
+  const maxOrder = await prisma.serviceCategory.aggregate({
+    where: { salonId },
+    _max: { sortOrder: true }
+  })
+
+  return prisma.serviceCategory.create({
+    data: {
+      salonId,
+      name,
+      sortOrder: (maxOrder._max.sortOrder ?? 0) + 1
+    }
+  })
+}
+
+export async function updateCategory(categoryId: string, name: string) {
+  return prisma.serviceCategory.update({
+    where: { id: categoryId },
+    data: { name }
+  })
+}
+
+export async function deleteCategory(categoryId: string) {
+  // First update services to remove category reference
+  await prisma.service.updateMany({
+    where: { categoryId },
+    data: { categoryId: null }
+  })
+  
+  await prisma.serviceCategory.delete({
+    where: { id: categoryId }
+  })
+  return true
 }
 
 // ==================== MASTERS ====================
 
 export async function getMastersBySalon(salonId: string) {
-  const { data } = await supabase
-    .from('masters')
-    .select('*')
-    .eq('salon_id', salonId)
-    .order('sort_order');
-
-  return data || [];
+  return prisma.master.findMany({
+    where: { salonId },
+    orderBy: { sortOrder: 'asc' }
+  })
 }
 
-export async function updateMaster(masterId: string, data: Partial<Master>) {
-  const { error } = await supabase
-    .from('masters')
-    .update(data)
-    .eq('id', masterId);
-
-  return !error;
+export async function createMaster(data: {
+  salonId: string
+  name: string
+  role?: string
+  phone?: string
+  email?: string
+  avatar?: string
+  bio?: string
+  price?: number
+}) {
+  return prisma.master.create({
+    data: {
+      ...data,
+      rating: 5.0,
+      reviewCount: 0,
+    }
+  })
 }
 
-export async function createMaster(data: Omit<Master, 'id' | 'created_at' | 'rating' | 'review_count'>) {
-  const { data: newMaster, error } = await supabase
-    .from('masters')
-    .insert({ ...data, rating: 5.0, review_count: 0 })
-    .select()
-    .single();
-
-  if (error) return null;
-  return newMaster;
+export async function updateMaster(masterId: string, data: Partial<{
+  name: string
+  role: string
+  phone: string
+  email: string
+  avatar: string
+  bio: string
+  price: number
+  isActive: boolean
+  sortOrder: number
+  workingHours: any
+}>) {
+  return prisma.master.update({
+    where: { id: masterId },
+    data
+  })
 }
 
 export async function deleteMaster(masterId: string) {
-  const { error } = await supabase
-    .from('masters')
-    .delete()
-    .eq('id', masterId);
+  await prisma.master.delete({
+    where: { id: masterId }
+  })
+  return true
+}
 
-  return !error;
+// ==================== CLIENTS ====================
+
+export async function getClientsBySalon(salonId: string) {
+  return prisma.client.findMany({
+    where: { salonId },
+    orderBy: { name: 'asc' }
+  })
+}
+
+export async function createClient(data: {
+  salonId: string
+  name: string
+  phone: string
+  email?: string
+  notes?: string
+}) {
+  return prisma.client.create({
+    data
+  })
+}
+
+export async function updateClient(clientId: string, data: Partial<{
+  name: string
+  phone: string
+  email: string
+  notes: string
+  visitsCount: number
+  totalSpent: number
+  lastVisit: Date
+}>) {
+  return prisma.client.update({
+    where: { id: clientId },
+    data
+  })
 }
 
 // ==================== BOOKINGS ====================
 
-export async function createBooking(data: Omit<Booking, 'id' | 'created_at' | 'updated_at' | 'notification_sent'>) {
-  const { data: booking, error } = await supabase
-    .from('bookings')
-    .insert({ ...data, notification_sent: false })
-    .select()
-    .single();
+export async function createBooking(data: {
+  salonId: string
+  clientId?: string
+  masterId?: string
+  serviceId?: string
+  clientName: string
+  clientPhone: string
+  clientEmail?: string
+  serviceName?: string
+  masterName?: string
+  date: string
+  time: string
+  timeEnd?: string
+  duration?: number
+  price?: number
+  notes?: string
+}) {
+  const booking = await prisma.booking.create({
+    data: {
+      ...data,
+      duration: data.duration ?? 60,
+      price: data.price ?? 0,
+      status: 'CONFIRMED',
+    }
+  })
 
-  if (error) return null;
+  // Update client stats if linked
+  if (data.clientId) {
+    await prisma.client.update({
+      where: { id: data.clientId },
+      data: {
+        visitsCount: { increment: 1 },
+        totalSpent: { increment: data.price ?? 0 },
+        lastVisit: new Date(),
+      }
+    })
+  }
 
-  // Block the time slot in schedule
-  await supabase
-    .from('schedule')
-    .insert({
-      salon_id: data.salon_id,
-      master_id: data.master_id,
-      date: data.date,
-      time_start: data.time,
-      time_end: calculateEndTime(data.time, data.duration_minutes),
-      is_blocked: true,
-      blocked_reason: 'booked',
-      booking_id: booking.id
-    });
-
-  // Send notification to salon owner (async, don't wait)
+  // Send notification (async)
   try {
     fetch('/api/telegram/notify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ bookingId: booking.id }),
-    }).catch(console.error);
+    }).catch(console.error)
   } catch (e) {
-    console.error('Failed to send notification:', e);
+    console.error('Failed to send notification:', e)
   }
 
-  return booking;
+  return booking
 }
 
 export async function getBookingsBySalon(salonId: string, date?: string) {
-  let query = supabase
-    .from('bookings')
-    .select(`
-      *,
-      masters (name),
-      services (name)
-    `)
-    .eq('salon_id', salonId)
-    .order('date')
-    .order('time');
-
-  if (date) {
-    query = query.eq('date', date);
-  }
-
-  const { data } = await query;
-  return data || [];
+  return prisma.booking.findMany({
+    where: {
+      salonId,
+      ...(date ? { date } : {})
+    },
+    include: {
+      master: { select: { name: true } },
+      service: { select: { name: true } },
+    },
+    orderBy: [
+      { date: 'desc' },
+      { time: 'asc' }
+    ]
+  })
 }
 
-export async function updateBookingStatus(bookingId: string, status: Booking['status']) {
-  const { error } = await supabase
-    .from('bookings')
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq('id', bookingId);
-
-  if (status === 'cancelled') {
-    // Unblock the time slot
-    await supabase
-      .from('schedule')
-      .delete()
-      .eq('booking_id', bookingId);
-  }
-
-  return !error;
-}
-
-// ==================== SCHEDULE ====================
-
-export async function getAvailableSlots(salonId: string, masterId: string, date: string) {
-  // Get blocked slots for this date
-  const { data: blocked } = await supabase
-    .from('schedule')
-    .select('time_start, time_end')
-    .eq('salon_id', salonId)
-    .eq('master_id', masterId)
-    .eq('date', date)
-    .eq('is_blocked', true);
-
-  // Get salon working hours
-  const { data: salon } = await supabase
-    .from('salons')
-    .select('working_hours')
-    .eq('id', salonId)
-    .single();
-
-  // Generate available slots based on working hours minus blocked
-  const dayOfWeek = new Date(date).getDay();
-  const dayNames = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', "П'ятниця", 'Субота'];
-  const todayHours = salon?.working_hours?.find((h: any) => h.day === dayNames[dayOfWeek]);
-
-  if (!todayHours || todayHours.hours === 'Зачинено') {
-    return [];
-  }
-
-  const [start, end] = todayHours.hours.split(' - ');
-  const slots = generateTimeSlots(start, end, 30); // 30-minute slots
-
-  // Filter out blocked slots
-  return slots.filter(slot => {
-    return !blocked?.some(b =>
-      slot >= b.time_start && slot < b.time_end
-    );
-  });
-}
-
-// ==================== HELPERS ====================
-
-function calculateEndTime(startTime: string, durationMinutes: number): string {
-  const [hours, minutes] = startTime.split(':').map(Number);
-  const totalMinutes = hours * 60 + minutes + durationMinutes;
-  const endHours = Math.floor(totalMinutes / 60);
-  const endMinutes = totalMinutes % 60;
-  return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
-}
-
-function generateTimeSlots(start: string, end: string, intervalMinutes: number): string[] {
-  const slots: string[] = [];
-  const [startHour, startMin] = start.split(':').map(Number);
-  const [endHour, endMin] = end.split(':').map(Number);
-
-  let current = startHour * 60 + startMin;
-  const endTotal = endHour * 60 + endMin;
-
-  while (current < endTotal) {
-    const hours = Math.floor(current / 60);
-    const mins = current % 60;
-    slots.push(`${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`);
-    current += intervalMinutes;
-  }
-
-  return slots;
+export async function updateBookingStatus(bookingId: string, status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW') {
+  return prisma.booking.update({
+    where: { id: bookingId },
+    data: { status }
+  })
 }
 
 // ==================== SALON UPDATE ====================
 
-export async function updateSalon(salonId: string, data: Partial<Salon>) {
-  const { error } = await supabase
-    .from('salons')
-    .update({ ...data, updated_at: new Date().toISOString() })
-    .eq('id', salonId);
-
-  return !error;
+export async function updateSalon(salonId: string, data: Partial<{
+  name: string
+  slug: string
+  type: string
+  description: string
+  phone: string
+  email: string
+  address: string
+  shortAddress: string
+  latitude: number
+  longitude: number
+  photos: string[]
+  workingHours: any
+  amenities: string[]
+  isActive: boolean
+}>) {
+  return prisma.salon.update({
+    where: { id: salonId },
+    data
+  })
 }
 
-// ==================== IMAGE UPLOAD ====================
+// ==================== HELPERS ====================
 
-export async function uploadImage(file: File, path: string): Promise<string | null> {
-  const { data, error } = await supabase.storage
-    .from('images')
-    .upload(path, file, {
-      cacheControl: '3600',
-      upsert: true
-    });
-
-  if (error) return null;
-
-  const { data: urlData } = supabase.storage
-    .from('images')
-    .getPublicUrl(data.path);
-
-  return urlData.publicUrl;
-}
-
-export async function deleteImage(path: string): Promise<boolean> {
-  const { error } = await supabase.storage
-    .from('images')
-    .remove([path]);
-
-  return !error;
+export function calculateEndTime(startTime: string, durationMinutes: number): string {
+  const [hours, minutes] = startTime.split(':').map(Number)
+  const totalMinutes = hours * 60 + minutes + durationMinutes
+  const endHours = Math.floor(totalMinutes / 60)
+  const endMinutes = totalMinutes % 60
+  return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`
 }

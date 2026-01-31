@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from 'react';
+import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Eye, EyeOff, Scissors } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -18,67 +18,20 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // 1. Логинимся
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      const result = await signIn('credentials', {
         email: email.trim(),
         password,
+        redirect: false,
       });
 
-      if (authError) {
-        console.error('Auth error:', authError);
-        if (authError.message.includes('Invalid login credentials')) {
-          setError('Неверный email или пароль');
-        } else if (authError.message.includes('Email not confirmed')) {
-          setError('Подтвердите email для входа');
-        } else {
-          setError(authError.message);
-        }
+      if (result?.error) {
+        setError('Неверный email или пароль');
         setLoading(false);
         return;
       }
 
-      if (!authData.user) {
-        setError('Ошибка авторизации');
-        setLoading(false);
-        return;
-      }
-
-      console.log('Auth successful, user:', authData.user.id);
-
-      // 2. Получаем профиль из таблицы users
-      console.log('Fetching profile...');
-      const { data: profile, error: profileError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authData.user.id)
-        .single();
-
-      console.log('Profile fetch result:', { profile, profileError });
-
-      if (profileError) {
-        console.error('Profile error:', profileError);
-        setError('Ошибка загрузки профиля: ' + profileError.message);
-        await supabase.auth.signOut();
-        setLoading(false);
-        return;
-      }
-
-      if (!profile) {
-        setError('Пользователь не найден в системе. Обратитесь к администратору.');
-        await supabase.auth.signOut();
-        setLoading(false);
-        return;
-      }
-
-      // 3. Редирект по роли
-      console.log('Redirecting, role:', profile.role);
-
-      // Используем window.location для надёжного редиректа
-      if (profile.role === 'super_admin') {
-        window.location.href = '/admin';
-      } else {
-        window.location.href = '/dashboard';
-      }
+      // Redirect to dashboard on success
+      window.location.href = '/dashboard';
     } catch (err) {
       console.error('Login error:', err);
       setError('Произошла ошибка при входе');

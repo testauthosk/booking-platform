@@ -1,12 +1,28 @@
-import { createClient } from '@supabase/supabase-js';
+// DEPRECATED: This file is kept for backwards compatibility
+// All new code should use Prisma directly via @/lib/prisma
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Stub exports to prevent build errors during migration
+export const supabase = {
+  auth: {
+    getSession: async () => ({ data: { session: null } }),
+    signInWithPassword: async () => ({ data: null, error: new Error('Use NextAuth') }),
+    signOut: async () => ({ error: null }),
+    getUser: async () => ({ data: { user: null } }),
+    signUp: async () => ({ data: null, error: new Error('Use API') }),
+  },
+  from: () => ({
+    select: () => ({ eq: () => ({ single: async () => ({ data: null, error: null }) }) }),
+    insert: () => ({ select: () => ({ single: async () => ({ data: null, error: null }) }) }),
+    update: () => ({ eq: async () => ({ error: null }) }),
+    delete: () => ({ eq: async () => ({ error: null }) }),
+  }),
+  storage: {
+    from: () => ({
+      upload: async () => ({ data: null, error: new Error('Use API for uploads') }),
+      getPublicUrl: () => ({ data: { publicUrl: '' } }),
+      remove: async () => ({ error: null }),
+    })
+  }
+}
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// Server-side client with service role (for admin operations)
-export const createServerClient = () => {
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  return createClient(supabaseUrl, supabaseServiceKey);
-};
+export const createServerClient = () => supabase
