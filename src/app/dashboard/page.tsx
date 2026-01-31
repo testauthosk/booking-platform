@@ -2928,33 +2928,38 @@ function CalendarTab({ bookings, masters, services, salonId, workingHours, onRel
   onReload: () => void;
 }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [showAllMasters, setShowAllMasters] = useState(true);
   const [selectedMasterFilter, setSelectedMasterFilter] = useState<string | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<BookingData | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [currentTimePosition, setCurrentTimePosition] = useState<number | null>(null);
 
-  // Генерируем временные слоты с шагом 5 минут для админа
-  const generateTimeSlots = () => {
-    const slots: string[] = [];
+  // Константы для расчёта высоты
+  const HOUR_HEIGHT = 120; // px за час (2px за минуту)
+  const SLOT_HEIGHT = HOUR_HEIGHT / 2; // 60px за 30 мин
+
+  // Получаем рабочие часы для выбранного дня
+  const getDaySchedule = () => {
     const dayName = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'][selectedDate.getDay()];
-    const daySchedule = workingHours.find(wh => wh.day === dayName);
+    return workingHours.find(wh => wh.day === dayName);
+  };
 
+  const daySchedule = getDaySchedule();
+
+  // Генерируем временные слоты (только полные часы для отображения)
+  const generateHourSlots = () => {
+    const slots: number[] = [];
     if (!daySchedule?.is_working) return slots;
 
-    const [startH, startM] = daySchedule.open.split(':').map(Number);
-    const [endH, endM] = daySchedule.close.split(':').map(Number);
-    const startMins = startH * 60 + startM;
-    const endMins = endH * 60 + endM;
+    const [startH] = daySchedule.open.split(':').map(Number);
+    const [endH] = daySchedule.close.split(':').map(Number);
 
-    // Шаг 5 минут для админа
-    for (let mins = startMins; mins < endMins; mins += 5) {
-      const h = Math.floor(mins / 60);
-      const m = mins % 60;
-      slots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+    for (let h = startH; h <= endH; h++) {
+      slots.push(h);
     }
     return slots;
   };
 
-  const timeSlots = generateTimeSlots();
+  const hourSlots = generateHourSlots();
   const dateStr = selectedDate.toISOString().split('T')[0];
   const dayBookings = bookings.filter(b => b.date === dateStr);
 
@@ -2963,30 +2968,67 @@ function CalendarTab({ bookings, masters, services, salonId, workingHours, onRel
     return dayBookings.filter(b => b.master_id === masterId);
   };
 
-  // Проверяем, попадает ли слот в запись
-  const getBookingAtSlot = (masterId: string, time: string): BookingData | null => {
-    const masterBookings = getBookingsForMaster(masterId);
-    const [slotH, slotM] = time.split(':').map(Number);
-    const slotMins = slotH * 60 + slotM;
+  // Расчёт позиции записи
+  const getBookingPosition = (booking: BookingData) => {
+    if (!daySchedule?.is_working) return { top: 0, height: 0 };
+    
+    const [startH, startM] = daySchedule.open.split(':').map(Number);
+    const scheduleStartMins = startH * 60 + startM;
+    
+    const [bookingH, bookingM] = booking.time.split(':').map(Number);
+    const bookingStartMins = bookingH * 60 + bookingM;
+    
+    const offsetMins = bookingStartMins - scheduleStartMins;
+    const top = (offsetMins / 60) * HOUR_HEIGHT;
+    const height = ((booking.duration || 30) / 60) * HOUR_HEIGHT;
+    
+    return { top, height: Math.max(height, 40) }; // минимум 40px
+  };
 
-    for (const booking of masterBookings) {
-      const [startH, startM] = booking.time.split(':').map(Number);
-      const startMins = startH * 60 + startM;
-      const duration = booking.duration || 30;
-      const endMins = startMins + duration;
-
-      if (slotMins >= startMins && slotMins < endMins) {
-        return booking;
-      }
+  // Расчёт позиции текущего времени
+  const updateCurrentTimePosition = () => {
+    const now = new Date();
+    if (!daySchedule?.is_working) {
+      setCurrentTimePosition(null);
+      return;
     }
-    return null;
+    
+    // Только если сегодня
+    if (selectedDate.toDateString() !== now.toDateString()) {
+      setCurrentTimePosition(null);
+      return;
+    }
+
+    const [startH, startM] = daySchedule.open.split(':').map(Number);
+    const [endH, endM] = daySchedule.close.split(':').map(Number);
+    const scheduleStartMins = startH * 60 + startM;
+    const scheduleEndMins = endH * 60 + endM;
+    
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    
+    if (nowMins < scheduleStartMins || nowMins > scheduleEndMins) {
+      setCurrentTimePosition(null);
+      return;
+    }
+    
+    const offsetMins = nowMins - scheduleStartMins;
+    setCurrentTimePosition((offsetMins / 60) * HOUR_HEIGHT);
   };
 
-  // Проверяем, является ли слот началом записи
-  const isBookingStart = (masterId: string, time: string): boolean => {
-    const masterBookings = getBookingsForMaster(masterId);
-    return masterBookings.some(b => b.time === time);
-  };
+  // Обновляем позицию текущего времени каждую минуту
+  useEffect(() => {
+    updateCurrentTimePosition();
+    const interval = setInterval(updateCurrentTimePosition, 60000);
+    return () => clearInterval(interval);
+  }, [selectedDate, daySchedule]);
+
+  // Скролл к текущему времени при загрузке
+  useEffect(() => {
+    if (currentTimePosition !== null && scrollContainerRef.current) {
+      const scrollTarget = Math.max(0, currentTimePosition - 100);
+      scrollContainerRef.current.scrollTop = scrollTarget;
+    }
+  }, [currentTimePosition]);
 
   // Навигация по дням
   const goToPrevDay = () => {
@@ -3026,7 +3068,8 @@ function CalendarTab({ bookings, masters, services, salonId, workingHours, onRel
 
   const formatDate = (date: Date) => {
     const months = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
-    return `${date.getDate()} ${months[date.getMonth()]}`;
+    const weekDays = ['неділя', 'понеділок', 'вівторок', 'середа', 'четвер', 'п\'ятниця', 'субота'];
+    return `${date.getDate()} ${months[date.getMonth()]}, ${weekDays[date.getDay()]}`;
   };
 
   const isToday = (date: Date) => {
@@ -3038,132 +3081,208 @@ function CalendarTab({ bookings, masters, services, salonId, workingHours, onRel
     ? masters.filter(m => m.id === selectedMasterFilter)
     : masters;
 
-  // Получаем цвет для записи на основе статуса
-  const getBookingColor = (booking: BookingData) => {
-    if (booking.status === 'confirmed') return 'bg-green-100 border-green-300 text-green-800';
-    if (booking.status === 'pending') return 'bg-yellow-100 border-yellow-300 text-yellow-800';
-    if (booking.status === 'cancelled') return 'bg-red-100 border-red-300 text-red-800';
-    return 'bg-violet-100 border-violet-300 text-violet-800';
+  // Цвета для записей по статусу
+  const getBookingStyles = (booking: BookingData) => {
+    const colors: Record<string, { bg: string; border: string; text: string; accent: string }> = {
+      confirmed: { bg: 'bg-emerald-50', border: 'border-l-emerald-500', text: 'text-emerald-900', accent: 'bg-emerald-500' },
+      pending: { bg: 'bg-amber-50', border: 'border-l-amber-500', text: 'text-amber-900', accent: 'bg-amber-500' },
+      completed: { bg: 'bg-sky-50', border: 'border-l-sky-500', text: 'text-sky-900', accent: 'bg-sky-500' },
+      cancelled: { bg: 'bg-red-50', border: 'border-l-red-400', text: 'text-red-800', accent: 'bg-red-400' },
+    };
+    return colors[booking.status] || colors.confirmed;
   };
+
+  // Общая высота сетки
+  const gridHeight = hourSlots.length > 0 ? (hourSlots.length) * HOUR_HEIGHT : 0;
 
   return (
     <div className="flex flex-col h-[calc(100vh-120px)]">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
-          <button onClick={goToPrevDay} className="p-2 hover:bg-gray-100 rounded-lg">
+          <button 
+            onClick={goToToday}
+            className={`px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors ${
+              isToday(selectedDate) 
+                ? 'bg-violet-100 border-violet-200 text-violet-700' 
+                : 'border-gray-200 hover:bg-gray-50 text-gray-600'
+            }`}
+          >
+            Сьогодні
+          </button>
+          <button onClick={goToPrevDay} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500">
             <ChevronRight className="w-5 h-5 rotate-180" />
           </button>
-          <button onClick={() => {}} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-lg">
-            <span className="font-semibold text-gray-900">{formatDate(selectedDate)}</span>
-            <ChevronDown className="w-4 h-4 text-gray-500" />
-          </button>
-          <button onClick={goToNextDay} className="p-2 hover:bg-gray-100 rounded-lg">
+          <button onClick={goToNextDay} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500">
             <ChevronRight className="w-5 h-5" />
           </button>
+          <span className="font-semibold text-gray-900 dark:text-white ml-2">{formatDate(selectedDate)}</span>
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowAllMasters(!showAllMasters)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${showAllMasters ? 'bg-gray-100 border-gray-300' : 'border-gray-200'}`}
+          <select
+            value={selectedMasterFilter || ''}
+            onChange={(e) => setSelectedMasterFilter(e.target.value || null)}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white dark:bg-gray-800 dark:border-gray-700"
           >
-            <Users className="w-4 h-4" />
-            <span className="text-sm">Усі</span>
-          </button>
-          <button className="p-2 hover:bg-gray-100 rounded-lg border border-gray-200">
-            <Filter className="w-5 h-5 text-gray-500" />
-          </button>
+            <option value="">Усі майстри</option>
+            {masters.map(m => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
         </div>
       </div>
 
       {/* Calendar Grid */}
-      <div className="flex-1 bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col">
+      <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col shadow-sm">
         {/* Masters Header */}
-        <div className="flex border-b border-gray-200 bg-gray-50 sticky top-0 z-10">
-          <div className="w-16 flex-shrink-0 p-2 border-r border-gray-200">
-            <button className="w-8 h-8 bg-yellow-400 rounded-lg flex items-center justify-center text-white">
-              <Plus className="w-5 h-5" />
-            </button>
-          </div>
+        <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+          <div className="w-16 flex-shrink-0 border-r border-gray-200 dark:border-gray-700" />
           {filteredMasters.map(master => (
-            <div key={master.id} className="flex-1 min-w-[140px] p-3 border-r border-gray-200 text-center">
-              <div className="w-10 h-10 mx-auto mb-1 rounded-full bg-gray-200 overflow-hidden">
-                {master.photo_url ? (
-                  <img src={master.photo_url} alt={master.name} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400">
-                    <Users className="w-5 h-5" />
-                  </div>
-                )}
+            <div key={master.id} className="flex-1 min-w-[160px] p-3 border-r border-gray-200 dark:border-gray-700 last:border-r-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden flex-shrink-0">
+                  {master.photo_url ? (
+                    <img src={master.photo_url} alt={master.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                      <Users className="w-5 h-5" />
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900 dark:text-white truncate">{master.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{master.position || 'Майстер'}</p>
+                </div>
               </div>
-              <p className="text-sm font-medium text-gray-900 truncate">{master.name}</p>
             </div>
           ))}
         </div>
 
-        {/* Time Grid */}
-        <div className="flex-1 overflow-y-auto">
-          {timeSlots.map((time, idx) => {
-            const isHourStart = time.endsWith(':00');
-            const showTime = isHourStart || time.endsWith(':30');
-
-            return (
-              <div key={time} className={`flex ${isHourStart ? 'border-t border-gray-200' : ''}`}>
-                {/* Time Label */}
-                <div className="w-16 flex-shrink-0 border-r border-gray-100 text-right pr-2 py-1">
-                  {showTime && (
-                    <span className="text-xs text-gray-400">{time}</span>
-                  )}
-                </div>
-
-                {/* Master Columns */}
-                {filteredMasters.map(master => {
-                  const booking = getBookingAtSlot(master.id, time);
-                  const isStart = booking && isBookingStart(master.id, time);
-
-                  return (
-                    <div
+        {/* Scrollable Time Grid */}
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-auto">
+          {!daySchedule?.is_working ? (
+            <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400 py-20">
+              <div className="text-center">
+                <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p className="font-medium">Вихідний день</p>
+                <p className="text-sm mt-1">Салон не працює в цей день</p>
+              </div>
+            </div>
+          ) : (
+            <div className="relative" style={{ height: `${gridHeight}px`, minWidth: `${filteredMasters.length * 160 + 64}px` }}>
+              {/* Time labels and grid lines */}
+              {hourSlots.map((hour, idx) => (
+                <div 
+                  key={hour} 
+                  className="absolute left-0 right-0 flex"
+                  style={{ top: `${idx * HOUR_HEIGHT}px`, height: `${HOUR_HEIGHT}px` }}
+                >
+                  {/* Time label */}
+                  <div className="w-16 flex-shrink-0 border-r border-gray-100 dark:border-gray-700 relative">
+                    <span className="absolute -top-2.5 right-2 text-xs font-medium text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-800 px-1">
+                      {hour.toString().padStart(2, '0')}:00
+                    </span>
+                  </div>
+                  
+                  {/* Grid cells for each master */}
+                  {filteredMasters.map((master, mIdx) => (
+                    <div 
                       key={master.id}
-                      className={`flex-1 min-w-[140px] border-r border-gray-100 h-4 relative ${
-                        !booking ? 'hover:bg-violet-50 cursor-pointer' : ''
+                      className={`flex-1 min-w-[160px] border-r border-gray-100 dark:border-gray-700 last:border-r-0 ${
+                        mIdx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50/50 dark:bg-gray-800/50'
                       }`}
                     >
-                      {isStart && booking && (
-                        <div
-                          onClick={() => setSelectedBooking(booking)}
-                          className={`absolute left-1 right-1 rounded-lg p-2 border z-10 cursor-pointer hover:shadow-md transition-shadow ${getBookingColor(booking)}`}
-                          style={{ height: `${((booking.duration || 30) / 5) * 16}px`, minHeight: '60px' }}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-medium">
-                              {booking.time}-{booking.time_end || ''}
-                            </span>
-                            <Phone className="w-3 h-3" />
-                          </div>
-                          <p className="text-sm font-semibold truncate">{booking.client_name}</p>
-                          <p className="text-xs opacity-75">{booking.client_phone}</p>
-                          {booking.service_name && (
-                            <p className="text-xs mt-1 truncate">{booking.service_name}</p>
-                          )}
+                      {/* Hour line */}
+                      <div className="h-1/2 border-b border-gray-100 dark:border-gray-700" />
+                      {/* Half hour line (dashed) */}
+                      <div className="h-1/2 border-b border-dashed border-gray-100 dark:border-gray-700" />
+                    </div>
+                  ))}
+                </div>
+              ))}
+
+              {/* Current time indicator */}
+              {currentTimePosition !== null && (
+                <div 
+                  className="absolute left-0 right-0 z-20 pointer-events-none"
+                  style={{ top: `${currentTimePosition}px` }}
+                >
+                  <div className="flex items-center">
+                    <div className="w-16 flex-shrink-0 flex items-center justify-end pr-1">
+                      <span className="text-[10px] font-bold text-red-500 bg-white dark:bg-gray-800 px-1 rounded">
+                        {new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <div className="flex-1 h-0.5 bg-red-500 relative">
+                      <div className="absolute -left-1 -top-1 w-2.5 h-2.5 bg-red-500 rounded-full" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Bookings */}
+              {filteredMasters.map((master, masterIndex) => {
+                const masterBookings = getBookingsForMaster(master.id);
+                return masterBookings.map(booking => {
+                  const { top, height } = getBookingPosition(booking);
+                  const styles = getBookingStyles(booking);
+                  
+                  return (
+                    <div
+                      key={booking.id}
+                      onClick={() => setSelectedBooking(booking)}
+                      className={`absolute cursor-pointer rounded-lg border-l-4 shadow-sm hover:shadow-md transition-all overflow-hidden ${styles.bg} ${styles.border}`}
+                      style={{
+                        top: `${top}px`,
+                        height: `${height}px`,
+                        left: `${64 + masterIndex * 160 + 4}px`,
+                        width: '152px',
+                      }}
+                    >
+                      <div className="p-2 h-full flex flex-col">
+                        {/* Time */}
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={`text-xs font-semibold ${styles.text}`}>
+                            {booking.time}—{booking.time_end || ''}
+                          </span>
                           {booking.status === 'pending' && (
-                            <span className="inline-block mt-1 px-2 py-0.5 bg-yellow-400 text-yellow-900 text-xs rounded font-medium">
+                            <span className="px-1.5 py-0.5 bg-amber-400 text-amber-900 text-[10px] font-bold rounded uppercase">
                               new
                             </span>
                           )}
                         </div>
-                      )}
+                        
+                        {/* Service */}
+                        {booking.service_name && (
+                          <p className={`text-xs font-medium truncate ${styles.text}`}>
+                            {booking.service_name}
+                          </p>
+                        )}
+                        
+                        {/* Client (only if enough space) */}
+                        {height > 60 && (
+                          <div className="mt-auto pt-1">
+                            <p className={`text-sm font-semibold truncate ${styles.text}`}>
+                              {booking.client_name}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                              {booking.client_phone}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
-                })}
-              </div>
-            );
-          })}
+                });
+              })}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Bottom Navigation - Week Days */}
-      <div className="mt-4 bg-white rounded-xl border border-gray-200 p-2">
+      <div className="mt-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-2 shadow-sm">
         <div className="flex items-center justify-between">
           {weekDays.map((day, idx) => {
             const isSelected = day.toDateString() === selectedDate.toDateString();
@@ -3173,32 +3292,28 @@ function CalendarTab({ bookings, masters, services, salonId, workingHours, onRel
               <button
                 key={idx}
                 onClick={() => setSelectedDate(day)}
-                className={`flex-1 py-2 px-1 rounded-lg text-center transition-colors ${
+                className={`flex-1 py-2 px-1 rounded-lg text-center transition-all ${
                   isSelected
-                    ? 'bg-yellow-400 text-yellow-900'
+                    ? 'bg-violet-600 text-white shadow-sm'
                     : isTodayDate
-                    ? 'text-yellow-600 font-semibold'
-                    : 'hover:bg-gray-100'
+                    ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400'
+                    : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
-                <span className={`text-xs ${isSelected ? 'text-yellow-800' : 'text-gray-500'}`}>
+                <span className={`text-xs font-medium ${
+                  isSelected ? 'text-violet-200' : 'text-gray-500 dark:text-gray-400'
+                }`}>
                   {dayNames[idx]}
                 </span>
-                <p className={`text-lg font-semibold ${isSelected ? 'text-yellow-900' : 'text-gray-900'}`}>
+                <p className={`text-lg font-bold ${
+                  isSelected ? 'text-white' : 'text-gray-900 dark:text-white'
+                }`}>
                   {day.getDate()}
                 </p>
               </button>
             );
           })}
         </div>
-        {!isToday(selectedDate) && (
-          <button
-            onClick={goToToday}
-            className="w-full mt-2 py-2 text-center text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg"
-          >
-            Сьогодні
-          </button>
-        )}
       </div>
 
       {/* Booking Detail Modal */}
