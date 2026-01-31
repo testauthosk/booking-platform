@@ -2939,7 +2939,8 @@ function CalendarTab({ bookings, masters, services, salonId, workingHours, onRel
 
   // Получаем рабочие часы для выбранного дня
   const getDaySchedule = () => {
-    const dayName = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'][selectedDate.getDay()];
+    // Украинские названия дней (как в БД)
+    const dayName = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П\'ятниця', 'Субота'][selectedDate.getDay()];
     return workingHours.find(wh => wh.day === dayName);
   };
 
