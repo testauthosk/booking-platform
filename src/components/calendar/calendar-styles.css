@@ -171,6 +171,9 @@
   cursor: pointer;
   padding: 4px 8px !important;
   margin: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: auto !important;
   font-size: 12px;
   color: white;
 }
@@ -190,18 +193,40 @@
   display: none;
 }
 
-/* Events container - center events */
+/* Events container - full width */
 .booking-calendar .rbc-day-slot .rbc-events-container {
-  margin: 0 2px;
+  margin: 0 !important;
+  right: 0 !important;
 }
 
 /* ===== OTHER ===== */
 
-/* Current time indicator - clean line */
+/* Current time indicator - clean line, NO dots */
 .booking-calendar .rbc-current-time-indicator {
-  background-color: #ef4444;
-  height: 2px;
+  background-color: #ef4444 !important;
+  height: 2px !important;
   z-index: 10;
+}
+
+.booking-calendar .rbc-current-time-indicator::before,
+.booking-calendar .rbc-current-time-indicator::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* Current time label */
+.booking-calendar .current-time-label {
+  position: absolute;
+  left: 0;
+  z-index: 20;
+  background: #ef4444;
+  color: white;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 
 /* Today background */

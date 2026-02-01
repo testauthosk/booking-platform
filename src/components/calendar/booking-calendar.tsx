@@ -63,15 +63,29 @@ export function BookingCalendar({
 }: BookingCalendarProps) {
   const [view, setView] = useState(defaultView);
   const [date, setDate] = useState(new Date());
-  const [, setTick] = useState(0);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   // Live update for current time indicator - refresh every minute
   useEffect(() => {
     const interval = setInterval(() => {
-      setTick(t => t + 1);
+      setCurrentTime(new Date());
     }, 60000); // every minute
     return () => clearInterval(interval);
   }, []);
+
+  // Calculate position for current time label
+  const getTimePosition = () => {
+    const now = currentTime;
+    const minHour = minTime.getHours();
+    const maxHour = maxTime.getHours();
+    const currentHour = now.getHours() + now.getMinutes() / 60;
+    
+    if (currentHour < minHour || currentHour > maxHour) return null;
+    
+    const totalHours = maxHour - minHour;
+    const position = ((currentHour - minHour) / totalHours) * 100;
+    return position;
+  };
 
   const handleSelectEvent = useCallback((event: BookingEvent) => {
     onEventClick?.(event);
@@ -146,8 +160,19 @@ export function BookingCalendar({
 
   const viewConfig = resources.length > 0 ? Views.DAY : view;
 
+  const timePosition = getTimePosition();
+
   return (
-    <div className="h-full booking-calendar">
+    <div className="h-full booking-calendar relative">
+      {/* Current time label in gutter */}
+      {timePosition !== null && (
+        <div 
+          className="current-time-label"
+          style={{ top: `calc(${timePosition}% + 120px)` }}
+        >
+          {format(currentTime, 'HH:mm')}
+        </div>
+      )}
       <DnDCalendar
         localizer={localizer}
         events={events}
