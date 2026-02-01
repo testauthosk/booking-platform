@@ -97,12 +97,12 @@ export function NewBookingModal({
     <>
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/50 z-50 animate-in fade-in duration-200"
+        className="fixed inset-0 bg-black/50 z-50 modal-backdrop"
         onClick={onClose}
       />
       
       {/* Modal */}
-      <div className="fixed inset-x-4 bottom-4 lg:inset-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-md bg-background rounded-2xl shadow-xl z-50 animate-in slide-in-from-bottom-4 lg:slide-in-from-bottom-0 lg:zoom-in-95 duration-200 max-h-[85vh] overflow-hidden flex flex-col">
+      <div className="fixed inset-x-4 bottom-24 lg:inset-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-md bg-background rounded-2xl shadow-xl z-50 modal-content max-h-[70vh] lg:max-h-[85vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="p-4 border-b flex items-center justify-between shrink-0">
           <div>
@@ -113,9 +113,9 @@ export function NewBookingModal({
           </div>
           <button 
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-muted transition-colors"
+            className="w-8 h-8 rounded-full hover:bg-muted transition-colors flex items-center justify-center"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
@@ -200,12 +200,12 @@ export function NewBookingModal({
         </div>
 
         {/* Actions */}
-        <div className="p-4 border-t flex gap-2 shrink-0">
-          <Button variant="outline" className="flex-1" onClick={onClose}>
+        <div className="p-4 border-t flex gap-2 shrink-0 pb-6 lg:pb-4">
+          <Button variant="outline" className="flex-1 h-11" onClick={onClose}>
             Скасувати
           </Button>
           <Button 
-            className="flex-1" 
+            className="flex-1 h-11" 
             onClick={handleSave}
             disabled={!clientName || !selectedService || !selectedResource}
           >

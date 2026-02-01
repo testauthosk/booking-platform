@@ -205,6 +205,50 @@
   font-size: 12px;
 }
 
+/* Modal animations */
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes backdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-backdrop {
+  animation: backdropFadeIn 0.2s ease-out;
+}
+
+.modal-content {
+  animation: modalSlideUp 0.3s ease-out;
+}
+
+@media (min-width: 1024px) {
+  .modal-content {
+    animation: modalFadeIn 0.2s ease-out;
+  }
+}
+
 /* Mobile */
 @media (max-width: 768px) {
   .booking-calendar .rbc-toolbar {
