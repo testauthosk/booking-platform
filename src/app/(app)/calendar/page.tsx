@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Menu, Bell, Plus } from 'lucide-react';
 import { useSidebar } from '@/components/sidebar-context';
 import { BookingCalendar, BookingEvent, Resource } from '@/components/calendar/booking-calendar';
+import { EventModal } from '@/components/calendar/event-modal';
+import { NewBookingModal } from '@/components/calendar/new-booking-modal';
 import '@/components/calendar/calendar-styles.css';
 
 // Demo resources (team members)
@@ -17,7 +19,7 @@ const demoResources: Resource[] = [
 const today = new Date();
 const todayStr = today.toISOString().split('T')[0];
 
-const demoEvents: BookingEvent[] = [
+const initialEvents: BookingEvent[] = [
   {
     id: '1',
     title: 'Стрижка',
@@ -59,27 +61,82 @@ const demoEvents: BookingEvent[] = [
   },
 ];
 
+const eventColors: Record<string, string> = {
+  '1': '#f97316', // Don't Pursue - orange
+  '2': '#ec4899', // Wendy Smith - pink
+};
+
 export default function CalendarPage() {
   const { open: openSidebar } = useSidebar();
-  const [events, setEvents] = useState(demoEvents);
+  const [events, setEvents] = useState(initialEvents);
+  
+  // Modal states
+  const [selectedEvent, setSelectedEvent] = useState<BookingEvent | null>(null);
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [isNewBookingModalOpen, setIsNewBookingModalOpen] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date; resourceId?: string } | null>(null);
 
   const handleEventClick = (event: BookingEvent) => {
-    console.log('Event clicked:', event);
-    // TODO: Open event details modal
+    setSelectedEvent(event);
+    setIsEventModalOpen(true);
   };
 
   const handleSlotClick = (slotInfo: { start: Date; end: Date; resourceId?: string }) => {
-    console.log('Slot clicked:', slotInfo);
-    // TODO: Open new booking modal
+    setSelectedSlot(slotInfo);
+    setIsNewBookingModalOpen(true);
   };
 
   const handleEventDrop = (event: BookingEvent, start: Date, end: Date, resourceId?: string) => {
     setEvents(prev => prev.map(e => 
       e.id === event.id 
-        ? { ...e, start, end, resourceId: resourceId || e.resourceId }
+        ? { 
+            ...e, 
+            start, 
+            end, 
+            resourceId: resourceId || e.resourceId,
+            backgroundColor: eventColors[resourceId || e.resourceId || '1'],
+            masterName: demoResources.find(r => r.id === (resourceId || e.resourceId))?.title,
+          }
         : e
     ));
-    console.log('Event moved:', event.id);
+  };
+
+  const handleNewBooking = (booking: {
+    clientName: string;
+    clientPhone: string;
+    serviceName: string;
+    start: Date;
+    end: Date;
+    resourceId: string;
+  }) => {
+    const newEvent: BookingEvent = {
+      id: Date.now().toString(),
+      title: booking.serviceName,
+      start: booking.start,
+      end: booking.end,
+      resourceId: booking.resourceId,
+      backgroundColor: eventColors[booking.resourceId] || '#8b5cf6',
+      clientName: booking.clientName,
+      clientPhone: booking.clientPhone,
+      serviceName: booking.serviceName,
+      masterName: demoResources.find(r => r.id === booking.resourceId)?.title,
+      status: 'confirmed',
+    };
+    setEvents(prev => [...prev, newEvent]);
+  };
+
+  const handleDeleteEvent = (event: BookingEvent) => {
+    setEvents(prev => prev.filter(e => e.id !== event.id));
+    setIsEventModalOpen(false);
+  };
+
+  const handleFabClick = () => {
+    // Open new booking modal with current time
+    const now = new Date();
+    now.setMinutes(Math.ceil(now.getMinutes() / 15) * 15, 0, 0);
+    const end = new Date(now.getTime() + 60 * 60000);
+    setSelectedSlot({ start: now, end, resourceId: '1' });
+    setIsNewBookingModalOpen(true);
   };
 
   return (
@@ -124,9 +181,31 @@ export default function CalendarPage() {
       <Button 
         className="lg:hidden fixed right-4 bottom-24 w-14 h-14 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 z-30"
         size="icon"
+        onClick={handleFabClick}
       >
         <Plus className="h-6 w-6" />
       </Button>
+
+      {/* Event details modal */}
+      <EventModal
+        event={selectedEvent}
+        isOpen={isEventModalOpen}
+        onClose={() => setIsEventModalOpen(false)}
+        onEdit={(event) => {
+          console.log('Edit event:', event);
+          setIsEventModalOpen(false);
+        }}
+        onDelete={handleDeleteEvent}
+      />
+
+      {/* New booking modal */}
+      <NewBookingModal
+        isOpen={isNewBookingModalOpen}
+        onClose={() => setIsNewBookingModalOpen(false)}
+        onSave={handleNewBooking}
+        slotInfo={selectedSlot}
+        resources={demoResources}
+      />
     </div>
   );
 }

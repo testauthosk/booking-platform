@@ -2,11 +2,15 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
+import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
+import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 const locales = { 'uk': uk };
+
+const DnDCalendar = withDragAndDrop(Calendar);
 
 const localizer = dateFnsLocalizer({
   format,
@@ -108,9 +112,12 @@ export function BookingCalendar({
     timeGutterFormat: 'HH:mm',
     eventTimeRangeFormat: ({ start, end }: { start: Date; end: Date }) =>
       `${format(start, 'HH:mm')} - ${format(end, 'HH:mm')}`,
-    dayHeaderFormat: 'EEEE, d MMMM',
+    dayHeaderFormat: (date: Date) => format(date, 'EEEE, d MMMM', { locale: uk }),
     dayRangeHeaderFormat: ({ start, end }: { start: Date; end: Date }) =>
-      `${format(start, 'd MMM')} - ${format(end, 'd MMM yyyy')}`,
+      `${format(start, 'd MMM', { locale: uk })} - ${format(end, 'd MMM yyyy', { locale: uk })}`,
+    weekdayFormat: (date: Date) => format(date, 'EEE', { locale: uk }),
+    monthHeaderFormat: (date: Date) => format(date, 'MMMM yyyy', { locale: uk }),
+    agendaDateFormat: (date: Date) => format(date, 'd MMMM', { locale: uk }),
   }), []);
 
   // Custom event component
@@ -127,7 +134,7 @@ export function BookingCalendar({
 
   return (
     <div className="h-full booking-calendar">
-      <Calendar
+      <DnDCalendar
         localizer={localizer}
         events={events}
         resources={resources.length > 0 ? resources : undefined}
