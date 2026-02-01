@@ -76,10 +76,10 @@ async def main():
     
     setup_dirs()
     
-    # Минимальные настройки — только headless=False
+    # disable_coop разрешает клики в OAuth попапах
     print("\n🌐 Запускаю браузер...")
     
-    async with AsyncCamoufox(headless=False) as browser:
+    async with AsyncCamoufox(headless=False, disable_coop=True) as browser:
         page = await browser.new_page()
         
         # Открываем Google
