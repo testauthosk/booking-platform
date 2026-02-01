@@ -33,7 +33,12 @@ export function MobileNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex items-center justify-center w-14 h-14 -mt-4 rounded-full bg-primary text-primary-foreground shadow-lg"
+                className={cn(
+                  "flex items-center justify-center w-14 h-14 -mt-4 rounded-full",
+                  "bg-foreground text-background shadow-lg",
+                  "transition-all duration-200",
+                  "hover:scale-105 active:scale-95"
+                )}
               >
                 <item.icon className="h-6 w-6" />
               </Link>
@@ -45,11 +50,18 @@ export function MobileNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-col items-center justify-center w-16 h-full transition-colors',
-                isActive ? 'text-primary' : 'text-muted-foreground'
+                'flex flex-col items-center justify-center w-16 h-full',
+                'transition-all duration-200 active:scale-95',
+                isActive ? 'text-foreground' : 'text-muted-foreground'
               )}
             >
-              <item.icon className="h-6 w-6" />
+              <item.icon className={cn(
+                "h-6 w-6 transition-transform duration-200",
+                isActive && "scale-110"
+              )} />
+              {isActive && (
+                <span className="w-1 h-1 rounded-full bg-foreground mt-1 animate-in fade-in duration-200" />
+              )}
             </Link>
           );
         })}

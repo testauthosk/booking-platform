@@ -4,19 +4,22 @@ import { Sidebar } from '@/components/sidebar';
 import { Header } from '@/components/header';
 import { MobileNav } from '@/components/mobile-nav';
 import { SidebarProvider, useSidebar } from '@/components/sidebar-context';
+import { cn } from '@/lib/utils';
 
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const { isOpen, close } = useSidebar();
 
   return (
     <div className="h-screen flex bg-background">
-      {/* Mobile overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={close}
-        />
-      )}
+      {/* Mobile overlay with animation */}
+      <div
+        className={cn(
+          "fixed inset-0 bg-black/50 z-40 lg:hidden",
+          "transition-opacity duration-300",
+          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        )}
+        onClick={close}
+      />
       
       {/* Desktop sidebar only */}
       <div className="hidden lg:block">
@@ -35,7 +38,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         </div>
         
         {/* Main content with bottom padding for mobile nav */}
-        <main className="flex-1 overflow-auto bg-muted/30 pb-20 lg:pb-0">
+        <main className="flex-1 overflow-auto pb-20 lg:pb-0">
           {children}
         </main>
       </div>

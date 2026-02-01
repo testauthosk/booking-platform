@@ -44,7 +44,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       className={cn(
         'fixed lg:static inset-y-0 left-0 z-50',
         'w-72 lg:w-64 border-r bg-background flex flex-col',
-        'transform transition-transform duration-300 ease-in-out',
+        'transition-transform duration-300 ease-out',
         // Mobile: hidden by default, shown when isOpen
         isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       )}
@@ -54,7 +54,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <span className="text-xl font-bold text-primary">BookingPro</span>
         <button
           onClick={onClose}
-          className="lg:hidden p-2 -mr-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted"
+          className="lg:hidden p-2 -mr-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-all active:scale-95"
         >
           <X className="h-5 w-5" />
         </button>
@@ -62,7 +62,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
+        {navItems.map((item, index) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
             <Link
@@ -70,10 +70,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               href={item.href}
               onClick={onClose}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg',
+                'transition-all duration-200 active:scale-[0.98]',
                 'hover:bg-muted',
                 isActive && 'bg-primary/10 text-primary font-medium'
               )}
+              style={{
+                animationDelay: isOpen ? `${index * 30}ms` : '0ms',
+              }}
             >
               <item.icon className="h-5 w-5 shrink-0" />
               <span>{item.label}</span>
@@ -87,7 +91,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <Link
           href="/help"
           onClick={onClose}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted transition-colors"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted transition-all duration-200 active:scale-[0.98]"
         >
           <HelpCircle className="h-5 w-5" />
           <span>Допомога</span>
