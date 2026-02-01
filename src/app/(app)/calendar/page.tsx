@@ -14,12 +14,12 @@ const demoEvents = [
     title: 'Стрижка',
     start: new Date().toISOString().split('T')[0] + 'T10:00:00',
     end: new Date().toISOString().split('T')[0] + 'T11:00:00',
-    resourceId: '1',
     backgroundColor: '#f97316',
     extendedProps: {
       clientName: 'John Doe',
       clientPhone: '+380 99 123 4567',
       serviceName: 'Стрижка',
+      masterName: "Don't Pursue",
       status: 'confirmed',
     },
   },
@@ -28,12 +28,12 @@ const demoEvents = [
     title: 'Фарбування',
     start: new Date().toISOString().split('T')[0] + 'T14:00:00',
     end: new Date().toISOString().split('T')[0] + 'T16:30:00',
-    resourceId: '2',
     backgroundColor: '#ec4899',
     extendedProps: {
       clientName: 'Jane Smith',
       clientPhone: '+380 67 234 5678',
       serviceName: 'Фарбування волосся',
+      masterName: 'Wendy Smith',
       status: 'confirmed',
     },
   },
@@ -42,21 +42,22 @@ const demoEvents = [
     title: 'Манікюр',
     start: new Date().toISOString().split('T')[0] + 'T11:30:00',
     end: new Date().toISOString().split('T')[0] + 'T12:30:00',
-    resourceId: '1',
     backgroundColor: '#8b5cf6',
     extendedProps: {
       clientName: 'Alex Brown',
       clientPhone: '+380 50 345 6789',
       serviceName: 'Манікюр',
+      masterName: "Don't Pursue",
       status: 'pending',
     },
   },
 ];
 
-const demoResources = [
-  { id: '1', title: "Don't Pursue", eventColor: '#f97316' },
-  { id: '2', title: 'Wendy Smith', eventColor: '#ec4899' },
-];
+// Resources disabled - requires premium FullCalendar license
+// const demoResources = [
+//   { id: '1', title: "Don't Pursue", eventColor: '#f97316' },
+//   { id: '2', title: 'Wendy Smith', eventColor: '#ec4899' },
+// ];
 
 export default function CalendarPage() {
   const { open: openSidebar } = useSidebar();
@@ -124,12 +125,11 @@ export default function CalendarPage() {
       <div className="flex-1 overflow-hidden">
         <BookingCalendar
           events={events}
-          resources={demoResources}
           onEventClick={handleEventClick}
           onDateClick={handleDateClick}
           onEventDrop={handleEventDrop}
           onEventResize={handleEventResize}
-          initialView="resourceTimeGridDay"
+          initialView="timeGridDay"
           slotMinTime="08:00:00"
           slotMaxTime="21:00:00"
         />

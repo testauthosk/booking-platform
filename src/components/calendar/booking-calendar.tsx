@@ -5,7 +5,8 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import resourceTimeGridPlugin from '@fullcalendar/resource-timegrid';
+// Resource plugin requires premium license - disabled for now
+// import resourceTimeGridPlugin from '@fullcalendar/resource-timegrid';
 import { ukLocale } from './uk-locale';
 
 interface BookingEvent {
@@ -106,10 +107,8 @@ export function BookingCalendar({
     }
   };
 
-  // Determine plugins based on whether we have resources
-  const plugins = resources.length > 0
-    ? [dayGridPlugin, timeGridPlugin, interactionPlugin, resourceTimeGridPlugin]
-    : [dayGridPlugin, timeGridPlugin, interactionPlugin];
+  // Using free plugins only (resource plugin requires premium license)
+  const plugins = [dayGridPlugin, timeGridPlugin, interactionPlugin];
 
   return (
     <div className="fc-wrapper h-full">
@@ -120,19 +119,16 @@ export function BookingCalendar({
         headerToolbar={{
           left: 'prev,next today',
           center: 'title',
-          right: resources.length > 0 
-            ? 'resourceTimeGridDay,timeGridDay,timeGridWeek,dayGridMonth'
-            : 'timeGridDay,timeGridWeek,dayGridMonth'
+          right: 'timeGridDay,timeGridWeek,dayGridMonth'
         }}
         buttonText={{
           today: 'Сьогодні',
           day: 'День',
           week: 'Тиждень',
           month: 'Місяць',
-          resourceTimeGridDay: 'Команда',
         }}
         events={events}
-        resources={resources.length > 0 ? resources : undefined}
+        // resources disabled - requires premium license
         editable={true}
         droppable={true}
         selectable={true}
