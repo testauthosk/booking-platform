@@ -10,6 +10,7 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@daypilot/daypilot-lite-react": "^5.3.1",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@prisma/client": "^5.22.0",
@@ -26,6 +27,7 @@
     "next": "16.1.6",
     "next-auth": "^4.24.13",
     "next-themes": "^0.4.6",
+    "planby": "^2.0.0",
     "prisma": "^5.22.0",
     "react": "19.2.3",
     "react-big-calendar": "^1.19.4",

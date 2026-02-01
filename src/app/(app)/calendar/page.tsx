@@ -4,10 +4,9 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Menu, Bell, Plus } from 'lucide-react';
 import { useSidebar } from '@/components/sidebar-context';
-import { BookingCalendar, BookingEvent, Resource } from '@/components/calendar/booking-calendar';
+import { DayPilotBookingCalendar, BookingEvent, Resource } from '@/components/calendar/daypilot-calendar';
 import { EventModal } from '@/components/calendar/event-modal';
 import { NewBookingModal } from '@/components/calendar/new-booking-modal';
-import '@/components/calendar/calendar-styles.css';
 
 // Demo resources (team members) - more for horizontal scroll testing
 const demoResources: Resource[] = [
@@ -212,13 +211,12 @@ export default function CalendarPage() {
 
       {/* Calendar */}
       <div className="flex-1 overflow-hidden p-2 lg:p-4">
-        <BookingCalendar
+        <DayPilotBookingCalendar
           events={events}
           resources={demoResources}
           onEventClick={handleEventClick}
           onSlotClick={handleSlotClick}
           onEventDrop={handleEventDrop}
-          defaultView="day"
         />
       </div>
 
