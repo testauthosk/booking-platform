@@ -106,7 +106,7 @@ export function CustomCalendar({
     : null;
 
   return (
-    <div className="h-full bg-background overflow-auto">
+    <div className="h-full bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 overflow-auto">
       <div 
         className="grid relative"
         style={{ 
@@ -116,36 +116,36 @@ export function CustomCalendar({
       >
         {/* HEADER ROW */}
         <div 
-          className="sticky top-0 z-30 bg-background border-b border-border"
+          className="sticky top-0 z-30 backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 border-b border-white/50 dark:border-slate-700/50"
           style={{ height: headerHeight }}
         />
         {resources.map((resource) => (
           <div
             key={`header-${resource.id}`}
-            className="sticky top-0 z-30 bg-background border-b border-l border-border flex flex-col items-center justify-center px-2 py-2 gap-1"
+            className="sticky top-0 z-30 backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 border-b border-l border-white/50 dark:border-slate-700/50 flex flex-col items-center justify-center px-2 py-2 gap-1"
             style={{ height: headerHeight }}
           >
             {/* Аватарка */}
             <div 
-              className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden shrink-0"
+              className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shrink-0 shadow-lg ring-2 ring-white/50"
               style={{ backgroundColor: resource.color || '#9ca3af' }}
             >
               {resource.avatar ? (
                 <Image 
                   src={resource.avatar} 
                   alt={resource.title} 
-                  width={36} 
-                  height={36} 
+                  width={40} 
+                  height={40} 
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <span className="text-white text-sm font-medium">
+                <span className="text-white text-sm font-semibold">
                   {resource.title.charAt(0).toUpperCase()}
                 </span>
               )}
             </div>
             {/* Имя */}
-            <span className="text-xs font-medium truncate max-w-full text-center leading-tight">
+            <span className="text-xs font-semibold truncate max-w-full text-center leading-tight text-slate-700 dark:text-slate-200">
               {resource.title}
             </span>
           </div>
@@ -161,8 +161,8 @@ export function CustomCalendar({
               {/* Time label */}
               <div
                 key={`time-${time}`}
-                className={`sticky left-0 z-20 bg-background flex items-start justify-end pr-2 ${
-                  isFullHour && !isFirstRow ? 'border-t border-t-border/70' : isFullHour ? '' : 'border-t border-t-border/30'
+                className={`sticky left-0 z-20 bg-white/50 dark:bg-slate-900/50 flex items-start justify-end pr-2 ${
+                  isFullHour && !isFirstRow ? 'border-t border-t-slate-200/80 dark:border-t-slate-700/80' : isFullHour ? '' : 'border-t border-t-slate-200/40 dark:border-t-slate-700/40'
                 }`}
                 style={{ 
                   height: slotHeight,
@@ -170,7 +170,7 @@ export function CustomCalendar({
                 }}
               >
                 {isFullHour && (
-                  <span className={`text-[11px] text-muted-foreground font-medium ${isFirstRow ? '' : '-mt-2'}`}>{time}</span>
+                  <span className={`text-[11px] text-slate-500 dark:text-slate-400 font-semibold ${isFirstRow ? '' : '-mt-2'}`}>{time}</span>
                 )}
               </div>
 
@@ -178,8 +178,8 @@ export function CustomCalendar({
               {resources.map((resource) => (
                 <div
                   key={`cell-${time}-${resource.id}`}
-                  className={`border-l border-border hover:bg-muted/30 cursor-pointer transition-colors ${
-                    isFullHour ? 'border-t border-t-border/70' : 'border-t border-t-border/30'
+                  className={`border-l border-slate-200/60 dark:border-slate-700/60 hover:bg-white/50 dark:hover:bg-slate-800/50 cursor-pointer transition-all ${
+                    isFullHour ? 'border-t border-t-slate-200/80 dark:border-t-slate-700/80' : 'border-t border-t-slate-200/40 dark:border-t-slate-700/40'
                   }`}
                   style={{ height: slotHeight }}
                   onClick={() => handleSlotClick(time, resource.id)}
@@ -202,7 +202,7 @@ export function CustomCalendar({
           }}
         >
           {resources.map((resource) => (
-            <div key={`events-${resource.id}`} className="relative border-l border-border">
+            <div key={`events-${resource.id}`} className="relative border-l border-slate-200/60 dark:border-slate-700/60">
               {getEventsForResource(resource.id).map((event) => {
                 const { startSlot, slotCount } = getEventPosition(event);
                 const top = startSlot * slotHeight;
@@ -211,22 +211,22 @@ export function CustomCalendar({
                 return (
                   <div
                     key={event.id}
-                    className="absolute left-1 right-1 rounded-md overflow-hidden cursor-pointer pointer-events-auto shadow-sm hover:shadow-md transition-shadow"
+                    className="absolute left-1.5 right-1.5 rounded-xl overflow-hidden cursor-pointer pointer-events-auto shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] backdrop-blur-sm border border-white/20"
                     style={{
                       top: `${top}px`,
                       height: `${height}px`,
-                      backgroundColor: event.backgroundColor || '#4eb8d5',
+                      background: `linear-gradient(135deg, ${event.backgroundColor || '#4eb8d5'}ee, ${event.backgroundColor || '#4eb8d5'}cc)`,
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
                       onEventClick?.(event);
                     }}
                   >
-                    <div className="p-1.5 text-white text-xs h-full overflow-hidden">
-                      <div className="font-medium truncate">
+                    <div className="p-2 text-white text-xs h-full overflow-hidden">
+                      <div className="font-semibold truncate drop-shadow-sm">
                         {formatTime(event.start)} - {formatTime(event.end)} {event.clientName}
                       </div>
-                      <div className="opacity-80 truncate text-[11px]">{event.title}</div>
+                      <div className="opacity-90 truncate text-[11px] mt-0.5">{event.title}</div>
                     </div>
                   </div>
                 );

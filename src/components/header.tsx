@@ -9,11 +9,8 @@ import {
 export function Header() {
   return (
     <header className="h-16 border-b bg-background flex items-center justify-between px-6">
-      {/* Setup banner */}
-      <Button variant="outline" size="sm" className="bg-primary/10 border-primary/20 text-primary">
-        <span className="mr-2">🎯</span>
-        Продовжити налаштування
-      </Button>
+      {/* Spacer */}
+      <div />
 
       {/* Right side */}
       <div className="flex items-center gap-2">
