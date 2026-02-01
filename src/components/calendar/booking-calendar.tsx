@@ -120,15 +120,20 @@ export function BookingCalendar({
     agendaDateFormat: (date: Date) => format(date, 'd MMMM', { locale: uk }),
   }), []);
 
-  // Simple event component - no resize handles for now
-  const EventComponent = ({ event }: { event: BookingEvent }) => (
-    <div className="h-full px-2 py-1">
-      <div className="font-medium truncate text-xs">{event.title}</div>
-      {event.clientName && (
-        <div className="text-xs opacity-90 truncate">{event.clientName}</div>
-      )}
-    </div>
-  );
+  // Event component with time display like Fresha
+  const EventComponent = ({ event }: { event: BookingEvent }) => {
+    const startTime = format(event.start, 'HH:mm');
+    const endTime = format(event.end, 'HH:mm');
+    
+    return (
+      <div className="h-full">
+        <div className="text-[11px] opacity-90">
+          {startTime} - {endTime} <span className="font-semibold">{event.clientName}</span>
+        </div>
+        <div className="text-xs mt-0.5">{event.title}</div>
+      </div>
+    );
+  };
 
   const viewConfig = resources.length > 0 ? Views.DAY : view;
 
