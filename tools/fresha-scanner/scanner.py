@@ -646,11 +646,6 @@ Generated: {arch['generated_at']}
             print("\n🌐 Открываю Fresha...")
             await page.goto("https://partners.fresha.com/", wait_until="networkidle")
             
-            # Закрываем cookie попапы
-            await asyncio.sleep(1)
-            await self.close_popups(page)
-            print("🍪 Cookie попап закрыт (если был)")
-            
             print("\n" + "="*60)
             print("👆 ЗАЛОГИНЬСЯ В СВОЙ АККАУНТ FRESHA")
             print("Когда будешь в личном кабинете (дашборд) — нажми Enter")
