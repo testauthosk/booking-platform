@@ -151,7 +151,10 @@ export function BookingCalendar({
         onSelectEvent={handleSelectEvent}
         onSelectSlot={handleSelectSlot}
         onEventDrop={handleEventDrop}
+        onEventResize={handleEventDrop}
         eventPropGetter={eventStyleGetter}
+        draggableAccessor={() => true}
+        resizableAccessor={() => true}
         messages={messages}
         formats={formats}
         min={minTime}
