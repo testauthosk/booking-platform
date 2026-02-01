@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X, User, Phone, Scissors, Clock } from 'lucide-react';
+import { X, User, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { Resource } from './booking-calendar';
@@ -39,12 +39,26 @@ export function NewBookingModal({
   resources,
   services = defaultServices 
 }: NewBookingModalProps) {
+  const [isVisible, setIsVisible] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('+380 ');
   const [selectedService, setSelectedService] = useState<string>('');
-  const [selectedResource, setSelectedResource] = useState<string>(slotInfo?.resourceId || '');
+  const [selectedResource, setSelectedResource] = useState<string>('');
 
-  if (!isOpen || !slotInfo) return null;
+  useEffect(() => {
+    if (isOpen) {
+      setIsVisible(true);
+      setSelectedResource(slotInfo?.resourceId || '');
+      requestAnimationFrame(() => setIsAnimating(true));
+    } else {
+      setIsAnimating(false);
+      const timer = setTimeout(() => setIsVisible(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, slotInfo?.resourceId]);
+
+  if (!isVisible || !slotInfo) return null;
 
   const handleSave = () => {
     if (!clientName || !selectedService || !selectedResource) return;
@@ -69,21 +83,11 @@ export function NewBookingModal({
   };
 
   const formatPhone = (value: string) => {
-    // Keep only digits
     let digits = value.replace(/\D/g, '');
-    
-    // Handle 380 prefix
-    if (digits.startsWith('380')) {
-      digits = digits.slice(3);
-    }
-    if (digits.startsWith('0')) {
-      digits = digits.slice(1);
-    }
-    
-    // Limit to 9 digits
+    if (digits.startsWith('380')) digits = digits.slice(3);
+    if (digits.startsWith('0')) digits = digits.slice(1);
     digits = digits.slice(0, 9);
     
-    // Format
     let formatted = '+380';
     if (digits.length > 0) formatted += ' ' + digits.slice(0, 2);
     if (digits.length > 2) formatted += ' ' + digits.slice(2, 5);
@@ -97,12 +101,18 @@ export function NewBookingModal({
     <>
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/50 z-50 modal-backdrop"
+        className={`fixed inset-0 bg-black/50 z-50 transition-opacity duration-300 ${
+          isAnimating ? 'opacity-100' : 'opacity-0'
+        }`}
         onClick={onClose}
       />
       
       {/* Modal */}
-      <div className="fixed inset-x-4 bottom-24 lg:inset-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-md bg-background rounded-2xl shadow-xl z-50 modal-content max-h-[70vh] lg:max-h-[85vh] overflow-hidden flex flex-col">
+      <div className={`fixed inset-x-4 bottom-24 lg:inset-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-md bg-background rounded-2xl shadow-xl z-50 max-h-[70vh] lg:max-h-[85vh] overflow-hidden flex flex-col transition-all duration-300 ${
+        isAnimating 
+          ? 'opacity-100 translate-y-0 lg:scale-100' 
+          : 'opacity-0 translate-y-8 lg:translate-y-0 lg:scale-95'
+      }`}>
         {/* Header */}
         <div className="p-4 border-b flex items-center justify-between shrink-0">
           <div>
@@ -175,12 +185,12 @@ export function NewBookingModal({
           {/* Master */}
           <div>
             <label className="text-sm font-medium mb-1.5 block">Майстер</label>
-            <div className="flex gap-2">
+            <div className="flex gap-2 overflow-x-auto pb-1">
               {resources.map((resource) => (
                 <button
                   key={resource.id}
                   onClick={() => setSelectedResource(resource.id)}
-                  className={`flex-1 p-3 rounded-xl border text-center transition-all ${
+                  className={`shrink-0 p-3 rounded-xl border text-center transition-all min-w-[80px] ${
                     selectedResource === resource.id
                       ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
                       : 'border-border hover:border-primary/50'
@@ -192,7 +202,7 @@ export function NewBookingModal({
                   >
                     {resource.title[0]}
                   </div>
-                  <p className="font-medium text-sm truncate">{resource.title}</p>
+                  <p className="font-medium text-xs truncate">{resource.title.split(' ')[0]}</p>
                 </button>
               ))}
             </div>

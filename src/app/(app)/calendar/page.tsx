@@ -9,10 +9,13 @@ import { EventModal } from '@/components/calendar/event-modal';
 import { NewBookingModal } from '@/components/calendar/new-booking-modal';
 import '@/components/calendar/calendar-styles.css';
 
-// Demo resources (team members)
+// Demo resources (team members) - more for horizontal scroll testing
 const demoResources: Resource[] = [
   { id: '1', title: "Don't Pursue", color: '#f97316' },
   { id: '2', title: 'Wendy Smith', color: '#ec4899' },
+  { id: '3', title: 'Anna Johnson', color: '#8b5cf6' },
+  { id: '4', title: 'Mike Brown', color: '#10b981' },
+  { id: '5', title: 'Sarah Davis', color: '#3b82f6' },
 ];
 
 // Demo events
@@ -52,18 +55,60 @@ const initialEvents: BookingEvent[] = [
     start: new Date(`${todayStr}T11:30:00`),
     end: new Date(`${todayStr}T12:30:00`),
     resourceId: '1',
-    backgroundColor: '#8b5cf6',
+    backgroundColor: '#f97316',
     clientName: 'Alex Brown',
     clientPhone: '+380 50 345 6789',
     serviceName: 'Манікюр',
     masterName: "Don't Pursue",
     status: 'pending',
   },
+  {
+    id: '4',
+    title: 'Укладка',
+    start: new Date(`${todayStr}T09:00:00`),
+    end: new Date(`${todayStr}T10:00:00`),
+    resourceId: '3',
+    backgroundColor: '#8b5cf6',
+    clientName: 'Maria Wilson',
+    clientPhone: '+380 63 456 7890',
+    serviceName: 'Укладка',
+    masterName: 'Anna Johnson',
+    status: 'confirmed',
+  },
+  {
+    id: '5',
+    title: 'Масаж',
+    start: new Date(`${todayStr}T13:00:00`),
+    end: new Date(`${todayStr}T14:30:00`),
+    resourceId: '4',
+    backgroundColor: '#10b981',
+    clientName: 'Peter Parker',
+    clientPhone: '+380 95 567 8901',
+    serviceName: 'Масаж спини',
+    masterName: 'Mike Brown',
+    status: 'confirmed',
+  },
+  {
+    id: '6',
+    title: 'Педікюр',
+    start: new Date(`${todayStr}T15:00:00`),
+    end: new Date(`${todayStr}T16:30:00`),
+    resourceId: '5',
+    backgroundColor: '#3b82f6',
+    clientName: 'Emma Stone',
+    clientPhone: '+380 66 678 9012',
+    serviceName: 'Педікюр',
+    masterName: 'Sarah Davis',
+    status: 'confirmed',
+  },
 ];
 
 const eventColors: Record<string, string> = {
   '1': '#f97316', // Don't Pursue - orange
   '2': '#ec4899', // Wendy Smith - pink
+  '3': '#8b5cf6', // Anna Johnson - purple
+  '4': '#10b981', // Mike Brown - green
+  '5': '#3b82f6', // Sarah Davis - blue
 };
 
 export default function CalendarPage() {

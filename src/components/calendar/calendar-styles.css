@@ -3,11 +3,31 @@
 .booking-calendar {
   height: 100%;
   font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .booking-calendar .rbc-calendar {
   height: 100%;
+  display: flex;
+  flex-direction: column;
   background: hsl(var(--background));
+  overflow: hidden;
+}
+
+.booking-calendar .rbc-time-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.booking-calendar .rbc-time-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Toolbar */
@@ -94,9 +114,9 @@
   padding: 0 8px;
 }
 
-/* Time slots */
+/* Time slots - 30 min = taller slots */
 .booking-calendar .rbc-timeslot-group {
-  min-height: 60px;
+  min-height: 80px;
   border-bottom: 1px solid hsl(var(--border) / 0.3);
 }
 
@@ -140,11 +160,11 @@
   border: none !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: transform 0.1s, box-shadow 0.1s;
+  cursor: pointer;
 }
 
 .booking-calendar .rbc-event:hover {
-  transform: scale(1.02);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .booking-calendar .rbc-event-content {
@@ -154,6 +174,41 @@
 
 .booking-calendar .rbc-event-label {
   display: none;
+}
+
+/* Resize handle */
+.booking-calendar .rbc-addons-dnd-resize-ns-anchor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 12px;
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.booking-calendar .rbc-addons-dnd-resize-ns-anchor::after {
+  content: '';
+  width: 30px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 2px;
+}
+
+.booking-calendar .rbc-addons-dnd-resize-ns-anchor:hover::after {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+/* Dragging state */
+.booking-calendar .rbc-addons-dnd-dragging {
+  opacity: 0.7;
+}
+
+.booking-calendar .rbc-addons-dnd-drag-preview {
+  opacity: 0.5;
+  border: 2px dashed hsl(var(--primary));
 }
 
 /* Selected/focused event */

@@ -1,7 +1,7 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { BookingEvent } from './booking-calendar';
-import './calendar-styles.css';
 import { Button } from '@/components/ui/button';
 import { X, Clock, User, Phone, Scissors, Calendar, Edit, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -16,7 +16,21 @@ interface EventModalProps {
 }
 
 export function EventModal({ event, isOpen, onClose, onEdit, onDelete }: EventModalProps) {
-  if (!isOpen || !event) return null;
+  const [isVisible, setIsVisible] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsVisible(true);
+      requestAnimationFrame(() => setIsAnimating(true));
+    } else {
+      setIsAnimating(false);
+      const timer = setTimeout(() => setIsVisible(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  if (!isVisible || !event) return null;
 
   const statusColors: Record<string, string> = {
     confirmed: 'bg-green-100 text-green-700',
@@ -34,12 +48,18 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete }: EventMo
     <>
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/50 z-50 modal-backdrop"
+        className={`fixed inset-0 bg-black/50 z-50 transition-opacity duration-300 ${
+          isAnimating ? 'opacity-100' : 'opacity-0'
+        }`}
         onClick={onClose}
       />
       
       {/* Modal */}
-      <div className="fixed inset-x-4 bottom-24 lg:inset-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-md bg-background rounded-2xl shadow-xl z-50 modal-content">
+      <div className={`fixed inset-x-4 bottom-24 lg:inset-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-md bg-background rounded-2xl shadow-xl z-50 transition-all duration-300 ${
+        isAnimating 
+          ? 'opacity-100 translate-y-0 lg:scale-100' 
+          : 'opacity-0 translate-y-8 lg:translate-y-0 lg:scale-95'
+      }`}>
         {/* Header */}
         <div 
           className="p-4 rounded-t-2xl relative"

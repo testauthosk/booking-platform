@@ -156,8 +156,8 @@ export function BookingCalendar({
         formats={formats}
         min={minTime}
         max={maxTime}
-        step={15}
-        timeslots={4}
+        step={30}
+        timeslots={2}
         defaultView={Views.DAY}
         views={resources.length > 0 ? [Views.DAY] : [Views.DAY, Views.WEEK, Views.MONTH]}
         components={{
