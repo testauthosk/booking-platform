@@ -128,6 +128,7 @@ export function CustomCalendar({
         {/* TIME SLOTS */}
         {timeSlots.map((time, rowIdx) => {
           const isFullHour = time.endsWith(':00');
+          const isFirstRow = rowIdx === 0;
           
           return (
             <>
@@ -137,11 +138,12 @@ export function CustomCalendar({
                 className="sticky left-0 z-20 bg-background flex items-start justify-end pr-2"
                 style={{ 
                   height: slotHeight,
-                  borderTop: isFullHour && rowIdx > 0 ? '1px solid hsl(var(--border) / 0.4)' : 'none',
+                  paddingTop: isFirstRow && isFullHour ? 4 : 0,
+                  borderTop: isFullHour && !isFirstRow ? '1px solid hsl(var(--border) / 0.6)' : 'none',
                 }}
               >
                 {isFullHour && (
-                  <span className="text-[11px] text-muted-foreground -mt-2">{time}</span>
+                  <span className={`text-[11px] text-muted-foreground ${isFirstRow ? '' : '-mt-2'}`}>{time}</span>
                 )}
               </div>
 
@@ -152,7 +154,7 @@ export function CustomCalendar({
                   className="border-l border-border hover:bg-muted/30 cursor-pointer transition-colors"
                   style={{
                     height: slotHeight,
-                    borderTop: isFullHour ? '1px solid hsl(var(--border) / 0.4)' : '1px solid hsl(var(--border) / 0.15)',
+                    borderTop: isFullHour ? '1px solid hsl(var(--border) / 0.6)' : '1px solid hsl(var(--border) / 0.2)',
                   }}
                   onClick={() => handleSlotClick(time, resource.id)}
                 />
