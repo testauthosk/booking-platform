@@ -634,21 +634,37 @@ Generated: {arch['generated_at']}
         
         await self.setup_dirs()
         
-        # Запускаем с нормальным окном
-        async with AsyncCamoufox(headless=False, window=(1280, 800)) as browser:
-            page = await browser.new_page()
+        # Папка для профиля браузера (сохраняет куки между сессиями)
+        profile_dir = OUTPUT_DIR / "browser_profile"
+        profile_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Запускаем с человеческим поведением и сохранением профиля
+        async with AsyncCamoufox(
+            headless=False,
+            window=(1280, 800),
+            humanize=True,  # Человеческие движения мыши
+            persistent_context=True,
+            user_data_dir=str(profile_dir),
+            os="windows",  # Имитируем Windows
+        ) as context:
+            # В persistent_context это уже context, не browser
+            page = context.pages[0] if context.pages else await context.new_page()
             
             # Перехват запросов
             await page.route("**/*", self.intercept_requests)
             page.on("response", self.intercept_responses)
             
-            print("\n🌐 Открываю Fresha...")
-            await page.goto("https://partners.fresha.com/", wait_until="domcontentloaded", timeout=30000)
-            await asyncio.sleep(3)  # Даём время на рендер
+            print("\n🌐 Открываю Fresha (главная)...")
+            # Сначала главная — как нормальный юзер
+            await page.goto("https://www.fresha.com/", timeout=30000)
+            await asyncio.sleep(3)
             
             print("\n" + "="*60)
-            print("👆 ЗАЛОГИНЬСЯ В СВОЙ АККАУНТ FRESHA")
-            print("Когда будешь в личном кабинете (дашборд) — нажми Enter")
+            print("👆 ТЕПЕРЬ ТВОЯ ОЧЕРЕДЬ:")
+            print("1. Прими куки если есть")
+            print("2. Нажми 'For Business' или 'Log in'")
+            print("3. Залогинься в свой аккаунт")
+            print("4. Когда будешь в дашборде — нажми Enter здесь")
             print("="*60)
             
             input("\n⏎ Enter для начала сканирования...")
