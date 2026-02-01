@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 
 interface Category {
   id: string;
@@ -40,6 +40,7 @@ interface ServiceModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: Partial<Service>) => Promise<void>;
+  onAddCategory?: () => void;
   service?: Service | null;
   categories: Category[];
 }
@@ -48,6 +49,7 @@ export function ServiceModal({
   isOpen,
   onClose,
   onSave,
+  onAddCategory,
   service,
   categories,
 }: ServiceModalProps) {
@@ -124,19 +126,32 @@ export function ServiceModal({
 
           <div className="space-y-2">
             <Label htmlFor="category">Категорія</Label>
-            <Select value={categoryId || 'none'} onValueChange={(val) => setCategoryId(val === 'none' ? '' : val)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Без категорії" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Без категорії</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={categoryId || 'none'} onValueChange={(val) => setCategoryId(val === 'none' ? '' : val)}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Без категорії" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Без категорії</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {onAddCategory && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={onAddCategory}
+                  title="Додати категорію"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -184,14 +199,15 @@ export function ServiceModal({
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <Label htmlFor="priceFrom" className="cursor-pointer">
+          <div className="flex items-center justify-between py-2">
+            <Label htmlFor="priceFrom" className="cursor-pointer text-sm">
               Ціна "від"
             </Label>
             <Switch
               id="priceFrom"
               checked={priceFrom}
               onCheckedChange={setPriceFrom}
+              className="data-[state=checked]:bg-primary"
             />
           </div>
 

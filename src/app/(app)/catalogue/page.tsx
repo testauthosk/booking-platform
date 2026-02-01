@@ -489,6 +489,10 @@ export default function CataloguePage() {
           setEditingService(null);
         }}
         onSave={handleSaveService}
+        onAddCategory={() => {
+          setEditingCategory(null);
+          setCategoryModalOpen(true);
+        }}
         service={editingService}
         categories={categories}
       />

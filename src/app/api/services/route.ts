@@ -1,6 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+// Создать или получить демо салон
+async function ensureSalonExists(salonId: string) {
+  const salon = await prisma.salon.findUnique({ where: { id: salonId } });
+  
+  if (!salon) {
+    await prisma.salon.create({
+      data: {
+        id: salonId,
+        name: 'BookingPro Demo',
+        slug: `demo-${Date.now()}`,
+        type: 'Салон краси',
+        description: 'Демонстраційний салон',
+      },
+    });
+  }
+}
+
 // GET /api/services - список услуг
 export async function GET(request: NextRequest) {
   try {
@@ -11,6 +28,9 @@ export async function GET(request: NextRequest) {
     if (!salonId) {
       return NextResponse.json({ error: 'salonId required' }, { status: 400 });
     }
+
+    // Убедимся что салон существует
+    await ensureSalonExists(salonId);
 
     const services = await prisma.service.findMany({
       where: {
@@ -55,6 +75,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Убедимся что салон существует
+    await ensureSalonExists(salonId);
 
     const service = await prisma.service.create({
       data: {
