@@ -119,10 +119,10 @@ export function CustomCalendar({
           className="sticky top-0 z-30 backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 border-b border-white/50 dark:border-slate-700/50"
           style={{ height: headerHeight }}
         />
-        {resources.map((resource) => (
+        {resources.map((resource, idx) => (
           <div
             key={`header-${resource.id}`}
-            className="sticky top-0 z-30 backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 border-b border-l border-white/50 dark:border-slate-700/50 flex flex-col items-center justify-center px-2 py-2 gap-1"
+            className={`sticky top-0 z-30 backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 border-b border-l border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center justify-center px-2 py-2 gap-1 ${idx === resources.length - 1 ? 'border-r' : ''}`}
             style={{ height: headerHeight }}
           >
             {/* Аватарка */}
@@ -161,7 +161,7 @@ export function CustomCalendar({
               {/* Time label */}
               <div
                 key={`time-${time}`}
-                className={`sticky left-0 z-20 bg-white/50 dark:bg-slate-900/50 flex items-start justify-end pr-2 ${
+                className={`sticky left-0 z-20 backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 flex items-start justify-end pr-2 ${
                   isFullHour && !isFirstRow ? 'border-t border-t-slate-200/80 dark:border-t-slate-700/80' : isFullHour ? '' : 'border-t border-t-slate-200/40 dark:border-t-slate-700/40'
                 }`}
                 style={{ 
@@ -205,13 +205,13 @@ export function CustomCalendar({
             <div key={`events-${resource.id}`} className="relative border-l border-slate-200/60 dark:border-slate-700/60">
               {getEventsForResource(resource.id).map((event) => {
                 const { startSlot, slotCount } = getEventPosition(event);
-                const top = startSlot * slotHeight;
-                const height = slotCount * slotHeight - 2;
+                const top = startSlot * slotHeight + 2; // отступ сверху
+                const height = slotCount * slotHeight - 4; // отступы сверху и снизу
 
                 return (
                   <div
                     key={event.id}
-                    className="absolute left-1.5 right-1.5 rounded-xl overflow-hidden cursor-pointer pointer-events-auto shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] backdrop-blur-sm border border-white/20"
+                    className="absolute left-1.5 right-1.5 rounded-lg overflow-hidden cursor-pointer pointer-events-auto shadow-lg hover:shadow-xl transition-all hover:scale-[1.01] border border-white/20"
                     style={{
                       top: `${top}px`,
                       height: `${height}px`,
@@ -222,11 +222,12 @@ export function CustomCalendar({
                       onEventClick?.(event);
                     }}
                   >
-                    <div className="p-2 text-white text-xs h-full overflow-hidden">
-                      <div className="font-semibold truncate drop-shadow-sm">
-                        {formatTime(event.start)} - {formatTime(event.end)} {event.clientName}
+                    <div className="p-1.5 text-white text-xs h-full overflow-hidden">
+                      <div className="font-semibold drop-shadow-sm text-[11px]">
+                        {formatTime(event.start)} - {formatTime(event.end)}
                       </div>
-                      <div className="opacity-90 truncate text-[11px] mt-0.5">{event.title}</div>
+                      <div className="font-medium truncate">{event.clientName}</div>
+                      <div className="opacity-80 truncate text-[10px]">{event.title}</div>
                     </div>
                   </div>
                 );
