@@ -40,22 +40,22 @@ export function IlamyBookingCalendar({
   onSlotClick,
   onEventDrop,
 }: IlamyBookingCalendarProps) {
-  // Convert resources to ilamy format
+  // Convert resources to ilamy format (ensure string IDs)
   const ilamyResources: Resource[] = resources.map((r) => ({
-    id: r.id,
+    id: String(r.id),
     title: r.title,
     color: r.color || '#4eb8d5',
-    backgroundColor: r.color ? `${r.color}15` : '#4eb8d515',
+    backgroundColor: r.color ? `${r.color}20` : '#4eb8d520',
   }));
 
-  // Convert events to ilamy format
+  // Convert events to ilamy format (ensure matching resourceId)
   const ilamyEvents: CalendarEvent[] = events.map((e) => ({
-    id: e.id,
+    id: String(e.id),
     title: `${e.clientName || ''} - ${e.title}`,
     start: dayjs(e.start),
     end: dayjs(e.end),
-    uid: `${e.id}@booking`,
-    resourceId: e.resourceId,
+    uid: `event-${e.id}@booking`,
+    resourceId: String(e.resourceId),
     backgroundColor: e.backgroundColor || '#4eb8d5',
     color: '#ffffff',
     // Store original data
@@ -115,12 +115,14 @@ export function IlamyBookingCalendar({
         orientation="vertical"
         timeFormat="24-hour"
         firstDayOfWeek="monday"
+        locale="uk"
         businessHours={{
           daysOfWeek: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
           startTime: 8,
           endTime: 21,
         }}
         hideNonBusinessHours={true}
+        disableDragAndDrop={false}
         onCellClick={handleCellClick}
         onEventClick={handleEventClick}
         onEventUpdate={handleEventUpdate}
