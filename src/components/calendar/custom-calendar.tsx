@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import Image from 'next/image';
 
 export interface BookingEvent {
@@ -43,14 +43,21 @@ export function CustomCalendar({
   onSlotClick,
   dayStart = 8,
   dayEnd = 21,
-  slotDuration = 30,
 }: CustomCalendarProps) {
-  // Генерируем слоты - каждые 30 мин
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const headerScrollRef = useRef<HTMLDivElement>(null);
+
+  // Синхронизация скролла header и body
+  const handleScroll = () => {
+    if (scrollRef.current && headerScrollRef.current) {
+      headerScrollRef.current.scrollLeft = scrollRef.current.scrollLeft;
+    }
+  };
+
   const timeSlots = useMemo(() => {
     const slots: string[] = [];
     for (let hour = dayStart; hour < dayEnd; hour++) {
       slots.push(`${hour.toString().padStart(2, '0')}:00`);
-      slots.push(`${hour.toString().padStart(2, '0')}:30`);
     }
     return slots;
   }, [dayStart, dayEnd]);
@@ -67,22 +74,21 @@ export function CustomCalendar({
     const endHour = event.end.getHours();
     const endMin = event.end.getMinutes();
     
-    const startSlot = (startHour - dayStart) * 2 + (startMin >= 30 ? 1 : 0);
-    const endSlot = (endHour - dayStart) * 2 + (endMin > 30 ? 2 : endMin > 0 ? 1 : 0);
-    const slotCount = Math.max(1, endSlot - startSlot);
+    const startMinutes = (startHour - dayStart) * 60 + startMin;
+    const endMinutes = (endHour - dayStart) * 60 + endMin;
+    const durationMinutes = Math.max(30, endMinutes - startMinutes);
     
-    return { startSlot, slotCount };
+    return { startMinutes, durationMinutes };
   };
 
   const getEventsForResource = (resourceId: string) => {
     return events.filter(e => e.resourceId === resourceId);
   };
 
-  const handleSlotClick = (time: string, resourceId: string) => {
+  const handleSlotClick = (hour: number, resourceId: string) => {
     if (!onSlotClick) return;
-    const [hours, minutes] = time.split(':').map(Number);
     const start = new Date(currentDateStr);
-    start.setHours(hours, minutes, 0, 0);
+    start.setHours(hour, 0, 0, 0);
     const end = new Date(start);
     end.setMinutes(end.getMinutes() + 30);
     onSlotClick({ start, end, resourceId });
@@ -92,172 +98,176 @@ export function CustomCalendar({
   const currentHour = now.getHours();
   const currentMin = now.getMinutes();
   
-  const slotHeight = 32;
-  const headerHeight = 72; // Увеличено для аватарок
-  const timeColWidth = 52;
+  const hourHeight = 60; // 60px на час
+  const headerHeight = 80;
+  const timeColWidth = 50;
+  const colMinWidth = 120;
   
-  // Форматирование времени
   const formatTime = (date: Date) => 
     `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
   
-  // Текущее время - позиция в пикселях
   const currentTimeTop = isToday && currentHour >= dayStart && currentHour < dayEnd
-    ? ((currentHour - dayStart) * 60 + currentMin) / 30 * slotHeight
+    ? ((currentHour - dayStart) * 60 + currentMin) / 60 * hourHeight
     : null;
 
-  return (
-    <div className="h-full bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 overflow-auto">
-      <div 
-        className="grid relative"
-        style={{ 
-          gridTemplateColumns: `${timeColWidth}px repeat(${resources.length}, minmax(140px, 1fr))`,
-          minWidth: `${timeColWidth + resources.length * 140}px`,
-        }}
-      >
-        {/* HEADER ROW */}
-        <div 
-          className="sticky top-0 z-30 backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 border-b border-white/50 dark:border-slate-700/50"
-          style={{ height: headerHeight }}
-        />
-        {resources.map((resource, idx) => (
-          <div
-            key={`header-${resource.id}`}
-            className={`sticky top-0 z-30 backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 border-b border-l border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center justify-center px-2 py-2 gap-1 ${idx === resources.length - 1 ? 'border-r' : ''}`}
-            style={{ height: headerHeight }}
-          >
-            {/* Аватарка */}
-            <div 
-              className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shrink-0 shadow-lg ring-2 ring-white/50"
-              style={{ backgroundColor: resource.color || '#9ca3af' }}
-            >
-              {resource.avatar ? (
-                <Image 
-                  src={resource.avatar} 
-                  alt={resource.title} 
-                  width={40} 
-                  height={40} 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span className="text-white text-sm font-semibold">
-                  {resource.title.charAt(0).toUpperCase()}
-                </span>
-              )}
-            </div>
-            {/* Имя */}
-            <span className="text-xs font-semibold truncate max-w-full text-center leading-tight text-slate-700 dark:text-slate-200">
-              {resource.title}
-            </span>
-          </div>
-        ))}
+  // Получить только имя (первое слово)
+  const getFirstName = (fullName: string) => fullName.split(' ')[0];
 
-        {/* TIME SLOTS */}
-        {timeSlots.map((time, rowIdx) => {
-          const isFullHour = time.endsWith(':00');
-          const isFirstRow = rowIdx === 0;
-          
-          return (
-            <>
-              {/* Time label */}
+  return (
+    <div className="h-full flex flex-col bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      {/* FIXED HEADER */}
+      <div className="flex-shrink-0 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-b border-slate-200/60 dark:border-slate-700/60 z-20">
+        <div className="flex">
+          {/* Time column header */}
+          <div 
+            className="flex-shrink-0 border-r border-slate-200/60 dark:border-slate-700/60"
+            style={{ width: timeColWidth, height: headerHeight }}
+          />
+          {/* Resources header - scrollable */}
+          <div 
+            ref={headerScrollRef}
+            className="flex-1 overflow-hidden"
+          >
+            <div 
+              className="flex"
+              style={{ minWidth: resources.length * colMinWidth }}
+            >
+              {resources.map((resource, idx) => (
+                <div
+                  key={`header-${resource.id}`}
+                  className={`flex flex-col items-center justify-center py-2 gap-1 border-r border-slate-200/60 dark:border-slate-700/60`}
+                  style={{ minWidth: colMinWidth, flex: 1, height: headerHeight }}
+                >
+                  <div 
+                    className="w-11 h-11 rounded-full flex items-center justify-center overflow-hidden shadow-lg ring-2 ring-white/60"
+                    style={{ backgroundColor: resource.color || '#9ca3af' }}
+                  >
+                    {resource.avatar ? (
+                      <Image 
+                        src={resource.avatar} 
+                        alt={resource.title} 
+                        width={44} 
+                        height={44} 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-white text-base font-semibold">
+                        {resource.title.charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 text-center px-1">
+                    {getFirstName(resource.title)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* SCROLLABLE BODY */}
+      <div 
+        ref={scrollRef}
+        className="flex-1 overflow-auto"
+        onScroll={handleScroll}
+      >
+        <div className="flex relative" style={{ minWidth: timeColWidth + resources.length * colMinWidth }}>
+          {/* Time column */}
+          <div 
+            className="flex-shrink-0 sticky left-0 z-10 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80"
+            style={{ width: timeColWidth }}
+          >
+            {timeSlots.map((time, idx) => (
               <div
                 key={`time-${time}`}
-                className={`sticky left-0 z-20 backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 flex items-start justify-end pr-2 ${
-                  isFullHour && !isFirstRow ? 'border-t border-t-slate-200/80 dark:border-t-slate-700/80' : isFullHour ? '' : 'border-t border-t-slate-200/40 dark:border-t-slate-700/40'
-                }`}
+                className="flex items-start justify-end pr-2 border-r border-slate-200/60 dark:border-slate-700/60"
+                style={{ height: hourHeight }}
+              >
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold -mt-1.5">
+                  {time}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Resource columns */}
+          <div className="flex-1 flex">
+            {resources.map((resource) => (
+              <div
+                key={`col-${resource.id}`}
+                className="relative border-r border-slate-200/60 dark:border-slate-700/60"
+                style={{ minWidth: colMinWidth, flex: 1 }}
+              >
+                {/* Hour lines */}
+                {timeSlots.map((time, idx) => (
+                  <div
+                    key={`cell-${time}-${resource.id}`}
+                    className="border-b border-slate-200/50 dark:border-slate-700/50 hover:bg-white/40 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
+                    style={{ height: hourHeight }}
+                    onClick={() => handleSlotClick(dayStart + idx, resource.id)}
+                  />
+                ))}
+
+                {/* Events */}
+                {getEventsForResource(resource.id).map((event) => {
+                  const { startMinutes, durationMinutes } = getEventPosition(event);
+                  const top = (startMinutes / 60) * hourHeight + 3;
+                  const height = (durationMinutes / 60) * hourHeight - 6;
+
+                  return (
+                    <div
+                      key={event.id}
+                      className="absolute left-1 right-1 rounded-lg overflow-hidden cursor-pointer shadow-md hover:shadow-lg transition-all hover:scale-[1.01] border border-white/30"
+                      style={{
+                        top: `${top}px`,
+                        height: `${height}px`,
+                        background: `linear-gradient(145deg, ${event.backgroundColor || '#4eb8d5'}, ${event.backgroundColor || '#4eb8d5'}dd)`,
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEventClick?.(event);
+                      }}
+                    >
+                      <div className="p-1.5 text-white h-full overflow-hidden">
+                        <div className="font-semibold text-[11px] drop-shadow-sm">
+                          {formatTime(event.start)} - {formatTime(event.end)}
+                        </div>
+                        <div className="font-medium text-xs truncate">{event.clientName}</div>
+                        {height > 50 && (
+                          <div className="opacity-80 text-[10px] truncate">{event.title}</div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+
+          {/* Current time indicator */}
+          {currentTimeTop !== null && (
+            <>
+              <div 
+                className="absolute z-30 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-sm font-semibold shadow-md"
                 style={{ 
-                  height: slotHeight,
-                  paddingTop: isFirstRow && isFullHour ? 4 : 0,
+                  top: currentTimeTop - 8,
+                  left: 2,
                 }}
               >
-                {isFullHour && (
-                  <span className={`text-[11px] text-slate-500 dark:text-slate-400 font-semibold ${isFirstRow ? '' : '-mt-2'}`}>{time}</span>
-                )}
+                {`${currentHour.toString().padStart(2, '0')}:${currentMin.toString().padStart(2, '0')}`}
               </div>
-
-              {/* Resource cells */}
-              {resources.map((resource) => (
-                <div
-                  key={`cell-${time}-${resource.id}`}
-                  className={`border-l border-slate-200/60 dark:border-slate-700/60 hover:bg-white/50 dark:hover:bg-slate-800/50 cursor-pointer transition-all ${
-                    isFullHour ? 'border-t border-t-slate-200/80 dark:border-t-slate-700/80' : 'border-t border-t-slate-200/40 dark:border-t-slate-700/40'
-                  }`}
-                  style={{ height: slotHeight }}
-                  onClick={() => handleSlotClick(time, resource.id)}
-                />
-              ))}
+              <div 
+                className="absolute h-0.5 bg-red-500 z-20 shadow-sm"
+                style={{ 
+                  top: currentTimeTop,
+                  left: timeColWidth,
+                  right: 0,
+                }}
+              />
             </>
-          );
-        })}
-
-        {/* EVENTS OVERLAY */}
-        <div 
-          className="absolute pointer-events-none"
-          style={{
-            top: headerHeight,
-            left: timeColWidth,
-            right: 0,
-            bottom: 0,
-            display: 'grid',
-            gridTemplateColumns: `repeat(${resources.length}, minmax(140px, 1fr))`,
-          }}
-        >
-          {resources.map((resource) => (
-            <div key={`events-${resource.id}`} className="relative border-l border-slate-200/60 dark:border-slate-700/60">
-              {getEventsForResource(resource.id).map((event) => {
-                const { startSlot, slotCount } = getEventPosition(event);
-                const top = startSlot * slotHeight + 2; // отступ сверху
-                const height = slotCount * slotHeight - 4; // отступы сверху и снизу
-
-                return (
-                  <div
-                    key={event.id}
-                    className="absolute left-1.5 right-1.5 rounded-lg overflow-hidden cursor-pointer pointer-events-auto shadow-lg hover:shadow-xl transition-all hover:scale-[1.01] border border-white/20"
-                    style={{
-                      top: `${top}px`,
-                      height: `${height}px`,
-                      background: `linear-gradient(135deg, ${event.backgroundColor || '#4eb8d5'}ee, ${event.backgroundColor || '#4eb8d5'}cc)`,
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEventClick?.(event);
-                    }}
-                  >
-                    <div className="p-1.5 text-white text-xs h-full overflow-hidden">
-                      <div className="font-semibold drop-shadow-sm text-[11px]">
-                        {formatTime(event.start)} - {formatTime(event.end)}
-                      </div>
-                      <div className="font-medium truncate">{event.clientName}</div>
-                      <div className="opacity-80 truncate text-[10px]">{event.title}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ))}
+          )}
         </div>
-
-        {/* Current time indicator */}
-        {currentTimeTop !== null && (
-          <>
-            <div 
-              className="absolute z-40 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-r font-medium"
-              style={{ 
-                top: headerHeight + currentTimeTop - 8,
-                left: 0,
-              }}
-            >
-              {`${currentHour.toString().padStart(2, '0')}:${currentMin.toString().padStart(2, '0')}`}
-            </div>
-            <div 
-              className="absolute h-0.5 bg-red-500 z-30"
-              style={{ 
-                top: headerHeight + currentTimeTop,
-                left: timeColWidth,
-                right: 0,
-              }}
-            />
-          </>
-        )}
       </div>
     </div>
   );
