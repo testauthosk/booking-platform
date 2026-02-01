@@ -1,225 +1,333 @@
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Seeding database...');
 
-  // 1. Create test user (salon owner)
-  const passwordHash = await bcrypt.hash('test123', 10);
-  
-  const user = await prisma.user.upsert({
-    where: { email: 'owner@test.com' },
-    update: {},
-    create: {
-      email: 'owner@test.com',
-      passwordHash,
-      name: 'Тест Владелец',
-      role: 'SALON_OWNER',
-      notificationsEnabled: true,
-    },
-  });
-  console.log('✅ User created:', user.email);
-
-  // 2. Create test salon
+  // Создаём демо салон
   const salon = await prisma.salon.upsert({
-    where: { slug: 'barber-test' },
+    where: { slug: 'demo-salon' },
     update: {},
     create: {
-      name: 'The Barber Shop',
-      slug: 'barber-test',
-      type: 'Барбершоп',
-      description: 'Найкращий барбершоп у місті. Стильні стрижки, класичне гоління та догляд за бородою.',
+      id: 'demo-salon-id',
+      name: 'BookingPro Demo',
+      slug: 'demo-salon',
+      type: 'Салон краси',
+      description: 'Демонстраційний салон для тестування платформи BookingPro. Тут ви можете випробувати всі функції системи.',
       phone: '+380 99 123 4567',
-      email: 'hello@barbershop.test',
-      address: 'вул. Хрещатик, 1, Київ, 01001',
-      shortAddress: 'Хрещатик, 1',
+      email: 'demo@bookingpro.com',
+      address: 'м. Київ, вул. Хрещатик, 22',
+      shortAddress: 'Хрещатик, 22',
       latitude: 50.4501,
       longitude: 30.5234,
       photos: [
-        'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800',
-        'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=800',
-        'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=800',
+        'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&h=800&fit=crop',
+        'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=800&h=600&fit=crop',
       ],
       workingHours: [
-        { day: 'Понеділок', is_working: true, open: '09:00', close: '20:00' },
-        { day: 'Вівторок', is_working: true, open: '09:00', close: '20:00' },
-        { day: 'Середа', is_working: true, open: '09:00', close: '20:00' },
-        { day: 'Четвер', is_working: true, open: '09:00', close: '20:00' },
-        { day: "П'ятниця", is_working: true, open: '09:00', close: '20:00' },
-        { day: 'Субота', is_working: true, open: '10:00', close: '18:00' },
-        { day: 'Неділя', is_working: false, open: '', close: '' },
+        { day: 'Понеділок', hours: '09:00 - 20:00' },
+        { day: 'Вівторок', hours: '09:00 - 20:00' },
+        { day: 'Середа', hours: '09:00 - 20:00' },
+        { day: 'Четвер', hours: '09:00 - 20:00' },
+        { day: "П'ятниця", hours: '09:00 - 20:00' },
+        { day: 'Субота', hours: '10:00 - 18:00' },
+        { day: 'Неділя', hours: 'Зачинено' },
       ],
-      amenities: ['Wi-Fi', 'Кава', 'Кондиціонер', 'Парковка'],
+      amenities: [
+        'Wi-Fi',
+        'Кава та чай',
+        'Кондиціонер',
+        'Паркування поруч',
+      ],
       rating: 4.9,
       reviewCount: 127,
-      isActive: true,
-      ownerId: user.id,
-    },
-  });
-  console.log('✅ Salon created:', salon.name);
-
-  // Update user with salon
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { salonId: salon.id },
-  });
-
-  // 3. Create service categories
-  const catHair = await prisma.serviceCategory.upsert({
-    where: { id: 'cat-hair' },
-    update: {},
-    create: {
-      id: 'cat-hair',
-      salonId: salon.id,
-      name: 'СТРИЖКА',
-      sortOrder: 1,
     },
   });
 
-  const catBeard = await prisma.serviceCategory.upsert({
-    where: { id: 'cat-beard' },
-    update: {},
-    create: {
-      id: 'cat-beard',
-      salonId: salon.id,
-      name: 'БОРОДА',
-      sortOrder: 2,
-    },
-  });
+  console.log('✅ Created salon:', salon.name);
 
-  const catComplex = await prisma.serviceCategory.upsert({
-    where: { id: 'cat-complex' },
-    update: {},
-    create: {
-      id: 'cat-complex',
-      salonId: salon.id,
-      name: 'КОМПЛЕКСИ',
-      sortOrder: 3,
-    },
-  });
-  console.log('✅ Categories created');
-
-  // 4. Create services
-  const services = [
-    { id: 'svc-1', categoryId: catHair.id, name: 'Чоловіча стрижка', duration: 45, price: 450 },
-    { id: 'svc-2', categoryId: catHair.id, name: 'Стрижка машинкою', duration: 30, price: 300 },
-    { id: 'svc-3', categoryId: catHair.id, name: 'Дитяча стрижка', duration: 30, price: 350 },
-    { id: 'svc-4', categoryId: catBeard.id, name: 'Оформлення бороди', duration: 30, price: 300 },
-    { id: 'svc-5', categoryId: catBeard.id, name: 'Гоління', duration: 45, price: 400 },
-    { id: 'svc-6', categoryId: catBeard.id, name: 'Королівське гоління', duration: 60, price: 600 },
-    { id: 'svc-7', categoryId: catComplex.id, name: 'Стрижка + борода', duration: 75, price: 700 },
-    { id: 'svc-8', categoryId: catComplex.id, name: 'Повний комплекс', duration: 90, price: 900, priceFrom: true },
-  ];
-
-  for (const svc of services) {
-    await prisma.service.upsert({
-      where: { id: svc.id },
+  // Создаём категории услуг
+  const categories = await Promise.all([
+    prisma.serviceCategory.upsert({
+      where: { id: 'cat-hair' },
       update: {},
       create: {
-        id: svc.id,
+        id: 'cat-hair',
         salonId: salon.id,
-        categoryId: svc.categoryId,
-        name: svc.name,
-        duration: svc.duration,
-        price: svc.price,
-        priceFrom: svc.priceFrom || false,
-        isActive: true,
-        sortOrder: services.indexOf(svc) + 1,
+        name: 'Волосся',
+        sortOrder: 1,
       },
-    });
-  }
-  console.log('✅ Services created:', services.length);
-
-  // 5. Create masters
-  const masters = [
-    {
-      id: 'master-1',
-      name: 'Олександр',
-      role: 'Головний барбер',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop',
-      rating: 5.0,
-      reviewCount: 89,
-      price: 450,
-    },
-    {
-      id: 'master-2',
-      name: 'Максим',
-      role: 'Барбер',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop',
-      rating: 4.8,
-      reviewCount: 54,
-      price: 400,
-    },
-    {
-      id: 'master-3',
-      name: 'Денис',
-      role: 'Барбер-стиліст',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop',
-      rating: 4.9,
-      reviewCount: 38,
-      price: 450,
-    },
-  ];
-
-  for (const m of masters) {
-    await prisma.master.upsert({
-      where: { id: m.id },
+    }),
+    prisma.serviceCategory.upsert({
+      where: { id: 'cat-nails' },
       update: {},
       create: {
-        id: m.id,
+        id: 'cat-nails',
         salonId: salon.id,
-        name: m.name,
-        role: m.role,
-        avatar: m.avatar,
-        rating: m.rating,
-        reviewCount: m.reviewCount,
-        price: m.price,
-        isActive: true,
-        sortOrder: masters.indexOf(m) + 1,
+        name: 'Нігті',
+        sortOrder: 2,
       },
-    });
-  }
-  console.log('✅ Masters created:', masters.length);
-
-  // 6. Create some reviews
-  const reviews = [
-    { authorName: 'Андрій К.', authorInitial: 'А', authorColor: 'bg-blue-500', rating: 5, text: 'Відмінний сервіс! Олександр зробив ідеальну стрижку.' },
-    { authorName: 'Віталій М.', authorInitial: 'В', authorColor: 'bg-green-500', rating: 5, text: 'Найкращий барбершоп у місті. Рекомендую всім!' },
-    { authorName: 'Сергій Л.', authorInitial: 'С', authorColor: 'bg-purple-500', rating: 4, text: 'Гарна атмосфера, професійні майстри.' },
-    { authorName: 'Олег П.', authorInitial: 'О', authorColor: 'bg-orange-500', rating: 5, text: 'Королівське гоління — це щось неймовірне!' },
-  ];
-
-  for (let i = 0; i < reviews.length; i++) {
-    const r = reviews[i];
-    await prisma.review.upsert({
-      where: { id: `review-${i + 1}` },
+    }),
+    prisma.serviceCategory.upsert({
+      where: { id: 'cat-face' },
       update: {},
       create: {
-        id: `review-${i + 1}`,
+        id: 'cat-face',
         salonId: salon.id,
-        masterId: masters[i % masters.length].id,
-        authorName: r.authorName,
-        authorInitial: r.authorInitial,
-        authorColor: r.authorColor,
-        rating: r.rating,
-        text: r.text,
-        isVisible: true,
+        name: 'Обличчя',
+        sortOrder: 3,
       },
-    });
-  }
-  console.log('✅ Reviews created:', reviews.length);
+    }),
+  ]);
 
-  console.log('\n🎉 Seed completed!\n');
-  console.log('📧 Login: owner@test.com');
-  console.log('🔑 Password: test123');
-  console.log('🌐 Salon page: /salon/barber-test');
+  console.log('✅ Created categories:', categories.length);
+
+  // Создаём услуги
+  const services = await Promise.all([
+    // Волосся
+    prisma.service.upsert({
+      where: { id: 'svc-haircut' },
+      update: {},
+      create: {
+        id: 'svc-haircut',
+        salonId: salon.id,
+        categoryId: 'cat-hair',
+        name: 'Стрижка',
+        description: 'Класична стрижка з миттям голови',
+        price: 500,
+        duration: 45,
+        sortOrder: 1,
+      },
+    }),
+    prisma.service.upsert({
+      where: { id: 'svc-coloring' },
+      update: {},
+      create: {
+        id: 'svc-coloring',
+        salonId: salon.id,
+        categoryId: 'cat-hair',
+        name: 'Фарбування',
+        description: 'Професійне фарбування волосся',
+        price: 1200,
+        priceFrom: true,
+        duration: 120,
+        sortOrder: 2,
+      },
+    }),
+    prisma.service.upsert({
+      where: { id: 'svc-styling' },
+      update: {},
+      create: {
+        id: 'svc-styling',
+        salonId: salon.id,
+        categoryId: 'cat-hair',
+        name: 'Укладка',
+        description: 'Укладка феном або плойкою',
+        price: 400,
+        duration: 30,
+        sortOrder: 3,
+      },
+    }),
+    // Нігті
+    prisma.service.upsert({
+      where: { id: 'svc-manicure' },
+      update: {},
+      create: {
+        id: 'svc-manicure',
+        salonId: salon.id,
+        categoryId: 'cat-nails',
+        name: 'Манікюр',
+        description: 'Класичний або апаратний манікюр',
+        price: 350,
+        duration: 60,
+        sortOrder: 1,
+      },
+    }),
+    prisma.service.upsert({
+      where: { id: 'svc-pedicure' },
+      update: {},
+      create: {
+        id: 'svc-pedicure',
+        salonId: salon.id,
+        categoryId: 'cat-nails',
+        name: 'Педікюр',
+        description: 'Класичний або апаратний педікюр',
+        price: 450,
+        duration: 90,
+        sortOrder: 2,
+      },
+    }),
+    // Обличчя
+    prisma.service.upsert({
+      where: { id: 'svc-brows' },
+      update: {},
+      create: {
+        id: 'svc-brows',
+        salonId: salon.id,
+        categoryId: 'cat-face',
+        name: 'Корекція брів',
+        description: 'Корекція форми та фарбування',
+        price: 250,
+        duration: 30,
+        sortOrder: 1,
+      },
+    }),
+  ]);
+
+  console.log('✅ Created services:', services.length);
+
+  // Создаём мастеров
+  const masters = await Promise.all([
+    prisma.master.upsert({
+      where: { id: 'master-1' },
+      update: {},
+      create: {
+        id: 'master-1',
+        salonId: salon.id,
+        name: 'Анна Коваленко',
+        role: 'Стиліст',
+        phone: '+380 99 111 1111',
+        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop',
+        bio: 'Досвід роботи 8 років. Спеціалізація: фарбування, стрижки.',
+        rating: 4.9,
+        reviewCount: 45,
+        price: 500,
+      },
+    }),
+    prisma.master.upsert({
+      where: { id: 'master-2' },
+      update: {},
+      create: {
+        id: 'master-2',
+        salonId: salon.id,
+        name: 'Марія Петренко',
+        role: 'Майстер манікюру',
+        phone: '+380 99 222 2222',
+        avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop',
+        bio: 'Досвід роботи 5 років. Спеціалізація: нарощування, дизайн.',
+        rating: 5.0,
+        reviewCount: 38,
+        price: 350,
+      },
+    }),
+    prisma.master.upsert({
+      where: { id: 'master-3' },
+      update: {},
+      create: {
+        id: 'master-3',
+        salonId: salon.id,
+        name: 'Олена Шевченко',
+        role: 'Бровіст',
+        phone: '+380 99 333 3333',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop',
+        bio: 'Досвід роботи 3 роки. Спеціалізація: брови, ламінування.',
+        rating: 4.8,
+        reviewCount: 22,
+        price: 250,
+      },
+    }),
+  ]);
+
+  console.log('✅ Created masters:', masters.length);
+
+  // Связываем мастеров с услугами
+  await Promise.all([
+    // Анна - волосся
+    prisma.masterService.upsert({
+      where: { id: 'ms-1-1' },
+      update: {},
+      create: { id: 'ms-1-1', masterId: 'master-1', serviceId: 'svc-haircut' },
+    }),
+    prisma.masterService.upsert({
+      where: { id: 'ms-1-2' },
+      update: {},
+      create: { id: 'ms-1-2', masterId: 'master-1', serviceId: 'svc-coloring' },
+    }),
+    prisma.masterService.upsert({
+      where: { id: 'ms-1-3' },
+      update: {},
+      create: { id: 'ms-1-3', masterId: 'master-1', serviceId: 'svc-styling' },
+    }),
+    // Марія - нігті
+    prisma.masterService.upsert({
+      where: { id: 'ms-2-1' },
+      update: {},
+      create: { id: 'ms-2-1', masterId: 'master-2', serviceId: 'svc-manicure' },
+    }),
+    prisma.masterService.upsert({
+      where: { id: 'ms-2-2' },
+      update: {},
+      create: { id: 'ms-2-2', masterId: 'master-2', serviceId: 'svc-pedicure' },
+    }),
+    // Олена - обличчя
+    prisma.masterService.upsert({
+      where: { id: 'ms-3-1' },
+      update: {},
+      create: { id: 'ms-3-1', masterId: 'master-3', serviceId: 'svc-brows' },
+    }),
+  ]);
+
+  console.log('✅ Linked masters with services');
+
+  // Создаём отзывы
+  await Promise.all([
+    prisma.review.upsert({
+      where: { id: 'review-1' },
+      update: {},
+      create: {
+        id: 'review-1',
+        salonId: salon.id,
+        masterId: 'master-1',
+        authorName: 'Ольга М.',
+        authorInitial: 'О',
+        authorColor: 'bg-pink-500',
+        rating: 5,
+        text: 'Чудовий салон! Анна зробила ідеальну стрижку, я дуже задоволена результатом.',
+        serviceName: 'Стрижка',
+      },
+    }),
+    prisma.review.upsert({
+      where: { id: 'review-2' },
+      update: {},
+      create: {
+        id: 'review-2',
+        salonId: salon.id,
+        masterId: 'master-2',
+        authorName: 'Катерина С.',
+        authorInitial: 'К',
+        authorColor: 'bg-purple-500',
+        rating: 5,
+        text: 'Найкращий манікюр в місті! Марія справжній професіонал.',
+        serviceName: 'Манікюр',
+      },
+    }),
+    prisma.review.upsert({
+      where: { id: 'review-3' },
+      update: {},
+      create: {
+        id: 'review-3',
+        salonId: salon.id,
+        masterId: 'master-3',
+        authorName: 'Анастасія Л.',
+        authorInitial: 'А',
+        authorColor: 'bg-blue-500',
+        rating: 5,
+        text: 'Нарешті знайшла свого майстра! Олена робить ідеальні брови.',
+        serviceName: 'Корекція брів',
+      },
+    }),
+  ]);
+
+  console.log('✅ Created reviews');
+
+  console.log('🎉 Seed completed!');
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error('❌ Seed error:', e);
     process.exit(1);
   })
   .finally(async () => {
