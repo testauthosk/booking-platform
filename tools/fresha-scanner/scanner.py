@@ -18,11 +18,9 @@ from camoufox.async_api import AsyncCamoufox
 
 # Папки для результатов
 OUTPUT_DIR = Path(__file__).parent / "output"
-SCREENSHOTS_DIR = OUTPUT_DIR / "screenshots"
-HTML_DIR = OUTPUT_DIR / "html"
+PAGES_DIR = OUTPUT_DIR / "pages"  # Все страницы с файлами вместе
 API_DIR = OUTPUT_DIR / "api"
 ASSETS_DIR = OUTPUT_DIR / "assets"
-STYLES_DIR = OUTPUT_DIR / "styles"
 ANALYSIS_DIR = OUTPUT_DIR / "analysis"
 
 
@@ -36,8 +34,7 @@ class FreshaScanner:
         
     async def setup_dirs(self):
         """Создаём папки"""
-        for d in [OUTPUT_DIR, SCREENSHOTS_DIR, HTML_DIR, API_DIR, 
-                  ASSETS_DIR, STYLES_DIR, ANALYSIS_DIR]:
+        for d in [OUTPUT_DIR, PAGES_DIR, API_DIR, ASSETS_DIR, ANALYSIS_DIR]:
             d.mkdir(parents=True, exist_ok=True)
     
     async def intercept_requests(self, route):
@@ -150,35 +147,52 @@ class FreshaScanner:
         return "unknown"
     
     async def save_page(self, page, name: str):
-        """Полное сохранение страницы"""
+        """Полное сохранение страницы — все файлы в одной папке"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_name = re.sub(r'[^\w\-]', '_', name)[:50]
         
+        # Создаём папку для этой страницы
+        page_dir = PAGES_DIR / f"{safe_name}"
+        page_dir.mkdir(parents=True, exist_ok=True)
+        
         print(f"  📸 Скриншот...")
-        screenshot_path = SCREENSHOTS_DIR / f"{safe_name}_{timestamp}.png"
+        screenshot_path = page_dir / "screenshot.png"
         await page.screenshot(path=str(screenshot_path), full_page=True)
         
         print(f"  📄 HTML...")
-        html_path = HTML_DIR / f"{safe_name}_{timestamp}.html"
+        html_path = page_dir / "page.html"
         html_content = await page.content()
         html_path.write_text(html_content, encoding="utf-8")
         
         print(f"  🎨 Стили...")
         styles = await self.extract_all_styles(page)
-        styles_path = STYLES_DIR / f"{safe_name}_{timestamp}.json"
+        styles_path = page_dir / "styles.json"
         styles_path.write_text(json.dumps(styles, indent=2, ensure_ascii=False), encoding="utf-8")
         
         print(f"  🧩 Компоненты...")
         components = await self.analyze_components(page)
+        components_path = page_dir / "components.json"
+        components_path.write_text(json.dumps(components, indent=2, ensure_ascii=False), encoding="utf-8")
+        
+        # Метаданные страницы
+        meta = {
+            "name": name,
+            "url": page.url,
+            "scanned_at": timestamp
+        }
+        meta_path = page_dir / "meta.json"
+        meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
         
         page_data = {
             "name": name,
             "url": page.url,
             "timestamp": timestamp,
+            "folder": str(page_dir),
             "files": {
                 "screenshot": str(screenshot_path),
                 "html": str(html_path),
-                "styles": str(styles_path)
+                "styles": str(styles_path),
+                "components": str(components_path)
             },
             "components": components
         }
