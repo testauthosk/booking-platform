@@ -1,12 +1,19 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Menu, Bell, Plus } from 'lucide-react';
 import { useSidebar } from '@/components/sidebar-context';
-import { DayPilotBookingCalendar, BookingEvent, Resource } from '@/components/calendar/daypilot-calendar';
 import { EventModal } from '@/components/calendar/event-modal';
 import { NewBookingModal } from '@/components/calendar/new-booking-modal';
+import type { BookingEvent, Resource } from '@/components/calendar/daypilot-calendar';
+
+// Dynamic import for DayPilot (no SSR)
+const DayPilotBookingCalendar = dynamic(
+  () => import('@/components/calendar/daypilot-calendar').then(mod => mod.DayPilotBookingCalendar),
+  { ssr: false, loading: () => <div className="h-full flex items-center justify-center">Завантаження...</div> }
+);
 
 // Demo resources (team members) - more for horizontal scroll testing
 const demoResources: Resource[] = [
