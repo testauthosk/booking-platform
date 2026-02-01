@@ -23,27 +23,27 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
         disabled={disabled}
         onClick={() => onCheckedChange?.(!checked)}
         className={cn(
-          "relative inline-flex items-center rounded-full transition-colors duration-200 ease-in-out",
+          "relative inline-flex items-center transition-colors duration-200 ease-in-out",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-green-500",
           "disabled:cursor-not-allowed disabled:opacity-50",
           checked ? "bg-green-500" : "bg-gray-300",
           className
         )}
         style={{
-          width: '51px',
-          height: '31px',
+          width: '40px',
+          height: '20px',
+          borderRadius: '10px',
           padding: '2px',
           flexShrink: 0,
         }}
         {...props}
       >
         <span
-          className={cn(
-            "inline-block rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out"
-          )}
+          className="inline-block bg-white shadow-sm transition-transform duration-200 ease-in-out"
           style={{
-            width: '27px',
-            height: '27px',
+            width: '16px',
+            height: '16px',
+            borderRadius: '8px',
             transform: checked ? 'translateX(20px)' : 'translateX(0)',
           }}
         />
