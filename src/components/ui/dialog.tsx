@@ -52,6 +52,7 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  onOpenAutoFocus,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
@@ -61,7 +62,7 @@ function DialogContent({
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
-        onOpenAutoFocus={(e) => e.preventDefault()}
+        onOpenAutoFocus={onOpenAutoFocus || ((e) => e.preventDefault())}
         className={cn(
           "bg-background fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-xl border p-6 shadow-xl outline-none sm:max-w-lg",
           "data-[state=open]:animate-slideUp data-[state=closed]:animate-slideDown",

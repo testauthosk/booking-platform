@@ -60,7 +60,7 @@ export function CategoryModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[350px]">
+      <DialogContent className="sm:max-w-[350px]" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>
             {isEdit ? 'Редагувати категорію' : 'Додати категорію'}
@@ -76,7 +76,7 @@ export function CategoryModal({
               onChange={(e) => setName(e.target.value)}
               placeholder="Волосся"
               required
-              autoFocus
+              autoFocus={false}
             />
           </div>
 

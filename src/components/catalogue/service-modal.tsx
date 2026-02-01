@@ -105,7 +105,7 @@ export function ServiceModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px]" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>
             {isEdit ? 'Редагувати послугу' : 'Додати послугу'}
@@ -121,6 +121,7 @@ export function ServiceModal({
               onChange={(e) => setName(e.target.value)}
               placeholder="Стрижка"
               required
+              autoFocus={false}
             />
           </div>
 
