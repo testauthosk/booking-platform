@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { IlamyResourceCalendar } from '@ilamy/calendar';
 import type { Resource, CalendarEvent, CellClickInfo } from '@ilamy/calendar';
 import dayjs from 'dayjs';
-import '@ilamy/calendar/dist/styles.css';
 
 export interface BookingEvent {
   id: string;
