@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import Image from 'next/image';
 
 export interface BookingEvent {
   id: string;
@@ -20,6 +21,7 @@ export interface Resource {
   id: string;
   title: string;
   color?: string;
+  avatar?: string;
 }
 
 interface CustomCalendarProps {
@@ -91,8 +93,12 @@ export function CustomCalendar({
   const currentMin = now.getMinutes();
   
   const slotHeight = 32;
-  const headerHeight = 48;
+  const headerHeight = 72; // Увеличено для аватарок
   const timeColWidth = 52;
+  
+  // Форматирование времени
+  const formatTime = (date: Date) => 
+    `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
   
   // Текущее время - позиция в пикселях
   const currentTimeTop = isToday && currentHour >= dayStart && currentHour < dayEnd
@@ -104,8 +110,8 @@ export function CustomCalendar({
       <div 
         className="grid relative"
         style={{ 
-          gridTemplateColumns: `${timeColWidth}px repeat(${resources.length}, minmax(90px, 1fr))`,
-          minWidth: `${timeColWidth + resources.length * 90}px`,
+          gridTemplateColumns: `${timeColWidth}px repeat(${resources.length}, minmax(140px, 1fr))`,
+          minWidth: `${timeColWidth + resources.length * 140}px`,
         }}
       >
         {/* HEADER ROW */}
@@ -116,10 +122,30 @@ export function CustomCalendar({
         {resources.map((resource) => (
           <div
             key={`header-${resource.id}`}
-            className="sticky top-0 z-30 bg-background border-b border-l border-border flex items-center justify-center px-2"
+            className="sticky top-0 z-30 bg-background border-b border-l border-border flex flex-col items-center justify-center px-2 py-2 gap-1"
             style={{ height: headerHeight }}
           >
-            <span className="text-sm font-medium truncate" style={{ color: resource.color }}>
+            {/* Аватарка */}
+            <div 
+              className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden shrink-0"
+              style={{ backgroundColor: resource.color || '#9ca3af' }}
+            >
+              {resource.avatar ? (
+                <Image 
+                  src={resource.avatar} 
+                  alt={resource.title} 
+                  width={36} 
+                  height={36} 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-white text-sm font-medium">
+                  {resource.title.charAt(0).toUpperCase()}
+                </span>
+              )}
+            </div>
+            {/* Имя */}
+            <span className="text-xs font-medium truncate max-w-full text-center leading-tight">
               {resource.title}
             </span>
           </div>
@@ -136,7 +162,7 @@ export function CustomCalendar({
               <div
                 key={`time-${time}`}
                 className={`sticky left-0 z-20 bg-background flex items-start justify-end pr-2 ${
-                  isFullHour && !isFirstRow ? 'border-t border-t-border' : isFullHour ? '' : 'border-t border-t-border/40'
+                  isFullHour && !isFirstRow ? 'border-t border-t-border/70' : isFullHour ? '' : 'border-t border-t-border/30'
                 }`}
                 style={{ 
                   height: slotHeight,
@@ -144,7 +170,7 @@ export function CustomCalendar({
                 }}
               >
                 {isFullHour && (
-                  <span className={`text-[11px] text-muted-foreground ${isFirstRow ? '' : '-mt-2'}`}>{time}</span>
+                  <span className={`text-[11px] text-muted-foreground font-medium ${isFirstRow ? '' : '-mt-2'}`}>{time}</span>
                 )}
               </div>
 
@@ -153,7 +179,7 @@ export function CustomCalendar({
                 <div
                   key={`cell-${time}-${resource.id}`}
                   className={`border-l border-border hover:bg-muted/30 cursor-pointer transition-colors ${
-                    isFullHour ? 'border-t border-t-border' : 'border-t border-t-border/40'
+                    isFullHour ? 'border-t border-t-border/70' : 'border-t border-t-border/30'
                   }`}
                   style={{ height: slotHeight }}
                   onClick={() => handleSlotClick(time, resource.id)}
@@ -172,7 +198,7 @@ export function CustomCalendar({
             right: 0,
             bottom: 0,
             display: 'grid',
-            gridTemplateColumns: `repeat(${resources.length}, minmax(90px, 1fr))`,
+            gridTemplateColumns: `repeat(${resources.length}, minmax(140px, 1fr))`,
           }}
         >
           {resources.map((resource) => (
@@ -197,7 +223,9 @@ export function CustomCalendar({
                     }}
                   >
                     <div className="p-1.5 text-white text-xs h-full overflow-hidden">
-                      <div className="font-medium truncate">{event.clientName}</div>
+                      <div className="font-medium truncate">
+                        {formatTime(event.start)} - {formatTime(event.end)} {event.clientName}
+                      </div>
                       <div className="opacity-80 truncate text-[11px]">{event.title}</div>
                     </div>
                   </div>
