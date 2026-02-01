@@ -1,283 +1,645 @@
 #!/usr/bin/env python3
 """
-Fresha.com Scanner — вытаскиваем архитектуру для booking-platform
-Использует Camoufox (антидетект Firefox) + Playwright
+Fresha.com Full Scanner — максимальный сбор для реверс-инжиниринга
+Собирает: скриншоты, API, стили, ассеты, структуру
 """
 
 import asyncio
 import json
 import os
+import re
+import hashlib
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse, urljoin
+import base64
 
-# Camoufox использует playwright под капотом
 from camoufox.async_api import AsyncCamoufox
 
-# Папка для результатов
+# Папки для результатов
 OUTPUT_DIR = Path(__file__).parent / "output"
 SCREENSHOTS_DIR = OUTPUT_DIR / "screenshots"
 HTML_DIR = OUTPUT_DIR / "html"
+API_DIR = OUTPUT_DIR / "api"
+ASSETS_DIR = OUTPUT_DIR / "assets"
+STYLES_DIR = OUTPUT_DIR / "styles"
 ANALYSIS_DIR = OUTPUT_DIR / "analysis"
 
 
-async def setup_dirs():
-    """Создаём папки для вывода"""
-    for d in [OUTPUT_DIR, SCREENSHOTS_DIR, HTML_DIR, ANALYSIS_DIR]:
-        d.mkdir(parents=True, exist_ok=True)
-
-
-async def save_page(page, name: str):
-    """Сохраняем страницу: скриншот + HTML"""
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+class FreshaScanner:
+    def __init__(self):
+        self.api_calls = []
+        self.pages = []
+        self.entities = {}
+        self.navigation = []
+        self.assets = set()
+        
+    async def setup_dirs(self):
+        """Создаём папки"""
+        for d in [OUTPUT_DIR, SCREENSHOTS_DIR, HTML_DIR, API_DIR, 
+                  ASSETS_DIR, STYLES_DIR, ANALYSIS_DIR]:
+            d.mkdir(parents=True, exist_ok=True)
     
-    # Скриншот
-    screenshot_path = SCREENSHOTS_DIR / f"{name}_{timestamp}.png"
-    await page.screenshot(path=str(screenshot_path), full_page=True)
-    print(f"📸 Скриншот: {screenshot_path}")
+    async def intercept_requests(self, route):
+        """Перехватываем все API запросы"""
+        request = route.request
+        url = request.url
+        
+        # Пропускаем статику
+        if any(ext in url for ext in ['.png', '.jpg', '.gif', '.ico', '.woff', '.ttf']):
+            await route.continue_()
+            return
+        
+        # Логируем API вызовы
+        if '/api/' in url or 'graphql' in url.lower():
+            self.api_calls.append({
+                "timestamp": datetime.now().isoformat(),
+                "method": request.method,
+                "url": url,
+                "headers": dict(request.headers),
+                "post_data": request.post_data
+            })
+        
+        await route.continue_()
     
-    # HTML
-    html_path = HTML_DIR / f"{name}_{timestamp}.html"
-    html_content = await page.content()
-    html_path.write_text(html_content, encoding="utf-8")
-    print(f"📄 HTML: {html_path}")
+    async def intercept_responses(self, response):
+        """Перехватываем ответы API"""
+        url = response.url
+        
+        if '/api/' in url or 'graphql' in url.lower():
+            try:
+                body = await response.text()
+                # Ищем соответствующий запрос
+                for call in reversed(self.api_calls):
+                    if call["url"] == url and "response" not in call:
+                        call["response"] = {
+                            "status": response.status,
+                            "headers": dict(response.headers),
+                            "body": body[:50000]  # Лимит на размер
+                        }
+                        
+                        # Парсим JSON для анализа сущностей
+                        try:
+                            data = json.loads(body)
+                            self.extract_entities(url, data)
+                        except:
+                            pass
+                        break
+            except:
+                pass
     
-    # CSS стили (inline + external)
-    styles = await page.evaluate("""
-        () => {
-            const styles = [];
-            // Inline стили
-            document.querySelectorAll('style').forEach(s => {
-                styles.push({type: 'inline', content: s.textContent});
-            });
-            // Ссылки на внешние стили
-            document.querySelectorAll('link[rel="stylesheet"]').forEach(l => {
-                styles.push({type: 'external', href: l.href});
-            });
-            return styles;
+    def extract_entities(self, url, data, prefix=""):
+        """Извлекаем сущности из API ответов"""
+        if isinstance(data, dict):
+            # Ищем типичные паттерны сущностей
+            for key in ['id', 'uuid', 'type', 'name', 'title']:
+                if key in data:
+                    entity_type = self.guess_entity_type(url, data)
+                    if entity_type not in self.entities:
+                        self.entities[entity_type] = {
+                            "fields": set(),
+                            "examples": []
+                        }
+                    
+                    # Собираем все поля
+                    for field in data.keys():
+                        self.entities[entity_type]["fields"].add(field)
+                    
+                    # Сохраняем пример (максимум 3)
+                    if len(self.entities[entity_type]["examples"]) < 3:
+                        self.entities[entity_type]["examples"].append(data)
+                    break
+            
+            # Рекурсивно обходим вложенные объекты
+            for key, value in data.items():
+                self.extract_entities(url, value, f"{prefix}.{key}")
+        
+        elif isinstance(data, list):
+            for item in data[:5]:  # Первые 5 элементов
+                self.extract_entities(url, item, prefix)
+    
+    def guess_entity_type(self, url, data):
+        """Угадываем тип сущности по URL и данным"""
+        url_lower = url.lower()
+        
+        patterns = [
+            ('appointment', ['appointment', 'booking', 'reservation']),
+            ('client', ['client', 'customer', 'user', 'member']),
+            ('service', ['service', 'treatment', 'product']),
+            ('staff', ['staff', 'employee', 'team', 'worker']),
+            ('location', ['location', 'venue', 'branch', 'salon']),
+            ('schedule', ['schedule', 'calendar', 'availability', 'slot']),
+            ('payment', ['payment', 'transaction', 'invoice', 'charge']),
+            ('notification', ['notification', 'message', 'alert']),
+        ]
+        
+        for entity_name, keywords in patterns:
+            if any(kw in url_lower for kw in keywords):
+                return entity_name
+        
+        # По типу в данных
+        if 'type' in data:
+            return str(data['type']).lower()
+        
+        # По URL
+        parts = urlparse(url).path.split('/')
+        for part in reversed(parts):
+            if part and not part.isdigit():
+                return part
+        
+        return "unknown"
+    
+    async def save_page(self, page, name: str):
+        """Полное сохранение страницы"""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_name = re.sub(r'[^\w\-]', '_', name)[:50]
+        
+        print(f"  📸 Скриншот...")
+        screenshot_path = SCREENSHOTS_DIR / f"{safe_name}_{timestamp}.png"
+        await page.screenshot(path=str(screenshot_path), full_page=True)
+        
+        print(f"  📄 HTML...")
+        html_path = HTML_DIR / f"{safe_name}_{timestamp}.html"
+        html_content = await page.content()
+        html_path.write_text(html_content, encoding="utf-8")
+        
+        print(f"  🎨 Стили...")
+        styles = await self.extract_all_styles(page)
+        styles_path = STYLES_DIR / f"{safe_name}_{timestamp}.json"
+        styles_path.write_text(json.dumps(styles, indent=2, ensure_ascii=False), encoding="utf-8")
+        
+        print(f"  🧩 Компоненты...")
+        components = await self.analyze_components(page)
+        
+        page_data = {
+            "name": name,
+            "url": page.url,
+            "timestamp": timestamp,
+            "files": {
+                "screenshot": str(screenshot_path),
+                "html": str(html_path),
+                "styles": str(styles_path)
+            },
+            "components": components
         }
-    """)
+        
+        self.pages.append(page_data)
+        return page_data
     
-    styles_path = HTML_DIR / f"{name}_{timestamp}_styles.json"
-    styles_path.write_text(json.dumps(styles, indent=2, ensure_ascii=False), encoding="utf-8")
-    
-    return {
-        "name": name,
-        "screenshot": str(screenshot_path),
-        "html": str(html_path),
-        "styles": str(styles_path)
-    }
-
-
-async def analyze_components(page) -> dict:
-    """Анализируем компоненты на странице"""
-    analysis = await page.evaluate("""
-        () => {
-            const components = {
-                buttons: [],
-                forms: [],
-                tables: [],
-                modals: [],
-                navigation: [],
-                cards: [],
-                inputs: []
-            };
-            
-            // Кнопки
-            document.querySelectorAll('button, [role="button"], .btn, [class*="button"]').forEach(el => {
-                components.buttons.push({
-                    text: el.textContent?.trim().slice(0, 50),
-                    classes: el.className,
-                    tag: el.tagName
-                });
-            });
-            
-            // Формы
-            document.querySelectorAll('form').forEach(el => {
-                const inputs = el.querySelectorAll('input, select, textarea');
-                components.forms.push({
-                    inputs: inputs.length,
-                    action: el.action,
-                    method: el.method
-                });
-            });
-            
-            // Таблицы
-            document.querySelectorAll('table, [role="table"], [class*="table"]').forEach(el => {
-                const rows = el.querySelectorAll('tr, [role="row"]');
-                components.tables.push({
-                    rows: rows.length,
-                    classes: el.className
-                });
-            });
-            
-            // Навигация
-            document.querySelectorAll('nav, [role="navigation"], [class*="sidebar"], [class*="menu"]').forEach(el => {
-                const links = el.querySelectorAll('a');
-                components.navigation.push({
-                    links: links.length,
-                    classes: el.className
-                });
-            });
-            
-            // Инпуты
-            document.querySelectorAll('input, select, textarea').forEach(el => {
-                components.inputs.push({
-                    type: el.type || el.tagName.toLowerCase(),
-                    name: el.name,
-                    placeholder: el.placeholder,
-                    classes: el.className
-                });
-            });
-            
-            return components;
-        }
-    """)
-    
-    return analysis
-
-
-async def scan_dashboard(page):
-    """Сканируем все разделы дашборда"""
-    pages_scanned = []
-    
-    # Ждём загрузку дашборда
-    await page.wait_for_load_state("networkidle")
-    
-    # Сохраняем главную страницу дашборда
-    print("\n🔍 Сканирую главную страницу дашборда...")
-    result = await save_page(page, "dashboard_main")
-    result["components"] = await analyze_components(page)
-    pages_scanned.append(result)
-    
-    # Ищем навигацию / меню
-    nav_items = await page.evaluate("""
-        () => {
-            const items = [];
-            // Ищем ссылки в сайдбаре/навигации
-            document.querySelectorAll('nav a, [class*="sidebar"] a, [class*="menu"] a, [role="navigation"] a').forEach(a => {
-                if (a.href && !a.href.includes('javascript:')) {
-                    items.push({
-                        text: a.textContent?.trim(),
-                        href: a.href
-                    });
+    async def extract_all_styles(self, page):
+        """Извлекаем все стили"""
+        return await page.evaluate("""
+            () => {
+                const result = {
+                    variables: {},
+                    classes: {},
+                    keyStyles: {}
+                };
+                
+                // CSS переменные
+                const root = getComputedStyle(document.documentElement);
+                const rootStyles = document.documentElement.style.cssText;
+                
+                // Собираем все CSS переменные из :root
+                for (const sheet of document.styleSheets) {
+                    try {
+                        for (const rule of sheet.cssRules) {
+                            if (rule.selectorText === ':root') {
+                                for (const prop of rule.style) {
+                                    if (prop.startsWith('--')) {
+                                        result.variables[prop] = rule.style.getPropertyValue(prop);
+                                    }
+                                }
+                            }
+                        }
+                    } catch(e) {}
                 }
-            });
-            return items;
-        }
-    """)
+                
+                // Ключевые элементы и их стили
+                const keyElements = [
+                    'button', 'input', 'select', 'textarea',
+                    '[class*="card"]', '[class*="modal"]', '[class*="header"]',
+                    '[class*="sidebar"]', '[class*="nav"]', '[class*="menu"]',
+                    '[class*="table"]', '[class*="form"]', '[class*="btn"]'
+                ];
+                
+                keyElements.forEach(selector => {
+                    const el = document.querySelector(selector);
+                    if (el) {
+                        const computed = getComputedStyle(el);
+                        result.keyStyles[selector] = {
+                            color: computed.color,
+                            backgroundColor: computed.backgroundColor,
+                            fontFamily: computed.fontFamily,
+                            fontSize: computed.fontSize,
+                            fontWeight: computed.fontWeight,
+                            padding: computed.padding,
+                            margin: computed.margin,
+                            borderRadius: computed.borderRadius,
+                            boxShadow: computed.boxShadow
+                        };
+                    }
+                });
+                
+                // Уникальные классы
+                const allClasses = new Set();
+                document.querySelectorAll('*').forEach(el => {
+                    el.classList.forEach(cls => allClasses.add(cls));
+                });
+                result.allClasses = Array.from(allClasses).slice(0, 500);
+                
+                return result;
+            }
+        """)
     
-    print(f"\n📋 Найдено {len(nav_items)} разделов в меню")
+    async def analyze_components(self, page):
+        """Детальный анализ компонентов"""
+        return await page.evaluate("""
+            () => {
+                const components = {
+                    buttons: [],
+                    forms: [],
+                    inputs: [],
+                    tables: [],
+                    modals: [],
+                    cards: [],
+                    lists: [],
+                    navigation: [],
+                    headers: [],
+                    footers: []
+                };
+                
+                // Кнопки
+                document.querySelectorAll('button, [role="button"], a[class*="btn"], [class*="button"]').forEach(el => {
+                    const rect = el.getBoundingClientRect();
+                    components.buttons.push({
+                        text: el.textContent?.trim().slice(0, 100),
+                        classes: el.className,
+                        type: el.type || 'button',
+                        size: { width: rect.width, height: rect.height },
+                        hasIcon: el.querySelector('svg, img, [class*="icon"]') !== null
+                    });
+                });
+                
+                // Инпуты
+                document.querySelectorAll('input, select, textarea').forEach(el => {
+                    components.inputs.push({
+                        type: el.type || el.tagName.toLowerCase(),
+                        name: el.name,
+                        placeholder: el.placeholder,
+                        required: el.required,
+                        classes: el.className,
+                        label: document.querySelector(`label[for="${el.id}"]`)?.textContent?.trim()
+                    });
+                });
+                
+                // Формы
+                document.querySelectorAll('form').forEach(el => {
+                    const inputs = el.querySelectorAll('input, select, textarea');
+                    const buttons = el.querySelectorAll('button, [type="submit"]');
+                    components.forms.push({
+                        action: el.action,
+                        method: el.method,
+                        inputCount: inputs.length,
+                        inputTypes: Array.from(inputs).map(i => i.type || i.tagName),
+                        buttonCount: buttons.length,
+                        classes: el.className
+                    });
+                });
+                
+                // Таблицы
+                document.querySelectorAll('table, [role="table"], [class*="table"]').forEach(el => {
+                    const headers = el.querySelectorAll('th, [role="columnheader"]');
+                    const rows = el.querySelectorAll('tr, [role="row"]');
+                    components.tables.push({
+                        headers: Array.from(headers).map(h => h.textContent?.trim().slice(0, 50)),
+                        rowCount: rows.length,
+                        classes: el.className
+                    });
+                });
+                
+                // Карточки
+                document.querySelectorAll('[class*="card"], [class*="Card"]').forEach(el => {
+                    components.cards.push({
+                        hasImage: el.querySelector('img') !== null,
+                        hasTitle: el.querySelector('h1, h2, h3, h4, [class*="title"]') !== null,
+                        hasActions: el.querySelector('button, a') !== null,
+                        classes: el.className
+                    });
+                });
+                
+                // Навигация
+                document.querySelectorAll('nav, [role="navigation"], [class*="sidebar"], [class*="menu"]').forEach(el => {
+                    const links = el.querySelectorAll('a');
+                    components.navigation.push({
+                        linkCount: links.length,
+                        links: Array.from(links).slice(0, 20).map(a => ({
+                            text: a.textContent?.trim().slice(0, 50),
+                            href: a.href
+                        })),
+                        classes: el.className
+                    });
+                });
+                
+                // Модальные окна
+                document.querySelectorAll('[role="dialog"], [class*="modal"], [class*="Modal"]').forEach(el => {
+                    components.modals.push({
+                        hasClose: el.querySelector('[class*="close"], button') !== null,
+                        hasTitle: el.querySelector('h1, h2, h3, [class*="title"]') !== null,
+                        hasForm: el.querySelector('form') !== null,
+                        classes: el.className
+                    });
+                });
+                
+                return components;
+            }
+        """)
     
-    # Уникальные ссылки
-    visited = set()
-    visited.add(page.url)
-    
-    for item in nav_items[:20]:  # Лимит на 20 страниц
-        href = item.get("href", "")
-        if href in visited or not href.startswith("http"):
-            continue
+    async def collect_assets(self, page):
+        """Собираем ссылки на ассеты"""
+        assets = await page.evaluate("""
+            () => {
+                const assets = {
+                    images: [],
+                    fonts: [],
+                    icons: []
+                };
+                
+                // Картинки
+                document.querySelectorAll('img').forEach(img => {
+                    if (img.src) assets.images.push(img.src);
+                });
+                
+                // SVG иконки
+                document.querySelectorAll('svg').forEach(svg => {
+                    const html = svg.outerHTML;
+                    if (html.length < 5000) {
+                        assets.icons.push(html);
+                    }
+                });
+                
+                // Шрифты из CSS
+                for (const sheet of document.styleSheets) {
+                    try {
+                        for (const rule of sheet.cssRules) {
+                            if (rule.cssText?.includes('@font-face')) {
+                                const match = rule.cssText.match(/url\(['"]?([^'"]+)['"]?\)/);
+                                if (match) assets.fonts.push(match[1]);
+                            }
+                        }
+                    } catch(e) {}
+                }
+                
+                return assets;
+            }
+        """)
         
-        visited.add(href)
-        name = item.get("text", "unknown").replace(" ", "_").lower()[:30]
+        # Сохраняем уникальные SVG иконки
+        icons_dir = ASSETS_DIR / "icons"
+        icons_dir.mkdir(exist_ok=True)
         
-        try:
-            print(f"\n🔍 Сканирую: {item.get('text', href)}")
-            await page.goto(href, wait_until="networkidle", timeout=30000)
-            await asyncio.sleep(1)  # Небольшая пауза
-            
-            result = await save_page(page, f"section_{name}")
-            result["components"] = await analyze_components(page)
-            result["url"] = href
-            pages_scanned.append(result)
-            
-        except Exception as e:
-            print(f"⚠️ Ошибка при сканировании {href}: {e}")
+        for i, svg in enumerate(assets.get("icons", [])[:100]):
+            hash_name = hashlib.md5(svg.encode()).hexdigest()[:8]
+            icon_path = icons_dir / f"icon_{hash_name}.svg"
+            if not icon_path.exists():
+                icon_path.write_text(svg, encoding="utf-8")
+        
+        return assets
     
-    return pages_scanned
-
-
-async def generate_report(pages_scanned: list):
-    """Генерируем отчёт по архитектуре"""
-    report = {
-        "scanned_at": datetime.now().isoformat(),
-        "total_pages": len(pages_scanned),
-        "pages": pages_scanned,
-        "summary": {
-            "all_buttons": [],
-            "all_forms": [],
-            "all_inputs": [],
-            "navigation_structure": []
+    async def scan_page(self, page, name: str):
+        """Полное сканирование одной страницы"""
+        print(f"\n🔍 Сканирую: {name}")
+        
+        await page.wait_for_load_state("networkidle")
+        await asyncio.sleep(1)
+        
+        page_data = await self.save_page(page, name)
+        await self.collect_assets(page)
+        
+        return page_data
+    
+    async def discover_navigation(self, page):
+        """Находим все разделы навигации"""
+        nav_items = await page.evaluate("""
+            () => {
+                const items = [];
+                const seen = new Set();
+                
+                // Все ссылки в навигации/сайдбаре
+                document.querySelectorAll('nav a, [class*="sidebar"] a, [class*="menu"] a, [role="navigation"] a').forEach(a => {
+                    if (a.href && !seen.has(a.href) && a.href.startsWith('http')) {
+                        seen.add(a.href);
+                        items.push({
+                            text: a.textContent?.trim(),
+                            href: a.href,
+                            icon: a.querySelector('svg') ? 'yes' : 'no'
+                        });
+                    }
+                });
+                
+                return items;
+            }
+        """)
+        
+        self.navigation = nav_items
+        return nav_items
+    
+    async def generate_architecture(self):
+        """Генерируем документ архитектуры"""
+        
+        # Конвертируем sets в lists для JSON
+        entities_json = {}
+        for name, data in self.entities.items():
+            entities_json[name] = {
+                "fields": list(data["fields"]),
+                "examples": data["examples"]
+            }
+        
+        architecture = {
+            "generated_at": datetime.now().isoformat(),
+            "summary": {
+                "total_pages": len(self.pages),
+                "total_api_calls": len(self.api_calls),
+                "entities_found": list(self.entities.keys()),
+                "navigation_items": len(self.navigation)
+            },
+            "navigation": self.navigation,
+            "entities": entities_json,
+            "pages": self.pages,
+            "api_endpoints": self.get_unique_endpoints()
         }
-    }
+        
+        # JSON отчёт
+        arch_path = ANALYSIS_DIR / "architecture.json"
+        arch_path.write_text(json.dumps(architecture, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
+        
+        # API calls отдельно
+        api_path = API_DIR / "all_api_calls.json"
+        api_path.write_text(json.dumps(self.api_calls, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
+        
+        # Markdown отчёт
+        md_report = self.generate_markdown_report(architecture)
+        md_path = ANALYSIS_DIR / "ARCHITECTURE.md"
+        md_path.write_text(md_report, encoding="utf-8")
+        
+        print(f"\n📊 Архитектура сохранена: {arch_path}")
+        print(f"📝 Markdown отчёт: {md_path}")
+        
+        return architecture
     
-    # Собираем общую статистику
-    for p in pages_scanned:
-        components = p.get("components", {})
-        report["summary"]["all_buttons"].extend(components.get("buttons", []))
-        report["summary"]["all_forms"].extend(components.get("forms", []))
-        report["summary"]["all_inputs"].extend(components.get("inputs", []))
+    def get_unique_endpoints(self):
+        """Уникальные API endpoints"""
+        endpoints = {}
+        for call in self.api_calls:
+            url = call["url"]
+            # Убираем ID из URL для группировки
+            clean_url = re.sub(r'/[0-9a-f-]{20,}', '/{id}', url)
+            clean_url = re.sub(r'/\d+', '/{id}', clean_url)
+            
+            if clean_url not in endpoints:
+                endpoints[clean_url] = {
+                    "method": call["method"],
+                    "example_url": url,
+                    "call_count": 0,
+                    "has_response": False
+                }
+            
+            endpoints[clean_url]["call_count"] += 1
+            if "response" in call:
+                endpoints[clean_url]["has_response"] = True
+        
+        return endpoints
     
-    # Сохраняем отчёт
-    report_path = ANALYSIS_DIR / "architecture_report.json"
-    report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(f"\n📊 Отчёт сохранён: {report_path}")
-    
-    # Генерируем markdown summary
-    md_report = f"""# Fresha Architecture Report
-    
-Generated: {report['scanned_at']}
-Total pages scanned: {report['total_pages']}
+    def generate_markdown_report(self, arch):
+        """Генерируем читаемый Markdown отчёт"""
+        md = f"""# Fresha Architecture Report
 
-## Pages
+Generated: {arch['generated_at']}
+
+## Summary
+
+- **Pages scanned:** {arch['summary']['total_pages']}
+- **API calls captured:** {arch['summary']['total_api_calls']}
+- **Entities discovered:** {', '.join(arch['summary']['entities_found']) or 'none'}
+- **Navigation items:** {arch['summary']['navigation_items']}
+
+---
+
+## Navigation Structure
 
 """
-    for p in pages_scanned:
-        md_report += f"### {p['name']}\n"
-        md_report += f"- Screenshot: `{p['screenshot']}`\n"
-        md_report += f"- HTML: `{p['html']}`\n"
-        if "url" in p:
-            md_report += f"- URL: {p['url']}\n"
-        md_report += "\n"
-    
-    md_path = ANALYSIS_DIR / "ARCHITECTURE.md"
-    md_path.write_text(md_report, encoding="utf-8")
-    print(f"📝 Markdown отчёт: {md_path}")
-    
-    return report
+        for nav in self.navigation[:30]:
+            md += f"- [{nav['text']}]({nav['href']})\n"
+        
+        md += "\n---\n\n## Entities (Data Models)\n\n"
+        
+        for name, data in self.entities.items():
+            fields = list(data["fields"])
+            md += f"### {name.title()}\n\n"
+            md += f"**Fields:** {', '.join(fields[:20])}\n\n"
+            if data["examples"]:
+                md += f"```json\n{json.dumps(data['examples'][0], indent=2, default=str)[:1000]}\n```\n\n"
+        
+        md += "---\n\n## API Endpoints\n\n"
+        md += "| Method | Endpoint | Calls |\n"
+        md += "|--------|----------|-------|\n"
+        
+        for endpoint, data in list(arch['api_endpoints'].items())[:50]:
+            md += f"| {data['method']} | `{endpoint}` | {data['call_count']} |\n"
+        
+        md += "\n---\n\n## Pages Scanned\n\n"
+        
+        for page in self.pages:
+            md += f"### {page['name']}\n\n"
+            md += f"- URL: {page['url']}\n"
+            md += f"- Screenshot: `{page['files']['screenshot']}`\n"
+            
+            components = page.get('components', {})
+            md += f"- Buttons: {len(components.get('buttons', []))}\n"
+            md += f"- Forms: {len(components.get('forms', []))}\n"
+            md += f"- Tables: {len(components.get('tables', []))}\n"
+            md += "\n"
+        
+        md += """---
 
+## Next Steps
 
-async def main():
-    print("🦊 Fresha Scanner — запуск Camoufox...")
+1. Review entities → create database schema
+2. Review API → create API routes  
+3. Review pages → create page components
+4. Review components → create UI components
+5. Review styles → create design system
+
+"""
+        return md
     
-    await setup_dirs()
-    
-    async with AsyncCamoufox(headless=False) as browser:
-        page = await browser.new_page()
+    async def run(self):
+        """Главный процесс"""
+        print("🦊 Fresha Full Scanner — запуск...")
         
-        # Открываем Fresha
-        print("\n🌐 Открываю fresha.com...")
-        await page.goto("https://www.fresha.com/for-business", wait_until="networkidle")
+        await self.setup_dirs()
         
-        print("\n" + "="*50)
-        print("👆 ЗАЛОГИНЬСЯ В СВОЙ АККАУНТ")
-        print("Когда будешь в личном кабинете — нажми Enter здесь")
-        print("="*50)
-        
-        input("\n⏎ Нажми Enter когда готов к сканированию...")
-        
-        print("\n🚀 Начинаю сканирование...")
-        pages_scanned = await scan_dashboard(page)
-        
-        print("\n📊 Генерирую отчёт...")
-        report = await generate_report(pages_scanned)
-        
-        print("\n" + "="*50)
-        print(f"✅ ГОТОВО! Просканировано страниц: {len(pages_scanned)}")
-        print(f"📁 Результаты в: {OUTPUT_DIR}")
-        print("="*50)
-        
-        input("\n⏎ Нажми Enter чтобы закрыть браузер...")
+        async with AsyncCamoufox(headless=False) as browser:
+            page = await browser.new_page()
+            
+            # Перехват запросов
+            await page.route("**/*", self.intercept_requests)
+            page.on("response", self.intercept_responses)
+            
+            print("\n🌐 Открываю Fresha...")
+            await page.goto("https://partners.fresha.com/", wait_until="networkidle")
+            
+            print("\n" + "="*60)
+            print("👆 ЗАЛОГИНЬСЯ В СВОЙ АККАУНТ FRESHA")
+            print("Когда будешь в личном кабинете (дашборд) — нажми Enter")
+            print("="*60)
+            
+            input("\n⏎ Enter для начала сканирования...")
+            
+            # Сканируем главную
+            await self.scan_page(page, "dashboard")
+            
+            # Находим навигацию
+            print("\n📋 Ищу разделы меню...")
+            nav_items = await self.discover_navigation(page)
+            print(f"   Найдено: {len(nav_items)} разделов")
+            
+            # Обходим все разделы
+            visited = {page.url}
+            
+            for item in nav_items[:25]:  # Лимит 25 страниц
+                href = item.get("href", "")
+                if href in visited or not href.startswith("http"):
+                    continue
+                
+                # Только страницы того же домена
+                if "fresha.com" not in href:
+                    continue
+                
+                visited.add(href)
+                name = item.get("text", "unknown")
+                
+                try:
+                    await page.goto(href, wait_until="networkidle", timeout=30000)
+                    await self.scan_page(page, name)
+                except Exception as e:
+                    print(f"⚠️ Ошибка: {name} — {e}")
+            
+            # Генерируем архитектуру
+            print("\n📊 Генерирую архитектуру...")
+            await self.generate_architecture()
+            
+            print("\n" + "="*60)
+            print(f"✅ ГОТОВО!")
+            print(f"   Страниц: {len(self.pages)}")
+            print(f"   API вызовов: {len(self.api_calls)}")
+            print(f"   Сущностей: {len(self.entities)}")
+            print(f"\n📁 Результаты: {OUTPUT_DIR}")
+            print("="*60)
+            
+            input("\n⏎ Enter чтобы закрыть браузер...")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    scanner = FreshaScanner()
+    asyncio.run(scanner.run())
