@@ -424,8 +424,8 @@ class FreshaScanner:
         """Полное сканирование одной страницы"""
         print(f"\n🔍 Сканирую: {name}")
         
-        await page.wait_for_load_state("networkidle")
-        await asyncio.sleep(1)
+        await page.wait_for_load_state("domcontentloaded")
+        await asyncio.sleep(2)  # Даём время на рендер
         
         page_data = await self.save_page(page, name)
         await self.collect_assets(page)
@@ -644,7 +644,8 @@ Generated: {arch['generated_at']}
             page.on("response", self.intercept_responses)
             
             print("\n🌐 Открываю Fresha...")
-            await page.goto("https://partners.fresha.com/", wait_until="networkidle")
+            await page.goto("https://partners.fresha.com/", wait_until="domcontentloaded", timeout=30000)
+            await asyncio.sleep(3)  # Даём время на рендер
             
             print("\n" + "="*60)
             print("👆 ЗАЛОГИНЬСЯ В СВОЙ АККАУНТ FRESHA")
@@ -677,7 +678,7 @@ Generated: {arch['generated_at']}
                 name = item.get("text", "unknown")
                 
                 try:
-                    await page.goto(href, wait_until="networkidle", timeout=30000)
+                    await page.goto(href, wait_until="domcontentloaded", timeout=30000, timeout=30000)
                     await self.scan_page(page, name)
                 except Exception as e:
                     print(f"⚠️ Ошибка: {name} — {e}")
