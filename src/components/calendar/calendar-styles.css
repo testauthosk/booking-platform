@@ -123,15 +123,20 @@
 /* Time slots - 30 min = taller slots */
 .booking-calendar .rbc-timeslot-group {
   min-height: 80px;
-  border-bottom: 1px solid hsl(var(--border) / 0.3);
+  border-bottom: 1px solid hsl(var(--border));
 }
 
 .booking-calendar .rbc-time-slot {
-  border-top: 1px dotted hsl(var(--border) / 0.2);
+  border-top: 1px dashed hsl(var(--border) / 0.5);
 }
 
 .booking-calendar .rbc-day-slot .rbc-time-slot {
-  border-top-color: transparent;
+  border-top: 1px dashed hsl(var(--border) / 0.4);
+}
+
+/* Hour lines - more visible */
+.booking-calendar .rbc-day-slot .rbc-timeslot-group {
+  border-bottom: 1px solid hsl(var(--border));
 }
 
 /* Day column */
