@@ -1,19 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Menu, Bell, Plus } from 'lucide-react';
 import { useSidebar } from '@/components/sidebar-context';
 import { EventModal } from '@/components/calendar/event-modal';
 import { NewBookingModal } from '@/components/calendar/new-booking-modal';
-import type { BookingEvent, MasterResource as Resource } from '@/components/calendar/ilamy-calendar';
-
-// Dynamic import for ilamy (no SSR)
-const IlamyBookingCalendar = dynamic(
-  () => import('@/components/calendar/ilamy-calendar').then(mod => mod.IlamyBookingCalendar),
-  { ssr: false, loading: () => <div className="h-full flex items-center justify-center">Завантаження...</div> }
-);
+import { CustomCalendar, type BookingEvent, type Resource } from '@/components/calendar/custom-calendar';
 
 // Demo resources (team members) - more for horizontal scroll testing
 const demoResources: Resource[] = [
@@ -218,12 +211,13 @@ export default function CalendarPage() {
 
       {/* Calendar */}
       <div className="flex-1 overflow-hidden p-2 lg:p-4">
-        <IlamyBookingCalendar
+        <CustomCalendar
           events={events}
           resources={demoResources}
           onEventClick={handleEventClick}
           onSlotClick={handleSlotClick}
-          onEventDrop={handleEventDrop}
+          dayStart={8}
+          dayEnd={21}
         />
       </div>
 
