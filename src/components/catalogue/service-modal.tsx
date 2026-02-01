@@ -124,12 +124,12 @@ export function ServiceModal({
 
           <div className="space-y-2">
             <Label htmlFor="category">Категорія</Label>
-            <Select value={categoryId} onValueChange={setCategoryId}>
+            <Select value={categoryId || 'none'} onValueChange={(val) => setCategoryId(val === 'none' ? '' : val)}>
               <SelectTrigger>
                 <SelectValue placeholder="Без категорії" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Без категорії</SelectItem>
+                <SelectItem value="none">Без категорії</SelectItem>
                 {categories.map((cat) => (
                   <SelectItem key={cat.id} value={cat.id}>
                     {cat.name}
