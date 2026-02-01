@@ -87,7 +87,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       </nav>
 
       {/* Help */}
-      <div className="p-4 border-t">
+      <div className="p-4 border-t pb-24 lg:pb-4">
         <Link
           href="/help"
           onClick={onClose}
