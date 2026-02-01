@@ -35,15 +35,6 @@ export default function CalendarPage() {
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Setup banner */}
-      <div className="lg:hidden bg-primary text-primary-foreground px-4 py-2.5 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Bell className="h-4 w-4" />
-          <span className="text-sm font-medium">Продовжити налаштування</span>
-        </div>
-        <ChevronRight className="h-4 w-4" />
-      </div>
-
       {/* Mobile header */}
       <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b bg-background sticky top-0 z-20">
         <Button 
