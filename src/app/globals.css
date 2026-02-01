@@ -187,44 +187,44 @@
   }
 }
 
-/* Animation utility classes - SLOWER timing */
+/* Animation utility classes - using CSS variables for consistent timing */
 .animate-fadeIn {
-  animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: fadeIn var(--animation-duration, 0.5s) var(--animation-easing, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
 }
 
 .animate-fadeOut {
-  animation: fadeOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: fadeOut var(--animation-duration-fast, 0.35s) var(--animation-easing, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
 }
 
 .animate-slideUp {
-  animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: slideUp var(--animation-duration, 0.5s) var(--animation-easing, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
 }
 
 .animate-slideDown {
-  animation: slideDown 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: slideDown var(--animation-duration, 0.5s) var(--animation-easing, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
 }
 
 .animate-scaleIn {
-  animation: scaleIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: scaleIn var(--animation-duration, 0.5s) var(--animation-easing, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
 }
 
 .animate-slideInRight {
-  animation: slideInRight 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: slideInRight var(--animation-duration, 0.5s) var(--animation-easing, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
 }
 
 /* Modal backdrop animation */
 .modal-backdrop {
-  animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: fadeIn var(--animation-duration, 0.5s) var(--animation-easing, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
 }
 
 /* Modal content animation */
 .modal-content {
-  animation: scaleIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: scaleIn var(--animation-duration, 0.5s) var(--animation-easing, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
 }
 
 /* Full page modal animation - smooth and slow */
 .fullpage-modal {
-  animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: fadeIn var(--animation-duration, 0.5s) var(--animation-easing, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
 }
 
 /* Scrollbar hide utility */
@@ -463,7 +463,7 @@ input[type="button"] {
 
 @media (max-width: 1023px) {
   .modal-slide-up {
-    animation: slideUpModal 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+    animation: slideUpModal var(--animation-duration, 0.5s) var(--animation-easing, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
   }
 }
 
@@ -775,21 +775,41 @@ button,
 }
 
 
-/* Dialog animations - для Radix Dialog с центрированием через translate(-50%, -50%) */
+/* ========== GLOBAL ANIMATION SPEED ========== */
+:root {
+  --animation-duration: 0.5s;
+  --animation-duration-fast: 0.35s;
+  --animation-easing: cubic-bezier(0.16, 1, 0.3, 1);
+  --backdrop-blur: 8px;
+}
+
+/* Dialog animations - для Radix Dialog */
 @keyframes dialogFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { 
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+  to { 
+    opacity: 1;
+    backdrop-filter: blur(var(--backdrop-blur));
+  }
 }
 
 @keyframes dialogFadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from { 
+    opacity: 1;
+    backdrop-filter: blur(var(--backdrop-blur));
+  }
+  to { 
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
 }
 
 @keyframes dialogSlideIn {
   from {
     opacity: 0;
-    transform: translate(-50%, -48%) scale(0.95);
+    transform: translate(-50%, -45%) scale(0.9);
   }
   to {
     opacity: 1;
@@ -804,23 +824,23 @@ button,
   }
   to {
     opacity: 0;
-    transform: translate(-50%, -48%) scale(0.95);
+    transform: translate(-50%, -45%) scale(0.9);
   }
 }
 
 /* Data-state based animations for Radix dialogs */
 [data-slot="dialog-overlay"][data-state="open"] {
-  animation: dialogFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: dialogFadeIn var(--animation-duration) var(--animation-easing) forwards;
 }
 
 [data-slot="dialog-overlay"][data-state="closed"] {
-  animation: dialogFadeOut 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: dialogFadeOut var(--animation-duration-fast) var(--animation-easing) forwards;
 }
 
 [data-slot="dialog-content"][data-state="open"] {
-  animation: dialogSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: dialogSlideIn var(--animation-duration) var(--animation-easing) forwards;
 }
 
 [data-slot="dialog-content"][data-state="closed"] {
-  animation: dialogSlideOut 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: dialogSlideOut var(--animation-duration-fast) var(--animation-easing) forwards;
 }
