@@ -245,30 +245,33 @@ export default function CalendarPage() {
 
       {/* Date Navigation */}
       <div className="flex items-center justify-between px-4 py-2 border-b bg-background shrink-0">
-        <div className="flex items-center gap-2">
-          {/* Prev / Next */}
+        {/* Left side: < Сьогодні > */}
+        <div className="flex items-center gap-1">
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={goToPrevDay}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={goToNextDay}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
           
-          {/* Today button */}
           <Button 
             variant={isToday ? "default" : "outline"} 
             size="sm" 
-            className="h-8"
+            className="h-8 px-3"
             onClick={goToToday}
           >
             Сьогодні
           </Button>
+          
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={goToNextDay}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
 
-        {/* Date display with mini calendar */}
+        {/* Right side: Date button with calendar */}
         <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
           <PopoverTrigger asChild>
-            <Button variant="ghost" className="font-medium text-sm gap-2">
+            <Button 
+              variant="outline" 
+              className="font-medium text-sm gap-2 h-9 px-3 border-2"
+            >
               <CalendarIcon className="h-4 w-4" />
               <span className="capitalize">{formatDateUk(selectedDate)}</span>
             </Button>
@@ -292,13 +295,17 @@ export default function CalendarPage() {
       {/* Calendar */}
       <div className="flex-1 overflow-hidden">
         <CustomCalendar
-          events={events}
+          events={events.filter(e => {
+            const eventDate = e.start.toDateString();
+            return eventDate === selectedDate.toDateString();
+          })}
           resources={demoResources}
           selectedDate={selectedDate}
           onEventClick={handleEventClick}
           onSlotClick={handleSlotClick}
           dayStart={8}
           dayEnd={21}
+          slotDuration={10}
         />
       </div>
 

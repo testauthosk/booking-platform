@@ -87,7 +87,8 @@ export function CustomCalendar({
   const now = new Date();
   const currentHour = now.getHours();
   const currentMin = now.getMinutes();
-  const slotHeight = 40;
+  // Высота слота зависит от длительности: 10мин = 15px, 30мин = 40px
+  const slotHeight = slotDuration <= 10 ? 15 : slotDuration <= 15 ? 20 : 40;
   const headerHeight = 48;
   
   // Позиция индикатора времени в пикселях (только если сегодня)
@@ -128,35 +129,46 @@ export function CustomCalendar({
         </div>
 
         {/* TIME SLOTS */}
-        {timeSlots.map((time, rowIdx) => (
-          <>
-            {/* Время */}
-            <div
-              key={`time-${time}`}
-              className="border-r border-b border-border flex items-start justify-end pr-1 pt-0.5 text-[11px] text-muted-foreground bg-muted/30 sticky left-0 z-20"
-              style={{ 
-                height: slotHeight,
-                borderBottomStyle: time.endsWith(':00') ? 'solid' : 'dashed',
-              }}
-            >
-              {time.endsWith(':00') ? time : ''}
-            </div>
-
-            {/* Ячейки ресурсов */}
-            {resources.map((resource) => (
+        {timeSlots.map((time, rowIdx) => {
+          const isFullHour = time.endsWith(':00');
+          const isHalfHour = time.endsWith(':30');
+          const showTime = isFullHour || isHalfHour;
+          
+          return (
+            <>
+              {/* Время */}
               <div
-                key={`cell-${time}-${resource.id}`}
-                className="border-r border-b border-border last:border-r-0 hover:bg-muted/20 cursor-pointer transition-colors"
-                style={{
+                key={`time-${time}`}
+                className={`border-r border-b border-border flex items-start justify-end pr-1 bg-muted/30 sticky left-0 z-20 ${
+                  isFullHour ? 'text-xs font-medium text-foreground pt-0.5' : 
+                  isHalfHour ? 'text-[10px] text-muted-foreground pt-0.5' : ''
+                }`}
+                style={{ 
                   height: slotHeight,
-                  borderBottomStyle: time.endsWith(':00') ? 'solid' : 'dashed',
-                  borderBottomColor: time.endsWith(':00') ? undefined : 'hsl(var(--border) / 0.4)',
+                  borderBottomStyle: isFullHour ? 'solid' : 'dashed',
+                  borderBottomWidth: isFullHour ? '1px' : '1px',
+                  borderBottomColor: isFullHour ? 'hsl(var(--border))' : 'hsl(var(--border) / 0.3)',
                 }}
-                onClick={() => handleSlotClick(time, resource.id)}
-              />
-            ))}
-          </>
-        ))}
+              >
+                {showTime ? time : ''}
+              </div>
+
+              {/* Ячейки ресурсов */}
+              {resources.map((resource) => (
+                <div
+                  key={`cell-${time}-${resource.id}`}
+                  className="border-r border-b border-border last:border-r-0 hover:bg-muted/20 cursor-pointer transition-colors"
+                  style={{
+                    height: slotHeight,
+                    borderBottomStyle: isFullHour ? 'solid' : 'dashed',
+                    borderBottomColor: isFullHour ? 'hsl(var(--border))' : 'hsl(var(--border) / 0.3)',
+                  }}
+                  onClick={() => handleSlotClick(time, resource.id)}
+                />
+              ))}
+            </>
+          );
+        })}
 
         {/* СОБЫТИЯ - абсолютное позиционирование поверх grid */}
         <div 
