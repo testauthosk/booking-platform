@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
@@ -63,6 +63,15 @@ export function BookingCalendar({
 }: BookingCalendarProps) {
   const [view, setView] = useState(defaultView);
   const [date, setDate] = useState(new Date());
+  const [, setTick] = useState(0);
+
+  // Live update for current time indicator - refresh every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTick(t => t + 1);
+    }, 60000); // every minute
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSelectEvent = useCallback((event: BookingEvent) => {
     onEventClick?.(event);
@@ -173,6 +182,7 @@ export function BookingCalendar({
         }}
         popup
         showMultiDayTimes
+        getNow={() => new Date()}
       />
     </div>
   );

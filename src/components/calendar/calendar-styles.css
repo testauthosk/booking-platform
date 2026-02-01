@@ -77,6 +77,7 @@
 
 /* ===== HEADER WITH TEAM MEMBERS ===== */
 .booking-calendar .rbc-time-header {
+  border-top: 1px solid hsl(var(--border));
   border-bottom: 1px solid hsl(var(--border));
 }
 
@@ -90,31 +91,37 @@
   font-size: 13px;
   color: hsl(var(--foreground));
   background: hsl(var(--background));
-  border-bottom: none;
+  border-bottom: 1px solid hsl(var(--border));
+  border-right: 1px solid hsl(var(--border));
   text-align: center;
 }
 
-/* Vertical lines between team columns in header */
-.booking-calendar .rbc-header + .rbc-header {
-  border-left: 1px solid hsl(var(--border));
+.booking-calendar .rbc-header:last-child {
+  border-right: none;
 }
 
 .booking-calendar .rbc-row-resource .rbc-header {
   padding: 16px 8px;
 }
 
-/* Time header gutter */
+/* Time header gutter - glassmorphism */
 .booking-calendar .rbc-time-header-gutter {
-  background: hsl(var(--background));
+  background: hsl(var(--background) / 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-right: 1px solid hsl(var(--border));
   min-width: 50px;
 }
 
-/* ===== TIME GUTTER (left column) ===== */
+/* ===== TIME GUTTER (left column) - glassmorphism ===== */
 .booking-calendar .rbc-time-gutter {
-  background: hsl(var(--background));
+  background: hsl(var(--background) / 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-right: 1px solid hsl(var(--border));
   min-width: 50px;
+  position: relative;
+  z-index: 2;
 }
 
 .booking-calendar .rbc-label {
@@ -134,7 +141,7 @@
 
 /* Horizontal lines - half hour (lighter) */
 .booking-calendar .rbc-time-slot {
-  border-top: 1px solid hsl(var(--border) / 0.5) !important;
+  border-top: 1px solid hsl(var(--border) / 0.3) !important;
 }
 
 .booking-calendar .rbc-time-slot:first-child {
@@ -150,22 +157,26 @@
   border-left: none;
 }
 
+/* Ensure grid lines in time content area */
+.booking-calendar .rbc-time-content {
+  border-top: 1px solid hsl(var(--border));
+}
+
 /* ===== EVENTS ===== */
 .booking-calendar .rbc-event {
   background: #4eb8d5 !important;
   border: none !important;
-  border-left: 3px solid #3a9cb8 !important;
-  border-radius: 4px !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  border-radius: 6px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
   cursor: pointer;
   padding: 4px 8px !important;
-  margin: 1px 4px !important;
+  margin: 0 !important;
   font-size: 12px;
   color: white;
 }
 
 .booking-calendar .rbc-event:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 .booking-calendar .rbc-event-content {
@@ -179,28 +190,18 @@
   display: none;
 }
 
-/* Events container */
+/* Events container - center events */
 .booking-calendar .rbc-day-slot .rbc-events-container {
-  margin-right: 0;
+  margin: 0 2px;
 }
 
 /* ===== OTHER ===== */
 
-/* Current time indicator */
+/* Current time indicator - clean line */
 .booking-calendar .rbc-current-time-indicator {
   background-color: #ef4444;
   height: 2px;
-}
-
-.booking-calendar .rbc-current-time-indicator::before {
-  content: '';
-  position: absolute;
-  left: -5px;
-  top: -4px;
-  width: 10px;
-  height: 10px;
-  background: #ef4444;
-  border-radius: 50%;
+  z-index: 10;
 }
 
 /* Today background */
