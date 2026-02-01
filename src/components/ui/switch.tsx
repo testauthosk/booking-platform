@@ -12,28 +12,70 @@ function Switch({
   return (
     <SwitchPrimitive.Root
       className={cn(
-        // iOS-style switch - правильные пропорции
-        "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full",
+        "peer inline-flex shrink-0 cursor-pointer items-center rounded-full",
         "transition-colors duration-200 ease-in-out",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         "disabled:cursor-not-allowed disabled:opacity-50",
-        // Colors - зеленый когда включен, серый когда выключен
         "data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-300",
         className
       )}
+      style={{
+        width: '51px',
+        height: '31px',
+        minWidth: '51px',
+        minHeight: '31px',
+        padding: '2px',
+      }}
       {...props}
     >
       <SwitchPrimitive.Thumb
-        className={cn(
-          // Круглый thumb
-          "pointer-events-none block h-5 w-5 rounded-full bg-white shadow-md",
-          "transition-transform duration-200 ease-in-out",
-          // Движение
-          "data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0.5"
-        )}
+        className="pointer-events-none block rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out"
+        style={{
+          width: '27px',
+          height: '27px',
+          transform: 'translateX(var(--switch-thumb-x, 0))',
+        }}
+        data-state={props.checked ? 'checked' : 'unchecked'}
       />
     </SwitchPrimitive.Root>
   )
 }
 
-export { Switch }
+// Добавляем CSS для анимации
+const SwitchWithStyles = React.forwardRef<
+  React.ElementRef<typeof SwitchPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof SwitchPrimitive.Root>
+>(({ className, ...props }, ref) => (
+  <SwitchPrimitive.Root
+    className={cn(
+      "peer inline-flex shrink-0 cursor-pointer items-center rounded-full",
+      "transition-colors duration-200 ease-in-out",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      "disabled:cursor-not-allowed disabled:opacity-50",
+      "data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-300",
+      className
+    )}
+    style={{
+      width: '51px',
+      height: '31px',
+      padding: '2px',
+    }}
+    ref={ref}
+    {...props}
+  >
+    <SwitchPrimitive.Thumb
+      className={cn(
+        "pointer-events-none block rounded-full bg-white shadow-md",
+        "transition-transform duration-200 ease-in-out",
+        "data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+      )}
+      style={{
+        width: '27px',
+        height: '27px',
+      }}
+    />
+  </SwitchPrimitive.Root>
+))
+SwitchWithStyles.displayName = "Switch"
+
+export { SwitchWithStyles as Switch }
