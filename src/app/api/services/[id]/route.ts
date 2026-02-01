@@ -4,11 +4,13 @@ import { prisma } from '@/lib/prisma';
 // GET /api/services/[id]
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+    
     const service = await prisma.service.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         category: true,
         masters: {
@@ -31,9 +33,10 @@ export async function GET(
 // PATCH /api/services/[id] - обновить услугу
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const {
       categoryId,
@@ -47,7 +50,7 @@ export async function PATCH(
     } = body;
 
     const service = await prisma.service.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(categoryId !== undefined && { categoryId: categoryId || null }),
         ...(name !== undefined && { name }),
@@ -73,12 +76,14 @@ export async function PATCH(
 // DELETE /api/services/[id] - мягкое удаление (isActive = false)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+    
     // Мягкое удаление
     await prisma.service.update({
-      where: { id: params.id },
+      where: { id },
       data: { isActive: false },
     });
 

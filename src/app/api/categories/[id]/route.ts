@@ -4,11 +4,13 @@ import { prisma } from '@/lib/prisma';
 // GET /api/categories/[id]
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+    
     const category = await prisma.serviceCategory.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         services: {
           where: { isActive: true },
@@ -31,14 +33,15 @@ export async function GET(
 // PATCH /api/categories/[id] - обновить категорию
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const { name, sortOrder } = body;
 
     const category = await prisma.serviceCategory.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(name !== undefined && { name }),
         ...(sortOrder !== undefined && { sortOrder }),
@@ -55,17 +58,19 @@ export async function PATCH(
 // DELETE /api/categories/[id]
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+    
     // Сначала обнулим categoryId у услуг
     await prisma.service.updateMany({
-      where: { categoryId: params.id },
+      where: { categoryId: id },
       data: { categoryId: null },
     });
 
     await prisma.serviceCategory.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ success: true });
