@@ -120,12 +120,33 @@ export function BookingCalendar({
     agendaDateFormat: (date: Date) => format(date, 'd MMMM', { locale: uk }),
   }), []);
 
-  // Custom event component
+  // Check if touch device
+  const isTouchDevice = typeof window !== 'undefined' && 
+    ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
+  // Custom event component with long-press resize zones for mobile
   const EventComponent = ({ event }: { event: BookingEvent }) => (
-    <div className="h-full overflow-hidden">
-      <div className="font-medium truncate">{event.title}</div>
-      {event.clientName && (
-        <div className="text-xs opacity-90 truncate">{event.clientName}</div>
+    <div className="h-full overflow-hidden relative group">
+      {/* Top resize zone - mobile only */}
+      {isTouchDevice && (
+        <div className="absolute top-0 left-0 right-0 h-5 z-10 flex items-start justify-center pt-0.5 opacity-0 group-active:opacity-100 transition-opacity">
+          <div className="w-8 h-1 bg-white/60 rounded-full" />
+        </div>
+      )}
+      
+      {/* Content */}
+      <div className="px-1.5 py-1">
+        <div className="font-medium truncate text-xs">{event.title}</div>
+        {event.clientName && (
+          <div className="text-xs opacity-90 truncate">{event.clientName}</div>
+        )}
+      </div>
+      
+      {/* Bottom resize zone - mobile only */}
+      {isTouchDevice && (
+        <div className="absolute bottom-0 left-0 right-0 h-5 z-10 flex items-end justify-center pb-0.5 opacity-0 group-active:opacity-100 transition-opacity">
+          <div className="w-8 h-1 bg-white/60 rounded-full" />
+        </div>
       )}
     </div>
   );
