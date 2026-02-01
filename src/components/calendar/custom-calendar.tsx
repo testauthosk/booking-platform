@@ -41,13 +41,14 @@ export function CustomCalendar({
   onSlotClick,
   dayStart = 8,
   dayEnd = 21,
-  slotDuration = 15,
+  slotDuration = 30,
 }: CustomCalendarProps) {
-  // Генерируем слоты только для отображения линий (каждые 30 мин визуально)
-  const hourSlots = useMemo(() => {
-    const slots: number[] = [];
+  // Генерируем слоты - каждые 30 мин
+  const timeSlots = useMemo(() => {
+    const slots: string[] = [];
     for (let hour = dayStart; hour < dayEnd; hour++) {
-      slots.push(hour);
+      slots.push(`${hour.toString().padStart(2, '0')}:00`);
+      slots.push(`${hour.toString().padStart(2, '0')}:30`);
     }
     return slots;
   }, [dayStart, dayEnd]);
@@ -64,25 +65,22 @@ export function CustomCalendar({
     const endHour = event.end.getHours();
     const endMin = event.end.getMinutes();
     
-    // Позиция в процентах от начала дня
-    const totalMinutes = (dayEnd - dayStart) * 60;
-    const startMinFromDayStart = (startHour - dayStart) * 60 + startMin;
-    const endMinFromDayStart = (endHour - dayStart) * 60 + endMin;
+    const startSlot = (startHour - dayStart) * 2 + (startMin >= 30 ? 1 : 0);
+    const endSlot = (endHour - dayStart) * 2 + (endMin > 30 ? 2 : endMin > 0 ? 1 : 0);
+    const slotCount = Math.max(1, endSlot - startSlot);
     
-    const topPercent = (startMinFromDayStart / totalMinutes) * 100;
-    const heightPercent = ((endMinFromDayStart - startMinFromDayStart) / totalMinutes) * 100;
-    
-    return { topPercent, heightPercent };
+    return { startSlot, slotCount };
   };
 
   const getEventsForResource = (resourceId: string) => {
     return events.filter(e => e.resourceId === resourceId);
   };
 
-  const handleSlotClick = (hour: number, minutes: number, resourceId: string) => {
+  const handleSlotClick = (time: string, resourceId: string) => {
     if (!onSlotClick) return;
+    const [hours, minutes] = time.split(':').map(Number);
     const start = new Date(currentDateStr);
-    start.setHours(hour, minutes, 0, 0);
+    start.setHours(hours, minutes, 0, 0);
     const end = new Date(start);
     end.setMinutes(end.getMinutes() + 30);
     onSlotClick({ start, end, resourceId });
@@ -92,137 +90,142 @@ export function CustomCalendar({
   const currentHour = now.getHours();
   const currentMin = now.getMinutes();
   
-  // Позиция индикатора в процентах
-  const totalMinutes = (dayEnd - dayStart) * 60;
-  const currentMinFromStart = (currentHour - dayStart) * 60 + currentMin;
-  const currentTimePercent = isToday && currentHour >= dayStart && currentHour < dayEnd
-    ? (currentMinFromStart / totalMinutes) * 100
+  const slotHeight = 32;
+  const headerHeight = 48;
+  const timeColWidth = 52;
+  
+  // Текущее время - позиция в пикселях
+  const currentTimeTop = isToday && currentHour >= dayStart && currentHour < dayEnd
+    ? ((currentHour - dayStart) * 60 + currentMin) / 30 * slotHeight
     : null;
-
-  const timeColWidth = 48;
-  const hourHeight = 60; // px на час
 
   return (
     <div className="h-full bg-background overflow-auto">
       <div 
         className="grid relative"
         style={{ 
-          gridTemplateColumns: `${timeColWidth}px repeat(${resources.length}, minmax(80px, 1fr))`,
-          minWidth: `${timeColWidth + resources.length * 80}px`,
+          gridTemplateColumns: `${timeColWidth}px repeat(${resources.length}, minmax(90px, 1fr))`,
+          minWidth: `${timeColWidth + resources.length * 90}px`,
         }}
       >
-        {/* HEADER */}
-        <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/50" style={{ height: 52 }} />
+        {/* HEADER ROW */}
+        <div 
+          className="sticky top-0 z-30 bg-background border-b border-border"
+          style={{ height: headerHeight }}
+        />
         {resources.map((resource) => (
           <div
             key={`header-${resource.id}`}
-            className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/50 flex items-center justify-center px-2"
-            style={{ height: 52 }}
+            className="sticky top-0 z-30 bg-background border-b border-l border-border flex items-center justify-center px-2"
+            style={{ height: headerHeight }}
           >
-            <span 
-              className="text-sm font-medium truncate"
-              style={{ color: resource.color }}
-            >
+            <span className="text-sm font-medium truncate" style={{ color: resource.color }}>
               {resource.title}
             </span>
           </div>
         ))}
 
-        {/* TIME COLUMN */}
+        {/* TIME SLOTS */}
+        {timeSlots.map((time, rowIdx) => {
+          const isFullHour = time.endsWith(':00');
+          
+          return (
+            <>
+              {/* Time label */}
+              <div
+                key={`time-${time}`}
+                className="sticky left-0 z-20 bg-background flex items-start justify-end pr-2"
+                style={{ 
+                  height: slotHeight,
+                  borderTop: isFullHour && rowIdx > 0 ? '1px solid hsl(var(--border) / 0.4)' : 'none',
+                }}
+              >
+                {isFullHour && (
+                  <span className="text-[11px] text-muted-foreground -mt-2">{time}</span>
+                )}
+              </div>
+
+              {/* Resource cells */}
+              {resources.map((resource) => (
+                <div
+                  key={`cell-${time}-${resource.id}`}
+                  className="border-l border-border hover:bg-muted/30 cursor-pointer transition-colors"
+                  style={{
+                    height: slotHeight,
+                    borderTop: isFullHour ? '1px solid hsl(var(--border) / 0.4)' : '1px solid hsl(var(--border) / 0.15)',
+                  }}
+                  onClick={() => handleSlotClick(time, resource.id)}
+                />
+              ))}
+            </>
+          );
+        })}
+
+        {/* EVENTS OVERLAY */}
         <div 
-          className="sticky left-0 z-20 bg-background/80"
-          style={{ gridRow: `2 / span ${hourSlots.length}` }}
+          className="absolute pointer-events-none"
+          style={{
+            top: headerHeight,
+            left: timeColWidth,
+            right: 0,
+            bottom: 0,
+            display: 'grid',
+            gridTemplateColumns: `repeat(${resources.length}, minmax(90px, 1fr))`,
+          }}
         >
-          {hourSlots.map((hour) => (
-            <div
-              key={`time-${hour}`}
-              className="flex items-start justify-end pr-2 pt-0"
-              style={{ height: hourHeight }}
-            >
-              <span className="text-[11px] text-muted-foreground/70 font-medium -mt-2">
-                {`${hour.toString().padStart(2, '0')}:00`}
-              </span>
+          {resources.map((resource) => (
+            <div key={`events-${resource.id}`} className="relative border-l border-border">
+              {getEventsForResource(resource.id).map((event) => {
+                const { startSlot, slotCount } = getEventPosition(event);
+                const top = startSlot * slotHeight;
+                const height = slotCount * slotHeight - 2;
+
+                return (
+                  <div
+                    key={event.id}
+                    className="absolute left-1 right-1 rounded-md overflow-hidden cursor-pointer pointer-events-auto shadow-sm hover:shadow-md transition-shadow"
+                    style={{
+                      top: `${top}px`,
+                      height: `${height}px`,
+                      backgroundColor: event.backgroundColor || '#4eb8d5',
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEventClick?.(event);
+                    }}
+                  >
+                    <div className="p-1.5 text-white text-xs h-full overflow-hidden">
+                      <div className="font-medium truncate">{event.clientName}</div>
+                      <div className="opacity-80 truncate text-[11px]">{event.title}</div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
 
-        {/* RESOURCE COLUMNS */}
-        {resources.map((resource, colIdx) => (
-          <div 
-            key={`col-${resource.id}`} 
-            className="relative"
-            style={{ gridRow: `2 / span ${hourSlots.length}` }}
-          >
-            {/* Hour grid lines */}
-            {hourSlots.map((hour, idx) => (
-              <div
-                key={`cell-${hour}-${resource.id}`}
-                className="border-l border-border/30 hover:bg-muted/30 cursor-pointer transition-colors"
-                style={{ 
-                  height: hourHeight,
-                  borderTop: idx === 0 ? 'none' : '1px solid hsl(var(--border) / 0.2)',
-                }}
-                onClick={() => handleSlotClick(hour, 0, resource.id)}
-              >
-                {/* Half-hour line */}
-                <div 
-                  className="absolute w-full border-t border-dashed border-border/15"
-                  style={{ top: hourHeight / 2 }}
-                />
-              </div>
-            ))}
-
-            {/* Events */}
-            {getEventsForResource(resource.id).map((event) => {
-              const { topPercent, heightPercent } = getEventPosition(event);
-              // Мягкие пастельные цвета
-              const bgColor = event.backgroundColor || '#4eb8d5';
-              
-              return (
-                <div
-                  key={event.id}
-                  className="absolute left-1 right-1 rounded-lg overflow-hidden cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] hover:z-10"
-                  style={{
-                    top: `${topPercent}%`,
-                    height: `${heightPercent}%`,
-                    minHeight: 24,
-                    backgroundColor: bgColor,
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)',
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEventClick?.(event);
-                  }}
-                >
-                  <div className="p-1.5 text-white h-full overflow-hidden">
-                    <div className="text-[11px] font-semibold truncate leading-tight">
-                      {event.clientName}
-                    </div>
-                    <div className="text-[10px] opacity-80 truncate leading-tight">
-                      {event.title}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ))}
-
         {/* Current time indicator */}
-        {currentTimePercent !== null && (
-          <div 
-            className="absolute z-40 flex items-center pointer-events-none"
-            style={{ 
-              top: `calc(52px + ${currentTimePercent}%)`,
-              left: 0,
-              right: 0,
-            }}
-          >
-            <div className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-r-md font-medium shadow-sm">
+        {currentTimeTop !== null && (
+          <>
+            <div 
+              className="absolute z-40 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-r font-medium"
+              style={{ 
+                top: headerHeight + currentTimeTop - 8,
+                left: 0,
+              }}
+            >
               {`${currentHour.toString().padStart(2, '0')}:${currentMin.toString().padStart(2, '0')}`}
             </div>
-            <div className="flex-1 h-[2px] bg-red-500 shadow-sm" style={{ marginLeft: timeColWidth - 36 }} />
-          </div>
+            <div 
+              className="absolute h-0.5 bg-red-500 z-30"
+              style={{ 
+                top: headerHeight + currentTimeTop,
+                left: timeColWidth,
+                right: 0,
+              }}
+            />
+          </>
         )}
       </div>
     </div>
