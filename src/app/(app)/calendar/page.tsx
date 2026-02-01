@@ -4,95 +4,82 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Menu, Bell, Plus } from 'lucide-react';
 import { useSidebar } from '@/components/sidebar-context';
-import { BookingCalendar } from '@/components/calendar/booking-calendar';
+import { BookingCalendar, BookingEvent, Resource } from '@/components/calendar/booking-calendar';
 import '@/components/calendar/calendar-styles.css';
 
-// Demo data
-const demoEvents = [
+// Demo resources (team members)
+const demoResources: Resource[] = [
+  { id: '1', title: "Don't Pursue", color: '#f97316' },
+  { id: '2', title: 'Wendy Smith', color: '#ec4899' },
+];
+
+// Demo events
+const today = new Date();
+const todayStr = today.toISOString().split('T')[0];
+
+const demoEvents: BookingEvent[] = [
   {
     id: '1',
     title: 'Стрижка',
-    start: new Date().toISOString().split('T')[0] + 'T10:00:00',
-    end: new Date().toISOString().split('T')[0] + 'T11:00:00',
+    start: new Date(`${todayStr}T10:00:00`),
+    end: new Date(`${todayStr}T11:00:00`),
+    resourceId: '1',
     backgroundColor: '#f97316',
-    extendedProps: {
-      clientName: 'John Doe',
-      clientPhone: '+380 99 123 4567',
-      serviceName: 'Стрижка',
-      masterName: "Don't Pursue",
-      status: 'confirmed',
-    },
+    clientName: 'John Doe',
+    clientPhone: '+380 99 123 4567',
+    serviceName: 'Стрижка',
+    masterName: "Don't Pursue",
+    status: 'confirmed',
   },
   {
     id: '2',
     title: 'Фарбування',
-    start: new Date().toISOString().split('T')[0] + 'T14:00:00',
-    end: new Date().toISOString().split('T')[0] + 'T16:30:00',
+    start: new Date(`${todayStr}T14:00:00`),
+    end: new Date(`${todayStr}T16:30:00`),
+    resourceId: '2',
     backgroundColor: '#ec4899',
-    extendedProps: {
-      clientName: 'Jane Smith',
-      clientPhone: '+380 67 234 5678',
-      serviceName: 'Фарбування волосся',
-      masterName: 'Wendy Smith',
-      status: 'confirmed',
-    },
+    clientName: 'Jane Smith',
+    clientPhone: '+380 67 234 5678',
+    serviceName: 'Фарбування волосся',
+    masterName: 'Wendy Smith',
+    status: 'confirmed',
   },
   {
     id: '3',
     title: 'Манікюр',
-    start: new Date().toISOString().split('T')[0] + 'T11:30:00',
-    end: new Date().toISOString().split('T')[0] + 'T12:30:00',
+    start: new Date(`${todayStr}T11:30:00`),
+    end: new Date(`${todayStr}T12:30:00`),
+    resourceId: '1',
     backgroundColor: '#8b5cf6',
-    extendedProps: {
-      clientName: 'Alex Brown',
-      clientPhone: '+380 50 345 6789',
-      serviceName: 'Манікюр',
-      masterName: "Don't Pursue",
-      status: 'pending',
-    },
+    clientName: 'Alex Brown',
+    clientPhone: '+380 50 345 6789',
+    serviceName: 'Манікюр',
+    masterName: "Don't Pursue",
+    status: 'pending',
   },
 ];
-
-// Resources disabled - requires premium FullCalendar license
-// const demoResources = [
-//   { id: '1', title: "Don't Pursue", eventColor: '#f97316' },
-//   { id: '2', title: 'Wendy Smith', eventColor: '#ec4899' },
-// ];
 
 export default function CalendarPage() {
   const { open: openSidebar } = useSidebar();
   const [events, setEvents] = useState(demoEvents);
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
 
-  const handleEventClick = (event: any) => {
-    setSelectedEvent(event);
-    // TODO: Open event details modal
+  const handleEventClick = (event: BookingEvent) => {
     console.log('Event clicked:', event);
+    // TODO: Open event details modal
   };
 
-  const handleDateClick = (date: Date) => {
+  const handleSlotClick = (slotInfo: { start: Date; end: Date; resourceId?: string }) => {
+    console.log('Slot clicked:', slotInfo);
     // TODO: Open new booking modal
-    console.log('Date clicked:', date);
   };
 
-  const handleEventDrop = (event: any, newStart: Date, newEnd: Date) => {
-    // Update event in state
+  const handleEventDrop = (event: BookingEvent, start: Date, end: Date, resourceId?: string) => {
     setEvents(prev => prev.map(e => 
       e.id === event.id 
-        ? { ...e, start: newStart.toISOString(), end: newEnd.toISOString() }
+        ? { ...e, start, end, resourceId: resourceId || e.resourceId }
         : e
     ));
-    console.log('Event moved:', event.id, 'to', newStart);
-  };
-
-  const handleEventResize = (event: any, newStart: Date, newEnd: Date) => {
-    // Update event in state
-    setEvents(prev => prev.map(e => 
-      e.id === event.id 
-        ? { ...e, start: newStart.toISOString(), end: newEnd.toISOString() }
-        : e
-    ));
-    console.log('Event resized:', event.id);
+    console.log('Event moved:', event.id);
   };
 
   return (
@@ -122,16 +109,14 @@ export default function CalendarPage() {
       </header>
 
       {/* Calendar */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden p-2 lg:p-4">
         <BookingCalendar
           events={events}
+          resources={demoResources}
           onEventClick={handleEventClick}
-          onDateClick={handleDateClick}
+          onSlotClick={handleSlotClick}
           onEventDrop={handleEventDrop}
-          onEventResize={handleEventResize}
-          initialView="timeGridDay"
-          slotMinTime="08:00:00"
-          slotMaxTime="21:00:00"
+          defaultView="day"
         />
       </div>
 

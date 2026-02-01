@@ -10,11 +10,6 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@fullcalendar/core": "^6.1.20",
-    "@fullcalendar/daygrid": "^6.1.20",
-    "@fullcalendar/interaction": "^6.1.20",
-    "@fullcalendar/react": "^6.1.20",
-    "@fullcalendar/timegrid": "^6.1.20",
     "@prisma/client": "^5.22.0",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-label": "^2.1.8",
@@ -31,6 +26,7 @@
     "next-themes": "^0.4.6",
     "prisma": "^5.22.0",
     "react": "19.2.3",
+    "react-big-calendar": "^1.19.4",
     "react-day-picker": "^9.13.0",
     "react-dom": "19.2.3",
     "tailwind-merge": "^3.4.0"

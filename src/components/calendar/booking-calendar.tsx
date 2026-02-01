@@ -1,172 +1,163 @@
 'use client';
 
-import { useState } from 'react';
-import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import timeGridPlugin from '@fullcalendar/timegrid';
-import interactionPlugin from '@fullcalendar/interaction';
-// Resource plugin requires premium license - disabled for now
-// import resourceTimeGridPlugin from '@fullcalendar/resource-timegrid';
-import { ukLocale } from './uk-locale';
+import { useState, useCallback, useMemo } from 'react';
+import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
+import { format, parse, startOfWeek, getDay } from 'date-fns';
+import { uk } from 'date-fns/locale';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
 
-interface BookingEvent {
+const locales = { 'uk': uk };
+
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek: () => startOfWeek(new Date(), { weekStartsOn: 1 }),
+  getDay,
+  locales,
+});
+
+export interface BookingEvent {
   id: string;
   title: string;
-  start: string;
-  end: string;
+  start: Date;
+  end: Date;
   resourceId?: string;
   backgroundColor?: string;
-  borderColor?: string;
-  extendedProps?: {
-    clientName?: string;
-    clientPhone?: string;
-    serviceName?: string;
-    status?: string;
-  };
+  clientName?: string;
+  clientPhone?: string;
+  serviceName?: string;
+  masterName?: string;
+  status?: string;
 }
 
-interface Resource {
+export interface Resource {
   id: string;
   title: string;
-  eventColor?: string;
+  color?: string;
 }
 
 interface BookingCalendarProps {
   events?: BookingEvent[];
   resources?: Resource[];
   onEventClick?: (event: BookingEvent) => void;
-  onDateClick?: (date: Date) => void;
-  onEventDrop?: (event: BookingEvent, newStart: Date, newEnd: Date) => void;
-  onEventResize?: (event: BookingEvent, newStart: Date, newEnd: Date) => void;
-  initialView?: 'timeGridDay' | 'timeGridWeek' | 'dayGridMonth' | 'resourceTimeGridDay';
-  slotMinTime?: string;
-  slotMaxTime?: string;
+  onSlotClick?: (slotInfo: { start: Date; end: Date; resourceId?: string }) => void;
+  onEventDrop?: (event: BookingEvent, start: Date, end: Date, resourceId?: string) => void;
+  defaultView?: 'day' | 'week' | 'month';
+  minTime?: Date;
+  maxTime?: Date;
 }
 
 export function BookingCalendar({
   events = [],
   resources = [],
   onEventClick,
-  onDateClick,
+  onSlotClick,
   onEventDrop,
-  onEventResize,
-  initialView = 'timeGridDay',
-  slotMinTime = '08:00:00',
-  slotMaxTime = '21:00:00',
+  defaultView = 'day',
+  minTime = new Date(1970, 1, 1, 8, 0, 0),
+  maxTime = new Date(1970, 1, 1, 21, 0, 0),
 }: BookingCalendarProps) {
-  const [currentView, setCurrentView] = useState(initialView);
+  const [view, setView] = useState(defaultView);
+  const [date, setDate] = useState(new Date());
 
-  const handleEventClick = (info: any) => {
-    if (onEventClick) {
-      onEventClick({
-        id: info.event.id,
-        title: info.event.title,
-        start: info.event.startStr,
-        end: info.event.endStr,
-        resourceId: info.event.getResources()[0]?.id,
-        extendedProps: info.event.extendedProps,
-      });
-    }
-  };
+  const handleSelectEvent = useCallback((event: BookingEvent) => {
+    onEventClick?.(event);
+  }, [onEventClick]);
 
-  const handleDateClick = (info: any) => {
-    if (onDateClick) {
-      onDateClick(info.date);
-    }
-  };
+  const handleSelectSlot = useCallback((slotInfo: any) => {
+    onSlotClick?.({
+      start: slotInfo.start,
+      end: slotInfo.end,
+      resourceId: slotInfo.resourceId,
+    });
+  }, [onSlotClick]);
 
-  const handleEventDrop = (info: any) => {
-    if (onEventDrop) {
-      onEventDrop(
-        {
-          id: info.event.id,
-          title: info.event.title,
-          start: info.oldEvent.startStr,
-          end: info.oldEvent.endStr,
-          extendedProps: info.event.extendedProps,
-        },
-        info.event.start,
-        info.event.end
-      );
-    }
-  };
+  const handleEventDrop = useCallback(({ event, start, end, resourceId }: any) => {
+    onEventDrop?.(event, start, end, resourceId);
+  }, [onEventDrop]);
 
-  const handleEventResize = (info: any) => {
-    if (onEventResize) {
-      onEventResize(
-        {
-          id: info.event.id,
-          title: info.event.title,
-          start: info.oldEvent.startStr,
-          end: info.oldEvent.endStr,
-          extendedProps: info.event.extendedProps,
-        },
-        info.event.start,
-        info.event.end
-      );
-    }
-  };
+  const eventStyleGetter = useCallback((event: BookingEvent) => {
+    return {
+      style: {
+        backgroundColor: event.backgroundColor || '#8b5cf6',
+        borderRadius: '6px',
+        border: 'none',
+        color: 'white',
+        fontSize: '12px',
+        padding: '2px 6px',
+      },
+    };
+  }, []);
 
-  // Using free plugins only (resource plugin requires premium license)
-  const plugins = [dayGridPlugin, timeGridPlugin, interactionPlugin];
+  const messages = useMemo(() => ({
+    today: 'Сьогодні',
+    previous: '‹',
+    next: '›',
+    month: 'Місяць',
+    week: 'Тиждень',
+    day: 'День',
+    agenda: 'Список',
+    date: 'Дата',
+    time: 'Час',
+    event: 'Подія',
+    noEventsInRange: 'Немає записів',
+    showMore: (total: number) => `+${total} ще`,
+  }), []);
+
+  const formats = useMemo(() => ({
+    timeGutterFormat: 'HH:mm',
+    eventTimeRangeFormat: ({ start, end }: { start: Date; end: Date }) =>
+      `${format(start, 'HH:mm')} - ${format(end, 'HH:mm')}`,
+    dayHeaderFormat: 'EEEE, d MMMM',
+    dayRangeHeaderFormat: ({ start, end }: { start: Date; end: Date }) =>
+      `${format(start, 'd MMM')} - ${format(end, 'd MMM yyyy')}`,
+  }), []);
+
+  // Custom event component
+  const EventComponent = ({ event }: { event: BookingEvent }) => (
+    <div className="h-full overflow-hidden">
+      <div className="font-medium truncate">{event.title}</div>
+      {event.clientName && (
+        <div className="text-xs opacity-90 truncate">{event.clientName}</div>
+      )}
+    </div>
+  );
+
+  const viewConfig = resources.length > 0 ? Views.DAY : view;
 
   return (
-    <div className="fc-wrapper h-full">
-      <FullCalendar
-        plugins={plugins}
-        initialView={currentView}
-        locale={ukLocale}
-        headerToolbar={{
-          left: 'prev,next today',
-          center: 'title',
-          right: 'timeGridDay,timeGridWeek,dayGridMonth'
-        }}
-        buttonText={{
-          today: 'Сьогодні',
-          day: 'День',
-          week: 'Тиждень',
-          month: 'Місяць',
-        }}
+    <div className="h-full booking-calendar">
+      <Calendar
+        localizer={localizer}
         events={events}
-        // resources disabled - requires premium license
-        editable={true}
-        droppable={true}
-        selectable={true}
-        selectMirror={true}
-        dayMaxEvents={true}
-        weekends={true}
-        nowIndicator={true}
-        slotMinTime={slotMinTime}
-        slotMaxTime={slotMaxTime}
-        slotDuration="00:15:00"
-        slotLabelInterval="01:00:00"
-        slotLabelFormat={{
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
+        resources={resources.length > 0 ? resources : undefined}
+        resourceIdAccessor="id"
+        resourceTitleAccessor="title"
+        startAccessor="start"
+        endAccessor="end"
+        view={viewConfig}
+        onView={(v: any) => setView(v)}
+        date={date}
+        onNavigate={setDate}
+        selectable
+        resizable
+        onSelectEvent={handleSelectEvent}
+        onSelectSlot={handleSelectSlot}
+        onEventDrop={handleEventDrop}
+        eventPropGetter={eventStyleGetter}
+        messages={messages}
+        formats={formats}
+        min={minTime}
+        max={maxTime}
+        step={15}
+        timeslots={4}
+        defaultView={Views.DAY}
+        views={resources.length > 0 ? [Views.DAY] : [Views.DAY, Views.WEEK, Views.MONTH]}
+        components={{
+          event: EventComponent,
         }}
-        eventTimeFormat={{
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
-        }}
-        allDaySlot={false}
-        height="100%"
-        stickyHeaderDates={true}
-        eventClick={handleEventClick}
-        dateClick={handleDateClick}
-        eventDrop={handleEventDrop}
-        eventResize={handleEventResize}
-        eventContent={(eventInfo) => (
-          <div className="fc-event-content p-1 overflow-hidden">
-            <div className="font-medium text-xs truncate">{eventInfo.event.title}</div>
-            {eventInfo.event.extendedProps.clientName && (
-              <div className="text-xs opacity-80 truncate">
-                {eventInfo.event.extendedProps.clientName}
-              </div>
-            )}
-          </div>
-        )}
+        popup
+        showMultiDayTimes
       />
     </div>
   );
