@@ -844,3 +844,38 @@ button,
 [data-slot="dialog-content"][data-state="closed"] {
   animation: dialogSlideOut var(--animation-duration-fast) var(--animation-easing) forwards;
 }
+
+/* Select dropdown animations - плавное появление вниз */
+@keyframes selectSlideDown {
+  from {
+    opacity: 0;
+    transform: scaleY(0.9) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1) translateY(0);
+  }
+}
+
+@keyframes selectSlideUp {
+  from {
+    opacity: 1;
+    transform: scaleY(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scaleY(0.9) translateY(-8px);
+  }
+}
+
+[data-slot="select-content"] {
+  transform-origin: top center;
+}
+
+[data-slot="select-content"][data-state="open"] {
+  animation: selectSlideDown var(--animation-duration, 0.5s) var(--animation-easing, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+}
+
+[data-slot="select-content"][data-state="closed"] {
+  animation: selectSlideUp var(--animation-duration-fast, 0.35s) var(--animation-easing, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+}
