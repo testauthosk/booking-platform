@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -17,18 +19,42 @@ import { useSidebar } from '@/components/sidebar-context';
 import { cn } from '@/lib/utils';
 
 export default function CalendarPage() {
-  const [currentDate] = useState(new Date());
+  const router = useRouter();
+  const [currentDate, setCurrentDate] = useState(new Date());
   const { open: openSidebar } = useSidebar();
   
   const hours = Array.from({ length: 24 }, (_, i) => 
     `${i.toString().padStart(2, '0')}:00`
   );
 
+  // Date navigation
+  const goToPrevDay = () => {
+    setCurrentDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setDate(newDate.getDate() - 1);
+      return newDate;
+    });
+  };
+
+  const goToNextDay = () => {
+    setCurrentDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setDate(newDate.getDate() + 1);
+      return newDate;
+    });
+  };
+
+  const goToToday = () => {
+    setCurrentDate(new Date());
+  };
+
   const formattedDate = currentDate.toLocaleDateString('uk-UA', { 
     weekday: 'short', 
     day: 'numeric', 
     month: 'short' 
   });
+
+  const isToday = currentDate.toDateString() === new Date().toDateString();
 
   // For demo - show empty state
   const hasBookings = false;
@@ -46,11 +72,29 @@ export default function CalendarPage() {
           <Menu className="h-5 w-5" />
         </Button>
         
-        {/* Date dropdown style */}
-        <button className="flex items-center gap-1 hover:bg-muted px-2 py-1 rounded-lg transition-colors">
-          <span className="text-sm font-medium">{formattedDate}</span>
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-        </button>
+        {/* Date navigation */}
+        <div className="flex items-center">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 transition-transform active:scale-95"
+            onClick={goToPrevDay}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <button className="flex items-center gap-1 hover:bg-muted px-2 py-1 rounded-lg transition-colors">
+            <span className="text-sm font-medium">{formattedDate}</span>
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          </button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 transition-transform active:scale-95"
+            onClick={goToNextDay}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
 
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" className="h-9 w-9 transition-transform active:scale-95">
@@ -70,24 +114,42 @@ export default function CalendarPage() {
       {/* Desktop header */}
       <div className="hidden lg:flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm">Сьогодні</Button>
+          <Button 
+            variant={isToday ? "secondary" : "outline"} 
+            size="sm"
+            onClick={goToToday}
+          >
+            Сьогодні
+          </Button>
           <div className="flex items-center">
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8"
+              onClick={goToPrevDay}
+            >
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <button className="flex items-center gap-1 hover:bg-muted px-3 py-1.5 rounded-lg transition-colors">
               <span className="font-medium">{formattedDate}</span>
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </button>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8"
+              onClick={goToNextDay}
+            >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Users className="h-4 w-4 mr-2" />
-            Команда
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/team">
+              <Users className="h-4 w-4 mr-2" />
+              Команда
+            </Link>
           </Button>
           <Button variant="outline" size="sm">День</Button>
         </div>
@@ -119,25 +181,28 @@ export default function CalendarPage() {
               Додайте вільні дати в команду, керуючи запланованими змінами
             </p>
             <div className="flex flex-col gap-2 w-full max-w-[240px]">
-              <Button variant="outline" className="w-full rounded-full">
-                Графік змін
+              <Button variant="outline" className="w-full rounded-full" asChild>
+                <Link href="/team">Графік змін</Link>
               </Button>
-              <Button variant="outline" className="w-full rounded-full">
-                Переглянути всіх співробітників
+              <Button variant="outline" className="w-full rounded-full" asChild>
+                <Link href="/team">Переглянути всіх співробітників</Link>
               </Button>
             </div>
           </div>
         )}
 
-        {/* Floating Action Button */}
-        <button className={cn(
-          "fixed right-4 z-30 w-12 h-12 rounded-full bg-muted shadow-lg",
-          "flex items-center justify-center",
-          "transition-all duration-200 hover:scale-105 active:scale-95",
-          "bottom-24 lg:bottom-6"
-        )}>
+        {/* Floating Action Button - go to team */}
+        <Link 
+          href="/team"
+          className={cn(
+            "fixed right-4 z-30 w-12 h-12 rounded-full bg-muted shadow-lg",
+            "flex items-center justify-center",
+            "transition-all duration-200 hover:scale-105 active:scale-95",
+            "bottom-24 lg:bottom-6"
+          )}
+        >
           <Users className="h-5 w-5" />
-        </button>
+        </Link>
       </div>
     </div>
   );
