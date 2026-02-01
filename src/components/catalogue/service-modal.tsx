@@ -183,7 +183,7 @@ export function ServiceModal({
             <div className="space-y-2">
               <Label htmlFor="duration">Тривалість (хв)</Label>
               <Select value={duration} onValueChange={setDuration}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
