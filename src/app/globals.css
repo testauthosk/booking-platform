@@ -846,37 +846,15 @@ button,
 }
 
 /* Select dropdown animations - плавное появление вниз */
-/* Select dropdown slide animation - smooth slide from trigger */
-@keyframes selectSlideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes selectSlideUp {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-}
-
+/* Select dropdown - simple fade, no jerky animations */
 [data-slot="select-content"] {
-  transform-origin: top center;
-}
-
-[data-slot="select-content"][data-state="open"] {
-  animation: selectSlideDown 0.2s ease-out forwards;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
 }
 
 [data-slot="select-content"][data-state="closed"] {
-  animation: selectSlideUp 0.15s ease-in forwards;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
 }
