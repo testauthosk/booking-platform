@@ -846,25 +846,30 @@ button,
 }
 
 /* Select dropdown animations - плавное появление вниз */
+/* Select dropdown slide animation - extends from trigger as one unit */
 @keyframes selectSlideDown {
   from {
     opacity: 0;
-    transform: scaleY(0.9) translateY(-8px);
+    max-height: 0;
+    transform: scaleY(0);
   }
   to {
     opacity: 1;
-    transform: scaleY(1) translateY(0);
+    max-height: 320px;
+    transform: scaleY(1);
   }
 }
 
 @keyframes selectSlideUp {
   from {
     opacity: 1;
-    transform: scaleY(1) translateY(0);
+    max-height: 320px;
+    transform: scaleY(1);
   }
   to {
     opacity: 0;
-    transform: scaleY(0.9) translateY(-8px);
+    max-height: 0;
+    transform: scaleY(0);
   }
 }
 
@@ -873,9 +878,9 @@ button,
 }
 
 [data-slot="select-content"][data-state="open"] {
-  animation: selectSlideDown var(--animation-duration, 0.5s) var(--animation-easing, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+  animation: selectSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 [data-slot="select-content"][data-state="closed"] {
-  animation: selectSlideUp var(--animation-duration-fast, 0.35s) var(--animation-easing, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+  animation: selectSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
