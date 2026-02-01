@@ -678,7 +678,7 @@ Generated: {arch['generated_at']}
                 name = item.get("text", "unknown")
                 
                 try:
-                    await page.goto(href, wait_until="domcontentloaded", timeout=30000, timeout=30000)
+                    await page.goto(href, wait_until="domcontentloaded", timeout=30000)
                     await self.scan_page(page, name)
                 except Exception as e:
                     print(f"⚠️ Ошибка: {name} — {e}")
