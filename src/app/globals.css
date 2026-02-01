@@ -775,21 +775,21 @@ button,
 }
 
 
-/* Dialog animations */
-@keyframes fadeIn {
+/* Dialog animations - для Radix Dialog с центрированием через translate(-50%, -50%) */
+@keyframes dialogFadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-@keyframes fadeOut {
+@keyframes dialogFadeOut {
   from { opacity: 1; }
   to { opacity: 0; }
 }
 
-@keyframes slideUp {
+@keyframes dialogSlideIn {
   from {
     opacity: 0;
-    transform: translate(-50%, -48%) scale(0.96);
+    transform: translate(-50%, -48%) scale(0.95);
   }
   to {
     opacity: 1;
@@ -797,29 +797,30 @@ button,
   }
 }
 
-@keyframes slideDown {
+@keyframes dialogSlideOut {
   from {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
   }
   to {
     opacity: 0;
-    transform: translate(-50%, -48%) scale(0.96);
+    transform: translate(-50%, -48%) scale(0.95);
   }
 }
 
-.animate-fadeIn {
-  animation: fadeIn 0.2s ease-out forwards;
+/* Data-state based animations for Radix dialogs */
+[data-slot="dialog-overlay"][data-state="open"] {
+  animation: dialogFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.animate-fadeOut {
-  animation: fadeOut 0.15s ease-in forwards;
+[data-slot="dialog-overlay"][data-state="closed"] {
+  animation: dialogFadeOut 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.animate-slideUp {
-  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+[data-slot="dialog-content"][data-state="open"] {
+  animation: dialogSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.animate-slideDown {
-  animation: slideDown 0.2s ease-in forwards;
+[data-slot="dialog-content"][data-state="closed"] {
+  animation: dialogSlideOut 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

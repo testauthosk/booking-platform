@@ -39,8 +39,7 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-black/50",
-        "data-[state=open]:animate-fadeIn data-[state=closed]:animate-fadeOut",
+        "fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px]",
         className
       )}
       {...props}
@@ -64,8 +63,7 @@ function DialogContent({
         data-slot="dialog-content"
         onOpenAutoFocus={onOpenAutoFocus || ((e) => e.preventDefault())}
         className={cn(
-          "bg-background fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-xl border p-6 shadow-xl outline-none sm:max-w-lg",
-          "data-[state=open]:animate-slideUp data-[state=closed]:animate-slideDown",
+          "bg-background fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-xl border p-6 shadow-xl outline-none sm:max-w-lg",
           className
         )}
         {...props}
