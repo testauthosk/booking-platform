@@ -123,20 +123,31 @@
 /* Time slots - 30 min = taller slots */
 .booking-calendar .rbc-timeslot-group {
   min-height: 80px;
-  border-bottom: 1px solid hsl(var(--border));
 }
 
-.booking-calendar .rbc-time-slot {
+/* Hour lines - solid */
+.booking-calendar .rbc-time-content > * + * > * {
+  border-top: 1px solid hsl(var(--border));
+}
+
+/* Half-hour lines - dashed */
+.booking-calendar .rbc-day-slot .rbc-time-slot {
   border-top: 1px dashed hsl(var(--border) / 0.5);
 }
 
-.booking-calendar .rbc-day-slot .rbc-time-slot {
-  border-top: 1px dashed hsl(var(--border) / 0.4);
+.booking-calendar .rbc-day-slot .rbc-timeslot-group {
+  border-bottom: 1px solid hsl(var(--foreground) / 0.15);
 }
 
-/* Hour lines - more visible */
-.booking-calendar .rbc-day-slot .rbc-timeslot-group {
-  border-bottom: 1px solid hsl(var(--border));
+/* All horizontal borders visible */
+.booking-calendar .rbc-time-header-content,
+.booking-calendar .rbc-time-content {
+  border-left: 1px solid hsl(var(--border));
+}
+
+.booking-calendar .rbc-day-bg + .rbc-day-bg,
+.booking-calendar .rbc-day-slot + .rbc-day-slot {
+  border-left: 1px solid hsl(var(--border));
 }
 
 /* Day column */
@@ -175,6 +186,7 @@
   left: 2px !important;
   right: 2px !important;
   width: calc(100% - 4px) !important;
+  overflow: visible !important;
 }
 
 .booking-calendar .rbc-event:hover {
@@ -184,7 +196,7 @@
 .booking-calendar .rbc-event-content {
   font-size: 12px;
   line-height: 1.3;
-  padding: 4px 6px;
+  overflow: visible !important;
 }
 
 .booking-calendar .rbc-event-label {
@@ -194,6 +206,16 @@
 /* Remove default event overlap */
 .booking-calendar .rbc-day-slot .rbc-events-container {
   margin-right: 0 !important;
+  overflow: visible !important;
+}
+
+/* Allow resize handles to show outside event */
+.booking-calendar .rbc-day-slot {
+  overflow: visible !important;
+}
+
+.booking-calendar .rbc-timeslot-group {
+  overflow: visible !important;
 }
 
 /* Resize handles - top and bottom */

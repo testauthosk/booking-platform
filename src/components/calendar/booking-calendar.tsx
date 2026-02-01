@@ -124,28 +124,36 @@ export function BookingCalendar({
   const isTouchDevice = typeof window !== 'undefined' && 
     ('ontouchstart' in window || navigator.maxTouchPoints > 0);
 
-  // Custom event component with long-press resize zones for mobile
+  // Custom event component with resize handles for mobile
   const EventComponent = ({ event }: { event: BookingEvent }) => (
-    <div className="h-full overflow-hidden relative group">
-      {/* Top resize zone - mobile only */}
+    <div className="h-full overflow-hidden relative">
+      {/* Top resize handle - circle with arrow */}
       {isTouchDevice && (
-        <div className="absolute top-0 left-0 right-0 h-5 z-10 flex items-start justify-center pt-0.5 opacity-0 group-active:opacity-100 transition-opacity">
-          <div className="w-8 h-1 bg-white/60 rounded-full" />
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20">
+          <div className="w-6 h-6 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center">
+            <svg className="w-3 h-3 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            </svg>
+          </div>
         </div>
       )}
       
       {/* Content */}
-      <div className="px-1.5 py-1">
+      <div className="px-2 py-1.5 h-full">
         <div className="font-medium truncate text-xs">{event.title}</div>
         {event.clientName && (
           <div className="text-xs opacity-90 truncate">{event.clientName}</div>
         )}
       </div>
       
-      {/* Bottom resize zone - mobile only */}
+      {/* Bottom resize handle - circle with arrow */}
       {isTouchDevice && (
-        <div className="absolute bottom-0 left-0 right-0 h-5 z-10 flex items-end justify-center pb-0.5 opacity-0 group-active:opacity-100 transition-opacity">
-          <div className="w-8 h-1 bg-white/60 rounded-full" />
+        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-20">
+          <div className="w-6 h-6 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center">
+            <svg className="w-3 h-3 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
         </div>
       )}
     </div>
@@ -174,8 +182,8 @@ export function BookingCalendar({
         onEventDrop={handleEventDrop}
         onEventResize={handleEventDrop}
         eventPropGetter={eventStyleGetter}
-        draggableAccessor={() => true}
-        resizableAccessor={() => true}
+        draggableAccessor={() => !isTouchDevice}
+        resizableAccessor={() => !isTouchDevice}
         messages={messages}
         formats={formats}
         min={minTime}
