@@ -82,17 +82,24 @@
   font-size: 13px;
   color: hsl(var(--foreground));
   border-bottom: 1px solid hsl(var(--border));
+  border-left: 1px solid hsl(var(--border));
   background: hsl(var(--muted) / 0.3);
 }
 
-.booking-calendar .rbc-header + .rbc-header {
-  border-left: 1px solid hsl(var(--border));
+.booking-calendar .rbc-header:first-child {
+  border-left: none;
 }
 
 /* Resource header (for team columns) */
 .booking-calendar .rbc-row-resource .rbc-header {
   font-weight: 600;
   background: hsl(var(--muted) / 0.5);
+  border-left: 1px solid hsl(var(--border));
+}
+
+/* Time header gutter */
+.booking-calendar .rbc-time-header-gutter {
+  border-right: 1px solid hsl(var(--border));
 }
 
 /* Time column - glass effect */
