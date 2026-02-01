@@ -166,7 +166,7 @@ export function ServiceModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4 items-end">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="price">Ціна (₴) *</Label>
               <Input
@@ -177,14 +177,14 @@ export function ServiceModal({
                 placeholder="500"
                 min="0"
                 required
-                className="h-10"
+                className="h-[42px] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="duration">Тривалість (хв)</Label>
               <Select value={duration} onValueChange={setDuration}>
-                <SelectTrigger className="h-10">
+                <SelectTrigger className="h-[42px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
