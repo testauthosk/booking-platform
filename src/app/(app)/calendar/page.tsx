@@ -7,11 +7,11 @@ import { Menu, Bell, Plus } from 'lucide-react';
 import { useSidebar } from '@/components/sidebar-context';
 import { EventModal } from '@/components/calendar/event-modal';
 import { NewBookingModal } from '@/components/calendar/new-booking-modal';
-import type { BookingEvent, Resource } from '@/components/calendar/daypilot-calendar';
+import type { BookingEvent, Resource } from '@/components/calendar/planby-calendar';
 
-// Dynamic import for DayPilot (no SSR)
-const DayPilotBookingCalendar = dynamic(
-  () => import('@/components/calendar/daypilot-calendar').then(mod => mod.DayPilotBookingCalendar),
+// Dynamic import for Planby (no SSR)
+const PlanbyCalendar = dynamic(
+  () => import('@/components/calendar/planby-calendar').then(mod => mod.PlanbyCalendar),
   { ssr: false, loading: () => <div className="h-full flex items-center justify-center">Завантаження...</div> }
 );
 
@@ -218,12 +218,10 @@ export default function CalendarPage() {
 
       {/* Calendar */}
       <div className="flex-1 overflow-hidden p-2 lg:p-4">
-        <DayPilotBookingCalendar
+        <PlanbyCalendar
           events={events}
           resources={demoResources}
           onEventClick={handleEventClick}
-          onSlotClick={handleSlotClick}
-          onEventDrop={handleEventDrop}
         />
       </div>
 
