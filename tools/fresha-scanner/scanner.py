@@ -9,6 +9,7 @@ import json
 import os
 import re
 import hashlib
+import random
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse, urljoin
@@ -690,6 +691,11 @@ Generated: {arch['generated_at']}
                 name = item.get("text", "unknown")
                 
                 try:
+                    # Случайная задержка 2-5 сек как человек
+                    delay = random.uniform(2, 5)
+                    print(f"   ⏳ Жду {delay:.1f} сек...")
+                    await asyncio.sleep(delay)
+                    
                     await page.goto(href, wait_until="domcontentloaded", timeout=30000)
                     await self.scan_page(page, name)
                 except Exception as e:
