@@ -1,59 +1,237 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search, Plus, Filter, Menu, Bell, Clock, ChevronRight } from 'lucide-react';
+import {
+  Search,
+  Plus,
+  Menu,
+  Bell,
+  Clock,
+  ChevronRight,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  FolderPlus,
+  Loader2,
+} from 'lucide-react';
 import { useSidebar } from '@/components/sidebar-context';
-import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { ServiceModal } from '@/components/catalogue/service-modal';
+import { CategoryModal } from '@/components/catalogue/category-modal';
 
-const mockServices = [
-  { id: 1, name: 'Стрижка', duration: '45 хв', price: 40, category: 'Волосся' },
-  { id: 2, name: 'Колір волосся', duration: '1г 15хв', price: 57, category: 'Волосся' },
-  { id: 3, name: 'Укладка феном', duration: '35 хв', price: 35, category: 'Волосся' },
-  { id: 4, name: 'Балаяж', duration: '2г 30хв', price: 150, category: 'Волосся' },
-  { id: 5, name: 'Манікюр', duration: '1г', price: 25, category: 'Нігті' },
-  { id: 6, name: 'Педікюр', duration: '1г 30хв', price: 35, category: 'Нігті' },
-];
+// TODO: Получать из контекста авторизации
+const DEMO_SALON_ID = 'demo-salon-id';
 
-const categories = ['Всі', 'Волосся', 'Нігті'];
+interface Service {
+  id: string;
+  name: string;
+  description?: string;
+  categoryId?: string;
+  price: number;
+  priceFrom: boolean;
+  duration: number;
+  category?: Category;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  services?: Service[];
+}
+
+function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes} хв`;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (mins === 0) return `${hours} год`;
+  return `${hours} год ${mins} хв`;
+}
 
 export default function CataloguePage() {
   const { open: openSidebar } = useSidebar();
+  
+  // Data
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Filters
   const [search, setSearch] = useState('');
-  const [activeCategory, setActiveCategory] = useState('Всі');
+  const [activeCategory, setActiveCategory] = useState('all');
+  
+  // Modals
+  const [serviceModalOpen, setServiceModalOpen] = useState(false);
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [editingService, setEditingService] = useState<Service | null>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  
+  // Delete confirmation
+  const [deleteDialog, setDeleteDialog] = useState<{
+    type: 'service' | 'category';
+    id: string;
+    name: string;
+  } | null>(null);
 
-  const filteredServices = mockServices.filter(service => {
+  // Load data
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [catRes, svcRes] = await Promise.all([
+        fetch(`/api/categories?salonId=${DEMO_SALON_ID}`),
+        fetch(`/api/services?salonId=${DEMO_SALON_ID}`),
+      ]);
+      
+      if (catRes.ok) {
+        const catData = await catRes.json();
+        setCategories(catData);
+      }
+      
+      if (svcRes.ok) {
+        const svcData = await svcRes.json();
+        setServices(svcData);
+      }
+    } catch (error) {
+      console.error('Load error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter services
+  const filteredServices = services.filter((service) => {
     const matchesSearch = service.name.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = activeCategory === 'Всі' || service.category === activeCategory;
+    const matchesCategory =
+      activeCategory === 'all' || service.categoryId === activeCategory;
     return matchesSearch && matchesCategory;
   });
 
   // Group by category
   const groupedServices = filteredServices.reduce((acc, service) => {
-    if (!acc[service.category]) acc[service.category] = [];
-    acc[service.category].push(service);
+    const catId = service.categoryId || 'uncategorized';
+    const catName = service.category?.name || 'Без категорії';
+    if (!acc[catId]) {
+      acc[catId] = { name: catName, services: [] };
+    }
+    acc[catId].services.push(service);
     return acc;
-  }, {} as Record<string, typeof mockServices>);
+  }, {} as Record<string, { name: string; services: Service[] }>);
+
+  // Service CRUD
+  const handleSaveService = async (data: Partial<Service>) => {
+    const url = editingService
+      ? `/api/services/${editingService.id}`
+      : '/api/services';
+    const method = editingService ? 'PATCH' : 'POST';
+
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...data,
+        salonId: DEMO_SALON_ID,
+      }),
+    });
+
+    if (res.ok) {
+      await loadData();
+    } else {
+      throw new Error('Failed to save');
+    }
+  };
+
+  const handleDeleteService = async (id: string) => {
+    const res = await fetch(`/api/services/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      await loadData();
+    }
+  };
+
+  // Category CRUD
+  const handleSaveCategory = async (data: { name: string }) => {
+    const url = editingCategory
+      ? `/api/categories/${editingCategory.id}`
+      : '/api/categories';
+    const method = editingCategory ? 'PATCH' : 'POST';
+
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...data,
+        salonId: DEMO_SALON_ID,
+      }),
+    });
+
+    if (res.ok) {
+      await loadData();
+    } else {
+      throw new Error('Failed to save');
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      await loadData();
+    }
+  };
+
+  // Confirm delete
+  const confirmDelete = async () => {
+    if (!deleteDialog) return;
+    
+    if (deleteDialog.type === 'service') {
+      await handleDeleteService(deleteDialog.id);
+    } else {
+      await handleDeleteCategory(deleteDialog.id);
+    }
+    setDeleteDialog(null);
+  };
 
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Mobile header */}
       <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b bg-background sticky top-0 z-20">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-9 w-9 transition-transform active:scale-95" 
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 transition-transform active:scale-95"
           onClick={openSidebar}
         >
           <Menu className="h-5 w-5" />
         </Button>
-        
+
         <h1 className="text-base font-semibold">Каталог</h1>
 
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-9 w-9 relative transition-transform active:scale-95">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 relative transition-transform active:scale-95"
+          >
             <Bell className="h-5 w-5" />
             <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
           </Button>
@@ -73,93 +251,282 @@ export default function CataloguePage() {
               Переглядайте та керуйте послугами вашого закладу
             </p>
           </div>
-          <Button className="transition-transform active:scale-95">
-            <Plus className="h-4 w-4 mr-2" />
-            Додати
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditingCategory(null);
+                setCategoryModalOpen(true);
+              }}
+            >
+              <FolderPlus className="h-4 w-4 mr-2" />
+              Категорія
+            </Button>
+            <Button
+              onClick={() => {
+                setEditingService(null);
+                setServiceModalOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Послуга
+            </Button>
+          </div>
         </div>
 
         {/* Search */}
         <div className="flex gap-2 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Пошук послуги" 
-              className="pl-10" 
+            <Input
+              placeholder="Пошук послуги"
+              className="pl-10"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <Button variant="outline" size="icon" className="shrink-0 transition-transform active:scale-95">
-            <Filter className="h-4 w-4" />
-          </Button>
         </div>
 
-        {/* Categories */}
+        {/* Categories filter */}
         <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+          <Button
+            variant={activeCategory === 'all' ? 'secondary' : 'outline'}
+            size="sm"
+            className="shrink-0"
+            onClick={() => setActiveCategory('all')}
+          >
+            Всі ({services.length})
+          </Button>
           {categories.map((cat) => (
             <Button
-              key={cat}
-              variant={activeCategory === cat ? "secondary" : "outline"}
+              key={cat.id}
+              variant={activeCategory === cat.id ? 'secondary' : 'outline'}
               size="sm"
-              className="shrink-0 transition-transform active:scale-95"
-              onClick={() => setActiveCategory(cat)}
+              className="shrink-0"
+              onClick={() => setActiveCategory(cat.id)}
             >
-              {cat}
-              {cat === 'Всі' && ` (${mockServices.length})`}
+              {cat.name}
             </Button>
           ))}
         </div>
 
+        {/* Loading */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        )}
+
         {/* Services by category */}
-        <div className="space-y-4">
-          {Object.entries(groupedServices).map(([category, services]) => (
-            <Card key={category} className="overflow-hidden">
-              <div className="p-4 border-b bg-muted/30">
-                <h3 className="font-medium">{category}</h3>
-              </div>
-              <div className="divide-y">
-                {services.map((service) => (
-                  <div 
-                    key={service.id} 
-                    className="p-4 transition-all hover:bg-muted/50 active:bg-muted cursor-pointer flex items-center justify-between"
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium">{service.name}</p>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Clock className="h-3.5 w-3.5" />
-                        {service.duration}
+        {!loading && (
+          <div className="space-y-4">
+            {Object.entries(groupedServices).map(([catId, { name, services: catServices }]) => (
+              <Card key={catId} className="overflow-hidden">
+                <div className="p-4 border-b bg-muted/30 flex items-center justify-between">
+                  <h3 className="font-medium">{name}</h3>
+                  {catId !== 'uncategorized' && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            const cat = categories.find((c) => c.id === catId);
+                            if (cat) {
+                              setEditingCategory(cat);
+                              setCategoryModalOpen(true);
+                            }
+                          }}
+                        >
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Редагувати
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() =>
+                            setDeleteDialog({
+                              type: 'category',
+                              id: catId,
+                              name,
+                            })
+                          }
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Видалити
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+                <div className="divide-y">
+                  {catServices.map((service) => (
+                    <div
+                      key={service.id}
+                      className="p-4 transition-all hover:bg-muted/50 flex items-center justify-between group"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium">{service.name}</p>
+                        {service.description && (
+                          <p className="text-sm text-muted-foreground truncate">
+                            {service.description}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                          <Clock className="h-3.5 w-3.5" />
+                          {formatDuration(service.duration)}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <p className="font-semibold whitespace-nowrap">
+                          {service.priceFrom && (
+                            <span className="text-muted-foreground font-normal">від </span>
+                          )}
+                          {service.price} ₴
+                        </p>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditingService(service);
+                                setServiceModalOpen(true);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Редагувати
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() =>
+                                setDeleteDialog({
+                                  type: 'service',
+                                  id: service.id,
+                                  name: service.name,
+                                })
+                              }
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Видалити
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold">{service.price} €</p>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          ))}
-        </div>
+                  ))}
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
 
         {/* Empty state */}
-        {filteredServices.length === 0 && (
+        {!loading && filteredServices.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
               <Search className="h-8 w-8 text-muted-foreground" />
             </div>
-            <p className="text-muted-foreground">Послуг не знайдено</p>
+            <p className="text-muted-foreground mb-4">
+              {search ? 'Послуг не знайдено' : 'Додайте першу послугу'}
+            </p>
+            {!search && (
+              <Button
+                onClick={() => {
+                  setEditingService(null);
+                  setServiceModalOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Додати послугу
+              </Button>
+            )}
           </div>
         )}
       </div>
 
-      {/* Mobile FAB */}
-      <Button 
-        className="lg:hidden fixed right-4 bottom-24 w-14 h-14 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95"
-        size="icon"
-      >
-        <Plus className="h-6 w-6" />
-      </Button>
+      {/* Mobile FABs */}
+      <div className="lg:hidden fixed right-4 bottom-24 flex flex-col gap-2">
+        <Button
+          variant="outline"
+          size="icon"
+          className="w-12 h-12 rounded-full shadow-lg bg-background"
+          onClick={() => {
+            setEditingCategory(null);
+            setCategoryModalOpen(true);
+          }}
+        >
+          <FolderPlus className="h-5 w-5" />
+        </Button>
+        <Button
+          size="icon"
+          className="w-14 h-14 rounded-full shadow-lg"
+          onClick={() => {
+            setEditingService(null);
+            setServiceModalOpen(true);
+          }}
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      </div>
+
+      {/* Modals */}
+      <ServiceModal
+        isOpen={serviceModalOpen}
+        onClose={() => {
+          setServiceModalOpen(false);
+          setEditingService(null);
+        }}
+        onSave={handleSaveService}
+        service={editingService}
+        categories={categories}
+      />
+
+      <CategoryModal
+        isOpen={categoryModalOpen}
+        onClose={() => {
+          setCategoryModalOpen(false);
+          setEditingCategory(null);
+        }}
+        onSave={handleSaveCategory}
+        category={editingCategory}
+      />
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteDialog} onOpenChange={() => setDeleteDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Видалити {deleteDialog?.type === 'category' ? 'категорію' : 'послугу'}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteDialog?.type === 'category'
+                ? `Категорія "${deleteDialog?.name}" буде видалена. Послуги залишаться без категорії.`
+                : `Послуга "${deleteDialog?.name}" буде видалена.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Скасувати</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Видалити
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
