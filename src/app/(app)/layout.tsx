@@ -1,24 +1,20 @@
 'use client';
 
-import { useState } from 'react';
 import { Sidebar } from '@/components/sidebar';
 import { Header } from '@/components/header';
 import { MobileNav } from '@/components/mobile-nav';
+import { SidebarProvider, useSidebar } from '@/components/sidebar-context';
 
-export default function AppLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+function AppLayoutInner({ children }: { children: React.ReactNode }) {
+  const { isOpen, close } = useSidebar();
 
   return (
     <div className="h-screen flex bg-background">
       {/* Mobile overlay */}
-      {sidebarOpen && (
+      {isOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
+          onClick={close}
         />
       )}
       
@@ -29,13 +25,13 @@ export default function AppLayout({
 
       {/* Mobile sidebar drawer */}
       <div className="lg:hidden">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <Sidebar isOpen={isOpen} onClose={close} />
       </div>
       
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Sticky header */}
-        <div className="sticky top-0 z-30">
-          <Header onMenuClick={() => setSidebarOpen(true)} />
+        {/* Desktop header only */}
+        <div className="hidden lg:block sticky top-0 z-30">
+          <Header />
         </div>
         
         {/* Main content with bottom padding for mobile nav */}
@@ -47,5 +43,17 @@ export default function AppLayout({
       {/* Mobile bottom navigation */}
       <MobileNav />
     </div>
+  );
+}
+
+export default function AppLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <SidebarProvider>
+      <AppLayoutInner>{children}</AppLayoutInner>
+    </SidebarProvider>
   );
 }
