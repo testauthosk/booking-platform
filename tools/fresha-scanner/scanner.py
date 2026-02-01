@@ -371,7 +371,7 @@ class FreshaScanner:
     
     async def collect_assets(self, page):
         """Собираем ссылки на ассеты"""
-        assets = await page.evaluate("""
+        assets = await page.evaluate(r"""
             () => {
                 const assets = {
                     images: [],
@@ -635,11 +635,9 @@ Generated: {arch['generated_at']}
         await self.setup_dirs()
         
         # Запускаем с большим окном
-        async with AsyncCamoufox(
-            headless=False,
-            screen={"width": 1920, "height": 1080}
-        ) as browser:
-            page = await browser.new_page(viewport={"width": 1600, "height": 900})
+        async with AsyncCamoufox(headless=False) as browser:
+            page = await browser.new_page()
+            await page.set_viewport_size({"width": 1600, "height": 900})
             
             # Перехват запросов
             await page.route("**/*", self.intercept_requests)
