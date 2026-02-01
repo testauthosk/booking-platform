@@ -135,11 +135,12 @@ export function CustomCalendar({
               {/* Time label */}
               <div
                 key={`time-${time}`}
-                className="sticky left-0 z-20 bg-background flex items-start justify-end pr-2"
+                className={`sticky left-0 z-20 bg-background flex items-start justify-end pr-2 ${
+                  isFullHour && !isFirstRow ? 'border-t border-t-border' : isFullHour ? '' : 'border-t border-t-border/40'
+                }`}
                 style={{ 
                   height: slotHeight,
                   paddingTop: isFirstRow && isFullHour ? 4 : 0,
-                  borderTop: isFullHour && !isFirstRow ? '1px solid hsl(var(--border) / 0.6)' : 'none',
                 }}
               >
                 {isFullHour && (
@@ -151,11 +152,10 @@ export function CustomCalendar({
               {resources.map((resource) => (
                 <div
                   key={`cell-${time}-${resource.id}`}
-                  className="border-l border-border hover:bg-muted/30 cursor-pointer transition-colors"
-                  style={{
-                    height: slotHeight,
-                    borderTop: isFullHour ? '1px solid hsl(var(--border) / 0.6)' : '1px solid hsl(var(--border) / 0.2)',
-                  }}
+                  className={`border-l border-border hover:bg-muted/30 cursor-pointer transition-colors ${
+                    isFullHour ? 'border-t border-t-border' : 'border-t border-t-border/40'
+                  }`}
+                  style={{ height: slotHeight }}
                   onClick={() => handleSlotClick(time, resource.id)}
                 />
               ))}
