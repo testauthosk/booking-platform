@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Sidebar } from '@/components/sidebar';
 import { Header } from '@/components/header';
+import { MobileNav } from '@/components/mobile-nav';
 
 export default function AppLayout({
   children,
@@ -12,7 +13,7 @@ export default function AppLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="h-screen flex">
+    <div className="h-screen flex bg-background">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -21,14 +22,30 @@ export default function AppLayout({
         />
       )}
       
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {/* Desktop sidebar only */}
+      <div className="hidden lg:block">
+        <Sidebar isOpen={true} onClose={() => {}} />
+      </div>
+
+      {/* Mobile sidebar drawer */}
+      <div className="lg:hidden">
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      </div>
       
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-auto bg-muted/30">
+        {/* Sticky header */}
+        <div className="sticky top-0 z-30">
+          <Header onMenuClick={() => setSidebarOpen(true)} />
+        </div>
+        
+        {/* Main content with bottom padding for mobile nav */}
+        <main className="flex-1 overflow-auto bg-muted/30 pb-20 lg:pb-0">
           {children}
         </main>
       </div>
+
+      {/* Mobile bottom navigation */}
+      <MobileNav />
     </div>
   );
 }
