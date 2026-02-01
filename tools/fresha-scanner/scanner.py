@@ -587,14 +587,59 @@ Generated: {arch['generated_at']}
 """
         return md
     
+    async def close_popups(self, page):
+        """Закрываем cookie и другие попапы"""
+        try:
+            await page.evaluate("""
+                () => {
+                    // Cookie попапы
+                    const cookieSelectors = [
+                        'button[data-testid="accept-all"]',
+                        'button[data-testid="cookie-accept"]',
+                        '[class*="cookie"] button',
+                        '[class*="Cookie"] button',
+                        '[class*="consent"] button',
+                        '[id*="cookie"] button',
+                        'button:has-text("Accept")',
+                        'button:has-text("Accept all")',
+                        'button:has-text("Принять")',
+                        'button:has-text("OK")'
+                    ];
+                    
+                    for (const selector of cookieSelectors) {
+                        try {
+                            const btn = document.querySelector(selector);
+                            if (btn) {
+                                btn.click();
+                                console.log('Closed popup:', selector);
+                                return;
+                            }
+                        } catch(e) {}
+                    }
+                    
+                    // Fallback — кликаем первую кнопку в модальном окне
+                    const modal = document.querySelector('[class*="modal"], [class*="popup"], [role="dialog"]');
+                    if (modal) {
+                        const btn = modal.querySelector('button');
+                        if (btn) btn.click();
+                    }
+                }
+            """)
+        except:
+            pass
+    
     async def run(self):
         """Главный процесс"""
         print("🦊 Fresha Full Scanner — запуск...")
         
         await self.setup_dirs()
         
-        async with AsyncCamoufox(headless=False) as browser:
-            page = await browser.new_page()
+        # Запускаем с большим окном
+        async with AsyncCamoufox(
+            headless=False,
+            screen={"width": 1920, "height": 1080}
+        ) as browser:
+            page = await browser.new_page(viewport={"width": 1600, "height": 900})
             
             # Перехват запросов
             await page.route("**/*", self.intercept_requests)
@@ -602,6 +647,11 @@ Generated: {arch['generated_at']}
             
             print("\n🌐 Открываю Fresha...")
             await page.goto("https://partners.fresha.com/", wait_until="networkidle")
+            
+            # Закрываем cookie попапы
+            await asyncio.sleep(1)
+            await self.close_popups(page)
+            print("🍪 Cookie попап закрыт (если был)")
             
             print("\n" + "="*60)
             print("👆 ЗАЛОГИНЬСЯ В СВОЙ АККАУНТ FRESHA")
