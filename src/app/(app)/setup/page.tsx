@@ -12,15 +12,16 @@ import {
   CreditCard,
   ChevronRight,
 } from 'lucide-react';
+import Link from 'next/link';
 
 const settingsCategories = [
-  { icon: Building2, label: 'Налаштування бізнесу', description: 'Вкажіть відомості про компанію, керуйте філіями' },
-  { icon: Calendar, label: 'Планування', description: 'Налаштуйте розклад та онлайн-запис' },
-  { icon: ShoppingBag, label: 'Продажі', description: 'Налаштуйте способи оплати, податки, чеки' },
-  { icon: Receipt, label: 'Виставлення рахунків', description: 'Керуйте рахунками та платіжними даними' },
-  { icon: Users, label: 'Команда', description: 'Керуйте дозволами, комісіями та відпустками' },
-  { icon: FileText, label: 'Анкети', description: 'Налаштовуйте шаблони анкет' },
-  { icon: CreditCard, label: 'Платежі', description: 'Налаштуйте способи оплати та термінали' },
+  { icon: Building2, label: 'Налаштування бізнесу', description: 'Вкажіть відомості про компанію, керуйте філіями', href: '/setup/business' },
+  { icon: Calendar, label: 'Планування', description: 'Налаштуйте розклад та онлайн-запис', href: '/setup/schedule' },
+  { icon: ShoppingBag, label: 'Продажі', description: 'Налаштуйте способи оплати, податки, чеки', href: '/setup/sales' },
+  { icon: Receipt, label: 'Виставлення рахунків', description: 'Керуйте рахунками та платіжними даними', href: '/setup/billing' },
+  { icon: Users, label: 'Команда', description: 'Керуйте дозволами, комісіями та відпустками', href: '/setup/team' },
+  { icon: FileText, label: 'Анкети', description: 'Налаштовуйте шаблони анкет', href: '/setup/forms' },
+  { icon: CreditCard, label: 'Платежі', description: 'Налаштуйте способи оплати та термінали', href: '/setup/payments' },
 ];
 
 export default function SetupPage() {
@@ -42,21 +43,20 @@ export default function SetupPage() {
         <TabsContent value="settings">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {settingsCategories.map((category) => (
-              <Card 
-                key={category.label}
-                className="p-4 hover:bg-muted/50 cursor-pointer transition-colors"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <category.icon className="h-5 w-5 text-primary" />
+              <Link key={category.label} href={category.href}>
+                <Card className="p-4 hover:bg-muted/50 cursor-pointer transition-colors h-full">
+                  <div className="flex items-start gap-4">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <category.icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">{category.label}</p>
+                      <p className="text-sm text-muted-foreground">{category.description}</p>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium">{category.label}</p>
-                    <p className="text-sm text-muted-foreground">{category.description}</p>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                </div>
-              </Card>
+                </Card>
+              </Link>
             ))}
           </div>
         </TabsContent>
