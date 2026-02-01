@@ -25,6 +25,7 @@ export interface Resource {
 interface CustomCalendarProps {
   events?: BookingEvent[];
   resources?: Resource[];
+  selectedDate?: Date;
   onEventClick?: (event: BookingEvent) => void;
   onSlotClick?: (slotInfo: { start: Date; end: Date; resourceId?: string }) => void;
   dayStart?: number;
@@ -35,6 +36,7 @@ interface CustomCalendarProps {
 export function CustomCalendar({
   events = [],
   resources = [],
+  selectedDate,
   onEventClick,
   onSlotClick,
   dayStart = 8,
@@ -52,7 +54,10 @@ export function CustomCalendar({
   }, [dayStart, dayEnd, slotDuration]);
 
   const today = new Date();
+  const currentDate = selectedDate || today;
+  const currentDateStr = currentDate.toISOString().split('T')[0];
   const todayStr = today.toISOString().split('T')[0];
+  const isToday = currentDateStr === todayStr;
 
   const getEventPosition = (event: BookingEvent) => {
     const startHour = event.start.getHours();
@@ -72,7 +77,7 @@ export function CustomCalendar({
   const handleSlotClick = (time: string, resourceId: string) => {
     if (!onSlotClick) return;
     const [hours, minutes] = time.split(':').map(Number);
-    const start = new Date(todayStr);
+    const start = new Date(currentDateStr);
     start.setHours(hours, minutes, 0, 0);
     const end = new Date(start);
     end.setMinutes(end.getMinutes() + slotDuration);
@@ -85,8 +90,8 @@ export function CustomCalendar({
   const slotHeight = 40;
   const headerHeight = 48;
   
-  // Позиция индикатора времени в пикселях от начала контента
-  const currentTimeTop = currentHour >= dayStart && currentHour < dayEnd
+  // Позиция индикатора времени в пикселях (только если сегодня)
+  const currentTimeTop = isToday && currentHour >= dayStart && currentHour < dayEnd
     ? ((currentHour - dayStart) * 60 + currentMin) / slotDuration * slotHeight
     : null;
 

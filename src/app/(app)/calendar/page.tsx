@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Menu, Bell, Plus } from 'lucide-react';
+import { Menu, Bell, Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import { useSidebar } from '@/components/sidebar-context';
 import { EventModal } from '@/components/calendar/event-modal';
 import { NewBookingModal } from '@/components/calendar/new-booking-modal';
 import { CustomCalendar, type BookingEvent, type Resource } from '@/components/calendar/custom-calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 
 // Demo resources (team members) - more for horizontal scroll testing
 const demoResources: Resource[] = [
@@ -110,9 +112,41 @@ const eventColors: Record<string, string> = {
   '5': '#3b82f6', // Sarah Davis - blue
 };
 
+// Украинские названия дней и месяцев
+const ukDays = ['неділя', 'понеділок', 'вівторок', 'середа', 'четвер', "п'ятниця", 'субота'];
+const ukMonths = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
+
+const formatDateUk = (date: Date) => {
+  const day = ukDays[date.getDay()];
+  const dayNum = date.getDate();
+  const month = ukMonths[date.getMonth()];
+  return `${day}, ${dayNum} ${month}`;
+};
+
 export default function CalendarPage() {
   const { open: openSidebar } = useSidebar();
   const [events, setEvents] = useState(initialEvents);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
+  // Навигация по датам
+  const goToPrevDay = () => {
+    const prev = new Date(selectedDate);
+    prev.setDate(prev.getDate() - 1);
+    setSelectedDate(prev);
+  };
+
+  const goToNextDay = () => {
+    const next = new Date(selectedDate);
+    next.setDate(next.getDate() + 1);
+    setSelectedDate(next);
+  };
+
+  const goToToday = () => {
+    setSelectedDate(new Date());
+  };
+
+  const isToday = selectedDate.toDateString() === new Date().toDateString();
   
   // Modal states
   const [selectedEvent, setSelectedEvent] = useState<BookingEvent | null>(null);
@@ -209,11 +243,58 @@ export default function CalendarPage() {
         </div>
       </header>
 
+      {/* Date Navigation */}
+      <div className="flex items-center justify-between px-4 py-2 border-b bg-background shrink-0">
+        <div className="flex items-center gap-2">
+          {/* Prev / Next */}
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={goToPrevDay}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={goToNextDay}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          
+          {/* Today button */}
+          <Button 
+            variant={isToday ? "default" : "outline"} 
+            size="sm" 
+            className="h-8"
+            onClick={goToToday}
+          >
+            Сьогодні
+          </Button>
+        </div>
+
+        {/* Date display with mini calendar */}
+        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" className="font-medium text-sm gap-2">
+              <CalendarIcon className="h-4 w-4" />
+              <span className="capitalize">{formatDateUk(selectedDate)}</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={(date) => {
+                if (date) {
+                  setSelectedDate(date);
+                  setIsCalendarOpen(false);
+                }
+              }}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+
       {/* Calendar */}
-      <div className="flex-1 overflow-hidden p-2 lg:p-4">
+      <div className="flex-1 overflow-hidden">
         <CustomCalendar
           events={events}
           resources={demoResources}
+          selectedDate={selectedDate}
           onEventClick={handleEventClick}
           onSlotClick={handleSlotClick}
           dayStart={8}
