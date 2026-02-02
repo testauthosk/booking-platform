@@ -29,9 +29,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'salonId required' }, { status: 400 });
     }
 
-    // Убедимся что салон существует
-    await ensureSalonExists(salonId);
-
     const services = await prisma.service.findMany({
       where: {
         salonId,
@@ -39,15 +36,18 @@ export async function GET(request: NextRequest) {
         ...(categoryId && { categoryId }),
       },
       include: {
-        category: true,
+        category: {
+          select: { id: true, name: true },
+        },
       },
-      orderBy: [
-        { category: { sortOrder: 'asc' } },
-        { sortOrder: 'asc' },
-      ],
+      orderBy: { sortOrder: 'asc' },
     });
 
-    return NextResponse.json(services);
+    return NextResponse.json(services, {
+      headers: {
+        'Cache-Control': 'private, max-age=10, stale-while-revalidate=30',
+      },
+    });
   } catch (error) {
     console.error('GET /api/services error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

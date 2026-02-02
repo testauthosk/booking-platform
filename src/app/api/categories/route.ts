@@ -28,21 +28,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'salonId required' }, { status: 400 });
     }
 
-    // Убедимся что салон существует
-    await ensureSalonExists(salonId);
-
     const categories = await prisma.serviceCategory.findMany({
       where: { salonId },
-      include: {
-        services: {
-          where: { isActive: true },
-          orderBy: { sortOrder: 'asc' },
-        },
+      select: {
+        id: true,
+        name: true,
+        sortOrder: true,
       },
       orderBy: { sortOrder: 'asc' },
     });
 
-    return NextResponse.json(categories);
+    return NextResponse.json(categories, {
+      headers: {
+        'Cache-Control': 'private, max-age=10, stale-while-revalidate=30',
+      },
+    });
   } catch (error) {
     console.error('GET /api/categories error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

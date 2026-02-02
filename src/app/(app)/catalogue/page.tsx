@@ -96,8 +96,11 @@ export default function CataloguePage() {
     loadData();
   }, []);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (showLoading = true) => {
+    // Only show loading on initial load
+    if (showLoading && services.length === 0) {
+      setLoading(true);
+    }
     try {
       const [catRes, svcRes] = await Promise.all([
         fetch(`/api/categories?salonId=${DEMO_SALON_ID}`),
