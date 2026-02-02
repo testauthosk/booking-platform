@@ -37,6 +37,7 @@ export default function StaffDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [staffName, setStaffName] = useState('');
+  const [staffAvatar, setStaffAvatar] = useState('');
   const [staffId, setStaffId] = useState('');
   const [salonId, setSalonId] = useState('');
   const [stats, setStats] = useState<StaffStats | null>(null);
@@ -107,8 +108,22 @@ export default function StaffDashboard() {
     if (staffId) {
       loadStats();
       loadServices();
+      loadProfile();
     }
   }, [staffId]);
+
+  const loadProfile = async () => {
+    try {
+      const res = await fetch(`/api/staff/profile?masterId=${staffId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.avatar) setStaffAvatar(data.avatar);
+        if (data.name) setStaffName(data.name);
+      }
+    } catch (error) {
+      console.error('Load profile error:', error);
+    }
+  };
 
   const loadStats = async () => {
     setLoadingStats(true);
@@ -299,9 +314,17 @@ export default function StaffDashboard() {
       <header className="bg-card border-b px-4 py-4 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-xl font-bold shadow-lg">
-              {staffName.charAt(0).toUpperCase()}
-            </div>
+            {staffAvatar ? (
+              <img 
+                src={staffAvatar} 
+                alt={staffName} 
+                className="h-12 w-12 rounded-2xl object-cover shadow-lg"
+              />
+            ) : (
+              <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-xl font-bold shadow-lg">
+                {staffName.charAt(0).toUpperCase()}
+              </div>
+            )}
             <div>
               <p className="font-semibold text-lg">{staffName}</p>
               <p className="text-sm text-muted-foreground">Особистий кабінет</p>
