@@ -794,12 +794,9 @@ export default function StaffCalendar() {
             <div className="flex-1 relative" style={{ height: `${(workingHours.end - workingHours.start + 1) * 120}px` }}>
               {/* Current time red line */}
               {isToday(selectedDate) && (() => {
-                // DEBUG: fixed time 16:00
-                const currentHour = 16;
-                const currentMinute = 0;
-                // const now = new Date();
-                // const currentHour = now.getHours();
-                // const currentMinute = now.getMinutes();
+                const now = new Date();
+                const currentHour = now.getHours();
+                const currentMinute = now.getMinutes();
                 const timeStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
                 // Only show if current time is within working hours
                 if (currentHour >= workingHours.start && currentHour <= workingHours.end) {
