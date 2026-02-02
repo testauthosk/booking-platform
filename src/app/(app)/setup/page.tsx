@@ -5,11 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Building2,
   Calendar,
-  ShoppingBag,
-  Receipt,
   Users,
   FileText,
-  CreditCard,
   ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -17,11 +14,8 @@ import Link from 'next/link';
 const settingsCategories = [
   { icon: Building2, label: 'Налаштування бізнесу', description: 'Вкажіть відомості про компанію, керуйте філіями', href: '/setup/business' },
   { icon: Calendar, label: 'Планування', description: 'Налаштуйте розклад та онлайн-запис', href: '/setup/schedule' },
-  { icon: ShoppingBag, label: 'Продажі', description: 'Налаштуйте способи оплати, податки, чеки', href: '/setup/sales' },
-  { icon: Receipt, label: 'Виставлення рахунків', description: 'Керуйте рахунками та платіжними даними', href: '/setup/billing' },
   { icon: Users, label: 'Команда', description: 'Керуйте дозволами, комісіями та відпустками', href: '/setup/team' },
   { icon: FileText, label: 'Анкети', description: 'Налаштовуйте шаблони анкет', href: '/setup/forms' },
-  { icon: CreditCard, label: 'Платежі', description: 'Налаштуйте способи оплати та термінали', href: '/setup/payments' },
 ];
 
 export default function SetupPage() {
