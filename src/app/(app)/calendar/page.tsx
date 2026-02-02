@@ -21,6 +21,12 @@ interface Master {
   color?: string;
 }
 
+interface SalonData {
+  id: string;
+  timezone: string;
+  address?: string;
+}
+
 // Украинские названия дней и месяцев
 const ukDays = ['неділя', 'понеділок', 'вівторок', 'середа', 'четвер', "п'ятниця", 'субота'];
 const ukMonths = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
@@ -42,11 +48,13 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<BookingEvent[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [salonTimezone, setSalonTimezone] = useState<string>('Europe/Kiev');
 
-  // Load masters from API
+  // Load masters and salon data from API
   useEffect(() => {
     if (user?.salonId) {
       loadMasters();
+      loadSalon();
     }
   }, [user?.salonId]);
 
@@ -61,6 +69,20 @@ export default function CalendarPage() {
       console.error('Load masters error:', error);
     } finally {
       setLoadingMasters(false);
+    }
+  };
+
+  const loadSalon = async () => {
+    try {
+      const res = await fetch(`/api/salon?salonId=${user?.salonId}`);
+      if (res.ok) {
+        const data: SalonData = await res.json();
+        if (data.timezone) {
+          setSalonTimezone(data.timezone);
+        }
+      }
+    } catch (error) {
+      console.error('Load salon error:', error);
     }
   };
 
@@ -258,6 +280,7 @@ export default function CalendarPage() {
           dayStart={8}
           dayEnd={21}
           slotDuration={10}
+          timezone={salonTimezone}
         />
       </div>
 

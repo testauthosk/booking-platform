@@ -42,6 +42,36 @@ interface CustomCalendarProps {
   dayStart?: number;
   dayEnd?: number;
   slotDuration?: number;
+  timezone?: string;
+}
+
+// Helper to get current time in a specific timezone
+function getTimeInTimezone(timezone: string): { hours: number; minutes: number } {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: timezone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(now);
+  const hours = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
+  const minutes = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
+  return { hours, minutes };
+}
+
+// Helper to check if selected date is today in the salon's timezone
+function isTodayInTimezone(selectedDate: Date, timezone: string): boolean {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const todayStr = formatter.format(now);
+  const selectedStr = formatter.format(selectedDate);
+  return todayStr === selectedStr;
 }
 
 export function CustomCalendar({
@@ -52,6 +82,7 @@ export function CustomCalendar({
   onSlotClick,
   dayStart = 8,
   dayEnd = 21,
+  timezone = 'Europe/Kiev',
 }: CustomCalendarProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const headerScrollRef = useRef<HTMLDivElement>(null);
@@ -71,11 +102,9 @@ export function CustomCalendar({
     return slots;
   }, [dayStart, dayEnd]);
 
-  const today = new Date();
-  const currentDate = selectedDate || today;
+  const currentDate = selectedDate || new Date();
   const currentDateStr = currentDate.toISOString().split('T')[0];
-  const todayStr = today.toISOString().split('T')[0];
-  const isToday = currentDateStr === todayStr;
+  const isToday = isTodayInTimezone(currentDate, timezone);
 
   const getEventPosition = (event: BookingEvent) => {
     const startHour = event.start.getHours();
@@ -103,18 +132,19 @@ export function CustomCalendar({
     onSlotClick({ start, end, resourceId });
   };
 
-  const [now, setNow] = useState(new Date());
+  const [salonTime, setSalonTime] = useState(() => getTimeInTimezone(timezone));
   
-  // Update time every minute
+  // Update time every minute using salon's timezone
   useEffect(() => {
+    setSalonTime(getTimeInTimezone(timezone));
     const interval = setInterval(() => {
-      setNow(new Date());
+      setSalonTime(getTimeInTimezone(timezone));
     }, 60000); // every minute
     return () => clearInterval(interval);
-  }, []);
+  }, [timezone]);
   
-  const currentHour = now.getHours();
-  const currentMin = now.getMinutes();
+  const currentHour = salonTime.hours;
+  const currentMin = salonTime.minutes;
   
   const hourHeight = 60; // 60px на час
   const headerHeight = 80;
