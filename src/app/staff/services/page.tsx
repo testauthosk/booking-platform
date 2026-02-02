@@ -61,14 +61,9 @@ export default function StaffServices() {
   useEffect(() => {
     if (staffId) {
       loadServices();
-    }
-  }, [staffId]);
-
-  useEffect(() => {
-    if (salonId) {
       loadCategories();
     }
-  }, [salonId]);
+  }, [staffId]);
 
   const loadServices = async () => {
     setLoadingServices(true);
@@ -86,8 +81,10 @@ export default function StaffServices() {
   };
 
   const loadCategories = async () => {
+    // Use salonId from localStorage or fallback to demo
+    const sid = salonId || localStorage.getItem('staffSalonId') || 'demo-salon-id';
     try {
-      const res = await fetch(`/api/staff/categories?salonId=${salonId}`);
+      const res = await fetch(`/api/staff/categories?salonId=${sid}`);
       if (res.ok) {
         const data = await res.json();
         setCategories(data);
@@ -162,8 +159,9 @@ export default function StaffServices() {
   };
 
   const createService = async () => {
-    if (!newServiceName || !newServicePrice || !salonId) {
-      console.log('Missing fields:', { newServiceName, newServicePrice, salonId });
+    const sid = salonId || localStorage.getItem('staffSalonId') || 'demo-salon-id';
+    if (!newServiceName || !newServicePrice) {
+      console.log('Missing fields:', { newServiceName, newServicePrice });
       return;
     }
     
@@ -173,12 +171,12 @@ export default function StaffServices() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          salonId,
+          salonId: sid,
           masterId: staffId,
           name: newServiceName,
           duration: parseInt(newServiceDuration) || 30,
           price: parseInt(newServicePrice),
-          description: newServiceDescription || null,
+          description: null,
           categoryId: newServiceCategory || null
         })
       });
@@ -396,16 +394,6 @@ export default function StaffServices() {
               value={newServicePrice}
               onChange={(e) => setNewServicePrice(e.target.value)}
               placeholder="500"
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="text-sm font-medium mb-1.5 block">Опис (необовʼязково)</label>
-            <Input
-              value={newServiceDescription}
-              onChange={(e) => setNewServiceDescription(e.target.value)}
-              placeholder="Короткий опис послуги"
             />
           </div>
         </div>
