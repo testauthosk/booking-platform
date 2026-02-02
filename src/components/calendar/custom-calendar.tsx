@@ -235,8 +235,8 @@ export function CustomCalendar({
                         top: `${top}px`,
                         height: `${height}px`,
                         backgroundColor: bgColor,
-                        borderLeft: `3px solid ${darkColor}`,
-                        boxShadow: `0 0 0 0.5px ${darkColor}`,
+                        borderLeft: `2px solid ${darkColor}`,
+                        boxShadow: `0 0 0 1px ${darkColor}`,
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
