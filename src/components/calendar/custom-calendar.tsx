@@ -330,23 +330,34 @@ export function CustomCalendar({
         setResizeState({ isResizing: false, event: null, startY: 0 });
       }
 
-      if (dragState.isDragging && dragState.event) {
+      if (dragState.isDragging && dragState.event && scrollRef.current) {
         const clientY = 'changedTouches' in e ? e.changedTouches[0].clientY : e.clientY;
+        const clientX = 'changedTouches' in e ? e.changedTouches[0].clientX : e.clientX;
         const deltaY = clientY - dragState.startY;
         const deltaMinutes = Math.round(deltaY / (hourHeight / 60));
         
         // Snap to 15 minutes
         const snappedMinutes = Math.round(deltaMinutes / 15) * 15;
         
-        if (Math.abs(snappedMinutes) >= 15) {
-          const newStart = new Date(dragState.event.start.getTime() + snappedMinutes * 60000);
-          const newEnd = new Date(dragState.event.end.getTime() + snappedMinutes * 60000);
-          
-          // Keep within working hours
-          if (newStart.getHours() >= dayStart && newEnd.getHours() <= dayEnd) {
-            onEventDrop?.(dragState.event, newStart, newEnd, dragState.event.resourceId);
-          }
+        // Determine which resource column we're over
+        const scrollRect = scrollRef.current.getBoundingClientRect();
+        const relativeX = clientX - scrollRect.left + scrollRef.current.scrollLeft - timeColWidth;
+        const columnWidth = (scrollRect.width - timeColWidth) / resources.length;
+        const resourceIndex = Math.floor(relativeX / columnWidth);
+        const clampedIndex = Math.max(0, Math.min(resourceIndex, resources.length - 1));
+        const newResourceId = resources[clampedIndex]?.id || dragState.event.resourceId;
+        
+        const newStart = new Date(dragState.event.start.getTime() + snappedMinutes * 60000);
+        const newEnd = new Date(dragState.event.end.getTime() + snappedMinutes * 60000);
+        
+        // Check if anything changed
+        const timeChanged = Math.abs(snappedMinutes) >= 15;
+        const resourceChanged = newResourceId !== dragState.event.resourceId;
+        
+        if ((timeChanged || resourceChanged) && newStart.getHours() >= dayStart && newEnd.getHours() <= dayEnd) {
+          onEventDrop?.(dragState.event, newStart, newEnd, newResourceId);
         }
+        
         setDragState({ isDragging: false, event: null, startY: 0, startX: 0, currentY: 0, currentX: 0, originalTop: 0, originalHeight: 0, originalWidth: 0, currentResourceId: null });
       }
     };
@@ -362,7 +373,7 @@ export function CustomCalendar({
       document.removeEventListener('touchmove', handleMove);
       document.removeEventListener('touchend', handleEnd);
     };
-  }, [dragState, resizeState, onEventDrop, onEventResize, dayStart, dayEnd]);
+  }, [dragState, resizeState, onEventDrop, onEventResize, dayStart, dayEnd, resources, timeColWidth]);
 
   const [salonTime, setSalonTime] = useState(() => getTimeInTimezone(timezone));
   
