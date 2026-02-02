@@ -15,8 +15,8 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       {/* Mobile overlay - frosted glass fade */}
       <div
         className={cn(
-          "fixed inset-0 bg-white/30 backdrop-blur-md z-40 lg:hidden",
-          "transition-opacity duration-[600ms] ease-out",
+          "fixed inset-0 bg-white/20 backdrop-blur-sm z-40 lg:hidden",
+          "transition-opacity duration-[480ms] ease-out",
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
         onClick={close}

@@ -614,7 +614,7 @@ export default function TeamPage() {
 
       {/* Master Profile Panel Overlay - frosted glass fade */}
       <div 
-        className={`fixed inset-0 bg-white/30 backdrop-blur-md z-40 transition-opacity duration-[700ms] ease-out ${
+        className={`fixed inset-0 bg-white/20 backdrop-blur-sm z-40 transition-opacity duration-[560ms] ease-out ${
           selectedMaster ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setSelectedMaster(null)}
@@ -622,12 +622,12 @@ export default function TeamPage() {
 
       {/* Master Profile Panel - drawer on mobile, wider on desktop */}
       <div 
-        className={`fixed top-0 right-0 h-full w-80 lg:w-[420px] bg-card border-l border-border shadow-xl z-50 transform transition-transform duration-[700ms] ease-out will-change-transform ${
+        className={`fixed top-0 right-0 h-full w-80 lg:w-[420px] bg-card border-l border-border shadow-xl z-50 transform transition-transform duration-[560ms] ease-out will-change-transform ${
           selectedMaster ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         {selectedMaster && (
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full pb-20 lg:pb-0">
             {/* Header */}
             <div className="p-4 border-b border-border flex items-center justify-between">
               <h2 className="font-semibold">Профіль майстра</h2>
@@ -708,7 +708,7 @@ export default function TeamPage() {
 
       {/* Profile Panel Overlay - frosted glass fade */}
       <div 
-        className={`fixed inset-0 bg-white/30 backdrop-blur-md z-40 transition-opacity duration-[700ms] ease-out ${
+        className={`fixed inset-0 bg-white/20 backdrop-blur-sm z-40 transition-opacity duration-[560ms] ease-out ${
           profileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setProfileOpen(false)}
@@ -716,11 +716,11 @@ export default function TeamPage() {
 
       {/* Profile Panel - drawer on mobile, wider on desktop */}
       <div 
-        className={`fixed top-0 right-0 h-full w-80 lg:w-[420px] bg-card border-l border-border shadow-xl z-50 transform transition-transform duration-[700ms] ease-out will-change-transform ${
+        className={`fixed top-0 right-0 h-full w-80 lg:w-[420px] bg-card border-l border-border shadow-xl z-50 transform transition-transform duration-[560ms] ease-out will-change-transform ${
           profileOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full pb-20 lg:pb-0">
           {/* Header */}
           <div className="p-4 border-b border-border flex items-center justify-between">
             <h2 className="font-semibold">Профіль</h2>
