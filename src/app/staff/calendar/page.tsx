@@ -687,18 +687,22 @@ export default function StaffCalendar() {
                     }}
                   >
                     <div className="p-2 h-full flex">
-                      {/* Left: Action buttons (vertical) */}
+                      {/* Left: Action buttons */}
                       {!isPast && booking.status !== 'COMPLETED' && !isBlocked && (
                         <div className="flex flex-col gap-1 mr-2">
+                          {/* Delete on top */}
                           <button className="h-8 w-8 rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 flex items-center justify-center transition-colors">
                             <X className="h-4 w-4" />
                           </button>
-                          <button className="h-8 w-8 rounded-lg bg-green-50 border border-green-200 text-green-600 hover:bg-green-100 flex items-center justify-center transition-colors">
-                            <Check className="h-4 w-4" />
-                          </button>
-                          <button className="h-8 w-8 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-600 hover:bg-zinc-100 flex items-center justify-center transition-colors">
-                            <Pencil className="h-3.5 w-3.5" />
-                          </button>
+                          {/* Complete + Edit below, horizontal */}
+                          <div className="flex gap-1">
+                            <button className="h-8 w-8 rounded-lg bg-green-50 border border-green-200 text-green-600 hover:bg-green-100 flex items-center justify-center transition-colors">
+                              <Check className="h-4 w-4" />
+                            </button>
+                            <button className="h-8 w-8 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-600 hover:bg-zinc-100 flex items-center justify-center transition-colors">
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </div>
                       )}
                       
