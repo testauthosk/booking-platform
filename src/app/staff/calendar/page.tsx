@@ -359,12 +359,24 @@ export default function StaffCalendar() {
               <p className="text-sm text-muted-foreground">{formatDateHeader(selectedDate)}</p>
             </div>
           </div>
-          <button 
-            onClick={openAddModal}
-            className="h-10 w-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
-          >
-            <Plus className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowOnlyBookings(!showOnlyBookings)}
+              className={`h-10 px-3 rounded-xl text-sm font-medium transition-colors ${
+                showOnlyBookings 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {showOnlyBookings ? '✓ Записи' : 'Записи'}
+            </button>
+            <button 
+              onClick={openAddModal}
+              className="h-10 w-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -396,19 +408,6 @@ export default function StaffCalendar() {
           ))}
         </div>
         
-        {/* Toggle button */}
-        <div className="px-4 pb-3">
-          <button
-            onClick={() => setShowOnlyBookings(!showOnlyBookings)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-              showOnlyBookings 
-                ? 'bg-primary text-primary-foreground' 
-                : 'bg-muted text-muted-foreground'
-            }`}
-          >
-            {showOnlyBookings ? '✓ Тільки записи' : 'Тільки записи'}
-          </button>
-        </div>
       </div>
 
       {/* Content - scrollable */}
@@ -418,8 +417,8 @@ export default function StaffCalendar() {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : showOnlyBookings ? (
-          /* Only bookings mode */
-          <div className="p-4 space-y-3">
+          /* Only bookings mode - with start/end times */
+          <div className="p-4 space-y-4">
             {bookings.length > 0 ? (
               bookings.map((booking) => {
                 const isPast = (() => {
@@ -428,12 +427,32 @@ export default function StaffCalendar() {
                   const now = new Date();
                   return h < now.getHours() || (h === now.getHours() && m < now.getMinutes());
                 })();
+                
+                // Calculate end time
+                const [h, m] = booking.time.split(':').map(Number);
+                const endMins = h * 60 + m + booking.duration;
+                const endH = Math.floor(endMins / 60);
+                const endM = endMins % 60;
+                const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+                const showEndTime = endM !== 0 && endM !== 30;
+                
                 return (
-                  <div key={booking.id} className="flex gap-3">
-                    <div className="w-14 shrink-0 text-right">
-                      <span className={`text-sm font-semibold ${isPast ? 'text-muted-foreground' : 'text-primary'}`}>
+                  <div key={booking.id} className="flex gap-3 relative">
+                    {/* Time column with line */}
+                    <div className="w-14 shrink-0 flex flex-col items-end relative">
+                      <span className={`text-sm font-bold ${isPast ? 'text-muted-foreground' : 'text-primary'}`}>
                         {booking.time}
                       </span>
+                      {/* Vertical line */}
+                      <div className={`absolute right-[-8px] top-5 bottom-[-16px] w-px ${isPast ? 'bg-muted' : 'bg-primary/30'}`} />
+                      {/* Top dot */}
+                      <div className={`absolute right-[-10px] top-1.5 w-1.5 h-1.5 rounded-full ${isPast ? 'bg-muted-foreground' : 'bg-primary'}`} />
+                      {/* End time */}
+                      <span className={`text-xs mt-auto ${showEndTime ? 'text-muted-foreground' : 'text-transparent'}`}>
+                        {showEndTime ? endTime : endTime}
+                      </span>
+                      {/* Bottom dot */}
+                      <div className={`absolute right-[-9px] bottom-0 w-1 h-1 rounded-full bg-muted-foreground/50`} />
                     </div>
                     <div className="flex-1">
                       <BookingCard booking={booking} isPast={isPast} isToday={isToday(selectedDate)} />
