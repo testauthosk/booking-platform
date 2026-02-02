@@ -39,6 +39,24 @@ interface Invitation {
   createdAt: string;
 }
 
+interface MasterBooking {
+  id: string;
+  clientName: string;
+  serviceName: string;
+  time: string;
+  timeEnd?: string;
+  duration: number;
+  status: string;
+}
+
+interface MasterStats {
+  todayCount: number;
+  totalClients: number;
+  monthBookings: number;
+  todayBookings: MasterBooking[];
+  tomorrowBookings: MasterBooking[];
+}
+
 export default function TeamPage() {
   const { open: openSidebar } = useSidebar();
   const { getColorForIndex } = useCalendarSettings();
@@ -69,10 +87,36 @@ export default function TeamPage() {
   // Master profile
   const [selectedMaster, setSelectedMaster] = useState<Master | null>(null);
   const [deletingMaster, setDeletingMaster] = useState(false);
+  const [masterStats, setMasterStats] = useState<MasterStats | null>(null);
+  const [loadingStats, setLoadingStats] = useState(false);
 
   useEffect(() => {
     loadData();
   }, []);
+
+  // Load master stats when selected
+  useEffect(() => {
+    if (selectedMaster) {
+      loadMasterStats(selectedMaster.id);
+    } else {
+      setMasterStats(null);
+    }
+  }, [selectedMaster]);
+
+  const loadMasterStats = async (masterId: string) => {
+    setLoadingStats(true);
+    try {
+      const res = await fetch(`/api/masters/${masterId}/stats`);
+      if (res.ok) {
+        const data = await res.json();
+        setMasterStats(data);
+      }
+    } catch (error) {
+      console.error('Load master stats error:', error);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -661,30 +705,94 @@ export default function TeamPage() {
             {/* Stats */}
             <div className="p-4 border-b border-border">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Статистика</p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-2">
                 <div className="p-3 rounded-xl bg-muted/50">
-                  <p className="text-xs text-muted-foreground mb-1">Записи сьогодні</p>
-                  <p className="text-xl font-bold">5</p>
+                  <p className="text-xs text-muted-foreground mb-1">Сьогодні</p>
+                  <p className="text-xl font-bold">
+                    {loadingStats ? '...' : masterStats?.todayCount ?? 0}
+                  </p>
                 </div>
                 <div className="p-3 rounded-xl bg-muted/50">
-                  <p className="text-xs text-muted-foreground mb-1">Всього клієнтів</p>
-                  <p className="text-xl font-bold">48</p>
+                  <p className="text-xs text-muted-foreground mb-1">Клієнтів</p>
+                  <p className="text-xl font-bold">
+                    {loadingStats ? '...' : masterStats?.totalClients ?? 0}
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-muted/50">
+                  <p className="text-xs text-muted-foreground mb-1">За місяць</p>
+                  <p className="text-xl font-bold">
+                    {loadingStats ? '...' : masterStats?.monthBookings ?? 0}
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex-1 p-4">
-              <div className="space-y-1">
-                <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted transition-colors text-left">
-                  <CalendarDays className="h-5 w-5 text-muted-foreground" />
-                  <span>Розклад</span>
-                </button>
-                <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted transition-colors text-left">
-                  <Settings className="h-5 w-5 text-muted-foreground" />
-                  <span>Налаштування</span>
-                </button>
-              </div>
+            {/* Today's Schedule */}
+            <div className="flex-1 p-4 overflow-y-auto">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
+                Розклад на сьогодні
+              </p>
+              {loadingStats ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : masterStats?.todayBookings && masterStats.todayBookings.length > 0 ? (
+                <div className="space-y-2">
+                  {masterStats.todayBookings.map((booking) => (
+                    <div 
+                      key={booking.id}
+                      className="p-3 rounded-xl bg-muted/30 border border-border/50"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium">{booking.time}{booking.timeEnd ? ` - ${booking.timeEnd}` : ''}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          booking.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                          booking.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {booking.status === 'COMPLETED' ? 'Завершено' :
+                           booking.status === 'CONFIRMED' ? 'Підтверджено' : booking.status}
+                        </span>
+                      </div>
+                      <p className="text-sm">{booking.clientName}</p>
+                      <p className="text-xs text-muted-foreground">{booking.serviceName}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <CalendarDays className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Немає записів на сьогодні</p>
+                </div>
+              )}
+
+              {/* Tomorrow preview */}
+              {masterStats?.tomorrowBookings && masterStats.tomorrowBookings.length > 0 && (
+                <>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mt-4 mb-3">
+                    Завтра ({masterStats.tomorrowBookings.length})
+                  </p>
+                  <div className="space-y-2">
+                    {masterStats.tomorrowBookings.slice(0, 3).map((booking) => (
+                      <div 
+                        key={booking.id}
+                        className="p-2 rounded-lg bg-muted/20 border border-border/30"
+                      >
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-medium">{booking.time}</span>
+                          <span className="text-muted-foreground">•</span>
+                          <span className="truncate">{booking.clientName}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {masterStats.tomorrowBookings.length > 3 && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        +{masterStats.tomorrowBookings.length - 3} ще
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Delete */}
