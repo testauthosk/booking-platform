@@ -36,6 +36,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'salonId and email required' }, { status: 400 });
     }
 
+    // Получаем данные салона
+    const salon = await prisma.salon.findUnique({
+      where: { id: salonId },
+    });
+
     // Проверяем нет ли уже активного приглашения
     const existing = await prisma.staffInvitation.findFirst({
       where: {
@@ -72,44 +77,52 @@ export async function POST(request: NextRequest) {
 
     // Отправляем email
     const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://booking-platform-ruddy.vercel.app'}/join/${invitation.token}`;
+    const salonName = salon?.name || 'салону';
+    const salonLogo = salon?.logo;
     
     if (resend) {
       try {
         await resend.emails.send({
-          from: 'Booking Platform <onboarding@resend.dev>',
+          from: `${salonName} <onboarding@resend.dev>`,
           to: email,
-          subject: 'Запрошення приєднатися до команди',
+          subject: `${salonName} запрошує вас приєднатися до команди`,
           html: `
             <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-              <h1 style="font-size: 24px; font-weight: 600; color: #111; margin-bottom: 24px;">
+              ${salonLogo ? `
+                <div style="text-align: center; margin-bottom: 32px;">
+                  <img src="${salonLogo}" alt="${salonName}" style="max-width: 120px; max-height: 120px; border-radius: 12px;" />
+                </div>
+              ` : ''}
+              
+              <h1 style="font-size: 24px; font-weight: 600; color: #111; margin-bottom: 24px; text-align: center;">
                 Вітаємо${name ? ', ' + name : ''}! 👋
               </h1>
               
-              <p style="font-size: 16px; color: #333; line-height: 1.6; margin-bottom: 16px;">
-                Вас запрошено приєднатися до команди${role ? ' на посаду <strong>' + role + '</strong>' : ''}.
+              <p style="font-size: 16px; color: #333; line-height: 1.6; margin-bottom: 16px; text-align: center;">
+                <strong>${salonName}</strong> запрошує вас приєднатися до команди${role ? ' на посаду <strong>' + role + '</strong>' : ''}.
               </p>
               
-              <p style="font-size: 16px; color: #333; line-height: 1.6; margin-bottom: 32px;">
-                Натисніть кнопку нижче, щоб створити акаунт та почати роботу:
+              <p style="font-size: 16px; color: #333; line-height: 1.6; margin-bottom: 32px; text-align: center;">
+                Натисніть кнопку нижче, щоб створити акаунт:
               </p>
               
-              <a href="${inviteUrl}" style="display: inline-block; padding: 14px 32px; background: #111; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 500; font-size: 16px;">
-                Приєднатися до команди
-              </a>
+              <div style="text-align: center;">
+                <a href="${inviteUrl}" style="display: inline-block; padding: 14px 32px; background: #111; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 500; font-size: 16px;">
+                  Приєднатися
+                </a>
+              </div>
               
-              <p style="font-size: 14px; color: #666; margin-top: 32px; line-height: 1.5;">
+              <p style="font-size: 14px; color: #666; margin-top: 32px; line-height: 1.5; text-align: center;">
                 Посилання дійсне 7 днів.<br>
                 Якщо ви не очікували цей лист — просто проігноруйте його.
               </p>
             </div>
           `,
         });
-        console.log(`Invitation email sent to ${email}`);
+        console.log(`Invitation email sent to ${email} from ${salonName}`);
       } catch (emailError) {
         console.error('Email send error:', emailError);
       }
-    } else {
-      console.log(`[No Resend API Key] Would send invitation to ${email}`);
     }
 
     return NextResponse.json(invitation);

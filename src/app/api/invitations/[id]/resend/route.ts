@@ -12,9 +12,10 @@ export async function POST(
   try {
     const { id } = await params;
 
-    // Находим приглашение
+    // Находим приглашение с данными салона
     const invitation = await prisma.staffInvitation.findUnique({
       where: { id },
+      include: { salon: true },
     });
 
     if (!invitation) {
@@ -33,32 +34,54 @@ export async function POST(
       },
     });
 
-    // Отправляем email если настроен Resend
+    // Отправляем email
     const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://booking-platform-ruddy.vercel.app'}/join/${invitation.token}`;
+    const salonName = invitation.salon?.name || 'салону';
+    const salonLogo = invitation.salon?.logo;
     
     if (resend) {
       try {
         await resend.emails.send({
-          from: 'Booking Platform <onboarding@resend.dev>',
+          from: `${salonName} <onboarding@resend.dev>`,
           to: invitation.email,
-          subject: `Запрошення до команди`,
+          subject: `${salonName} запрошує вас приєднатися до команди`,
           html: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2>Вітаємо${invitation.name ? ', ' + invitation.name : ''}!</h2>
-              <p>Вас запрошено приєднатися до команди${invitation.role ? ' на посаду ' + invitation.role : ''}.</p>
-              <p>Для створення акаунту перейдіть за посиланням:</p>
-              <p><a href="${inviteUrl}" style="display: inline-block; padding: 12px 24px; background: #000; color: #fff; text-decoration: none; border-radius: 8px;">Приєднатися</a></p>
-              <p style="color: #666; font-size: 14px;">Посилання дійсне 7 днів.</p>
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+              ${salonLogo ? `
+                <div style="text-align: center; margin-bottom: 32px;">
+                  <img src="${salonLogo}" alt="${salonName}" style="max-width: 120px; max-height: 120px; border-radius: 12px;" />
+                </div>
+              ` : ''}
+              
+              <h1 style="font-size: 24px; font-weight: 600; color: #111; margin-bottom: 24px; text-align: center;">
+                Вітаємо${invitation.name ? ', ' + invitation.name : ''}! 👋
+              </h1>
+              
+              <p style="font-size: 16px; color: #333; line-height: 1.6; margin-bottom: 16px; text-align: center;">
+                <strong>${salonName}</strong> запрошує вас приєднатися до команди${invitation.role ? ' на посаду <strong>' + invitation.role + '</strong>' : ''}.
+              </p>
+              
+              <p style="font-size: 16px; color: #333; line-height: 1.6; margin-bottom: 32px; text-align: center;">
+                Натисніть кнопку нижче, щоб створити акаунт:
+              </p>
+              
+              <div style="text-align: center;">
+                <a href="${inviteUrl}" style="display: inline-block; padding: 14px 32px; background: #111; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 500; font-size: 16px;">
+                  Приєднатися
+                </a>
+              </div>
+              
+              <p style="font-size: 14px; color: #666; margin-top: 32px; line-height: 1.5; text-align: center;">
+                Посилання дійсне 7 днів.<br>
+                Якщо ви не очікували цей лист — просто проігноруйте його.
+              </p>
             </div>
           `,
         });
-        console.log(`Email sent to ${invitation.email}`);
+        console.log(`Resend email sent to ${invitation.email} from ${salonName}`);
       } catch (emailError) {
         console.error('Email send error:', emailError);
-        // Не фейлим запрос если email не отправился
       }
-    } else {
-      console.log(`[No Resend API Key] Would send email to ${invitation.email}, link: ${inviteUrl}`);
     }
 
     return NextResponse.json({ 
