@@ -497,12 +497,12 @@ export default function StaffDashboard() {
       </div>
 
       {/* Settings Panel */}
-      {settingsOpen && (
-        <div 
-          className="fixed inset-0 bg-white/20 backdrop-blur-sm z-40 transition-opacity duration-[560ms] ease-out"
-          onClick={() => setSettingsOpen(false)}
-        />
-      )}
+      <div 
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-all duration-700 ease-in-out ${
+          settingsOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setSettingsOpen(false)}
+      />
       <div 
         className={`fixed top-0 right-0 h-full w-80 bg-card border-l border-border shadow-xl z-50 transform transition-transform duration-[560ms] ease-out will-change-transform ${
           settingsOpen ? 'translate-x-0' : 'translate-x-full'
@@ -547,7 +547,7 @@ export default function StaffDashboard() {
             </button>
           </div>
 
-          <div className="p-4 border-t border-border">
+          <div className="p-4 border-t border-border mb-8">
             <button 
               onClick={handleLogout}
               className="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 transition-colors"
