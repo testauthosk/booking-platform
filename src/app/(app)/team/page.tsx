@@ -61,6 +61,7 @@ export default function TeamPage() {
   const [selectedInvitation, setSelectedInvitation] = useState<Invitation | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [resending, setResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -161,11 +162,13 @@ export default function TeamPage() {
 
   const handleResendInvitation = async (invitation: Invitation) => {
     setResending(true);
+    setResendSuccess(false);
     try {
       const res = await fetch(`/api/invitations/${invitation.id}/resend`, { method: 'POST' });
       if (res.ok) {
-        // Show success feedback
-        alert('Запрошення відправлено повторно!');
+        setResendSuccess(true);
+        // Auto-hide after 3 seconds
+        setTimeout(() => setResendSuccess(false), 3000);
       }
     } catch (error) {
       console.error('Resend error:', error);
@@ -441,8 +444,16 @@ export default function TeamPage() {
               </button>
             </div>
             
+            {/* Success Toast */}
+            {resendSuccess && (
+              <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 flex items-center gap-2">
+                <Check className="h-4 w-4 text-green-600" />
+                <p className="text-sm text-green-700 font-medium">Запрошення відправлено повторно!</p>
+              </div>
+            )}
+            
             {selectedInvitation && (
-              <div className="space-y-4 mt-4">
+              <div className="space-y-4">
                 {/* Status */}
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                   {selectedInvitation.viewedAt ? (

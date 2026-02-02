@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Resend } from 'resend';
+
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // POST /api/invitations/[id]/resend - повторная отправка приглашения
 export async function POST(
@@ -12,6 +15,7 @@ export async function POST(
     // Находим приглашение
     const invitation = await prisma.staffInvitation.findUnique({
       where: { id },
+      include: { salon: true },
     });
 
     if (!invitation) {
@@ -30,10 +34,33 @@ export async function POST(
       },
     });
 
-    // TODO: Здесь можно добавить отправку email через Resend/SendGrid/etc
-    // await sendInvitationEmail(invitation.email, invitation.token);
-
-    console.log(`Resend invitation to ${invitation.email}, token: ${invitation.token}`);
+    // Отправляем email если настроен Resend
+    const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://booking-platform-ruddy.vercel.app'}/join/${invitation.token}`;
+    
+    if (resend) {
+      try {
+        await resend.emails.send({
+          from: 'Booking Platform <onboarding@resend.dev>',
+          to: invitation.email,
+          subject: `Запрошення до команди ${invitation.salon?.name || 'салону'}`,
+          html: `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2>Вітаємо${invitation.name ? ', ' + invitation.name : ''}!</h2>
+              <p>Вас запрошено приєднатися до команди${invitation.salon?.name ? ' ' + invitation.salon.name : ''}${invitation.role ? ' на посаду ' + invitation.role : ''}.</p>
+              <p>Для створення акаунту перейдіть за посиланням:</p>
+              <p><a href="${inviteUrl}" style="display: inline-block; padding: 12px 24px; background: #000; color: #fff; text-decoration: none; border-radius: 8px;">Приєднатися</a></p>
+              <p style="color: #666; font-size: 14px;">Посилання дійсне 7 днів.</p>
+            </div>
+          `,
+        });
+        console.log(`Email sent to ${invitation.email}`);
+      } catch (emailError) {
+        console.error('Email send error:', emailError);
+        // Не фейлим запрос если email не отправился
+      }
+    } else {
+      console.log(`[No Resend API Key] Would send email to ${invitation.email}, link: ${inviteUrl}`);
+    }
 
     return NextResponse.json({ 
       success: true, 
