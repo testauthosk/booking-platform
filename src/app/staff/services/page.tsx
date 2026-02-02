@@ -42,6 +42,7 @@ export default function StaffServices() {
   const [newServiceDescription, setNewServiceDescription] = useState('');
   const [newServiceCategory, setNewServiceCategory] = useState('');
   const [creatingService, setCreatingService] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<Service | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('staffToken');
@@ -135,7 +136,11 @@ export default function StaffServices() {
     }
   };
 
-  const deleteService = async (serviceId: string) => {
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
+    const serviceId = deleteConfirm.id;
+    setDeleteConfirm(null);
+    
     // Optimistic update
     setServices(prev => prev.filter(s => s.id !== serviceId));
     
@@ -292,7 +297,7 @@ export default function StaffServices() {
                 
                 {/* Delete button */}
                 <button
-                  onClick={() => deleteService(service.id)}
+                  onClick={() => setDeleteConfirm(service)}
                   className="h-8 w-8 rounded-lg hover:bg-red-50 flex items-center justify-center text-muted-foreground hover:text-red-500 transition-colors"
                 >
                   <X className="h-4 w-4" />
@@ -319,6 +324,38 @@ export default function StaffServices() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+            onClick={() => setDeleteConfirm(null)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-card rounded-2xl shadow-xl max-w-sm w-full p-6">
+              <h3 className="font-semibold text-lg mb-2">Видалити послугу?</h3>
+              <p className="text-muted-foreground mb-6">
+                Ви дійсно хочете видалити послугу «{deleteConfirm.name}»?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteConfirm(null)}
+                  className="flex-1 py-2.5 rounded-xl border border-border font-medium hover:bg-muted transition-colors"
+                >
+                  Скасувати
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600 transition-colors"
+                >
+                  Видалити
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Add Service Modal */}
       {addModalOpen && (
@@ -385,12 +422,27 @@ export default function StaffServices() {
           {/* Duration */}
           <div>
             <label className="text-sm font-medium mb-1.5 block">Тривалість (хв)</label>
-            <Input
-              type="number"
-              value={newServiceDuration}
-              onChange={(e) => setNewServiceDuration(e.target.value)}
-              placeholder="30"
-            />
+            <div className="relative">
+              <select
+                value={newServiceDuration}
+                onChange={(e) => setNewServiceDuration(e.target.value)}
+                className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              >
+                <option value="15">15 хв</option>
+                <option value="30">30 хв</option>
+                <option value="45">45 хв</option>
+                <option value="60">1 год</option>
+                <option value="90">1 год 30 хв</option>
+                <option value="120">2 год</option>
+                <option value="150">2 год 30 хв</option>
+                <option value="180">3 год</option>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
           </div>
 
           {/* Price */}
