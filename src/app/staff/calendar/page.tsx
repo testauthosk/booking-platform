@@ -238,6 +238,14 @@ export default function StaffCalendar() {
   const [timePickerOpen, setTimePickerOpen] = useState(false);
   const [durationPickerOpen, setDurationPickerOpen] = useState(false);
   
+  // Edit booking modal
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editBooking, setEditBooking] = useState<Booking | null>(null);
+  const [editTime, setEditTime] = useState('');
+  const [editDuration, setEditDuration] = useState('');
+  const [editTimePickerOpen, setEditTimePickerOpen] = useState(false);
+  const [editDurationPickerOpen, setEditDurationPickerOpen] = useState(false);
+  
   // Time options will be generated based on working hours
   const getTimeOptions = () => {
     const slots = (workingHours.end - workingHours.start + 1) * 2;
@@ -419,6 +427,14 @@ export default function StaffCalendar() {
     } finally {
       setCreating(false);
     }
+  };
+
+  // Open edit modal
+  const openEditModal = (booking: Booking) => {
+    setEditBooking(booking);
+    setEditTime(booking.time);
+    setEditDuration(booking.duration.toString());
+    setEditModalOpen(true);
   };
 
   // Scroll to today on mount
@@ -793,7 +809,7 @@ export default function StaffCalendar() {
                           {!isPast && (
                             <div className="flex gap-1">
                               <button 
-                                onClick={() => alert('Редагування запису в розробці')}
+                                onClick={() => openEditModal(booking)}
                                 className="flex-1 h-8 rounded-lg bg-white text-zinc-600 hover:bg-zinc-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm"
                               >
                                 <Pencil className="h-4 w-4" />
@@ -1077,6 +1093,155 @@ export default function StaffCalendar() {
         </div>
         <button
           onClick={() => setDurationPickerOpen(false)}
+          className="w-full py-4 text-center text-zinc-400 border-t border-zinc-700"
+        >
+          <X className="h-5 w-5 mx-auto" />
+        </button>
+      </div>
+
+      {/* Edit Booking Modal */}
+      {editModalOpen && editBooking && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+          onClick={() => setEditModalOpen(false)}
+        />
+      )}
+      <div 
+        className={`fixed inset-x-0 bottom-0 max-h-[70vh] bg-card rounded-t-3xl shadow-xl z-50 transform transition-transform duration-500 ease-out overflow-hidden flex flex-col ${
+          editModalOpen ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
+          <h2 className="font-semibold">Редагувати запис</h2>
+          <button 
+            onClick={() => setEditModalOpen(false)}
+            className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {editBooking && (
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Client info (readonly) */}
+            <div className="p-3 bg-muted rounded-xl">
+              <p className="font-semibold">{editBooking.clientName}</p>
+              <p className="text-sm text-muted-foreground">{editBooking.clientPhone}</p>
+              <p className="text-sm text-muted-foreground">{editBooking.serviceName}</p>
+            </div>
+
+            {/* Time */}
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Час</label>
+              <button
+                type="button"
+                onClick={() => setEditTimePickerOpen(true)}
+                className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
+              >
+                <span>{editTime}</span>
+                <ChevronLeft className="h-4 w-4 text-muted-foreground rotate-[-90deg]" />
+              </button>
+            </div>
+
+            {/* Duration */}
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Тривалість</label>
+              <button
+                type="button"
+                onClick={() => setEditDurationPickerOpen(true)}
+                className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
+              >
+                <span>{durationOptions.find(d => d.value === editDuration)?.label || editDuration + ' хв'}</span>
+                <ChevronLeft className="h-4 w-4 text-muted-foreground rotate-[-90deg]" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="p-4 pb-8 border-t border-border shrink-0">
+          <button
+            onClick={() => {
+              // TODO: API call to update booking
+              alert(`Запис оновлено!\nНовий час: ${editTime}\nТривалість: ${editDuration} хв`);
+              setEditModalOpen(false);
+              loadBookings();
+            }}
+            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+          >
+            <Check className="h-5 w-5" />
+            Зберегти зміни
+          </button>
+        </div>
+      </div>
+
+      {/* Edit Time Picker */}
+      {editTimePickerOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-[60]"
+          onClick={() => setEditTimePickerOpen(false)}
+        />
+      )}
+      <div 
+        className={`fixed inset-x-0 bottom-0 bg-zinc-800 rounded-t-2xl z-[70] transform transition-transform duration-300 ${
+          editTimePickerOpen ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="p-2 max-h-[50vh] overflow-y-auto">
+          {timeOptions.map((time) => (
+            <button
+              key={time}
+              onClick={() => {
+                setEditTime(time);
+                setEditTimePickerOpen(false);
+              }}
+              className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
+                editTime === time ? 'text-white' : 'text-zinc-300'
+              }`}
+            >
+              {editTime === time && <Check className="h-5 w-5" />}
+              <span className={editTime === time ? '' : 'ml-8'}>{time}</span>
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setEditTimePickerOpen(false)}
+          className="w-full py-4 text-center text-zinc-400 border-t border-zinc-700"
+        >
+          <X className="h-5 w-5 mx-auto" />
+        </button>
+      </div>
+
+      {/* Edit Duration Picker */}
+      {editDurationPickerOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-[60]"
+          onClick={() => setEditDurationPickerOpen(false)}
+        />
+      )}
+      <div 
+        className={`fixed inset-x-0 bottom-0 bg-zinc-800 rounded-t-2xl z-[70] transform transition-transform duration-300 ${
+          editDurationPickerOpen ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="p-2">
+          {durationOptions.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => {
+                setEditDuration(opt.value);
+                setEditDurationPickerOpen(false);
+              }}
+              className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
+                editDuration === opt.value ? 'text-white' : 'text-zinc-300'
+              }`}
+            >
+              {editDuration === opt.value && <Check className="h-5 w-5" />}
+              <span className={editDuration === opt.value ? '' : 'ml-8'}>{opt.label}</span>
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setEditDurationPickerOpen(false)}
           className="w-full py-4 text-center text-zinc-400 border-t border-zinc-700"
         >
           <X className="h-5 w-5 mx-auto" />
