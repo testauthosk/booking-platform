@@ -255,8 +255,8 @@ export default function StaffProfile() {
 
         {/* Color picker */}
         <Card className="p-4">
-          <h3 className="font-medium mb-3">Колір у календарі</h3>
-          <p className="text-xs text-muted-foreground mb-3">
+          <h3 className="font-medium mb-1">Колір у календарі</h3>
+          <p className="text-xs text-muted-foreground mb-2">
             Цей колір відображатиметься у календарі бронювань
           </p>
           <div className="flex flex-wrap gap-2">
