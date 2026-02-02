@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Search, Plus, Filter, MoreVertical, Menu, Clock, UserPlus, Loader2, Copy, Check, Mail, ChevronRight, Trash2, ExternalLink, Eye, X, Send } from 'lucide-react';
+import { Search, Plus, Filter, MoreVertical, Menu, Clock, UserPlus, Loader2, Copy, Check, Mail, ChevronRight, Trash2, ExternalLink, Eye, X, Send, Settings, LogOut, CalendarDays, TrendingUp, Users } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useSidebar } from '@/components/sidebar-context';
 import { useCalendarSettings } from '@/lib/calendar-settings-context';
@@ -62,6 +62,9 @@ export default function TeamPage() {
   const [deleting, setDeleting] = useState(false);
   const [resending, setResending] = useState(false);
   const [toast, setToast] = useState<{ message: string; visible: boolean; isError?: boolean } | null>(null);
+  
+  // Profile panel
+  const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -229,9 +232,12 @@ export default function TeamPage() {
 
         <div className="flex items-center gap-1">
           <NotificationBell />
-          <div className="h-10 w-10 rounded-xl bg-orange-500 flex items-center justify-center text-white text-sm font-medium">
+          <button 
+            onClick={() => setProfileOpen(true)}
+            className="h-10 w-10 rounded-xl bg-orange-500 flex items-center justify-center text-white text-sm font-medium cursor-pointer active:scale-95 transition-transform"
+          >
             D
-          </div>
+          </button>
         </div>
       </header>
 
@@ -581,6 +587,93 @@ export default function TeamPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Profile Panel Overlay */}
+      {profileOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-300"
+          onClick={() => setProfileOpen(false)}
+        />
+      )}
+
+      {/* Profile Panel */}
+      <div 
+        className={`fixed top-0 right-0 h-full w-80 bg-card border-l border-border shadow-xl z-50 transform transition-transform duration-300 ease-out ${
+          profileOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="p-4 border-b border-border flex items-center justify-between">
+            <h2 className="font-semibold">Профіль</h2>
+            <button 
+              onClick={() => setProfileOpen(false)}
+              className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Profile Info */}
+          <div className="p-4 border-b border-border">
+            <div className="flex items-center gap-3">
+              <div className="h-14 w-14 rounded-xl bg-orange-500 flex items-center justify-center text-white text-xl font-semibold">
+                D
+              </div>
+              <div>
+                <p className="font-semibold">Demo User</p>
+                <p className="text-sm text-muted-foreground">Адміністратор</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Today Stats */}
+          <div className="p-4 border-b border-border">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Сьогодні</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 rounded-xl bg-muted/50">
+                <div className="flex items-center gap-2 mb-1">
+                  <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Записи</span>
+                </div>
+                <p className="text-xl font-bold">12</p>
+              </div>
+              <div className="p-3 rounded-xl bg-muted/50">
+                <div className="flex items-center gap-2 mb-1">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Клієнти</span>
+                </div>
+                <p className="text-xl font-bold">8</p>
+              </div>
+              <div className="p-3 rounded-xl bg-muted/50 col-span-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Виручка</span>
+                </div>
+                <p className="text-xl font-bold">₴ 4,850</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Menu */}
+          <div className="flex-1 p-4">
+            <div className="space-y-1">
+              <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted transition-colors text-left">
+                <Settings className="h-5 w-5 text-muted-foreground" />
+                <span>Налаштування</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Logout */}
+          <div className="p-4 border-t border-border">
+            <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-red-50 text-red-600 transition-colors text-left">
+              <LogOut className="h-5 w-5" />
+              <span>Вийти</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Fixed Toast */}
       {toast && (
