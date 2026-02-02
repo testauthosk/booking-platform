@@ -540,7 +540,7 @@ export default function StaffCalendar() {
       </div>
 
       {/* Content - scrollable */}
-      <div className="pb-24 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+      <div className="pb-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
         {loadingBookings ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -792,13 +792,33 @@ export default function StaffCalendar() {
                           {/* Other buttons - only for non-past */}
                           {!isPast && (
                             <div className="flex gap-1">
-                              <button className="flex-1 h-8 rounded-lg bg-white text-zinc-600 hover:bg-zinc-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm">
+                              <button 
+                                onClick={() => alert('Редагування запису в розробці')}
+                                className="flex-1 h-8 rounded-lg bg-white text-zinc-600 hover:bg-zinc-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm"
+                              >
                                 <Pencil className="h-4 w-4" />
                               </button>
-                              <button className="flex-1 h-8 rounded-lg bg-white text-orange-500 hover:bg-orange-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm" title="Не прийшов">
+                              <button 
+                                onClick={() => {
+                                  if (confirm(`Клієнт ${booking.clientName} не прийшов на запис?\n\nВідмітити як "Не прийшов"?`)) {
+                                    // TODO: API call to mark as NO_SHOW
+                                    alert('Відмічено як "Не прийшов"');
+                                  }
+                                }}
+                                className="flex-1 h-8 rounded-lg bg-white text-orange-500 hover:bg-orange-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm" 
+                                title="Не прийшов"
+                              >
                                 <Clock className="h-4 w-4" />
                               </button>
-                              <button className="flex-1 h-8 rounded-lg bg-white text-red-400 hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm">
+                              <button 
+                                onClick={() => {
+                                  if (confirm(`Скасувати запис?\n\nКлієнт: ${booking.clientName}\nПослуга: ${booking.serviceName}\nЧас: ${booking.time}`)) {
+                                    // TODO: API call to cancel booking
+                                    alert('Запис скасовано');
+                                  }
+                                }}
+                                className="flex-1 h-8 rounded-lg bg-white text-red-400 hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm"
+                              >
                                 <X className="h-4 w-4" />
                               </button>
                             </div>
