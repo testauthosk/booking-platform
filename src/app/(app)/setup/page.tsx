@@ -8,6 +8,7 @@ import {
   Users,
   FileText,
   ChevronRight,
+  History,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -16,6 +17,7 @@ const settingsCategories = [
   { icon: Calendar, label: 'Планування', description: 'Налаштуйте розклад та онлайн-запис', href: '/setup/schedule' },
   { icon: Users, label: 'Команда', description: 'Керуйте дозволами, комісіями та відпустками', href: '/setup/team' },
   { icon: FileText, label: 'Анкети', description: 'Налаштовуйте шаблони анкет', href: '/setup/forms' },
+  { icon: History, label: 'Історія змін', description: 'Журнал всіх дій майстрів та адміністраторів', href: '/setup/history' },
 ];
 
 export default function SetupPage() {

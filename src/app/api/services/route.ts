@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logAudit } from '@/lib/audit';
 
 // Создать или получить демо салон
 async function ensureSalonExists(salonId: string) {
@@ -93,6 +94,17 @@ export async function POST(request: NextRequest) {
       include: {
         category: true,
       },
+    });
+
+    // Логируем в историю
+    await logAudit({
+      salonId,
+      actorType: 'admin',
+      actorName: 'Адміністратор',
+      action: 'CREATE',
+      entityType: 'service',
+      entityId: service.id,
+      entityName: name,
     });
 
     return NextResponse.json(service);
