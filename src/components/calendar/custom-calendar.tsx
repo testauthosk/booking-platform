@@ -604,22 +604,22 @@ export function CustomCalendar({
         <div
           className="fixed z-[100] pointer-events-none rounded-[3px] overflow-hidden shadow-2xl"
           style={{
-            left: dragState.currentX - 60,
-            top: dragState.currentY - 20,
-            width: 120,
-            height: dragState.originalHeight,
+            left: dragState.currentX - colMinWidth / 2,
+            top: dragState.currentY - 15,
+            width: colMinWidth,
+            minHeight: Math.max(dragState.originalHeight, 50),
             backgroundColor: dragState.event.backgroundColor || '#4eb8d5',
-            borderLeft: `2px solid ${darkenColor(dragState.event.backgroundColor || '#4eb8d5', 0.35)}`,
-            transform: 'scale(1.05)',
-            opacity: 0.95,
+            borderLeft: `3px solid ${darkenColor(dragState.event.backgroundColor || '#4eb8d5', 0.35)}`,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            transform: 'scale(1.02)',
           }}
         >
-          <div className="p-1.5 pl-2 text-white h-full overflow-hidden">
-            <div className="font-semibold text-[11px] drop-shadow-sm">
+          <div className="p-2 pl-3 text-white h-full overflow-hidden">
+            <div className="font-bold text-sm drop-shadow-sm">
               {formatTime(dragState.event.start)} - {formatTime(dragState.event.end)}
             </div>
-            <div className="font-medium text-xs truncate">{dragState.event.clientName}</div>
-            <div className="opacity-80 text-[10px] truncate">{dragState.event.title}</div>
+            <div className="font-semibold text-sm truncate mt-0.5">{dragState.event.clientName}</div>
+            <div className="opacity-90 text-xs truncate mt-0.5">{dragState.event.title}</div>
           </div>
         </div>
       )}
