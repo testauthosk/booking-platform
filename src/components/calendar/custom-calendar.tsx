@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 
 // Функция затемнения цвета
@@ -103,7 +103,16 @@ export function CustomCalendar({
     onSlotClick({ start, end, resourceId });
   };
 
-  const now = new Date();
+  const [now, setNow] = useState(new Date());
+  
+  // Update time every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 60000); // every minute
+    return () => clearInterval(interval);
+  }, []);
+  
   const currentHour = now.getHours();
   const currentMin = now.getMinutes();
   
