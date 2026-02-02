@@ -345,23 +345,23 @@ export default function StaffDashboard() {
 
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-3">
-          <Card className="p-3 text-center">
-            <p className="text-2xl font-bold text-primary">
+          <Card className="p-3 pt-4 text-center flex flex-col justify-center">
+            <p className="text-4xl font-bold text-primary">
               {loadingStats ? '...' : stats?.todayCount ?? 0}
             </p>
-            <p className="text-xs text-muted-foreground">Сьогодні</p>
+            <p className="text-xs text-muted-foreground mt-2">Сьогодні</p>
           </Card>
-          <Card className="p-3 text-center">
-            <p className="text-2xl font-bold">
+          <Card className="p-3 pt-4 text-center flex flex-col justify-center">
+            <p className="text-4xl font-bold">
               {loadingStats ? '...' : stats?.tomorrowCount ?? 0}
             </p>
-            <p className="text-xs text-muted-foreground">Завтра</p>
+            <p className="text-xs text-muted-foreground mt-2">Завтра</p>
           </Card>
-          <Card className="p-3 text-center">
-            <p className="text-2xl font-bold">
+          <Card className="p-3 pt-4 text-center flex flex-col justify-center">
+            <p className="text-4xl font-bold">
               {loadingStats ? '...' : stats?.weekCount ?? 0}
             </p>
-            <p className="text-xs text-muted-foreground">За тиждень</p>
+            <p className="text-xs text-muted-foreground mt-2">За тиждень</p>
           </Card>
         </div>
 
@@ -513,9 +513,9 @@ export default function StaffDashboard() {
             <h2 className="font-semibold">Налаштування</h2>
             <button 
               onClick={() => setSettingsOpen(false)}
-              className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
+              className="h-9 w-10 rounded-xl border border-border hover:bg-muted flex items-center justify-center transition-colors"
             >
-              <X className="h-5 w-5" />
+              <X className="h-5 w-5 text-muted-foreground" />
             </button>
           </div>
 
