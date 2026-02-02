@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Search, Plus, Filter, MoreVertical, Menu, Clock, UserPlus, Loader2, Copy, Check, Mail, ChevronRight, Trash2, ExternalLink, Eye, X } from 'lucide-react';
+import { Search, Plus, Filter, MoreVertical, Menu, Clock, UserPlus, Loader2, Copy, Check, Mail, ChevronRight, Trash2, ExternalLink, Eye, X, Send } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useSidebar } from '@/components/sidebar-context';
 import { useCalendarSettings } from '@/lib/calendar-settings-context';
@@ -60,6 +60,7 @@ export default function TeamPage() {
   // Invitation details modal
   const [selectedInvitation, setSelectedInvitation] = useState<Invitation | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [resending, setResending] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -155,6 +156,21 @@ export default function TeamPage() {
       console.error('Delete error:', error);
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleResendInvitation = async (invitation: Invitation) => {
+    setResending(true);
+    try {
+      const res = await fetch(`/api/invitations/${invitation.id}/resend`, { method: 'POST' });
+      if (res.ok) {
+        // Show success feedback
+        alert('Запрошення відправлено повторно!');
+      }
+    } catch (error) {
+      console.error('Resend error:', error);
+    } finally {
+      setResending(false);
     }
   };
 
@@ -447,15 +463,31 @@ export default function TeamPage() {
                   ) : (
                     <>
                       <div 
-                        className="h-10 w-10 rounded-full flex items-center justify-center"
+                        className="h-10 w-10 rounded-full flex items-center justify-center shrink-0"
                         style={{ backgroundColor: `${getColorForIndex(1)}20` }}
                       >
                         <Clock className="h-5 w-5" style={{ color: getColorForIndex(1) }} />
                       </div>
-                      <div>
+                      <div className="flex-1">
                         <p className="font-medium" style={{ color: getColorForIndex(1) }}>Очікує відкриття</p>
                         <p className="text-xs text-muted-foreground">Майстер ще не переходив</p>
                       </div>
+                      <button
+                        onClick={() => handleResendInvitation(selectedInvitation)}
+                        disabled={resending}
+                        className="h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors shrink-0"
+                        style={{ 
+                          backgroundColor: `${getColorForIndex(1)}15`,
+                          color: getColorForIndex(1)
+                        }}
+                      >
+                        {resending ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Send className="h-3 w-3" />
+                        )}
+                        Ще раз
+                      </button>
                     </>
                   )}
                 </div>
