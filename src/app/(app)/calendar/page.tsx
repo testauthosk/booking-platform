@@ -121,7 +121,9 @@ export default function CalendarPage() {
   // Load bookings from API
   const loadBookings = async () => {
     try {
+      console.log('[Calendar] Loading bookings...');
       const res = await fetch('/api/booking');
+      console.log('[Calendar] Bookings response:', res.status);
       if (res.ok) {
         const data: BookingFromAPI[] = await res.json();
         // Convert API bookings to BookingEvent format
@@ -153,7 +155,11 @@ export default function CalendarPage() {
             status: b.status.toLowerCase(),
           };
         });
+        console.log('[Calendar] Loaded bookings:', bookingEvents.length);
         setEvents(bookingEvents);
+      } else {
+        const errorData = await res.text();
+        console.error('[Calendar] Bookings API error:', res.status, errorData);
       }
     } catch (error) {
       console.error('Load bookings error:', error);
