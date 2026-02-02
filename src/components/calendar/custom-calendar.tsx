@@ -602,24 +602,25 @@ export function CustomCalendar({
       {/* Floating drag card */}
       {dragState.isDragging && dragState.event && (
         <div
-          className="fixed z-[100] pointer-events-none rounded-[3px] overflow-hidden shadow-2xl"
+          className="fixed z-[100] pointer-events-none rounded-lg overflow-hidden"
           style={{
-            left: dragState.currentX - colMinWidth / 2,
-            top: dragState.currentY - 15,
-            width: colMinWidth,
-            minHeight: Math.max(dragState.originalHeight, 50),
+            left: `${dragState.currentX}px`,
+            top: `${dragState.currentY}px`,
+            transform: 'translate(-50%, -30%) scale(1.02)',
+            minWidth: '150px',
+            width: '180px',
+            minHeight: `${Math.max(dragState.originalHeight, 60)}px`,
             backgroundColor: dragState.event.backgroundColor || '#4eb8d5',
-            borderLeft: `3px solid ${darkenColor(dragState.event.backgroundColor || '#4eb8d5', 0.35)}`,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-            transform: 'scale(1.02)',
+            borderLeft: `4px solid ${darkenColor(dragState.event.backgroundColor || '#4eb8d5', 0.35)}`,
+            boxShadow: '0 12px 40px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.2)',
           }}
         >
-          <div className="p-2 pl-3 text-white h-full overflow-hidden">
-            <div className="font-bold text-sm drop-shadow-sm">
+          <div className="p-3 text-white h-full">
+            <div className="font-bold text-base drop-shadow-md">
               {formatTime(dragState.event.start)} - {formatTime(dragState.event.end)}
             </div>
-            <div className="font-semibold text-sm truncate mt-0.5">{dragState.event.clientName}</div>
-            <div className="opacity-90 text-xs truncate mt-0.5">{dragState.event.title}</div>
+            <div className="font-semibold text-base mt-1">{dragState.event.clientName}</div>
+            <div className="opacity-90 text-sm mt-0.5">{dragState.event.title}</div>
           </div>
         </div>
       )}
