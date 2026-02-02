@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
         isActive: true,
         rating: true,
         reviewCount: true,
+        workingHours: true,
       },
       orderBy: { sortOrder: 'asc' },
     });

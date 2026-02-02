@@ -26,11 +26,29 @@ export interface BookingEvent {
   status?: string;
 }
 
+interface WorkingDay {
+  start: string;
+  end: string;
+  enabled: boolean;
+}
+
+interface WorkingHours {
+  monday?: WorkingDay;
+  tuesday?: WorkingDay;
+  wednesday?: WorkingDay;
+  thursday?: WorkingDay;
+  friday?: WorkingDay;
+  saturday?: WorkingDay;
+  sunday?: WorkingDay;
+  [key: string]: WorkingDay | undefined;
+}
+
 export interface Resource {
   id: string;
   title: string;
   color?: string;
   avatar?: string;
+  workingHours?: WorkingHours;
 }
 
 interface CustomCalendarProps {
@@ -74,6 +92,26 @@ function isTodayInTimezone(selectedDate: Date, timezone: string): boolean {
   return todayStr === selectedStr;
 }
 
+// Get day name from date
+const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+function getDayName(date: Date): string {
+  return dayNames[date.getDay()];
+}
+
+// Check if hour is within working hours for a resource on given day
+function isWorkingHour(resource: Resource, dayName: string, hour: number): boolean {
+  if (!resource.workingHours) return true; // No schedule = always available
+  
+  const daySchedule = resource.workingHours[dayName];
+  if (!daySchedule || !daySchedule.enabled) return false; // Day off
+  
+  const startHour = parseInt(daySchedule.start.split(':')[0], 10);
+  const endHour = parseInt(daySchedule.end.split(':')[0], 10);
+  
+  return hour >= startHour && hour < endHour;
+}
+
 export function CustomCalendar({
   events = [],
   resources = [],
@@ -105,6 +143,7 @@ export function CustomCalendar({
   const currentDate = selectedDate || new Date();
   const currentDateStr = currentDate.toISOString().split('T')[0];
   const isToday = isTodayInTimezone(currentDate, timezone);
+  const currentDayName = getDayName(currentDate);
 
   const getEventPosition = (event: BookingEvent) => {
     const startHour = event.start.getHours();
@@ -262,14 +301,22 @@ export function CustomCalendar({
                 style={{ minWidth: colMinWidth, flex: 1 }}
               >
                 {/* Hour lines */}
-                {timeSlots.map((time, idx) => (
-                  <div
-                    key={`cell-${time}-${resource.id}`}
-                    className="border-b border-slate-200/50 dark:border-slate-700/50 hover:bg-white/40 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
-                    style={{ height: hourHeight }}
-                    onClick={() => handleSlotClick(dayStart + idx, resource.id)}
-                  />
-                ))}
+                {timeSlots.map((time, idx) => {
+                  const hour = dayStart + idx;
+                  const isWorking = isWorkingHour(resource, currentDayName, hour);
+                  return (
+                    <div
+                      key={`cell-${time}-${resource.id}`}
+                      className={`border-b border-slate-200/50 dark:border-slate-700/50 transition-colors ${
+                        isWorking 
+                          ? 'hover:bg-white/40 dark:hover:bg-slate-800/40 cursor-pointer' 
+                          : 'bg-slate-200/60 dark:bg-slate-700/40 cursor-not-allowed'
+                      }`}
+                      style={{ height: hourHeight }}
+                      onClick={() => isWorking && handleSlotClick(hour, resource.id)}
+                    />
+                  );
+                })}
 
                 {/* Events */}
                 {getEventsForResource(resource.id).map((event) => {

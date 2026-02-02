@@ -13,12 +13,29 @@ import { Calendar } from '@/components/ui/calendar';
 import { useCalendarSettings } from '@/lib/calendar-settings-context';
 import { useAuth } from '@/contexts/AuthContext';
 
+interface WorkingDay {
+  start: string;
+  end: string;
+  enabled: boolean;
+}
+
+interface WorkingHours {
+  monday?: WorkingDay;
+  tuesday?: WorkingDay;
+  wednesday?: WorkingDay;
+  thursday?: WorkingDay;
+  friday?: WorkingDay;
+  saturday?: WorkingDay;
+  sunday?: WorkingDay;
+}
+
 interface Master {
   id: string;
   name: string;
   avatar?: string;
   role?: string;
   color?: string;
+  workingHours?: WorkingHours;
 }
 
 interface SalonData {
@@ -93,6 +110,7 @@ export default function CalendarPage() {
       title: master.name,
       avatar: master.avatar,
       color: master.color || getColorForIndex(idx),
+      workingHours: master.workingHours,
     })),
     [masters, settings.paletteId] // eslint-disable-line react-hooks/exhaustive-deps
   );
