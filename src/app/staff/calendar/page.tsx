@@ -903,13 +903,13 @@ export default function StaffCalendar() {
       
       {/* Add Booking Modal */}
       <div 
-        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-500 ${
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-all duration-700 ease-in-out ${
           addModalOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setAddModalOpen(false)}
       />
       <div 
-        className={`fixed inset-x-0 bottom-0 max-h-[85vh] bg-card rounded-t-3xl shadow-xl z-50 transform transition-all duration-500 ease-out overflow-hidden flex flex-col ${
+        className={`fixed inset-x-0 bottom-0 max-h-[85vh] bg-card rounded-t-3xl shadow-xl z-50 transform transition-all duration-700 ease-in-out overflow-hidden flex flex-col ${
           addModalOpen ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
@@ -1152,13 +1152,13 @@ export default function StaffCalendar() {
 
       {/* Edit Booking Modal */}
       <div 
-        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-500 ${
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-all duration-700 ease-in-out ${
           editModalOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setEditModalOpen(false)}
       />
       <div 
-        className={`fixed inset-x-0 bottom-0 max-h-[70vh] bg-card rounded-t-3xl shadow-xl z-50 transform transition-all duration-500 ease-out overflow-hidden flex flex-col ${
+        className={`fixed inset-x-0 bottom-0 max-h-[70vh] bg-card rounded-t-3xl shadow-xl z-50 transform transition-all duration-700 ease-in-out overflow-hidden flex flex-col ${
           editModalOpen ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
@@ -1323,13 +1323,13 @@ export default function StaffCalendar() {
 
       {/* Confirmation Modal - Bottom Sheet */}
       <div 
-        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] transition-opacity duration-500 ${
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] transition-all duration-700 ease-in-out ${
           confirmModal.open ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => !confirmLoading && setConfirmModal({ open: false, type: null, booking: null })}
       />
       <div 
-        className={`fixed inset-x-0 bottom-0 bg-card rounded-t-3xl shadow-xl z-[90] transform transition-all duration-500 ease-out ${
+        className={`fixed inset-x-0 bottom-0 bg-card rounded-t-3xl shadow-xl z-[90] transform transition-all duration-700 ease-in-out ${
           confirmModal.open ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
