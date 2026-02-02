@@ -28,6 +28,78 @@ interface Service {
 const DAYS_UA = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 const MONTHS_UA = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
 
+// Booking card component
+function BookingCard({ booking, isPast, isToday: isTodayDate }: { booking: Booking; isPast: boolean; isToday: boolean }) {
+  const isBlocked = booking.clientName === 'Зайнято';
+  
+  // Calculate end time
+  const [h, m] = booking.time.split(':').map(Number);
+  const endMins = h * 60 + m + booking.duration;
+  const endH = Math.floor(endMins / 60);
+  const endM = endMins % 60;
+  const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+  
+  // Show end time only if it's not on :00 or :30
+  const showEndTime = endM !== 0 && endM !== 30;
+  
+  return (
+    <Card className={`mb-2 ${
+      booking.status === 'COMPLETED' 
+        ? 'border-green-300 bg-green-50/30' 
+        : isBlocked
+        ? 'border-zinc-300 bg-zinc-50'
+        : isPast 
+        ? 'opacity-50' 
+        : ''
+    }`}>
+      <div className="p-3">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <p className="font-semibold text-sm">{booking.clientName}</p>
+            <p className="text-xs text-muted-foreground">{booking.serviceName}</p>
+          </div>
+          {showEndTime && (
+            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+              до {endTime}
+            </span>
+          )}
+          {booking.status === 'COMPLETED' && (
+            <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full ml-2">
+              ✓
+            </span>
+          )}
+        </div>
+        
+        {!isBlocked && (
+          <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
+            <span>{booking.duration} хв</span>
+            {booking.price !== undefined && booking.price > 0 && (
+              <span className="font-medium text-foreground">{booking.price} ₴</span>
+            )}
+          </div>
+        )}
+        
+        {/* Actions */}
+        {!isPast && booking.status !== 'COMPLETED' && (
+          <div className="flex gap-1.5 mt-2">
+            {!isBlocked && (
+              <button className="flex-1 py-1.5 rounded-lg bg-green-50 text-green-700 text-xs font-medium hover:bg-green-100 transition-colors border border-green-200">
+                Завершити
+              </button>
+            )}
+            <button className="flex-1 py-1.5 rounded-lg bg-zinc-50 text-zinc-600 text-xs font-medium hover:bg-zinc-100 transition-colors border border-zinc-200">
+              Редагувати
+            </button>
+            <button className="py-1.5 px-2 rounded-lg text-red-500 text-xs font-medium hover:bg-red-50 transition-colors">
+              ✕
+            </button>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 export default function StaffCalendar() {
   const router = useRouter();
   const daysRef = useRef<HTMLDivElement>(null);
@@ -291,138 +363,83 @@ export default function StaffCalendar() {
         ))}
       </div>
 
-      {/* Timeline view */}
-      <div className="p-4 pb-24">
+      {/* Full day timeline */}
+      <div className="pb-24 relative">
         {loadingBookings ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ) : bookings.length > 0 ? (
+        ) : (
           <div className="relative">
             {/* Vertical timeline line */}
-            <div className="absolute left-[52px] top-0 bottom-0 w-0.5 bg-border" />
+            <div className="absolute left-[52px] top-0 bottom-0 w-px bg-border" />
             
-            <div className="space-y-6">
-              {bookings.map((booking) => {
-                const isPast = (() => {
-                  if (!isToday(selectedDate)) return false;
-                  const [h, m] = booking.time.split(':').map(Number);
-                  const now = new Date();
-                  return h < now.getHours() || (h === now.getHours() && m < now.getMinutes());
-                })();
-                
-                const isBlocked = booking.clientName === 'Зайнято';
-                
-                // Calculate end time
-                const endTime = booking.timeEnd || (() => {
-                  const [h, m] = booking.time.split(':').map(Number);
-                  const endMins = h * 60 + m + booking.duration;
-                  const endH = Math.floor(endMins / 60);
-                  const endM = endMins % 60;
-                  return `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
-                })();
-                
-                return (
-                  <div key={booking.id} className="relative flex">
-                    {/* Time labels on left */}
-                    <div className="w-12 shrink-0 flex flex-col justify-between py-2 pr-2 text-right">
-                      <span className={`text-xs font-semibold ${isPast ? 'text-muted-foreground' : 'text-foreground'}`}>
-                        {booking.time}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {endTime}
+            {/* Hour slots from 8:00 to 21:00 */}
+            {Array.from({ length: 14 }, (_, i) => {
+              const hour = 8 + i;
+              const timeStr = `${hour.toString().padStart(2, '0')}:00`;
+              const time30 = `${hour.toString().padStart(2, '0')}:30`;
+              
+              // Find bookings that start at this hour or :30
+              const bookingAtHour = bookings.find(b => b.time === timeStr);
+              const bookingAt30 = bookings.find(b => b.time === time30);
+              
+              // Check if this slot is in the past
+              const isPastHour = isToday(selectedDate) && hour < new Date().getHours();
+              const isPast30 = isToday(selectedDate) && (hour < new Date().getHours() || (hour === new Date().getHours() && 30 < new Date().getMinutes()));
+              
+              return (
+                <div key={hour}>
+                  {/* Hour row */}
+                  <div className="flex items-start min-h-[60px]">
+                    {/* Time label */}
+                    <div className="w-12 shrink-0 pr-2 text-right">
+                      <span className={`text-xs font-medium ${isPastHour ? 'text-muted-foreground/50' : 'text-muted-foreground'}`}>
+                        {timeStr}
                       </span>
                     </div>
                     
-                    {/* Connector arrows */}
-                    <div className="w-6 shrink-0 relative flex flex-col justify-between py-3">
-                      {/* Top arrow */}
-                      <div className="flex items-center">
-                        <div className={`w-3 h-0.5 ${isPast ? 'bg-muted-foreground' : 'bg-primary'}`} />
-                        <div className={`w-2 h-2 rounded-full ${isPast ? 'bg-muted-foreground' : 'bg-primary'}`} />
-                      </div>
-                      {/* Bottom arrow */}
-                      <div className="flex items-center">
-                        <div className="w-3 h-0.5 bg-muted-foreground/50" />
-                        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50" />
-                      </div>
+                    {/* Dot on line */}
+                    <div className="w-6 shrink-0 flex justify-center">
+                      <div className={`w-2 h-2 rounded-full mt-1 ${isPastHour ? 'bg-muted-foreground/30' : 'bg-border'}`} />
                     </div>
                     
-                    {/* Booking card */}
-                    <Card className={`flex-1 ${
-                      booking.status === 'COMPLETED' 
-                        ? 'border-green-300 bg-green-50/30' 
-                        : isBlocked
-                        ? 'border-zinc-300 bg-zinc-50'
-                        : isPast 
-                        ? 'opacity-60' 
-                        : ''
-                    }`}>
-                      <div className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <p className="font-semibold">{booking.clientName}</p>
-                            <p className="text-sm text-muted-foreground">{booking.serviceName}</p>
-                          </div>
-                          {booking.status === 'COMPLETED' && (
-                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                              ✓
-                            </span>
-                          )}
-                        </div>
-                        
-                        {!isBlocked && (
-                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                            <span>{booking.duration} хв</span>
-                            {booking.price !== undefined && booking.price > 0 && (
-                              <span className="font-medium text-foreground">{booking.price} ₴</span>
-                            )}
-                          </div>
-                        )}
-                        
-                        {/* Actions */}
-                        {!isPast && booking.status !== 'COMPLETED' && (
-                          <div className="flex gap-2 mt-3">
-                            {!isBlocked && (
-                              <button className="flex-1 py-2 rounded-lg bg-green-50 text-green-700 text-sm font-medium hover:bg-green-100 transition-colors border border-green-200">
-                                Завершити
-                              </button>
-                            )}
-                            <button className="flex-1 py-2 rounded-lg bg-zinc-50 text-zinc-600 text-sm font-medium hover:bg-zinc-100 transition-colors border border-zinc-200">
-                              Редагувати
-                            </button>
-                            <button className="py-2 px-3 rounded-lg text-red-500 text-sm font-medium hover:bg-red-50 transition-colors">
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </Card>
+                    {/* Booking card or empty */}
+                    <div className="flex-1 pr-4">
+                      {bookingAtHour && (
+                        <BookingCard booking={bookingAtHour} isPast={isPastHour} isToday={isToday(selectedDate)} />
+                      )}
+                    </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-20">
-            <div className="h-20 w-20 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
-              <Clock className="h-10 w-10 text-muted-foreground" />
-            </div>
-            <p className="font-medium mb-1">Немає записів</p>
-            <p className="text-sm text-muted-foreground mb-6">
-              На цей день ще немає записів
-            </p>
-            <button 
-              onClick={openAddModal}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              Створити запис
-            </button>
+                  
+                  {/* :30 row */}
+                  <div className="flex items-start min-h-[60px]">
+                    {/* Time label - smaller */}
+                    <div className="w-12 shrink-0 pr-2 text-right">
+                      <span className={`text-[10px] ${isPast30 ? 'text-muted-foreground/30' : 'text-muted-foreground/60'}`}>
+                        30
+                      </span>
+                    </div>
+                    
+                    {/* Small dot on line */}
+                    <div className="w-6 shrink-0 flex justify-center">
+                      <div className={`w-1 h-1 rounded-full mt-1.5 ${isPast30 ? 'bg-muted-foreground/20' : 'bg-border/50'}`} />
+                    </div>
+                    
+                    {/* Booking card or empty */}
+                    <div className="flex-1 pr-4">
+                      {bookingAt30 && (
+                        <BookingCard booking={bookingAt30} isPast={isPast30} isToday={isToday(selectedDate)} />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
-
+      
       {/* Add Booking Modal */}
       {addModalOpen && (
         <div 
