@@ -60,6 +60,7 @@ model Salon {
   // Settings
   timezone    String   @default("Europe/Kiev")
   currency    String   @default("UAH")
+  paletteId   String   @default("earth-harmony")
 
   // Stats (denormalized for performance)
   rating      Float    @default(5.0)

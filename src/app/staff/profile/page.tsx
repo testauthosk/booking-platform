@@ -5,26 +5,15 @@ import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ChevronLeft, Loader2, Check, Camera, User } from 'lucide-react';
-
-// Палітра кольорів (earth-harmony)
-const COLOR_PALETTE = [
-  { hex: '#87C2CA', name: 'Тибетський камінь' },
-  { hex: '#BAB8A8', name: 'Зелене дерево' },
-  { hex: '#E6D17B', name: 'Пшеничне золото' },
-  { hex: '#DF93B4', name: 'Квітка персика' },
-  { hex: '#94B5FD', name: 'Каролінський синій' },
-  { hex: '#C0B283', name: 'Піщаний беж' },
-  { hex: '#9DF0B3', name: "М'ятний тонік" },
-  { hex: '#BDB7DB', name: 'Мелроуз' },
-  { hex: '#D3E08C', name: 'Зелене зачарування' },
-  { hex: '#F1C764', name: 'Медовий' },
-];
+import { COLOR_PALETTES, getPaletteById } from '@/lib/color-palettes';
 
 export default function StaffProfile() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [staffId, setStaffId] = useState('');
+  const [salonId, setSalonId] = useState('');
+  const [colorPalette, setColorPalette] = useState<{ hex: string; name: string }[]>([]);
   
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -37,6 +26,7 @@ export default function StaffProfile() {
   useEffect(() => {
     const token = localStorage.getItem('staffToken');
     const id = localStorage.getItem('staffId');
+    const salon = localStorage.getItem('staffSalonId');
     
     if (!token) {
       router.push('/staff/login');
@@ -44,8 +34,37 @@ export default function StaffProfile() {
     }
     
     setStaffId(id || '');
+    setSalonId(salon || '');
     setLoading(false);
   }, [router]);
+
+  // Load salon palette
+  useEffect(() => {
+    if (salonId) {
+      loadSalonPalette();
+    }
+  }, [salonId]);
+
+  const loadSalonPalette = async () => {
+    try {
+      const res = await fetch(`/api/salon/palette?salonId=${salonId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const palette = getPaletteById(data.paletteId);
+        if (palette) {
+          setColorPalette(palette.colors);
+        } else {
+          // Default to earth-harmony
+          setColorPalette(COLOR_PALETTES[2].colors);
+        }
+      } else {
+        setColorPalette(COLOR_PALETTES[2].colors);
+      }
+    } catch (error) {
+      console.error('Load palette error:', error);
+      setColorPalette(COLOR_PALETTES[2].colors);
+    }
+  };
 
   useEffect(() => {
     if (staffId) {
@@ -156,7 +175,7 @@ export default function StaffProfile() {
             Цей колір відображатиметься у календарі бронювань
           </p>
           <div className="flex flex-wrap gap-2">
-            {COLOR_PALETTE.map((c) => (
+            {colorPalette.length > 0 ? colorPalette.map((c) => (
               <button
                 key={c.hex}
                 onClick={() => setColor(c.hex)}
@@ -172,7 +191,9 @@ export default function StaffProfile() {
                   <Check className="h-5 w-5 text-white mx-auto drop-shadow" />
                 )}
               </button>
-            ))}
+            )) : (
+              <p className="text-sm text-muted-foreground">Завантаження...</p>
+            )}
           </div>
         </Card>
 

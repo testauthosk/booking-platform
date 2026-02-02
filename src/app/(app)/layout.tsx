@@ -50,6 +50,9 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   );
 }
 
+// TODO: Get salonId from user session
+const DEMO_SALON_ID = 'demo-salon-id';
+
 export default function AppLayout({
   children,
 }: {
@@ -57,7 +60,7 @@ export default function AppLayout({
 }) {
   return (
     <SidebarProvider>
-      <CalendarSettingsProvider>
+      <CalendarSettingsProvider salonId={DEMO_SALON_ID}>
         <AppLayoutInner>{children}</AppLayoutInner>
       </CalendarSettingsProvider>
     </SidebarProvider>
