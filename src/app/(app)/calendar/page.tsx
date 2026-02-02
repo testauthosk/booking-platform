@@ -7,7 +7,7 @@ import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useSidebar } from '@/components/sidebar-context';
 import { EventModal } from '@/components/calendar/event-modal';
 import { NewBookingModal } from '@/components/calendar/new-booking-modal';
-import { CustomCalendar, type BookingEvent, type Resource } from '@/components/calendar/custom-calendar';
+import { CustomCalendar, type BookingEvent, type Resource, type SlotMenuAction } from '@/components/calendar/custom-calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useCalendarSettings } from '@/lib/calendar-settings-context';
@@ -121,9 +121,7 @@ export default function CalendarPage() {
   // Load bookings from API
   const loadBookings = async () => {
     try {
-      console.log('[Calendar] Loading bookings...');
       const res = await fetch('/api/booking');
-      console.log('[Calendar] Bookings response:', res.status);
       if (res.ok) {
         const data: BookingFromAPI[] = await res.json();
         // Convert API bookings to BookingEvent format
@@ -155,11 +153,7 @@ export default function CalendarPage() {
             status: b.status.toLowerCase(),
           };
         });
-        console.log('[Calendar] Loaded bookings:', bookingEvents.length);
         setEvents(bookingEvents);
-      } else {
-        const errorData = await res.text();
-        console.error('[Calendar] Bookings API error:', res.status, errorData);
       }
     } catch (error) {
       console.error('Load bookings error:', error);
@@ -266,12 +260,56 @@ export default function CalendarPage() {
     setIsEventModalOpen(false);
   };
 
+  // Handle slot menu actions
+  const handleSlotAction = (action: SlotMenuAction) => {
+    if (action.type === 'booking') {
+      setSelectedSlot({ 
+        start: action.start, 
+        end: action.end, 
+        resourceId: action.resourceId 
+      });
+      setIsNewBookingModalOpen(true);
+    } else if (action.type === 'block-time') {
+      // TODO: Implement block time
+      console.log('Block time:', action);
+    } else if (action.type === 'group-booking') {
+      // TODO: Implement group booking
+      console.log('Group booking:', action);
+    }
+  };
+
+  // Handle event drag & drop
+  const handleEventDropAction = (event: BookingEvent, newStart: Date, newEnd: Date, newResourceId?: string) => {
+    setEvents(prev => prev.map(e => 
+      e.id === event.id 
+        ? { 
+            ...e, 
+            start: newStart, 
+            end: newEnd, 
+            resourceId: newResourceId || e.resourceId,
+            masterName: resources.find(r => r.id === (newResourceId || e.resourceId))?.title,
+          }
+        : e
+    ));
+    // TODO: Update booking in DB via API
+    console.log('Event dropped:', event.id, newStart, newEnd, newResourceId);
+  };
+
+  // Handle event resize
+  const handleEventResizeAction = (event: BookingEvent, newEnd: Date) => {
+    setEvents(prev => prev.map(e => 
+      e.id === event.id ? { ...e, end: newEnd } : e
+    ));
+    // TODO: Update booking duration in DB via API
+    console.log('Event resized:', event.id, newEnd);
+  };
+
   const handleFabClick = () => {
     // Open new booking modal with current time
     const now = new Date();
     now.setMinutes(Math.ceil(now.getMinutes() / 15) * 15, 0, 0);
     const end = new Date(now.getTime() + 60 * 60000);
-    setSelectedSlot({ start: now, end, resourceId: '1' });
+    setSelectedSlot({ start: now, end, resourceId: resources[0]?.id || '1' });
     setIsNewBookingModalOpen(true);
   };
 
@@ -363,7 +401,9 @@ export default function CalendarPage() {
           resources={resources}
           selectedDate={selectedDate}
           onEventClick={handleEventClick}
-          onSlotClick={handleSlotClick}
+          onSlotAction={handleSlotAction}
+          onEventDrop={handleEventDropAction}
+          onEventResize={handleEventResizeAction}
           dayStart={8}
           dayEnd={21}
           slotDuration={10}

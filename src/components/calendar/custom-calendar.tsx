@@ -51,12 +51,22 @@ export interface Resource {
   workingHours?: WorkingHours;
 }
 
+export interface SlotMenuAction {
+  type: 'booking' | 'group-booking' | 'block-time';
+  start: Date;
+  end: Date;
+  resourceId?: string;
+}
+
 interface CustomCalendarProps {
   events?: BookingEvent[];
   resources?: Resource[];
   selectedDate?: Date;
   onEventClick?: (event: BookingEvent) => void;
   onSlotClick?: (slotInfo: { start: Date; end: Date; resourceId?: string }) => void;
+  onSlotAction?: (action: SlotMenuAction) => void;
+  onEventDrop?: (event: BookingEvent, newStart: Date, newEnd: Date, newResourceId?: string) => void;
+  onEventResize?: (event: BookingEvent, newEnd: Date) => void;
   dayStart?: number;
   dayEnd?: number;
   slotDuration?: number;
@@ -118,12 +128,51 @@ export function CustomCalendar({
   selectedDate,
   onEventClick,
   onSlotClick,
+  onSlotAction,
+  onEventDrop,
+  onEventResize,
   dayStart = 8,
   dayEnd = 21,
   timezone = 'Europe/Kiev',
 }: CustomCalendarProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const headerScrollRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Slot context menu state
+  const [slotMenu, setSlotMenu] = useState<{
+    isOpen: boolean;
+    x: number;
+    y: number;
+    slotInfo: { start: Date; end: Date; resourceId: string } | null;
+  }>({ isOpen: false, x: 0, y: 0, slotInfo: null });
+
+  // Drag state
+  const [dragState, setDragState] = useState<{
+    isDragging: boolean;
+    event: BookingEvent | null;
+    startY: number;
+    startX: number;
+    currentResourceId: string | null;
+  }>({ isDragging: false, event: null, startY: 0, startX: 0, currentResourceId: null });
+
+  // Resize state
+  const [resizeState, setResizeState] = useState<{
+    isResizing: boolean;
+    event: BookingEvent | null;
+    startY: number;
+  }>({ isResizing: false, event: null, startY: 0 });
+
+  // Close menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (slotMenu.isOpen) {
+        setSlotMenu(prev => ({ ...prev, isOpen: false }));
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [slotMenu.isOpen]);
 
   // Синхронизация скролла header и body
   const handleScroll = () => {
@@ -162,13 +211,60 @@ export function CustomCalendar({
     return events.filter(e => e.resourceId === resourceId);
   };
 
-  const handleSlotClick = (hour: number, resourceId: string) => {
-    if (!onSlotClick) return;
-    const start = new Date(currentDateStr);
-    start.setHours(hour, 0, 0, 0);
+  const handleSlotClick = (e: React.MouseEvent, hour: number, minute: number, resourceId: string) => {
+    e.stopPropagation();
+    
+    const start = new Date(currentDate);
+    start.setHours(hour, minute, 0, 0);
     const end = new Date(start);
     end.setMinutes(end.getMinutes() + 30);
-    onSlotClick({ start, end, resourceId });
+    
+    // Show context menu
+    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    setSlotMenu({
+      isOpen: true,
+      x: e.clientX,
+      y: e.clientY,
+      slotInfo: { start, end, resourceId }
+    });
+  };
+
+  const handleMenuAction = (type: 'booking' | 'group-booking' | 'block-time') => {
+    if (slotMenu.slotInfo && onSlotAction) {
+      onSlotAction({
+        type,
+        start: slotMenu.slotInfo.start,
+        end: slotMenu.slotInfo.end,
+        resourceId: slotMenu.slotInfo.resourceId
+      });
+    }
+    setSlotMenu(prev => ({ ...prev, isOpen: false }));
+  };
+
+  // Drag handlers
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent, event: BookingEvent) => {
+    e.stopPropagation();
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    setDragState({
+      isDragging: true,
+      event,
+      startY: clientY,
+      startX: clientX,
+      currentResourceId: event.resourceId || null
+    });
+  };
+
+  // Resize handlers
+  const handleResizeStart = (e: React.MouseEvent | React.TouchEvent, event: BookingEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    setResizeState({
+      isResizing: true,
+      event,
+      startY: clientY
+    });
   };
 
   const [salonTime, setSalonTime] = useState(() => getTimeInTimezone(timezone));
@@ -300,37 +396,54 @@ export function CustomCalendar({
                 className="relative border-r border-slate-200/60 dark:border-slate-700/60"
                 style={{ minWidth: colMinWidth, flex: 1 }}
               >
-                {/* Hour lines */}
+                {/* Hour lines - two 30-min slots per hour */}
                 {timeSlots.map((time, idx) => {
                   const hour = dayStart + idx;
                   const isWorking = isWorkingHour(resource, currentDayName, hour);
                   return (
                     <div
                       key={`cell-${time}-${resource.id}`}
-                      className={`border-b border-slate-200/50 dark:border-slate-700/50 transition-colors ${
-                        isWorking 
-                          ? 'hover:bg-white/40 dark:hover:bg-slate-800/40 cursor-pointer' 
-                          : 'bg-slate-200/60 dark:bg-slate-700/40 cursor-not-allowed'
-                      }`}
+                      className="relative border-b border-slate-200/50 dark:border-slate-700/50"
                       style={{ height: hourHeight }}
-                      onClick={() => isWorking && handleSlotClick(hour, resource.id)}
-                    />
+                    >
+                      {/* First half hour (XX:00) */}
+                      <div
+                        className={`absolute inset-x-0 top-0 h-1/2 transition-colors ${
+                          isWorking 
+                            ? 'hover:bg-primary/10 cursor-pointer' 
+                            : 'bg-slate-200/60 dark:bg-slate-700/40 cursor-not-allowed'
+                        }`}
+                        onClick={(e) => isWorking && handleSlotClick(e, hour, 0, resource.id)}
+                      />
+                      {/* Second half hour (XX:30) */}
+                      <div
+                        className={`absolute inset-x-0 bottom-0 h-1/2 border-t border-dashed border-slate-200/30 transition-colors ${
+                          isWorking 
+                            ? 'hover:bg-primary/10 cursor-pointer' 
+                            : 'bg-slate-200/60 dark:bg-slate-700/40 cursor-not-allowed'
+                        }`}
+                        onClick={(e) => isWorking && handleSlotClick(e, hour, 30, resource.id)}
+                      />
+                    </div>
                   );
                 })}
 
                 {/* Events */}
                 {getEventsForResource(resource.id).map((event) => {
                   const { startMinutes, durationMinutes } = getEventPosition(event);
-                  // Точное позиционирование — карточка касается линий времени
                   const top = (startMinutes / 60) * hourHeight;
                   const height = (durationMinutes / 60) * hourHeight;
                   const bgColor = event.backgroundColor || '#4eb8d5';
                   const darkColor = darkenColor(bgColor, 0.35);
+                  const isDragging = dragState.isDragging && dragState.event?.id === event.id;
+                  const isResizing = resizeState.isResizing && resizeState.event?.id === event.id;
 
                   return (
                     <div
                       key={event.id}
-                      className="absolute left-0 right-0 rounded-[3px] overflow-hidden cursor-pointer hover:brightness-105 transition-all"
+                      className={`absolute left-0 right-0 rounded-[3px] overflow-hidden cursor-grab hover:brightness-105 transition-all select-none ${
+                        isDragging ? 'opacity-50 cursor-grabbing z-50' : ''
+                      } ${isResizing ? 'z-50' : ''}`}
                       style={{
                         top: `${top}px`,
                         height: `${height}px`,
@@ -340,16 +453,31 @@ export function CustomCalendar({
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onEventClick?.(event);
+                        if (!dragState.isDragging && !resizeState.isResizing) {
+                          onEventClick?.(event);
+                        }
                       }}
+                      onMouseDown={(e) => onEventDrop && handleDragStart(e, event)}
+                      onTouchStart={(e) => onEventDrop && handleDragStart(e, event)}
                     >
-                      <div className="p-1.5 pl-2 text-white h-full overflow-hidden">
+                      <div className="p-1.5 pl-2 text-white h-full overflow-hidden relative">
                         <div className="font-semibold text-[11px] drop-shadow-sm">
                           {formatTime(event.start)} - {formatTime(event.end)}
                         </div>
                         <div className="font-medium text-xs truncate">{event.clientName}</div>
                         {height > 50 && (
                           <div className="opacity-80 text-[10px] truncate">{event.title}</div>
+                        )}
+                        {/* Resize handle at bottom */}
+                        {onEventResize && (
+                          <div 
+                            className="absolute bottom-0 left-0 right-0 h-3 cursor-s-resize hover:bg-black/20 flex items-center justify-center"
+                            onMouseDown={(e) => handleResizeStart(e, event)}
+                            onTouchStart={(e) => handleResizeStart(e, event)}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="w-8 h-1 rounded bg-white/50" />
+                          </div>
                         )}
                       </div>
                     </div>
@@ -372,6 +500,64 @@ export function CustomCalendar({
           )}
         </div>
       </div>
+
+      {/* Slot Context Menu */}
+      {slotMenu.isOpen && slotMenu.slotInfo && (
+        <div
+          className="fixed z-50 bg-zinc-900 rounded-xl shadow-2xl border border-zinc-700 overflow-hidden min-w-[200px]"
+          style={{ 
+            left: slotMenu.x,
+            top: slotMenu.y,
+            transform: 'translate(-50%, 8px)'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header with time */}
+          <div className="px-4 py-2 border-b border-zinc-700 flex items-center justify-between">
+            <span className="text-white font-medium">
+              {formatTime(slotMenu.slotInfo.start)}
+            </span>
+            <button 
+              onClick={() => setSlotMenu(prev => ({ ...prev, isOpen: false }))}
+              className="text-zinc-400 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+          
+          {/* Menu items */}
+          <div className="py-1">
+            <button
+              className="w-full px-4 py-2.5 text-left text-zinc-200 hover:bg-zinc-800 flex items-center gap-3 transition-colors"
+              onClick={() => handleMenuAction('booking')}
+            >
+              <span className="text-lg">📅</span>
+              <span>Додати запис</span>
+            </button>
+            <button
+              className="w-full px-4 py-2.5 text-left text-zinc-200 hover:bg-zinc-800 flex items-center gap-3 transition-colors"
+              onClick={() => handleMenuAction('group-booking')}
+            >
+              <span className="text-lg">👥</span>
+              <span>Додати групову запис</span>
+            </button>
+            <button
+              className="w-full px-4 py-2.5 text-left text-zinc-200 hover:bg-zinc-800 flex items-center gap-3 transition-colors"
+              onClick={() => handleMenuAction('block-time')}
+            >
+              <span className="text-lg">🚫</span>
+              <span>Заблокувати час</span>
+            </button>
+          </div>
+          
+          {/* Footer link */}
+          <div className="px-4 py-2 border-t border-zinc-700">
+            <button className="text-sm text-blue-400 hover:text-blue-300">
+              Налаштування швидких дій
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
