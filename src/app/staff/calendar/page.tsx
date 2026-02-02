@@ -618,7 +618,7 @@ export default function StaffCalendar() {
             </div>
             
             {/* Right: Cards area */}
-            <div className="flex-1 relative" style={{ minHeight: `${(workingHours.end - workingHours.start + 1) * 120}px` }}>
+            <div className="flex-1 relative" style={{ height: `${(workingHours.end - workingHours.start + 1) * 120}px` }}>
               {bookings.map((booking) => {
                 const [startH, startM] = booking.time.split(':').map(Number);
                 const startMinutes = (startH - workingHours.start) * 60 + startM;
