@@ -508,7 +508,7 @@ export default function StaffDashboard() {
           settingsOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <div className="flex flex-col h-full pb-20">
+        <div className="flex flex-col h-full pb-32">
           <div className="p-4 border-b border-border flex items-center justify-between">
             <h2 className="font-semibold">Налаштування</h2>
             <button 
@@ -547,7 +547,7 @@ export default function StaffDashboard() {
             </button>
           </div>
 
-          <div className="p-4 border-t border-border mb-8">
+          <div className="p-4 border-t border-border">
             <button 
               onClick={handleLogout}
               className="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 transition-colors"
