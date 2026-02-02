@@ -209,7 +209,7 @@ export default function StaffDashboard() {
       </header>
 
       {/* Content */}
-      <div className="p-4 space-y-4 pb-48">
+      <div className="p-4 space-y-4 pb-60">
         {/* Greeting */}
         <div>
           <h1 className="text-2xl font-bold">{greeting}!</h1>
@@ -271,9 +271,12 @@ export default function StaffDashboard() {
             className="p-3 cursor-pointer hover:shadow-md transition-all active:scale-[0.98] flex items-center gap-3"
             onClick={() => router.push('/staff/calendar')}
           >
-            <div className="h-10 w-10 rounded-xl bg-blue-100 flex flex-col items-center justify-center shrink-0">
-              <span className="text-[10px] font-bold text-blue-600 leading-none">
-                {new Date().toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' }).replace('.', '/')}
+            <div className="h-12 w-12 rounded-xl bg-primary flex flex-col items-center justify-center shrink-0 text-primary-foreground">
+              <span className="text-lg font-bold leading-none">
+                {new Date().getDate()}
+              </span>
+              <span className="text-[9px] font-medium uppercase opacity-80">
+                {new Date().toLocaleDateString('uk-UA', { month: 'short' }).replace('.', '')}
               </span>
             </div>
             <div className="min-w-0">

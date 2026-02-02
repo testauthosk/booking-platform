@@ -153,14 +153,24 @@ export default function StaffServices() {
           <div className="flex-1">
             <h1 className="font-semibold text-lg">Мої послуги</h1>
             <p className="text-sm text-muted-foreground">
-              {enabledCount} активних • натисніть для редагування ціни
+              {enabledCount} активних
             </p>
           </div>
         </div>
       </header>
 
+      {/* Enable all hint */}
+      {services.length > 0 && enabledCount === 0 && (
+        <div className="mx-4 mt-4 p-4 rounded-xl bg-blue-50 border border-blue-200">
+          <p className="text-sm text-blue-800 font-medium mb-2">👆 Оберіть послуги</p>
+          <p className="text-xs text-blue-600">
+            Натисніть на квадратик зліва щоб увімкнути послугу
+          </p>
+        </div>
+      )}
+
       {/* Content */}
-      <div className="p-4 pb-32 space-y-4">
+      <div className="p-4 pb-40 space-y-4">
         {loadingServices ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -175,16 +185,16 @@ export default function StaffServices() {
                 {categoryServices.map((service) => (
                   <Card 
                     key={service.id}
-                    className={`p-4 transition-all ${!service.isEnabled ? 'opacity-50' : ''}`}
+                    className={`p-4 transition-all ${!service.isEnabled ? '' : 'border-primary/30'}`}
                   >
                     <div className="flex items-start gap-3">
                       {/* Toggle */}
                       <button
                         onClick={() => toggleService(service.id, !service.isEnabled)}
-                        className={`h-6 w-6 rounded-lg shrink-0 flex items-center justify-center transition-all mt-0.5 ${
+                        className={`h-7 w-7 rounded-lg shrink-0 flex items-center justify-center transition-all mt-0.5 ${
                           service.isEnabled 
-                            ? 'bg-primary text-primary-foreground' 
-                            : 'bg-muted border border-border'
+                            ? 'bg-primary text-primary-foreground shadow-md' 
+                            : 'bg-white border-2 border-dashed border-gray-300 hover:border-primary hover:bg-primary/5'
                         }`}
                       >
                         {service.isEnabled && <Check className="h-4 w-4" />}
