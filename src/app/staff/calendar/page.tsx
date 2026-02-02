@@ -570,21 +570,52 @@ export default function StaffCalendar() {
                 const isPastHour = isToday(selectedDate) && hour < new Date().getHours();
                 
                 return (
-                  <div 
-                    key={hour} 
-                    className="absolute w-full text-right pr-3"
-                    style={{ top: `${i * 120}px` }}
-                  >
-                    <span className={`text-xs font-medium ${isPastHour ? 'text-muted-foreground/40' : 'text-muted-foreground'}`}>
-                      {timeStr}
-                    </span>
+                  <div key={hour}>
+                    {/* Hour label */}
+                    <div 
+                      className="absolute w-full text-right pr-2 -translate-y-1/2"
+                      style={{ top: `${i * 120}px` }}
+                    >
+                      <span className={`text-xs font-medium ${isPastHour ? 'text-muted-foreground/40' : 'text-muted-foreground'}`}>
+                        {timeStr}
+                      </span>
+                    </div>
+                    {/* :30 label */}
+                    <div 
+                      className="absolute w-full text-right pr-2 -translate-y-1/2"
+                      style={{ top: `${i * 120 + 60}px` }}
+                    >
+                      <span className="text-[10px] text-muted-foreground/40">30</span>
+                    </div>
                   </div>
                 );
               })}
             </div>
             
-            {/* Vertical line */}
-            <div className="w-px bg-zinc-300 shrink-0" style={{ height: `${(workingHours.end - workingHours.start + 1) * 120}px` }} />
+            {/* Vertical line with ticks */}
+            <div className="relative shrink-0" style={{ height: `${(workingHours.end - workingHours.start + 1) * 120}px` }}>
+              {/* Main line */}
+              <div className="absolute left-2 top-0 bottom-0 w-px bg-zinc-300" />
+              
+              {/* Ticks */}
+              {Array.from({ length: workingHours.end - workingHours.start + 1 }, (_, i) => (
+                <div key={i}>
+                  {/* Hour tick - longer */}
+                  <div 
+                    className="absolute left-0 w-2 h-px bg-zinc-400"
+                    style={{ top: `${i * 120}px` }}
+                  />
+                  {/* :30 tick - shorter */}
+                  <div 
+                    className="absolute left-1 w-1 h-px bg-zinc-300"
+                    style={{ top: `${i * 120 + 60}px` }}
+                  />
+                </div>
+              ))}
+              
+              {/* Spacer for line area */}
+              <div className="w-4" />
+            </div>
             
             {/* Right: Cards area */}
             <div className="flex-1 relative" style={{ minHeight: `${(workingHours.end - workingHours.start + 1) * 120}px` }}>
@@ -620,7 +651,7 @@ export default function StaffCalendar() {
                       height: `${Math.max(height, 80)}px`
                     }}
                   >
-                    <div className="p-3 h-full flex flex-col">
+                    <div className="p-3">
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="font-semibold text-sm">{booking.clientName}</p>
@@ -641,7 +672,7 @@ export default function StaffCalendar() {
                       )}
                       
                       {!isPast && booking.status !== 'COMPLETED' && (
-                        <div className="flex gap-1.5 mt-auto pt-2">
+                        <div className="flex gap-1.5 mt-2">
                           {!isBlocked && (
                             <button className="flex-1 py-1.5 rounded-lg bg-green-100 text-green-700 text-xs font-medium">
                               Завершити
