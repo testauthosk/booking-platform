@@ -196,11 +196,26 @@ export default function StaffProfile() {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : avatar ? (
-              <img 
-                src={avatar} 
-                alt={name} 
-                className="h-24 w-24 rounded-2xl object-cover"
-              />
+              <>
+                <img 
+                  src={avatar} 
+                  alt={name} 
+                  className="h-24 w-24 rounded-2xl object-cover"
+                />
+                <button 
+                  onClick={async () => {
+                    setAvatar('');
+                    await fetch('/api/staff/profile', {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ masterId: staffId, avatar: '' })
+                    });
+                  }}
+                  className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </>
             ) : (
               <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-3xl font-bold">
                 {name.charAt(0).toUpperCase() || <User className="h-10 w-10" />}
