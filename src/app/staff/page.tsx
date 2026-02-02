@@ -547,7 +547,7 @@ export default function StaffDashboard() {
             </button>
           </div>
 
-          <div className="p-4 pb-8 border-t border-border">
+          <div className="p-4 border-t border-border">
             <button 
               onClick={handleLogout}
               className="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 transition-colors"
