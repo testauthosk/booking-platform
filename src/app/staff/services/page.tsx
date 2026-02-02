@@ -358,16 +358,23 @@ export default function StaffServices() {
           {/* Category */}
           <div>
             <label className="text-sm font-medium mb-1.5 block">Категорія</label>
-            <select
-              value={newServiceCategory}
-              onChange={(e) => setNewServiceCategory(e.target.value)}
-              className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"
-            >
-              <option value="">Без категорії</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={newServiceCategory}
+                onChange={(e) => setNewServiceCategory(e.target.value)}
+                className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              >
+                <option value="">Без категорії</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
             {categories.length === 0 && (
               <p className="text-xs text-muted-foreground mt-1">
                 Категорії створює адміністратор

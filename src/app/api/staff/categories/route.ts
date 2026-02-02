@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'salonId required' }, { status: 400 });
     }
 
-    const categories = await prisma.category.findMany({
+    const categories = await prisma.serviceCategory.findMany({
       where: { salonId },
       orderBy: { sortOrder: 'asc' },
       select: {
