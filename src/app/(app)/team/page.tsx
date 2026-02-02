@@ -214,19 +214,19 @@ export default function TeamPage() {
         </div>
 
         {/* Search */}
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-2 mb-4 items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Пошук учасників команди" 
-              className="pl-10 h-10" 
+              className="pl-10 h-10 rounded-xl" 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl shrink-0 border-border">
-            <Filter className="h-5 w-5" />
-          </Button>
+          <button className="h-10 w-10 rounded-xl border border-border flex items-center justify-center hover:bg-muted transition-colors shrink-0">
+            <Filter className="h-4 w-4" />
+          </button>
         </div>
 
         {/* Loading */}
@@ -491,21 +491,20 @@ export default function TeamPage() {
               {/* Link */}
               <div className="space-y-2">
                 <Label>Посилання</Label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   <Input 
                     value={`${typeof window !== 'undefined' ? window.location.origin : ''}/join/${selectedInvitation.token}`} 
                     readOnly 
-                    className="text-xs" 
+                    className="text-xs h-10 flex-1" 
                   />
-                  <Button 
-                    variant="outline" 
-                    size="icon"
+                  <button 
+                    className="h-10 w-10 rounded-lg border border-border flex items-center justify-center hover:bg-muted transition-colors shrink-0"
                     onClick={() => {
                       navigator.clipboard.writeText(`${window.location.origin}/join/${selectedInvitation.token}`);
                     }}
                   >
                     <Copy className="h-4 w-4" />
-                  </Button>
+                  </button>
                 </div>
               </div>
 
