@@ -148,9 +148,9 @@ export default function StaffSchedule() {
           <div className="flex items-center gap-3">
             <button 
               onClick={() => router.push('/staff')}
-              className="h-10 w-10 rounded-xl hover:bg-muted flex items-center justify-center transition-colors"
+              className="h-9 w-10 rounded-xl border border-border hover:bg-muted flex items-center justify-center transition-colors"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-5 w-5 text-muted-foreground" />
             </button>
             <div>
               <h1 className="font-semibold text-lg">Графік роботи</h1>
@@ -165,33 +165,31 @@ export default function StaffSchedule() {
         {DAYS.map(day => {
           const daySchedule = schedule[day.key as keyof WorkingHours];
           return (
-            <Card key={day.key} className={`p-4 ${!daySchedule.enabled ? 'opacity-50' : ''}`}>
+            <Card key={day.key} className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Switch
                     checked={daySchedule.enabled}
                     onCheckedChange={() => toggleDay(day.key)}
                   />
-                  <span className="font-medium">{day.label}</span>
+                  <span className={`font-medium ${!daySchedule.enabled ? 'text-muted-foreground' : ''}`}>{day.label}</span>
                 </div>
                 
-                {daySchedule.enabled && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setTimePickerOpen({ day: day.key, field: 'start' })}
-                      className="px-3 py-1.5 rounded-lg bg-muted text-sm font-medium"
-                    >
-                      {daySchedule.start}
-                    </button>
-                    <span className="text-muted-foreground">—</span>
-                    <button
-                      onClick={() => setTimePickerOpen({ day: day.key, field: 'end' })}
-                      className="px-3 py-1.5 rounded-lg bg-muted text-sm font-medium"
-                    >
-                      {daySchedule.end}
-                    </button>
-                  </div>
-                )}
+                <div className={`flex items-center gap-2 ${!daySchedule.enabled ? 'opacity-40' : ''}`}>
+                  <button
+                    onClick={() => daySchedule.enabled && setTimePickerOpen({ day: day.key, field: 'start' })}
+                    className={`px-3 py-1.5 rounded-lg bg-muted text-sm font-medium ${!daySchedule.enabled ? 'cursor-default' : ''}`}
+                  >
+                    {daySchedule.start}
+                  </button>
+                  <span className="text-muted-foreground">—</span>
+                  <button
+                    onClick={() => daySchedule.enabled && setTimePickerOpen({ day: day.key, field: 'end' })}
+                    className={`px-3 py-1.5 rounded-lg bg-muted text-sm font-medium ${!daySchedule.enabled ? 'cursor-default' : ''}`}
+                  >
+                    {daySchedule.end}
+                  </button>
+                </div>
               </div>
             </Card>
           );
