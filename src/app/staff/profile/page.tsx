@@ -144,7 +144,7 @@ export default function StaffProfile() {
       </header>
 
       {/* Content */}
-      <div className="p-4 pb-32 space-y-6">
+      <div className="p-4 pb-20 space-y-6">
         {/* Avatar */}
         <div className="flex flex-col items-center">
           <div className="relative">

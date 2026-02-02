@@ -160,7 +160,7 @@ export default function StaffSchedule() {
       </header>
 
       {/* Content */}
-      <div className="p-4 pb-32 space-y-3">
+      <div className="p-4 pb-20 space-y-3">
         {DAYS.map(day => {
           const daySchedule = schedule[day.key as keyof WorkingHours];
           return (

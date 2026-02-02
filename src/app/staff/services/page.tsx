@@ -245,7 +245,7 @@ export default function StaffServices() {
       </header>
 
       {/* Content */}
-      <div className="p-4 pb-40 space-y-3">
+      <div className="p-4 pb-24 space-y-3">
         {loadingServices ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
