@@ -135,6 +135,22 @@ export default function StaffCalendar() {
     setServicePickerOpen(false);
   };
 
+  const formatPhoneNumber = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    let formatted = '';
+    if (digits.length > 0) formatted += digits.slice(0, 2);
+    if (digits.length > 2) formatted += ' ' + digits.slice(2, 5);
+    if (digits.length > 5) formatted += ' ' + digits.slice(5, 7);
+    if (digits.length > 7) formatted += ' ' + digits.slice(7, 9);
+    return formatted;
+  };
+  
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const digits = value.replace(/\D/g, '').slice(0, 9);
+    setNewClientPhone(formatPhoneNumber(digits));
+  };
+
   const createBooking = async () => {
     if (!newClientName || !newClientPhone || !newTime) return;
     
@@ -142,6 +158,7 @@ export default function StaffCalendar() {
     try {
       const selectedService = services.find(s => s.id === newServiceId);
       const dateStr = selectedDate.toISOString().split('T')[0];
+      const fullPhone = '+380' + newClientPhone.replace(/\D/g, '');
       
       const res = await fetch('/api/staff/bookings', {
         method: 'POST',
@@ -152,7 +169,7 @@ export default function StaffCalendar() {
           serviceId: newServiceId || null,
           serviceName: selectedService?.name || 'Запис',
           clientName: newClientName,
-          clientPhone: newClientPhone,
+          clientPhone: fullPhone,
           date: dateStr,
           time: newTime,
           duration: parseInt(newDuration) || 60,
@@ -415,11 +432,16 @@ export default function StaffCalendar() {
           {/* Client Phone */}
           <div>
             <label className="text-sm font-medium mb-1.5 block">Телефон *</label>
-            <Input
-              value={newClientPhone}
-              onChange={(e) => setNewClientPhone(e.target.value)}
-              placeholder="+380..."
-            />
+            <div className="relative flex items-center">
+              <span className="absolute left-4 text-sm font-medium text-muted-foreground">+380</span>
+              <Input
+                value={newClientPhone}
+                onChange={handlePhoneChange}
+                placeholder="XX XXX XX XX"
+                className="pl-16"
+                maxLength={12}
+              />
+            </div>
           </div>
 
           {/* Service */}

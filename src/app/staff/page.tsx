@@ -115,7 +115,27 @@ export default function StaffDashboard() {
     setBookingClientPhone('');
     setBookingDate(new Date().toISOString().split('T')[0]);
     setBookingTime('');
-    openNewBooking();
+    setNewBookingOpen(true);
+  };
+  
+  const formatPhoneNumber = (value: string) => {
+    // Remove all non-digits
+    const digits = value.replace(/\D/g, '');
+    
+    // Format: XX XXX XX XX (9 digits after +380)
+    let formatted = '';
+    if (digits.length > 0) formatted += digits.slice(0, 2);
+    if (digits.length > 2) formatted += ' ' + digits.slice(2, 5);
+    if (digits.length > 5) formatted += ' ' + digits.slice(5, 7);
+    if (digits.length > 7) formatted += ' ' + digits.slice(7, 9);
+    
+    return formatted;
+  };
+  
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const digits = value.replace(/\D/g, '').slice(0, 9);
+    setBookingClientPhone(formatPhoneNumber(digits));
   };
 
   const createBooking = async () => {
@@ -123,6 +143,9 @@ export default function StaffDashboard() {
     
     setSavingBooking(true);
     try {
+      // Format full phone number
+      const fullPhone = '+380' + bookingClientPhone.replace(/\D/g, '');
+      
       const res = await fetch('/api/booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -131,7 +154,7 @@ export default function StaffDashboard() {
           masterId: staffId,
           serviceId: bookingService.id,
           clientName: bookingClientName,
-          clientPhone: bookingClientPhone,
+          clientPhone: fullPhone,
           serviceName: bookingService.name,
           masterName: staffName,
           date: bookingDate,
@@ -549,14 +572,18 @@ export default function StaffDashboard() {
             {/* Client phone */}
             <div>
               <label className="text-sm font-medium mb-1.5 block">Телефон</label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <div className="relative flex items-center">
+                <div className="absolute left-3 flex items-center gap-1.5 text-muted-foreground">
+                  <Phone className="h-4 w-4" />
+                  <span className="text-sm font-medium">+380</span>
+                </div>
                 <Input
                   type="tel"
                   value={bookingClientPhone}
-                  onChange={(e) => setBookingClientPhone(e.target.value)}
-                  placeholder="+380"
-                  className="pl-10"
+                  onChange={handlePhoneChange}
+                  placeholder="XX XXX XX XX"
+                  className="pl-[5.5rem]"
+                  maxLength={12}
                 />
               </div>
             </div>
