@@ -254,6 +254,14 @@ export default function StaffCalendar() {
   }>({ open: false, type: null, booking: null });
   const [confirmLoading, setConfirmLoading] = useState(false);
 
+  // Close confirm modal with delay to keep content during animation
+  const closeConfirmModal = () => {
+    setConfirmModal(prev => ({ ...prev, open: false }));
+    setTimeout(() => {
+      setConfirmModal({ open: false, type: null, booking: null });
+    }, 700);
+  };
+
   const handleConfirmAction = async () => {
     if (!confirmModal.booking || !confirmModal.type) return;
     
@@ -266,7 +274,7 @@ export default function StaffCalendar() {
         body: JSON.stringify({ bookingId: confirmModal.booking.id, status })
       });
       if (res.ok) {
-        setConfirmModal({ open: false, type: null, booking: null });
+        closeConfirmModal();
         loadBookings();
       } else {
         alert('Помилка при оновленні');
@@ -1326,7 +1334,7 @@ export default function StaffCalendar() {
         className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] transition-all duration-700 ease-in-out ${
           confirmModal.open ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
-        onClick={() => !confirmLoading && setConfirmModal({ open: false, type: null, booking: null })}
+        onClick={() => !confirmLoading && closeConfirmModal()}
       />
       <div 
         className={`fixed inset-x-0 bottom-0 bg-card rounded-t-3xl shadow-xl z-[90] transform transition-all duration-700 ease-in-out overflow-hidden ${
@@ -1355,7 +1363,7 @@ export default function StaffCalendar() {
             )}
           </div>
           <button 
-            onClick={() => !confirmLoading && setConfirmModal({ open: false, type: null, booking: null })}
+            onClick={() => !confirmLoading && closeConfirmModal()}
             className="ml-auto h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
           >
             <X className="h-5 w-5" />
@@ -1376,7 +1384,7 @@ export default function StaffCalendar() {
         {/* Actions */}
         <div className="p-4 pb-8 border-t border-border flex gap-2">
           <button
-            onClick={() => setConfirmModal({ open: false, type: null, booking: null })}
+            onClick={() => closeConfirmModal()}
             disabled={confirmLoading}
             className="flex-1 py-3 rounded-xl bg-zinc-100 text-zinc-700 font-medium hover:bg-zinc-200 transition-colors disabled:opacity-50"
           >
