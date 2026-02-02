@@ -27,11 +27,19 @@ export default function SetupPage() {
       </div>
 
       <Tabs defaultValue="settings">
-        <TabsList className="mb-6 flex flex-col sm:flex-row w-full sm:w-auto gap-1 h-auto p-1">
-          <TabsTrigger value="settings" className="w-full sm:w-auto justify-center">Налаштування</TabsTrigger>
-          <TabsTrigger value="marketing" className="w-full sm:w-auto justify-center">Маркетинг</TabsTrigger>
-          <TabsTrigger value="other" className="w-full sm:w-auto justify-center">Інше</TabsTrigger>
-        </TabsList>
+        <div className="mb-6 overflow-x-auto scrollbar-hide -mx-6 px-6">
+          <TabsList className="inline-flex w-auto min-w-full sm:min-w-0 h-10 p-1 gap-0">
+            <TabsTrigger value="settings" className="flex-1 sm:flex-none px-4 rounded-md data-[state=active]:shadow-sm">
+              Налаштування
+            </TabsTrigger>
+            <TabsTrigger value="marketing" className="flex-1 sm:flex-none px-4 rounded-md data-[state=active]:shadow-sm">
+              Маркетинг
+            </TabsTrigger>
+            <TabsTrigger value="other" className="flex-1 sm:flex-none px-4 rounded-md data-[state=active]:shadow-sm">
+              Інше
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="settings">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
