@@ -902,14 +902,14 @@ export default function StaffCalendar() {
       </div>
       
       {/* Add Booking Modal */}
-      {addModalOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
-          onClick={() => setAddModalOpen(false)}
-        />
-      )}
       <div 
-        className={`fixed inset-x-0 bottom-0 max-h-[85vh] bg-card rounded-t-3xl shadow-xl z-50 transform transition-transform duration-500 ease-out overflow-hidden flex flex-col ${
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300 ${
+          addModalOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setAddModalOpen(false)}
+      />
+      <div 
+        className={`fixed inset-x-0 bottom-0 max-h-[85vh] bg-card rounded-t-3xl shadow-xl z-50 transform transition-all duration-500 ease-out overflow-hidden flex flex-col ${
           addModalOpen ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
@@ -1151,14 +1151,14 @@ export default function StaffCalendar() {
       </div>
 
       {/* Edit Booking Modal */}
-      {editModalOpen && editBooking && (
-        <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
-          onClick={() => setEditModalOpen(false)}
-        />
-      )}
       <div 
-        className={`fixed inset-x-0 bottom-0 max-h-[70vh] bg-card rounded-t-3xl shadow-xl z-50 transform transition-transform duration-500 ease-out overflow-hidden flex flex-col ${
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300 ${
+          editModalOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setEditModalOpen(false)}
+      />
+      <div 
+        className={`fixed inset-x-0 bottom-0 max-h-[70vh] bg-card rounded-t-3xl shadow-xl z-50 transform transition-all duration-500 ease-out overflow-hidden flex flex-col ${
           editModalOpen ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
@@ -1316,14 +1316,14 @@ export default function StaffCalendar() {
       </div>
 
       {/* Confirmation Modal - Bottom Sheet */}
-      {confirmModal.open && (
-        <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80]"
-          onClick={() => !confirmLoading && setConfirmModal({ open: false, type: null, booking: null })}
-        />
-      )}
       <div 
-        className={`fixed inset-x-0 bottom-0 bg-card rounded-t-3xl shadow-xl z-[90] transform transition-transform duration-500 ease-out ${
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] transition-opacity duration-300 ${
+          confirmModal.open ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => !confirmLoading && setConfirmModal({ open: false, type: null, booking: null })}
+      />
+      <div 
+        className={`fixed inset-x-0 bottom-0 bg-card rounded-t-3xl shadow-xl z-[90] transform transition-all duration-500 ease-out ${
           confirmModal.open ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
