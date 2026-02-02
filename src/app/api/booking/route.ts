@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// PUT update booking status
+// PUT update booking (status, time, master, duration)
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -46,15 +46,47 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, status } = body;
+    const { id, status, date, time, timeEnd, duration, masterId } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'ID required' }, { status: 400 });
     }
 
+    // Build update data
+    const updateData: Record<string, unknown> = {};
+    
+    if (status !== undefined) {
+      updateData.status = status.toUpperCase();
+    }
+    if (date !== undefined) {
+      updateData.date = date;
+    }
+    if (time !== undefined) {
+      updateData.time = time;
+    }
+    if (timeEnd !== undefined) {
+      updateData.timeEnd = timeEnd;
+    }
+    if (duration !== undefined) {
+      updateData.duration = duration;
+    }
+    if (masterId !== undefined) {
+      updateData.masterId = masterId;
+      // Also update masterName
+      if (masterId) {
+        const master = await prisma.master.findUnique({
+          where: { id: masterId },
+          select: { name: true }
+        });
+        if (master) {
+          updateData.masterName = master.name;
+        }
+      }
+    }
+
     const booking = await prisma.booking.update({
       where: { id },
-      data: { status: status.toUpperCase() }
+      data: updateData
     });
 
     return NextResponse.json(booking);

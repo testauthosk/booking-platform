@@ -138,6 +138,9 @@ export function CustomCalendar({
   const scrollRef = useRef<HTMLDivElement>(null);
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Constants
+  const hourHeight = 60; // 60px per hour
 
   // Slot context menu state
   const [slotMenu, setSlotMenu] = useState<{
@@ -267,6 +270,88 @@ export function CustomCalendar({
     });
   };
 
+  // Global mouse/touch move and end handlers for drag & resize
+  useEffect(() => {
+    if (!dragState.isDragging && !resizeState.isResizing) return;
+
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+      
+      if (resizeState.isResizing && resizeState.event) {
+        // Calculate new duration based on Y movement
+        const deltaY = clientY - resizeState.startY;
+        const deltaMinutes = Math.round(deltaY / (hourHeight / 60)); // pixels to minutes
+        
+        if (Math.abs(deltaMinutes) >= 15) {
+          const newEndTime = new Date(resizeState.event.end.getTime() + deltaMinutes * 60000);
+          // Snap to 15 minutes
+          newEndTime.setMinutes(Math.round(newEndTime.getMinutes() / 15) * 15);
+          
+          // Minimum 15 min duration
+          if (newEndTime.getTime() > resizeState.event.start.getTime() + 15 * 60000) {
+            setResizeState(prev => ({ ...prev, startY: clientY }));
+            // Visual feedback - update is handled on mouseup
+          }
+        }
+      }
+    };
+
+    const handleEnd = (e: MouseEvent | TouchEvent) => {
+      if (resizeState.isResizing && resizeState.event) {
+        const clientY = 'changedTouches' in e ? e.changedTouches[0].clientY : e.clientY;
+        const deltaY = clientY - resizeState.startY;
+        const deltaMinutes = Math.round(deltaY / (hourHeight / 60));
+        
+        if (Math.abs(deltaMinutes) >= 5) {
+          const newEndTime = new Date(resizeState.event.end.getTime());
+          const totalDelta = clientY - resizeState.startY;
+          const totalMinutes = Math.round(totalDelta / (hourHeight / 60));
+          newEndTime.setTime(resizeState.event.end.getTime() + totalMinutes * 60000);
+          // Snap to 15 minutes
+          newEndTime.setMinutes(Math.round(newEndTime.getMinutes() / 15) * 15);
+          
+          // Minimum 15 min duration
+          if (newEndTime.getTime() > resizeState.event.start.getTime() + 15 * 60000) {
+            onEventResize?.(resizeState.event, newEndTime);
+          }
+        }
+        setResizeState({ isResizing: false, event: null, startY: 0 });
+      }
+
+      if (dragState.isDragging && dragState.event) {
+        const clientY = 'changedTouches' in e ? e.changedTouches[0].clientY : e.clientY;
+        const deltaY = clientY - dragState.startY;
+        const deltaMinutes = Math.round(deltaY / (hourHeight / 60));
+        
+        // Snap to 15 minutes
+        const snappedMinutes = Math.round(deltaMinutes / 15) * 15;
+        
+        if (Math.abs(snappedMinutes) >= 15) {
+          const newStart = new Date(dragState.event.start.getTime() + snappedMinutes * 60000);
+          const newEnd = new Date(dragState.event.end.getTime() + snappedMinutes * 60000);
+          
+          // Keep within working hours
+          if (newStart.getHours() >= dayStart && newEnd.getHours() <= dayEnd) {
+            onEventDrop?.(dragState.event, newStart, newEnd, dragState.event.resourceId);
+          }
+        }
+        setDragState({ isDragging: false, event: null, startY: 0, startX: 0, currentResourceId: null });
+      }
+    };
+
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchmove', handleMove);
+    document.addEventListener('touchend', handleEnd);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchmove', handleMove);
+      document.removeEventListener('touchend', handleEnd);
+    };
+  }, [dragState, resizeState, onEventDrop, onEventResize, dayStart, dayEnd]);
+
   const [salonTime, setSalonTime] = useState(() => getTimeInTimezone(timezone));
   
   // Update time every minute using salon's timezone
@@ -281,7 +366,6 @@ export function CustomCalendar({
   const currentHour = salonTime.hours;
   const currentMin = salonTime.minutes;
   
-  const hourHeight = 60; // 60px на час
   const headerHeight = 80;
   const timeColWidth = 50;
   const colMinWidth = 120;

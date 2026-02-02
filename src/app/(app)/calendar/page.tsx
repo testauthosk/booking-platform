@@ -279,7 +279,8 @@ export default function CalendarPage() {
   };
 
   // Handle event drag & drop
-  const handleEventDropAction = (event: BookingEvent, newStart: Date, newEnd: Date, newResourceId?: string) => {
+  const handleEventDropAction = async (event: BookingEvent, newStart: Date, newEnd: Date, newResourceId?: string) => {
+    // Update local state immediately for responsiveness
     setEvents(prev => prev.map(e => 
       e.id === event.id 
         ? { 
@@ -291,17 +292,61 @@ export default function CalendarPage() {
           }
         : e
     ));
-    // TODO: Update booking in DB via API
-    console.log('Event dropped:', event.id, newStart, newEnd, newResourceId);
+
+    // Calculate new values
+    const newDate = `${newStart.getFullYear()}-${String(newStart.getMonth() + 1).padStart(2, '0')}-${String(newStart.getDate()).padStart(2, '0')}`;
+    const newTime = `${String(newStart.getHours()).padStart(2, '0')}:${String(newStart.getMinutes()).padStart(2, '0')}`;
+    const newTimeEnd = `${String(newEnd.getHours()).padStart(2, '0')}:${String(newEnd.getMinutes()).padStart(2, '0')}`;
+    const newDuration = Math.round((newEnd.getTime() - newStart.getTime()) / 60000);
+
+    // Update in DB
+    try {
+      await fetch('/api/booking', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: event.id,
+          date: newDate,
+          time: newTime,
+          timeEnd: newTimeEnd,
+          duration: newDuration,
+          masterId: newResourceId || event.resourceId,
+        })
+      });
+    } catch (error) {
+      console.error('Failed to update booking:', error);
+      // Revert on error
+      loadBookings();
+    }
   };
 
   // Handle event resize
-  const handleEventResizeAction = (event: BookingEvent, newEnd: Date) => {
+  const handleEventResizeAction = async (event: BookingEvent, newEnd: Date) => {
+    // Update local state immediately
     setEvents(prev => prev.map(e => 
       e.id === event.id ? { ...e, end: newEnd } : e
     ));
-    // TODO: Update booking duration in DB via API
-    console.log('Event resized:', event.id, newEnd);
+
+    // Calculate new values
+    const newTimeEnd = `${String(newEnd.getHours()).padStart(2, '0')}:${String(newEnd.getMinutes()).padStart(2, '0')}`;
+    const newDuration = Math.round((newEnd.getTime() - event.start.getTime()) / 60000);
+
+    // Update in DB
+    try {
+      await fetch('/api/booking', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: event.id,
+          timeEnd: newTimeEnd,
+          duration: newDuration,
+        })
+      });
+    } catch (error) {
+      console.error('Failed to update booking:', error);
+      // Revert on error
+      loadBookings();
+    }
   };
 
   const handleFabClick = () => {
