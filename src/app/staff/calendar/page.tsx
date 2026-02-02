@@ -792,6 +792,28 @@ export default function StaffCalendar() {
             
             {/* Right: Cards area */}
             <div className="flex-1 relative" style={{ height: `${(workingHours.end - workingHours.start + 1) * 120}px` }}>
+              {/* Current time red line */}
+              {isToday(selectedDate) && (() => {
+                const now = new Date();
+                const currentHour = now.getHours();
+                const currentMinute = now.getMinutes();
+                // Only show if current time is within working hours
+                if (currentHour >= workingHours.start && currentHour <= workingHours.end) {
+                  const currentMinutes = (currentHour - workingHours.start) * 60 + currentMinute;
+                  const topPosition = currentMinutes * 2; // 2px per minute
+                  return (
+                    <div 
+                      className="absolute -left-2 right-0 flex items-center z-20 pointer-events-none"
+                      style={{ top: `${topPosition}px` }}
+                    >
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                      <div className="flex-1 h-[2px] bg-red-500" />
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+              
               {bookings.map((booking) => {
                 const [startH, startM] = booking.time.split(':').map(Number);
                 const startMinutes = (startH - workingHours.start) * 60 + startM;
