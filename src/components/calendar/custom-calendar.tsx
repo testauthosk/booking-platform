@@ -184,7 +184,7 @@ export function CustomCalendar({
         <div className="flex relative" style={{ minWidth: timeColWidth + resources.length * colMinWidth }}>
           {/* Time column */}
           <div 
-            className="flex-shrink-0 sticky left-0 z-10 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80"
+            className="flex-shrink-0 sticky left-0 z-10 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 relative"
             style={{ width: timeColWidth }}
           >
             {timeSlots.map((time, idx) => (
@@ -198,6 +198,20 @@ export function CustomCalendar({
                 </span>
               </div>
             ))}
+            {/* Current time badge - fixed in time column */}
+            {currentTimeTop !== null && (
+              <div 
+                className="absolute z-30 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-sm font-semibold shadow-md"
+                style={{ 
+                  top: currentTimeTop - 8,
+                  left: 2,
+                  right: 2,
+                  textAlign: 'center',
+                }}
+              >
+                {`${currentHour.toString().padStart(2, '0')}:${currentMin.toString().padStart(2, '0')}`}
+              </div>
+            )}
           </div>
 
           {/* Resource columns */}
@@ -230,7 +244,7 @@ export function CustomCalendar({
                   return (
                     <div
                       key={event.id}
-                      className="absolute left-0 right-0.5 rounded-r-md rounded-l-none overflow-hidden cursor-pointer hover:brightness-105 transition-all"
+                      className="absolute left-0 right-0 rounded-[3px] overflow-hidden cursor-pointer hover:brightness-105 transition-all"
                       style={{
                         top: `${top}px`,
                         height: `${height}px`,
@@ -259,27 +273,16 @@ export function CustomCalendar({
             ))}
           </div>
 
-          {/* Current time indicator */}
+          {/* Current time line */}
           {currentTimeTop !== null && (
-            <>
-              <div 
-                className="absolute z-30 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-sm font-semibold shadow-md"
-                style={{ 
-                  top: currentTimeTop - 8,
-                  left: 2,
-                }}
-              >
-                {`${currentHour.toString().padStart(2, '0')}:${currentMin.toString().padStart(2, '0')}`}
-              </div>
-              <div 
-                className="absolute h-0.5 bg-red-500 z-20 shadow-sm"
-                style={{ 
-                  top: currentTimeTop,
-                  left: timeColWidth,
-                  right: 0,
-                }}
-              />
-            </>
+            <div 
+              className="absolute h-0.5 bg-red-500 z-20 shadow-sm pointer-events-none"
+              style={{ 
+                top: currentTimeTop,
+                left: timeColWidth,
+                right: 0,
+              }}
+            />
           )}
         </div>
       </div>
