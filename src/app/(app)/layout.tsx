@@ -16,7 +16,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       <div
         className={cn(
           "fixed inset-0 bg-black/50 z-40 lg:hidden",
-          "transition-opacity duration-500",
+          "transition-opacity duration-300 ease-out",
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
         onClick={close}

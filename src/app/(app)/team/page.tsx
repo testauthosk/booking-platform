@@ -615,14 +615,14 @@ export default function TeamPage() {
       {/* Master Profile Panel Overlay */}
       {selectedMaster && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-500"
+          className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ease-out"
           onClick={() => setSelectedMaster(null)}
         />
       )}
 
       {/* Master Profile Panel */}
       <div 
-        className={`fixed top-0 right-0 h-full w-80 bg-card border-l border-border shadow-xl z-50 transform transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+        className={`fixed top-0 right-0 h-full w-80 bg-card border-l border-border shadow-xl z-50 transform transition-transform duration-300 ease-out will-change-transform ${
           selectedMaster ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -709,14 +709,14 @@ export default function TeamPage() {
       {/* Profile Panel Overlay */}
       {profileOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-500"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-300 ease-out"
           onClick={() => setProfileOpen(false)}
         />
       )}
 
       {/* Profile Panel */}
       <div 
-        className={`fixed top-0 right-0 h-full w-80 bg-card border-l border-border shadow-xl z-50 transform transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+        className={`fixed top-0 right-0 h-full w-80 bg-card border-l border-border shadow-xl z-50 transform transition-transform duration-300 ease-out will-change-transform ${
           profileOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
