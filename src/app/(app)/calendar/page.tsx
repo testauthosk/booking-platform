@@ -2,7 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Menu, Bell, Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { Menu, Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useSidebar } from '@/components/sidebar-context';
 import { EventModal } from '@/components/calendar/event-modal';
 import { NewBookingModal } from '@/components/calendar/new-booking-modal';
@@ -254,10 +255,7 @@ export default function CalendarPage() {
         <h1 className="text-base font-semibold">Календар</h1>
 
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-9 w-9 relative transition-transform active:scale-95">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
-          </Button>
+          <NotificationBell />
           <div className="h-8 w-8 rounded-full bg-orange-500 flex items-center justify-center text-white text-sm font-medium">
             D
           </div>
