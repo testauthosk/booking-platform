@@ -1329,7 +1329,7 @@ export default function StaffCalendar() {
         onClick={() => !confirmLoading && setConfirmModal({ open: false, type: null, booking: null })}
       />
       <div 
-        className={`fixed inset-x-0 bottom-0 bg-card rounded-t-3xl shadow-xl z-[90] transform transition-all duration-700 ease-in-out ${
+        className={`fixed inset-x-0 bottom-0 bg-card rounded-t-3xl shadow-xl z-[90] transform transition-all duration-700 ease-in-out overflow-hidden ${
           confirmModal.open ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
