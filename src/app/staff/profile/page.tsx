@@ -29,6 +29,23 @@ export default function StaffProfile() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
+  const formatPhoneDisplay = (value: string) => {
+    // Remove +380 prefix and all non-digits
+    const digits = value.replace(/^\+?380/, '').replace(/\D/g, '').slice(0, 9);
+    let formatted = '';
+    if (digits.length > 0) formatted += digits.slice(0, 2);
+    if (digits.length > 2) formatted += ' ' + digits.slice(2, 5);
+    if (digits.length > 5) formatted += ' ' + digits.slice(5, 7);
+    if (digits.length > 7) formatted += ' ' + digits.slice(7, 9);
+    return formatted;
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const digits = value.replace(/\D/g, '').slice(0, 9);
+    setPhone('+380' + digits);
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('staffToken');
     const id = localStorage.getItem('staffId');
@@ -278,12 +295,17 @@ export default function StaffProfile() {
 
           <div>
             <label className="text-sm font-medium mb-1.5 block">Телефон</label>
-            <Input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+380..."
-            />
+            <div className="relative flex items-center">
+              <span className="absolute left-4 text-sm font-medium text-muted-foreground">+380</span>
+              <Input
+                type="tel"
+                value={formatPhoneDisplay(phone)}
+                onChange={handlePhoneChange}
+                placeholder="XX XXX XX XX"
+                className="pl-14"
+                maxLength={12}
+              />
+            </div>
           </div>
 
           <div>
