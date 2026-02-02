@@ -51,10 +51,30 @@ export default function StaffDashboard() {
   const [bookingService, setBookingService] = useState<ServiceOption | null>(null);
   const [bookingClientName, setBookingClientName] = useState('');
   const [bookingClientPhone, setBookingClientPhone] = useState('');
-  const [bookingDate, setBookingDate] = useState(new Date().toISOString().split('T')[0]);
-  const [bookingTime, setBookingTime] = useState('');
+  const [bookingDate, setBookingDate] = useState(new Date());
+  const [bookingTime, setBookingTime] = useState('10:00');
   const [savingBooking, setSavingBooking] = useState(false);
   const [bookingStep, setBookingStep] = useState<'service' | 'details'>('service');
+  
+  // Pickers
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [timePickerOpen, setTimePickerOpen] = useState(false);
+  
+  const timeOptions = Array.from({ length: 28 }, (_, i) => {
+    const hour = 8 + Math.floor(i / 2);
+    const min = i % 2 === 0 ? '00' : '30';
+    return `${hour.toString().padStart(2, '0')}:${min}`;
+  });
+  
+  const DAYS_UA = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+  const MONTHS_UA = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
+  
+  // Generate 14 days from today
+  const dateOptions = Array.from({ length: 14 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() + i);
+    return date;
+  });
 
   useEffect(() => {
     const token = localStorage.getItem('staffToken');
@@ -113,9 +133,19 @@ export default function StaffDashboard() {
     setBookingService(null);
     setBookingClientName('');
     setBookingClientPhone('');
-    setBookingDate(new Date().toISOString().split('T')[0]);
-    setBookingTime('');
+    setBookingDate(new Date());
+    setBookingTime('10:00');
     setNewBookingOpen(true);
+  };
+  
+  const formatDateDisplay = (date: Date) => {
+    const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    if (date.toDateString() === today.toDateString()) return 'Сьогодні';
+    if (date.toDateString() === tomorrow.toDateString()) return 'Завтра';
+    return `${date.getDate()} ${MONTHS_UA[date.getMonth()]}`;
   };
   
   const formatPhoneNumber = (value: string) => {
@@ -145,6 +175,7 @@ export default function StaffDashboard() {
     try {
       // Format full phone number
       const fullPhone = '+380' + bookingClientPhone.replace(/\D/g, '');
+      const dateStr = bookingDate.toISOString().split('T')[0];
       
       const res = await fetch('/api/booking', {
         method: 'POST',
@@ -157,7 +188,7 @@ export default function StaffDashboard() {
           clientPhone: fullPhone,
           serviceName: bookingService.name,
           masterName: staffName,
-          date: bookingDate,
+          date: dateStr,
           time: bookingTime,
           duration: bookingService.duration,
           price: bookingService.price
@@ -591,22 +622,31 @@ export default function StaffDashboard() {
             {/* Date */}
             <div>
               <label className="text-sm font-medium mb-1.5 block">Дата</label>
-              <Input
-                type="date"
-                value={bookingDate}
-                onChange={(e) => setBookingDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
-              />
+              <button
+                type="button"
+                onClick={() => setDatePickerOpen(true)}
+                className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
+              >
+                <span>{formatDateDisplay(bookingDate)}</span>
+                <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
             </div>
 
             {/* Time */}
             <div>
               <label className="text-sm font-medium mb-1.5 block">Час</label>
-              <Input
-                type="time"
-                value={bookingTime}
-                onChange={(e) => setBookingTime(e.target.value)}
-              />
+              <button
+                type="button"
+                onClick={() => setTimePickerOpen(true)}
+                className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
+              >
+                <span>{bookingTime}</span>
+                <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
             </div>
           </div>
         )}
@@ -630,6 +670,87 @@ export default function StaffDashboard() {
             </button>
           </div>
         )}
+      </div>
+
+      {/* Date Picker Bottom Sheet */}
+      {datePickerOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-[60]"
+          onClick={() => setDatePickerOpen(false)}
+        />
+      )}
+      <div 
+        className={`fixed inset-x-0 bottom-0 bg-zinc-800 rounded-t-2xl z-[70] transform transition-transform duration-300 ${
+          datePickerOpen ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="p-2 max-h-[50vh] overflow-y-auto">
+          {dateOptions.map((date, index) => {
+            const isSelected = date.toDateString() === bookingDate.toDateString();
+            const isToday = date.toDateString() === new Date().toDateString();
+            return (
+              <button
+                key={index}
+                onClick={() => {
+                  setBookingDate(date);
+                  setDatePickerOpen(false);
+                }}
+                className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
+                  isSelected ? 'text-white' : 'text-zinc-300'
+                }`}
+              >
+                {isSelected && <Check className="h-5 w-5" />}
+                <span className={isSelected ? '' : 'ml-8'}>
+                  {DAYS_UA[date.getDay()]}, {date.getDate()} {MONTHS_UA[date.getMonth()]}
+                  {isToday && <span className="ml-2 text-zinc-400">(сьогодні)</span>}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <button
+          onClick={() => setDatePickerOpen(false)}
+          className="w-full py-4 text-center text-zinc-400 border-t border-zinc-700"
+        >
+          <X className="h-5 w-5 mx-auto" />
+        </button>
+      </div>
+
+      {/* Time Picker Bottom Sheet */}
+      {timePickerOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-[60]"
+          onClick={() => setTimePickerOpen(false)}
+        />
+      )}
+      <div 
+        className={`fixed inset-x-0 bottom-0 bg-zinc-800 rounded-t-2xl z-[70] transform transition-transform duration-300 ${
+          timePickerOpen ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="p-2 max-h-[50vh] overflow-y-auto">
+          {timeOptions.map((time) => (
+            <button
+              key={time}
+              onClick={() => {
+                setBookingTime(time);
+                setTimePickerOpen(false);
+              }}
+              className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
+                bookingTime === time ? 'text-white' : 'text-zinc-300'
+              }`}
+            >
+              {bookingTime === time && <Check className="h-5 w-5" />}
+              <span className={bookingTime === time ? '' : 'ml-8'}>{time}</span>
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setTimePickerOpen(false)}
+          className="w-full py-4 text-center text-zinc-400 border-t border-zinc-700"
+        >
+          <X className="h-5 w-5 mx-auto" />
+        </button>
       </div>
     </div>
   );
