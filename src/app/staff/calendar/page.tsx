@@ -672,7 +672,7 @@ export default function StaffCalendar() {
                       
                       {!isBlocked && (
                         <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                          <span>{booking.duration} хв</span>
+                          <span>{booking.duration} хв (h:{height}px)</span>
                           {booking.price !== undefined && booking.price > 0 && (
                             <span className="font-medium text-foreground">{booking.price} ₴</span>
                           )}
