@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
         email: true,
         role: true,
         avatar: true,
+        color: true,
         isActive: true,
         rating: true,
         reviewCount: true,
