@@ -595,7 +595,7 @@ export default function StaffCalendar() {
           </div>
         ) : showOnlyBookings ? (
           /* Only bookings mode - simple cards without timeline */
-          <div className="p-4 space-y-3">
+          <div className="p-4 space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
             {bookings.length > 0 ? (
               bookings
                 .sort((a, b) => a.time.localeCompare(b.time))
@@ -713,6 +713,7 @@ export default function StaffCalendar() {
           </div>
         ) : (
           /* Full day timeline - new concept */
+          <div className="pt-4 animate-in fade-in slide-in-from-left-4 duration-300">
           <div className="relative flex px-4">
             {/* Left: Time labels */}
             <div className="w-12 shrink-0 relative" style={{ height: `${(workingHours.end - workingHours.start + 1) * 120}px` }}>
@@ -888,6 +889,14 @@ export default function StaffCalendar() {
                 );
               })}
             </div>
+          </div>
+          
+          {/* End of day message */}
+          <div className="px-4 py-6 text-center">
+            <p className="text-sm text-muted-foreground/60">
+              Кінець роботи. Час додому ❤️
+            </p>
+          </div>
           </div>
         )}
       </div>
