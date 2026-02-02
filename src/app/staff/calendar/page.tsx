@@ -1209,7 +1209,13 @@ export default function StaffCalendar() {
           </div>
         )}
 
-        <div className="p-4 pb-8 border-t border-border shrink-0">
+        <div className="p-4 pb-8 border-t border-border shrink-0 flex gap-2">
+          <button
+            onClick={() => setEditModalOpen(false)}
+            className="flex-1 py-3 rounded-xl bg-zinc-100 text-zinc-700 font-medium hover:bg-zinc-200 transition-colors"
+          >
+            Скасувати
+          </button>
           <button
             onClick={async () => {
               if (!editBooking) return;
@@ -1233,10 +1239,10 @@ export default function StaffCalendar() {
                 alert('Помилка при збереженні');
               }
             }}
-            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+            className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
           >
             <Check className="h-5 w-5" />
-            Зберегти зміни
+            Зберегти
           </button>
         </div>
       </div>
@@ -1368,7 +1374,7 @@ export default function StaffCalendar() {
         )}
         
         {/* Actions */}
-        <div className="p-4 pb-8 flex gap-2">
+        <div className="p-4 pb-8 border-t border-border flex gap-2">
           <button
             onClick={() => setConfirmModal({ open: false, type: null, booking: null })}
             disabled={confirmLoading}
