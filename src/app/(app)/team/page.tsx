@@ -61,7 +61,7 @@ export default function TeamPage() {
   const [selectedInvitation, setSelectedInvitation] = useState<Invitation | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [resending, setResending] = useState(false);
-  const [toast, setToast] = useState<{ message: string; visible: boolean } | null>(null);
+  const [toast, setToast] = useState<{ message: string; visible: boolean; isError?: boolean } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -160,8 +160,8 @@ export default function TeamPage() {
     }
   };
 
-  const showToast = (message: string) => {
-    setToast({ message, visible: true });
+  const showToast = (message: string, isError = false) => {
+    setToast({ message, visible: true, isError });
     setTimeout(() => {
       setToast(prev => prev ? { ...prev, visible: false } : null);
       setTimeout(() => setToast(null), 300);
@@ -182,11 +182,13 @@ export default function TeamPage() {
       if (res.ok) {
         showToast('Запрошення відправлено повторно!');
       } else {
-        showToast('Помилка при відправці');
+        const data = await res.json().catch(() => ({}));
+        console.error('Resend error:', data);
+        showToast('Помилка при відправці', true);
       }
     } catch (error) {
       console.error('Resend error:', error);
-      showToast('Помилка при відправці');
+      showToast('Помилка при відправці', true);
     } finally {
       setResending(false);
     }
@@ -584,14 +586,24 @@ export default function TeamPage() {
       {toast && (
         <div 
           onClick={hideToast}
-          className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-3 rounded-xl bg-card border border-border shadow-lg flex items-center gap-2 cursor-pointer transition-all duration-300 ${
+          className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 cursor-pointer transition-all duration-300 ${
+            toast.isError 
+              ? 'bg-red-50 border border-red-200' 
+              : 'bg-green-50 border border-green-200'
+          } ${
             toast.visible 
               ? 'opacity-100 translate-y-0' 
               : 'opacity-0 -translate-y-2'
           }`}
         >
-          <Check className="h-4 w-4 text-green-600" />
-          <p className="text-sm font-medium">{toast.message}</p>
+          {toast.isError ? (
+            <X className="h-4 w-4 text-red-600" />
+          ) : (
+            <Check className="h-4 w-4 text-green-600" />
+          )}
+          <p className={`text-sm font-medium ${toast.isError ? 'text-red-700' : 'text-green-700'}`}>
+            {toast.message}
+          </p>
         </div>
       )}
     </div>

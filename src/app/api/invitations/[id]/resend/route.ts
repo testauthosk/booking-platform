@@ -12,11 +12,15 @@ export async function POST(
   try {
     const { id } = await params;
 
-    // Находим приглашение с данными салона
+    // Находим приглашение
     const invitation = await prisma.staffInvitation.findUnique({
       where: { id },
-      include: { salon: true },
     });
+    
+    // Получаем данные салона
+    const salon = invitation ? await prisma.salon.findUnique({
+      where: { id: invitation.salonId },
+    }) : null;
 
     if (!invitation) {
       return NextResponse.json({ error: 'Invitation not found' }, { status: 404 });
@@ -36,8 +40,8 @@ export async function POST(
 
     // Отправляем email
     const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://booking-platform-ruddy.vercel.app'}/join/${invitation.token}`;
-    const salonName = invitation.salon?.name || 'салону';
-    const salonLogo = invitation.salon?.logo;
+    const salonName = salon?.name || 'салону';
+    const salonLogo = salon?.logo;
     
     if (resend) {
       try {
