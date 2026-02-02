@@ -100,50 +100,43 @@ export function NotificationBell() {
 
   return (
     <div ref={containerRef} className="relative z-50">
-      {/* Bell button */}
+      {/* Bell button - transforms to square when open */}
       <motion.div
         role="button"
         tabIndex={0}
         onClick={() => setOpen(!open)}
         onKeyDown={(e) => e.key === 'Enter' && setOpen(!open)}
-        whileTap={{ scale: 0.9 }}
+        whileTap={{ scale: 0.95 }}
         className={cn(
-          "relative h-10 w-10 flex items-center justify-center cursor-pointer select-none rounded-full",
+          "relative h-10 w-10 flex items-center justify-center cursor-pointer select-none transition-all duration-200",
           open 
-            ? "bg-card shadow-md border border-border z-[60]" 
-            : "hover:bg-muted"
+            ? "bg-card rounded-xl rounded-b-none border border-b-0 border-border shadow-lg z-[60]" 
+            : "rounded-xl hover:bg-muted"
         )}
       >
         <Bell className="h-5 w-5 text-foreground pointer-events-none" />
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 h-4 w-4 bg-destructive rounded-full text-[10px] text-white font-medium flex items-center justify-center pointer-events-none">
+          <span className={cn(
+            "absolute h-4 w-4 bg-destructive rounded-full text-[10px] text-white font-medium flex items-center justify-center pointer-events-none",
+            open ? "top-1.5 right-1.5" : "top-0.5 right-0.5"
+          )}>
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </motion.div>
 
-      {/* Notification panel */}
+      {/* Notification panel - connected to button */}
       <AnimatePresence>
         {open && (
           <motion.div 
-            initial={{ opacity: 0, y: -8, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.95 }}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="absolute right-0 top-11 w-80 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-50"
-            style={{ 
-              borderTopRightRadius: '20px',
-              marginTop: '2px'
-            }}
+            className="absolute right-0 top-10 w-80 bg-card border border-t-0 border-border rounded-b-xl rounded-tl-xl shadow-lg overflow-hidden z-50"
           >
-            {/* Connector - визуальное соединение с кнопкой */}
-            <div 
-              className="absolute -top-[3px] right-[15px] w-[10px] h-[6px] bg-card z-10"
-              style={{ borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}
-            />
-            
             {/* Header */}
-            <div className="flex items-center justify-between p-3 border-b border-border">
+            <div className="flex items-center justify-between p-3 border-b border-border bg-card">
               <h3 className="font-semibold text-foreground">Сповіщення</h3>
               {unreadCount > 0 && (
                 <button
@@ -164,7 +157,7 @@ export function NotificationBell() {
             </div>
 
             {/* Notifications list */}
-            <div className="max-h-80 overflow-y-auto">
+            <div className="max-h-80 overflow-y-auto bg-card">
               {notifications.length === 0 ? (
                 <div className="p-6 text-center text-muted-foreground">
                   <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />

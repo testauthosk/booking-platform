@@ -183,7 +183,7 @@ export default function TeamPage() {
         <Button 
           variant="ghost" 
           size="icon" 
-          className="h-9 w-9" 
+          className="h-10 w-10 rounded-xl" 
           onClick={openSidebar}
         >
           <Menu className="h-5 w-5" />
@@ -193,7 +193,7 @@ export default function TeamPage() {
 
         <div className="flex items-center gap-1">
           <NotificationBell />
-          <div className="h-8 w-8 rounded-full bg-orange-500 flex items-center justify-center text-white text-sm font-medium">
+          <div className="h-10 w-10 rounded-xl bg-orange-500 flex items-center justify-center text-white text-sm font-medium">
             D
           </div>
         </div>
