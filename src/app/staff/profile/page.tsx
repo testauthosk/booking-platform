@@ -327,14 +327,14 @@ export default function StaffProfile() {
 
       {/* Photo picker modal */}
       <div 
-        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-all duration-300 ${
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-all duration-700 ease-in-out ${
           photoPickerOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setPhotoPickerOpen(false)}
       />
       <div 
-        className={`fixed inset-x-4 bottom-4 bg-card rounded-2xl shadow-xl z-50 transform transition-all duration-300 ${
-          photoPickerOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
+        className={`fixed inset-x-0 bottom-0 bg-card rounded-t-3xl shadow-xl z-50 transform transition-all duration-700 ease-in-out ${
+          photoPickerOpen ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
         <div className="p-4 border-b border-border flex items-center justify-between">
@@ -392,14 +392,14 @@ export default function StaffProfile() {
 
       {/* Delete confirmation modal */}
       <div 
-        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] transition-all duration-300 ${
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] transition-all duration-700 ease-in-out ${
           deleteConfirmOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setDeleteConfirmOpen(false)}
       />
       <div 
-        className={`fixed inset-x-4 bottom-4 bg-card rounded-2xl shadow-xl z-[70] transform transition-all duration-300 ${
-          deleteConfirmOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
+        className={`fixed inset-x-0 bottom-0 bg-card rounded-t-3xl shadow-xl z-[70] transform transition-all duration-700 ease-in-out ${
+          deleteConfirmOpen ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
         <div className="p-4 text-center">
