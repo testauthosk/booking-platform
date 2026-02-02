@@ -246,6 +246,38 @@ export default function StaffCalendar() {
   const [editTimePickerOpen, setEditTimePickerOpen] = useState(false);
   const [editDurationPickerOpen, setEditDurationPickerOpen] = useState(false);
   
+  // Confirmation modal
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    type: 'cancel' | 'noshow' | null;
+    booking: Booking | null;
+  }>({ open: false, type: null, booking: null });
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
+  const handleConfirmAction = async () => {
+    if (!confirmModal.booking || !confirmModal.type) return;
+    
+    setConfirmLoading(true);
+    try {
+      const status = confirmModal.type === 'cancel' ? 'CANCELLED' : 'NO_SHOW';
+      const res = await fetch('/api/staff/bookings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: confirmModal.booking.id, status })
+      });
+      if (res.ok) {
+        setConfirmModal({ open: false, type: null, booking: null });
+        loadBookings();
+      } else {
+        alert('Помилка при оновленні');
+      }
+    } catch (e) {
+      alert('Помилка при оновленні');
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
+  
   // Time options will be generated based on working hours
   const getTimeOptions = () => {
     const slots = (workingHours.end - workingHours.start + 1) * 2;
@@ -488,9 +520,9 @@ export default function StaffCalendar() {
   }
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
+    <div className="h-[100dvh] flex flex-col bg-background overflow-x-hidden">
       {/* Header */}
-      <header className="bg-card border-b px-4 py-3 sticky top-0 z-10">
+      <header className="bg-card border-b px-4 py-3 shrink-0 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button 
@@ -526,7 +558,7 @@ export default function StaffCalendar() {
       </header>
 
       {/* Days horizontal scroll - sticky */}
-      <div className="sticky top-[60px] z-10 bg-card border-b">
+      <div className="shrink-0 bg-card border-b">
         <div 
           ref={daysRef}
           className="flex gap-2 px-4 py-3 overflow-x-auto scrollbar-hide"
@@ -556,7 +588,7 @@ export default function StaffCalendar() {
       </div>
 
       {/* Content - scrollable */}
-      <div className="pb-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+      <div className="flex-1 pb-4 overflow-y-auto">
         {loadingBookings ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -662,48 +694,14 @@ export default function StaffCalendar() {
                                 <Pencil className="h-4 w-4" />
                               </button>
                               <button 
-                                onClick={async () => {
-                                  if (confirm(`Клієнт ${booking.clientName} не прийшов на запис?\n\nВідмітити як "Не прийшов"?`)) {
-                                    try {
-                                      const res = await fetch('/api/staff/bookings', {
-                                        method: 'PATCH',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ bookingId: booking.id, status: 'NO_SHOW' })
-                                      });
-                                      if (res.ok) {
-                                        loadBookings();
-                                      } else {
-                                        alert('Помилка при оновленні');
-                                      }
-                                    } catch (e) {
-                                      alert('Помилка при оновленні');
-                                    }
-                                  }
-                                }}
+                                onClick={() => setConfirmModal({ open: true, type: 'noshow', booking })}
                                 className="flex-1 h-8 rounded-lg bg-orange-50 text-orange-500 hover:bg-orange-100 transition-colors flex items-center justify-center" 
                                 title="Не прийшов"
                               >
                                 <Clock className="h-4 w-4" />
                               </button>
                               <button 
-                                onClick={async () => {
-                                  if (confirm(`Скасувати запис?\n\nКлієнт: ${booking.clientName}\nПослуга: ${booking.serviceName}\nЧас: ${booking.time}`)) {
-                                    try {
-                                      const res = await fetch('/api/staff/bookings', {
-                                        method: 'PATCH',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ bookingId: booking.id, status: 'CANCELLED' })
-                                      });
-                                      if (res.ok) {
-                                        loadBookings();
-                                      } else {
-                                        alert('Помилка при скасуванні');
-                                      }
-                                    } catch (e) {
-                                      alert('Помилка при скасуванні');
-                                    }
-                                  }
-                                }}
+                                onClick={() => setConfirmModal({ open: true, type: 'cancel', booking })}
                                 className="flex-1 h-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-500 transition-colors flex items-center justify-center"
                               >
                                 <X className="h-4 w-4" />
@@ -877,48 +875,14 @@ export default function StaffCalendar() {
                                 <Pencil className="h-4 w-4" />
                               </button>
                               <button 
-                                onClick={async () => {
-                                  if (confirm(`Клієнт ${booking.clientName} не прийшов на запис?\n\nВідмітити як "Не прийшов"?`)) {
-                                    try {
-                                      const res = await fetch('/api/staff/bookings', {
-                                        method: 'PATCH',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ bookingId: booking.id, status: 'NO_SHOW' })
-                                      });
-                                      if (res.ok) {
-                                        loadBookings();
-                                      } else {
-                                        alert('Помилка при оновленні');
-                                      }
-                                    } catch (e) {
-                                      alert('Помилка при оновленні');
-                                    }
-                                  }
-                                }}
+                                onClick={() => setConfirmModal({ open: true, type: 'noshow', booking })}
                                 className="flex-1 h-8 rounded-lg bg-white text-orange-500 hover:bg-orange-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm" 
                                 title="Не прийшов"
                               >
                                 <Clock className="h-4 w-4" />
                               </button>
                               <button 
-                                onClick={async () => {
-                                  if (confirm(`Скасувати запис?\n\nКлієнт: ${booking.clientName}\nПослуга: ${booking.serviceName}\nЧас: ${booking.time}`)) {
-                                    try {
-                                      const res = await fetch('/api/staff/bookings', {
-                                        method: 'PATCH',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ bookingId: booking.id, status: 'CANCELLED' })
-                                      });
-                                      if (res.ok) {
-                                        loadBookings();
-                                      } else {
-                                        alert('Помилка при скасуванні');
-                                      }
-                                    } catch (e) {
-                                      alert('Помилка при скасуванні');
-                                    }
-                                  }
-                                }}
+                                onClick={() => setConfirmModal({ open: true, type: 'cancel', booking })}
                                 className="flex-1 h-8 rounded-lg bg-white text-red-400 hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm"
                               >
                                 <X className="h-4 w-4" />
@@ -1349,6 +1313,75 @@ export default function StaffCalendar() {
           <X className="h-5 w-5 mx-auto" />
         </button>
       </div>
+
+      {/* Confirmation Modal */}
+      {confirmModal.open && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] flex items-center justify-center p-4"
+          onClick={() => !confirmLoading && setConfirmModal({ open: false, type: null, booking: null })}
+        >
+          <div 
+            className="bg-card rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Icon */}
+            <div className={`pt-6 pb-4 flex justify-center ${
+              confirmModal.type === 'cancel' ? 'bg-red-50' : 'bg-orange-50'
+            }`}>
+              <div className={`h-16 w-16 rounded-full flex items-center justify-center ${
+                confirmModal.type === 'cancel' ? 'bg-red-100' : 'bg-orange-100'
+              }`}>
+                {confirmModal.type === 'cancel' ? (
+                  <X className="h-8 w-8 text-red-500" />
+                ) : (
+                  <Clock className="h-8 w-8 text-orange-500" />
+                )}
+              </div>
+            </div>
+            
+            {/* Content */}
+            <div className="p-5 text-center">
+              <h3 className="text-lg font-bold mb-2">
+                {confirmModal.type === 'cancel' ? 'Скасувати запис?' : 'Клієнт не прийшов?'}
+              </h3>
+              
+              {confirmModal.booking && (
+                <div className="text-sm text-muted-foreground space-y-0.5">
+                  <p><span className="font-medium text-foreground">{confirmModal.booking.clientName}</span></p>
+                  <p>{confirmModal.booking.serviceName}</p>
+                  <p>{confirmModal.booking.time} · {confirmModal.booking.duration} хв</p>
+                </div>
+              )}
+            </div>
+            
+            {/* Actions */}
+            <div className="p-4 pt-0 flex gap-2">
+              <button
+                onClick={() => setConfirmModal({ open: false, type: null, booking: null })}
+                disabled={confirmLoading}
+                className="flex-1 py-3 rounded-xl bg-zinc-100 text-zinc-700 font-medium hover:bg-zinc-200 transition-colors disabled:opacity-50"
+              >
+                Скасувати
+              </button>
+              <button
+                onClick={handleConfirmAction}
+                disabled={confirmLoading}
+                className={`flex-1 py-3 rounded-xl text-white font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${
+                  confirmModal.type === 'cancel' 
+                    ? 'bg-red-500 hover:bg-red-600' 
+                    : 'bg-orange-500 hover:bg-orange-600'
+                }`}
+              >
+                {confirmLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  confirmModal.type === 'cancel' ? 'Так, скасувати' : 'Так, не прийшов'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
