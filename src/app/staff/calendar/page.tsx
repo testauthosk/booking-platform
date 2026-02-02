@@ -605,8 +605,8 @@ export default function StaffCalendar() {
           <>
             {/* Bookings list view */}
             <div 
-              className={`absolute inset-0 pb-4 overflow-y-auto transition-all duration-500 ease-out ${
-                showOnlyBookings ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'
+              className={`absolute inset-0 pb-4 overflow-y-auto bg-background transition-transform duration-500 ease-out ${
+                showOnlyBookings ? 'translate-y-0 z-10' : '-translate-y-full z-0'
               }`}
             >
               <div className="p-4 space-y-3">
@@ -729,8 +729,8 @@ export default function StaffCalendar() {
             
             {/* Timeline view */}
             <div 
-              className={`absolute inset-0 pb-4 overflow-y-auto transition-all duration-500 ease-out ${
-                showOnlyBookings ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
+              className={`absolute inset-0 pb-4 overflow-y-auto bg-background transition-transform duration-500 ease-out ${
+                showOnlyBookings ? 'translate-y-full z-0' : 'translate-y-0 z-10'
               }`}
             >
               <div className="pt-4">
