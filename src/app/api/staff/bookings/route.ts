@@ -121,3 +121,76 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
+
+// PUT - Update booking (time, duration)
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { bookingId, time, duration } = body;
+
+    if (!bookingId) {
+      return NextResponse.json({ error: 'bookingId required' }, { status: 400 });
+    }
+
+    // Calculate new timeEnd if time or duration changed
+    const updateData: Record<string, unknown> = {};
+    
+    if (time) {
+      updateData.time = time;
+    }
+    
+    if (duration) {
+      updateData.duration = duration;
+    }
+
+    // Recalculate timeEnd
+    const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+    if (!booking) {
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    }
+
+    const newTime = time || booking.time;
+    const newDuration = duration || booking.duration;
+    const [hours, minutes] = newTime.split(':').map(Number);
+    const endMinutes = hours * 60 + minutes + newDuration;
+    const endHours = Math.floor(endMinutes / 60);
+    const endMins = endMinutes % 60;
+    updateData.timeEnd = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+
+    const updated = await prisma.booking.update({
+      where: { id: bookingId },
+      data: updateData
+    });
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error('Update booking error:', error);
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+  }
+}
+
+// PATCH - Update booking status (NO_SHOW, CANCELLED, COMPLETED)
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { bookingId, status } = body;
+
+    if (!bookingId || !status) {
+      return NextResponse.json({ error: 'bookingId and status required' }, { status: 400 });
+    }
+
+    if (!['NO_SHOW', 'CANCELLED', 'COMPLETED', 'CONFIRMED'].includes(status)) {
+      return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+    }
+
+    const updated = await prisma.booking.update({
+      where: { id: bookingId },
+      data: { status }
+    });
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error('Update booking status error:', error);
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+  }
+}

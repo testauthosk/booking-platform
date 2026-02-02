@@ -815,10 +815,22 @@ export default function StaffCalendar() {
                                 <Pencil className="h-4 w-4" />
                               </button>
                               <button 
-                                onClick={() => {
+                                onClick={async () => {
                                   if (confirm(`Клієнт ${booking.clientName} не прийшов на запис?\n\nВідмітити як "Не прийшов"?`)) {
-                                    // TODO: API call to mark as NO_SHOW
-                                    alert('Відмічено як "Не прийшов"');
+                                    try {
+                                      const res = await fetch('/api/staff/bookings', {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ bookingId: booking.id, status: 'NO_SHOW' })
+                                      });
+                                      if (res.ok) {
+                                        loadBookings();
+                                      } else {
+                                        alert('Помилка при оновленні');
+                                      }
+                                    } catch (e) {
+                                      alert('Помилка при оновленні');
+                                    }
                                   }
                                 }}
                                 className="flex-1 h-8 rounded-lg bg-white text-orange-500 hover:bg-orange-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm" 
@@ -827,10 +839,22 @@ export default function StaffCalendar() {
                                 <Clock className="h-4 w-4" />
                               </button>
                               <button 
-                                onClick={() => {
+                                onClick={async () => {
                                   if (confirm(`Скасувати запис?\n\nКлієнт: ${booking.clientName}\nПослуга: ${booking.serviceName}\nЧас: ${booking.time}`)) {
-                                    // TODO: API call to cancel booking
-                                    alert('Запис скасовано');
+                                    try {
+                                      const res = await fetch('/api/staff/bookings', {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ bookingId: booking.id, status: 'CANCELLED' })
+                                      });
+                                      if (res.ok) {
+                                        loadBookings();
+                                      } else {
+                                        alert('Помилка при скасуванні');
+                                      }
+                                    } catch (e) {
+                                      alert('Помилка при скасуванні');
+                                    }
                                   }
                                 }}
                                 className="flex-1 h-8 rounded-lg bg-white text-red-400 hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm"
@@ -1160,11 +1184,27 @@ export default function StaffCalendar() {
 
         <div className="p-4 pb-8 border-t border-border shrink-0">
           <button
-            onClick={() => {
-              // TODO: API call to update booking
-              alert(`Запис оновлено!\nНовий час: ${editTime}\nТривалість: ${editDuration} хв`);
-              setEditModalOpen(false);
-              loadBookings();
+            onClick={async () => {
+              if (!editBooking) return;
+              try {
+                const res = await fetch('/api/staff/bookings', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ 
+                    bookingId: editBooking.id, 
+                    time: editTime, 
+                    duration: parseInt(editDuration) 
+                  })
+                });
+                if (res.ok) {
+                  setEditModalOpen(false);
+                  loadBookings();
+                } else {
+                  alert('Помилка при збереженні');
+                }
+              } catch (e) {
+                alert('Помилка при збереженні');
+              }
             }}
             className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
           >
