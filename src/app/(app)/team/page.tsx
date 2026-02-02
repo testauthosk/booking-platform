@@ -61,7 +61,7 @@ export default function TeamPage() {
   const [selectedInvitation, setSelectedInvitation] = useState<Invitation | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [resending, setResending] = useState(false);
-  const [resendSuccess, setResendSuccess] = useState(false);
+  const [toast, setToast] = useState<{ message: string; visible: boolean } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -160,22 +160,33 @@ export default function TeamPage() {
     }
   };
 
+  const showToast = (message: string) => {
+    setToast({ message, visible: true });
+    setTimeout(() => {
+      setToast(prev => prev ? { ...prev, visible: false } : null);
+      setTimeout(() => setToast(null), 300);
+    }, 5000);
+  };
+
+  const hideToast = () => {
+    if (toast) {
+      setToast({ ...toast, visible: false });
+      setTimeout(() => setToast(null), 300);
+    }
+  };
+
   const handleResendInvitation = async (invitation: Invitation) => {
     setResending(true);
-    setResendSuccess(false);
     try {
       const res = await fetch(`/api/invitations/${invitation.id}/resend`, { method: 'POST' });
-      console.log('Resend response status:', res.status);
       if (res.ok) {
-        setResendSuccess(true);
-        setTimeout(() => setResendSuccess(false), 3000);
+        showToast('Запрошення відправлено повторно!');
       } else {
-        const data = await res.json();
-        console.error('Resend failed:', data);
-        // Показать ошибку можно тут
+        showToast('Помилка при відправці');
       }
     } catch (error) {
       console.error('Resend error:', error);
+      showToast('Помилка при відправці');
     } finally {
       setResending(false);
     }
@@ -448,14 +459,6 @@ export default function TeamPage() {
               </button>
             </div>
             
-            {/* Success Toast */}
-            {resendSuccess && (
-              <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 flex items-center gap-2">
-                <Check className="h-4 w-4 text-green-600" />
-                <p className="text-sm text-green-700 font-medium">Запрошення відправлено повторно!</p>
-              </div>
-            )}
-            
             {selectedInvitation && (
               <div className="space-y-4">
                 {/* Status */}
@@ -576,6 +579,21 @@ export default function TeamPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Fixed Toast */}
+      {toast && (
+        <div 
+          onClick={hideToast}
+          className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-3 rounded-xl bg-card border border-border shadow-lg flex items-center gap-2 cursor-pointer transition-all duration-300 ${
+            toast.visible 
+              ? 'opacity-100 translate-y-0' 
+              : 'opacity-0 -translate-y-2'
+          }`}
+        >
+          <Check className="h-4 w-4 text-green-600" />
+          <p className="text-sm font-medium">{toast.message}</p>
+        </div>
+      )}
     </div>
   );
 }
