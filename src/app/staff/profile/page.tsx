@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ChevronLeft, Loader2, Check, Camera, User } from 'lucide-react';
+import { ChevronLeft, Loader2, Check, Camera, User, Image, X } from 'lucide-react';
 import { COLOR_PALETTES, getPaletteById } from '@/lib/color-palettes';
 
 export default function StaffProfile() {
@@ -22,6 +22,11 @@ export default function StaffProfile() {
   const [avatar, setAvatar] = useState('');
   const [role, setRole] = useState('');
   const [color, setColor] = useState('');
+  
+  const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('staffToken');
@@ -117,6 +122,44 @@ export default function StaffProfile() {
     }
   };
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setUploadingPhoto(true);
+    setPhotoPickerOpen(false);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'masters');
+      
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setAvatar(data.url);
+        
+        // Save to profile
+        await fetch('/api/staff/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            masterId: staffId,
+            avatar: data.url
+          })
+        });
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -126,15 +169,15 @@ export default function StaffProfile() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-[100dvh] flex flex-col bg-background">
       {/* Header */}
-      <header className="bg-card border-b px-4 py-3 sticky top-0 z-10">
+      <header className="bg-card border-b px-4 py-3 shrink-0 sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => router.push('/staff')}
-            className="h-10 w-10 rounded-xl hover:bg-muted flex items-center justify-center transition-colors"
+            className="h-9 w-10 rounded-xl border border-border hover:bg-muted flex items-center justify-center transition-colors"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-5 w-5 text-muted-foreground" />
           </button>
           <div>
             <h1 className="font-semibold text-lg">Мій профіль</h1>
@@ -144,11 +187,15 @@ export default function StaffProfile() {
       </header>
 
       {/* Content */}
-      <div className="p-4 pb-20 space-y-6">
+      <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-6">
         {/* Avatar */}
         <div className="flex flex-col items-center">
           <div className="relative">
-            {avatar ? (
+            {uploadingPhoto ? (
+              <div className="h-24 w-24 rounded-2xl bg-muted flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : avatar ? (
               <img 
                 src={avatar} 
                 alt={name} 
@@ -159,13 +206,33 @@ export default function StaffProfile() {
                 {name.charAt(0).toUpperCase() || <User className="h-10 w-10" />}
               </div>
             )}
-            <button className="absolute -bottom-2 -right-2 h-10 w-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg">
+            <button 
+              onClick={() => setPhotoPickerOpen(true)}
+              className="absolute -bottom-2 -right-2 h-10 w-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg"
+            >
               <Camera className="h-5 w-5" />
             </button>
           </div>
           {role && (
             <span className="mt-3 text-sm text-muted-foreground">{role}</span>
           )}
+          
+          {/* Hidden file inputs */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoUpload}
+            className="hidden"
+          />
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handlePhotoUpload}
+            className="hidden"
+          />
         </div>
 
         {/* Color picker */}
@@ -257,8 +324,55 @@ export default function StaffProfile() {
         </Card>
       </div>
 
+      {/* Photo picker modal */}
+      <div 
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-all duration-300 ${
+          photoPickerOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setPhotoPickerOpen(false)}
+      />
+      <div 
+        className={`fixed inset-x-4 bottom-4 bg-card rounded-2xl shadow-xl z-50 transform transition-all duration-300 ${
+          photoPickerOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
+        }`}
+      >
+        <div className="p-4 border-b border-border flex items-center justify-between">
+          <h2 className="font-semibold">Завантажити фото</h2>
+          <button 
+            onClick={() => setPhotoPickerOpen(false)}
+            className="h-9 w-10 rounded-xl border border-border hover:bg-muted flex items-center justify-center transition-colors"
+          >
+            <X className="h-5 w-5 text-muted-foreground" />
+          </button>
+        </div>
+        <div className="p-4 space-y-2">
+          <button
+            onClick={() => {
+              cameraInputRef.current?.click();
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted transition-colors"
+          >
+            <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center">
+              <Camera className="h-5 w-5 text-blue-600" />
+            </div>
+            <span className="font-medium">Зробити фото</span>
+          </button>
+          <button
+            onClick={() => {
+              fileInputRef.current?.click();
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted transition-colors"
+          >
+            <div className="h-10 w-10 rounded-xl bg-purple-100 flex items-center justify-center">
+              <Image className="h-5 w-5 text-purple-600" />
+            </div>
+            <span className="font-medium">Обрати з галереї</span>
+          </button>
+        </div>
+      </div>
+
       {/* Save button */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-card border-t">
+      <div className="shrink-0 p-4 bg-card border-t">
         <button
           onClick={saveProfile}
           disabled={saving || !name}

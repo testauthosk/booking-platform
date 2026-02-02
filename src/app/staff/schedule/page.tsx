@@ -170,7 +170,7 @@ export default function StaffSchedule() {
   return (
     <div className="h-[100dvh] flex flex-col bg-background">
       {/* Header */}
-      <header className="bg-card border-b px-4 py-3 shrink-0">
+      <header className="bg-card border-b px-4 py-3 shrink-0 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button 
