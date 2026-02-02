@@ -612,10 +612,10 @@ export default function TeamPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Master Profile Panel Overlay - always in DOM, fades with panel */}
+      {/* Master Profile Panel Overlay - slides from left to meet panel */}
       <div 
-        className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-[700ms] ease-out ${
-          selectedMaster ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        className={`fixed inset-0 bg-black/50 z-40 transition-transform duration-[700ms] ease-out will-change-transform ${
+          selectedMaster ? 'translate-x-0' : '-translate-x-full pointer-events-none'
         }`}
         onClick={() => setSelectedMaster(null)}
       />
@@ -706,10 +706,10 @@ export default function TeamPage() {
         )}
       </div>
 
-      {/* Profile Panel Overlay - always in DOM, fades with panel */}
+      {/* Profile Panel Overlay - slides from left to meet panel */}
       <div 
-        className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-[700ms] ease-out ${
-          profileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        className={`fixed inset-0 bg-black/50 z-40 transition-transform duration-[700ms] ease-out will-change-transform ${
+          profileOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none'
         }`}
         onClick={() => setProfileOpen(false)}
       />
