@@ -11,7 +11,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const { isOpen, close } = useSidebar();
 
   return (
-    <div className="h-screen flex bg-background">
+    <div className="h-screen flex bg-background overflow-hidden overscroll-none">
       {/* Mobile overlay with animation */}
       <div
         className={cn(
@@ -39,7 +39,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         </div>
         
         {/* Main content with bottom padding for mobile nav */}
-        <main className="flex-1 overflow-auto pb-20 lg:pb-0">
+        <main className="flex-1 overflow-auto overscroll-none pb-20 lg:pb-0">
           {children}
         </main>
       </div>
