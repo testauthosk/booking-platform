@@ -669,61 +669,57 @@ export default function StaffCalendar() {
                 return (
                   <div 
                     key={booking.id}
-                    className={`absolute -left-2 right-4 border border-l-0 rounded-r-xl overflow-hidden ${
+                    className={`absolute -left-2 right-4 rounded-r-xl overflow-hidden ${
                       booking.status === 'COMPLETED' 
-                        ? 'border-green-300 bg-green-50' 
+                        ? 'bg-green-50' 
                         : isBlocked
-                        ? 'border-zinc-300 bg-zinc-100'
+                        ? 'bg-zinc-100'
                         : isPast 
                         ? 'opacity-60' 
                         : ''
                     }`}
                     style={{ 
                       top: `${topPosition}px`, 
-                      height: `${Math.max(height, 100)}px`,
-                      ...(booking.status !== 'COMPLETED' && !isBlocked && {
-                        backgroundColor: colors.bg,
-                        borderColor: colors.border
-                      })
+                      height: `${height}px`,
+                      backgroundColor: booking.status === 'COMPLETED' ? undefined : isBlocked ? undefined : colors.bg,
+                      borderLeft: `3px solid ${colors.accent}`,
+                      boxShadow: `0 0 0 1px ${colors.border}`
                     }}
                   >
-                    <div className="p-3 pb-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <p className="font-semibold text-sm">{booking.clientName}</p>
-                          <p className="text-xs text-muted-foreground">{booking.serviceName}</p>
+                    <div className="p-2 h-full flex">
+                      {/* Left: Action buttons (vertical) */}
+                      {!isPast && booking.status !== 'COMPLETED' && !isBlocked && (
+                        <div className="flex flex-col gap-1 mr-2">
+                          <button className="h-8 w-8 rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 flex items-center justify-center transition-colors">
+                            <X className="h-4 w-4" />
+                          </button>
+                          <button className="h-8 w-8 rounded-lg bg-green-50 border border-green-200 text-green-600 hover:bg-green-100 flex items-center justify-center transition-colors">
+                            <Check className="h-4 w-4" />
+                          </button>
+                          <button className="h-8 w-8 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-600 hover:bg-zinc-100 flex items-center justify-center transition-colors">
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
                         </div>
+                      )}
+                      
+                      {/* Right: Content */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm truncate">{booking.clientName}</p>
+                        <p className="text-xs text-muted-foreground truncate">{booking.serviceName}</p>
+                        
+                        {!isBlocked && (
+                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                            <span>{booking.duration} хв</span>
+                            {booking.price !== undefined && booking.price > 0 && (
+                              <span className="font-medium text-foreground">{booking.price} ₴</span>
+                            )}
+                          </div>
+                        )}
                         
                         {booking.status === 'COMPLETED' && (
-                          <span className="text-xs bg-green-200 text-green-700 px-2 py-0.5 rounded-full">✓</span>
+                          <span className="inline-block mt-1 text-xs bg-green-200 text-green-700 px-2 py-0.5 rounded-full">✓ Завершено</span>
                         )}
                       </div>
-                      
-                      {!isBlocked && (
-                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                          <span>{booking.duration} хв</span>
-                          {booking.price !== undefined && booking.price > 0 && (
-                            <span className="font-medium text-foreground">{booking.price} ₴</span>
-                          )}
-                        </div>
-                      )}
-                      
-                      {/* Action icons */}
-                      {!isPast && booking.status !== 'COMPLETED' && (
-                        <div className="flex gap-2 mt-3">
-                          {!isBlocked && (
-                            <button className="h-10 w-10 rounded-xl bg-green-50 border border-green-200 text-green-600 hover:bg-green-100 flex items-center justify-center transition-colors">
-                              <Check className="h-5 w-5" />
-                            </button>
-                          )}
-                          <button className="h-10 w-10 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-600 hover:bg-zinc-100 flex items-center justify-center transition-colors">
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                          <button className="h-10 w-10 rounded-xl bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 flex items-center justify-center transition-colors">
-                            <X className="h-5 w-5" />
-                          </button>
-                        </div>
-                      )}
                     </div>
                   </div>
                 );
