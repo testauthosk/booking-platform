@@ -631,82 +631,74 @@ export default function StaffCalendar() {
                       }`}
                       style={{ 
                         backgroundColor: booking.status === 'COMPLETED' ? undefined : isBlocked ? undefined : colors.bg,
-                        borderLeft: `3px solid ${colors.stripe}`
+                        borderLeft: `4px solid ${colors.stripe}`
                       }}
                     >
-                      <div className="p-3">
-                        {/* Time badge */}
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-sm font-bold text-primary">{booking.time}</span>
-                          <span className="text-sm text-muted-foreground">—</span>
-                          <span className="text-sm font-medium text-muted-foreground">{endTime}</span>
+                      <div className="p-3 flex justify-between gap-3">
+                        {/* Left: Info */}
+                        <div className="flex-1 min-w-0">
+                          {/* Time badge */}
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-bold">{booking.time}</span>
+                            <span className="text-sm text-muted-foreground">—</span>
+                            <span className="text-sm text-muted-foreground">{endTime}</span>
+                          </div>
+                          
+                          <p className="font-semibold truncate">{booking.clientName}</p>
+                          <p className="text-sm text-muted-foreground truncate">{booking.serviceName}</p>
+                          
+                          {!isBlocked && (
+                            <div className="flex items-baseline gap-3 mt-1">
+                              <span className="text-sm text-muted-foreground">{booking.duration} хв</span>
+                              {booking.price !== undefined && booking.price > 0 && (
+                                <span className="text-base font-bold">{booking.price} ₴</span>
+                              )}
+                            </div>
+                          )}
+                          
+                          {booking.status === 'COMPLETED' && (
+                            <span className="inline-block mt-2 text-xs bg-green-200 text-green-700 px-2 py-0.5 rounded">✓ Завершено</span>
+                          )}
+                          
+                          {booking.status === 'NO_SHOW' && (
+                            <span className="inline-block mt-2 text-xs bg-orange-200 text-orange-700 px-2 py-0.5 rounded">Не прийшов</span>
+                          )}
                         </div>
                         
-                        <p className="font-semibold truncate">{booking.clientName}</p>
-                        <p className="text-sm text-muted-foreground truncate">{booking.serviceName}</p>
-                        
-                        {!isBlocked && (
-                          <div className="flex items-baseline gap-3 mt-1">
-                            <span className="text-sm text-muted-foreground">{booking.duration} хв</span>
-                            {booking.price !== undefined && booking.price > 0 && (
-                              <span className="text-base font-bold">{booking.price} ₴</span>
-                            )}
-                          </div>
-                        )}
-                        
-                        {booking.status === 'COMPLETED' && (
-                          <span className="inline-block mt-2 text-xs bg-green-200 text-green-700 px-2 py-0.5 rounded">✓ Завершено</span>
-                        )}
-                        
-                        {booking.status === 'NO_SHOW' && (
-                          <span className="inline-block mt-2 text-xs bg-orange-200 text-orange-700 px-2 py-0.5 rounded">Не прийшов</span>
-                        )}
-                        
-                        {/* Action buttons */}
-                        {!isPast && booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && (
-                          <div className="flex flex-col gap-1 mt-3">
-                            <button 
-                              onClick={async () => {
-                                try {
-                                  const res = await fetch('/api/staff/bookings', {
-                                    method: 'PATCH',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ bookingId: booking.id, status: 'COMPLETED' })
-                                  });
-                                  if (res.ok) {
-                                    loadBookings();
-                                  } else {
-                                    alert('Помилка при оновленні');
-                                  }
-                                } catch (e) {
-                                  alert('Помилка при оновленні');
-                                }
-                              }}
-                              className="w-full h-9 rounded-lg bg-green-500 text-white text-sm font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                        {/* Right: Action buttons */}
+                        {booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && (
+                          <div className="flex flex-col gap-1 shrink-0">
+                            {/* Call button */}
+                            <a 
+                              href={`tel:${booking.clientPhone}`}
+                              className="h-9 px-3 rounded-lg bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-1 shadow-sm whitespace-nowrap"
                             >
-                              <Check className="h-4 w-4" /> Готово
-                            </button>
-                            <div className="flex gap-1">
-                              <button 
-                                onClick={() => openEditModal(booking)}
-                                className="flex-1 h-8 rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors flex items-center justify-center"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </button>
-                              <button 
-                                onClick={() => setConfirmModal({ open: true, type: 'noshow', booking })}
-                                className="flex-1 h-8 rounded-lg bg-orange-50 text-orange-500 hover:bg-orange-100 transition-colors flex items-center justify-center" 
-                                title="Не прийшов"
-                              >
-                                <Clock className="h-4 w-4" />
-                              </button>
-                              <button 
-                                onClick={() => setConfirmModal({ open: true, type: 'cancel', booking })}
-                                className="flex-1 h-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-500 transition-colors flex items-center justify-center"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            </div>
+                              <Phone className="h-3.5 w-3.5" /> Зателефонувати
+                            </a>
+                            {/* Other buttons - only for non-past */}
+                            {!isPast && (
+                              <div className="flex gap-1">
+                                <button 
+                                  onClick={() => openEditModal(booking)}
+                                  className="flex-1 h-8 rounded-lg bg-white text-zinc-600 hover:bg-zinc-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </button>
+                                <button 
+                                  onClick={() => setConfirmModal({ open: true, type: 'noshow', booking })}
+                                  className="flex-1 h-8 rounded-lg bg-white text-orange-500 hover:bg-orange-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm" 
+                                  title="Не прийшов"
+                                >
+                                  <Clock className="h-4 w-4" />
+                                </button>
+                                <button 
+                                  onClick={() => setConfirmModal({ open: true, type: 'cancel', booking })}
+                                  className="flex-1 h-8 rounded-lg bg-white text-red-400 hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
