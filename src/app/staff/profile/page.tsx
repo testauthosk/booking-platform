@@ -211,9 +211,9 @@ export default function StaffProfile() {
                       body: JSON.stringify({ masterId: staffId, avatar: '' })
                     });
                   }}
-                  className="absolute -top-1 -right-1 h-5 w-5 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shadow"
+                  className="absolute -top-1 -right-1 h-6 w-6 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shadow"
                 >
-                  <X className="h-3 w-3" />
+                  <X className="h-3.5 w-3.5" />
                 </button>
               </>
             ) : (
