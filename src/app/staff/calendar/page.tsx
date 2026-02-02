@@ -615,7 +615,7 @@ export default function StaffCalendar() {
                         )}
                         
                         {/* Action buttons */}
-                        {!isPast && booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && (
+                        {booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && (
                           <div className="flex items-center gap-1.5 mt-3">
                             <button className="flex-1 h-8 rounded-lg bg-green-500 text-white text-xs font-medium hover:bg-green-600 transition-colors flex items-center justify-center gap-1">
                               <Check className="h-3.5 w-3.5" /> Готово
@@ -765,7 +765,7 @@ export default function StaffCalendar() {
                     </div>
                     
                     {/* Action buttons - absolute bottom */}
-                    {!isPast && booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && (
+                    {booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && (
                       <div className="absolute bottom-2 left-3 right-3 flex items-center gap-2">
                         <button className="flex-1 h-9 rounded-lg bg-green-500 text-white text-sm font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-1.5 shadow-sm">
                           <Check className="h-4 w-4" /> Готово
