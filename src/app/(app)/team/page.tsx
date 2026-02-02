@@ -11,7 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Search, Plus, Filter, MoreVertical, Menu, Bell, Clock, UserPlus, Loader2, Copy, Check, Mail, ChevronRight, Trash2, ExternalLink, Eye } from 'lucide-react';
+import { Search, Plus, Filter, MoreVertical, Menu, Clock, UserPlus, Loader2, Copy, Check, Mail, ChevronRight, Trash2, ExternalLink, Eye } from 'lucide-react';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useSidebar } from '@/components/sidebar-context';
 import { useCalendarSettings } from '@/lib/calendar-settings-context';
 
@@ -191,10 +192,7 @@ export default function TeamPage() {
         <h1 className="text-base font-semibold">Команда</h1>
 
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-9 w-9 relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
-          </Button>
+          <NotificationBell />
           <div className="h-8 w-8 rounded-full bg-orange-500 flex items-center justify-center text-white text-sm font-medium">
             D
           </div>
@@ -405,10 +403,17 @@ export default function TeamPage() {
 
       {/* Invitation Details Modal */}
       <Dialog open={!!selectedInvitation} onOpenChange={() => setSelectedInvitation(null)}>
-        <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+        <DialogContent 
+          className="sm:max-w-md p-0 overflow-hidden"
+          style={{ 
+            borderColor: getColorForIndex(0),
+            borderWidth: '1px',
+            borderStyle: 'solid'
+          }}
+        >
           {/* Color stripe from palette */}
           <div 
-            className="h-16 w-full"
+            className="h-8 w-full"
             style={{ backgroundColor: getColorForIndex(0) }}
           />
           
