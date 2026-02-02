@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { ChevronLeft, Loader2, Check, X } from 'lucide-react';
+import { ChevronLeft, Loader2, Check, X, Copy } from 'lucide-react';
 
 interface DaySchedule {
   enabled: boolean;
@@ -122,14 +122,41 @@ export default function StaffSchedule() {
   };
 
   const setTime = (dayKey: string, field: 'start' | 'end', value: string) => {
+    setSchedule(prev => {
+      const daySchedule = prev[dayKey as keyof WorkingHours];
+      const newSchedule = { ...daySchedule, [field]: value };
+      
+      // Если начало >= конца, сдвигаем конец на +1 час
+      if (field === 'start' && value >= daySchedule.end) {
+        const startIndex = TIME_OPTIONS.indexOf(value);
+        const newEndIndex = Math.min(startIndex + 2, TIME_OPTIONS.length - 1); // +1 час
+        newSchedule.end = TIME_OPTIONS[newEndIndex];
+      }
+      
+      return { ...prev, [dayKey]: newSchedule };
+    });
+    setTimePickerOpen(null);
+  };
+
+  const applyMondayToAll = () => {
+    const monday = schedule.monday;
     setSchedule(prev => ({
       ...prev,
-      [dayKey]: {
-        ...prev[dayKey as keyof WorkingHours],
-        [field]: value
-      }
+      tuesday: { ...prev.tuesday, start: monday.start, end: monday.end },
+      wednesday: { ...prev.wednesday, start: monday.start, end: monday.end },
+      thursday: { ...prev.thursday, start: monday.start, end: monday.end },
+      friday: { ...prev.friday, start: monday.start, end: monday.end },
+      saturday: { ...prev.saturday, start: monday.start, end: monday.end },
+      sunday: { ...prev.sunday, start: monday.start, end: monday.end },
     }));
-    setTimePickerOpen(null);
+  };
+
+  const getTimeOptionsForField = (dayKey: string, field: 'start' | 'end') => {
+    if (field === 'start') return TIME_OPTIONS;
+    // Для конца — только время >= начала
+    const daySchedule = schedule[dayKey as keyof WorkingHours];
+    const startIndex = TIME_OPTIONS.indexOf(daySchedule.start);
+    return TIME_OPTIONS.slice(startIndex + 1); // +1 чтобы конец был хотя бы на 30 мин позже
   };
 
   if (loading) {
@@ -162,6 +189,15 @@ export default function StaffSchedule() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-3">
+        {/* Apply to all button */}
+        <button
+          onClick={applyMondayToAll}
+          className="w-full py-2.5 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center gap-2"
+        >
+          <Copy className="h-4 w-4" />
+          Застосувати Пн до всіх
+        </button>
+
         {DAYS.map(day => {
           const daySchedule = schedule[day.key as keyof WorkingHours];
           return (
@@ -227,14 +263,12 @@ export default function StaffSchedule() {
         }`}
       >
         <div className="p-2 max-h-[50vh] overflow-y-auto">
-          {TIME_OPTIONS.map((time) => {
-            const currentValue = timePickerOpen 
-              ? schedule[timePickerOpen.day as keyof WorkingHours][timePickerOpen.field]
-              : '';
+          {timePickerOpen && getTimeOptionsForField(timePickerOpen.day, timePickerOpen.field).map((time) => {
+            const currentValue = schedule[timePickerOpen.day as keyof WorkingHours][timePickerOpen.field];
             return (
               <button
                 key={time}
-                onClick={() => timePickerOpen && setTime(timePickerOpen.day, timePickerOpen.field, time)}
+                onClick={() => setTime(timePickerOpen.day, timePickerOpen.field, time)}
                 className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
                   currentValue === time ? 'text-white' : 'text-zinc-300'
                 }`}
