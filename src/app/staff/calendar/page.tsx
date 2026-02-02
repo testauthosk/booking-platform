@@ -472,14 +472,14 @@ export default function StaffCalendar() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Header */}
       <header className="bg-card border-b px-4 py-3 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => router.push('/staff')}
-              className="h-10 w-10 rounded-xl hover:bg-muted flex items-center justify-center transition-colors"
+              className="h-10 w-10 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center justify-center transition-colors shadow-sm"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -785,9 +785,9 @@ export default function StaffCalendar() {
                           {/* Call button - always visible */}
                           <a 
                             href={`tel:${booking.clientPhone}`}
-                            className="h-9 px-4 rounded-lg bg-green-500 text-white text-sm font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                            className="h-9 px-3 rounded-lg bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-1 shadow-sm whitespace-nowrap"
                           >
-                            <Phone className="h-4 w-4" /> Зателефонувати
+                            <Phone className="h-3.5 w-3.5" /> Зателефонувати
                           </a>
                           {/* Other buttons - only for non-past */}
                           {!isPast && (
