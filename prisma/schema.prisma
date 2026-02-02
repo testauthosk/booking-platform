@@ -125,9 +125,13 @@ model Master {
   name            String
   role            String?  // "Барбер", "Стиліст"
   phone           String?
-  email           String?
+  email           String?  @unique
   avatar          String?
   bio             String?
+  
+  // Auth (for staff login)
+  passwordHash    String?
+  lastLogin       DateTime?
 
   // Stats
   rating          Float    @default(5.0)
@@ -311,6 +315,104 @@ model Booking {
   @@index([clientId])
   @@index([date])
   @@index([status])
+}
+
+// ==================== STAFF INVITATIONS ====================
+
+model StaffInvitation {
+  id              String   @id @default(uuid())
+  
+  salonId         String
+  
+  email           String
+  name            String?
+  role            String?  // "Барбер", "Стиліст"
+  
+  // Invitation token (for URL)
+  token           String   @unique @default(uuid())
+  
+  // Status
+  isUsed          Boolean  @default(false)
+  expiresAt       DateTime
+  
+  // When accepted, links to master
+  masterId        String?  @unique
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([token])
+  @@index([email])
+  @@index([salonId])
+}
+
+// ==================== AUDIT LOG ====================
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+model AuditLog {
+  id              String   @id @default(uuid())
+  
+  salonId         String
+  
+  // Who made the change
+  actorType       String   // "admin", "master", "system"
+  actorId         String?  // User.id or Master.id
+  actorName       String?  // Display name
+  
+  // What changed
+  action          AuditAction
+  entityType      String   // "booking", "service", "master", "client", etc.
+  entityId        String?
+  entityName      String?  // Display name of entity
+  
+  // Change details (JSON)
+  changes         Json?    // { field: { old: x, new: y } }
+  
+  // IP and metadata
+  ipAddress       String?
+  userAgent       String?
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([salonId])
+  @@index([actorId])
+  @@index([entityType])
+  @@index([createdAt])
+}
+
+// ==================== NOTIFICATIONS ====================
+
+model Notification {
+  id              String   @id @default(uuid())
+  
+  salonId         String
+  
+  // Recipient
+  recipientType   String   // "admin", "master"
+  recipientId     String?
+  
+  // Content
+  type            String   // "new_booking", "booking_cancelled", "reminder"
+  title           String
+  message         String
+  
+  // Related entity
+  entityType      String?
+  entityId        String?
+  
+  // Status
+  isRead          Boolean  @default(false)
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([salonId])
+  @@index([recipientId])
+  @@index([isRead])
+  @@index([createdAt])
 }
 
 // ==================== REVIEWS ====================
