@@ -156,8 +156,12 @@ export function CustomCalendar({
     event: BookingEvent | null;
     startY: number;
     startX: number;
+    currentY: number;
+    currentX: number;
+    originalTop: number;
+    originalHeight: number;
     currentResourceId: string | null;
-  }>({ isDragging: false, event: null, startY: 0, startX: 0, currentResourceId: null });
+  }>({ isDragging: false, event: null, startY: 0, startX: 0, currentY: 0, currentX: 0, originalTop: 0, originalHeight: 0, currentResourceId: null });
 
   // Resize state
   const [resizeState, setResizeState] = useState<{
@@ -247,13 +251,28 @@ export function CustomCalendar({
   // Drag handlers
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent, event: BookingEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    
+    // Calculate original position
+    const startHour = event.start.getHours();
+    const startMin = event.start.getMinutes();
+    const startMinutes = (startHour - dayStart) * 60 + startMin;
+    const originalTop = (startMinutes / 60) * hourHeight;
+    const durationMs = event.end.getTime() - event.start.getTime();
+    const durationMinutes = durationMs / 60000;
+    const originalHeight = (durationMinutes / 60) * hourHeight;
+    
     setDragState({
       isDragging: true,
       event,
       startY: clientY,
       startX: clientX,
+      currentY: clientY,
+      currentX: clientX,
+      originalTop,
+      originalHeight,
       currentResourceId: event.resourceId || null
     });
   };
@@ -275,24 +294,18 @@ export function CustomCalendar({
     if (!dragState.isDragging && !resizeState.isResizing) return;
 
     const handleMove = (e: MouseEvent | TouchEvent) => {
+      e.preventDefault();
       const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      
+      if (dragState.isDragging) {
+        // Update current position for visual feedback
+        setDragState(prev => ({ ...prev, currentY: clientY, currentX: clientX }));
+      }
       
       if (resizeState.isResizing && resizeState.event) {
-        // Calculate new duration based on Y movement
-        const deltaY = clientY - resizeState.startY;
-        const deltaMinutes = Math.round(deltaY / (hourHeight / 60)); // pixels to minutes
-        
-        if (Math.abs(deltaMinutes) >= 15) {
-          const newEndTime = new Date(resizeState.event.end.getTime() + deltaMinutes * 60000);
-          // Snap to 15 minutes
-          newEndTime.setMinutes(Math.round(newEndTime.getMinutes() / 15) * 15);
-          
-          // Minimum 15 min duration
-          if (newEndTime.getTime() > resizeState.event.start.getTime() + 15 * 60000) {
-            setResizeState(prev => ({ ...prev, startY: clientY }));
-            // Visual feedback - update is handled on mouseup
-          }
-        }
+        // Update startY for visual feedback
+        setResizeState(prev => ({ ...prev, startY: clientY }));
       }
     };
 
@@ -335,7 +348,7 @@ export function CustomCalendar({
             onEventDrop?.(dragState.event, newStart, newEnd, dragState.event.resourceId);
           }
         }
-        setDragState({ isDragging: false, event: null, startY: 0, startX: 0, currentResourceId: null });
+        setDragState({ isDragging: false, event: null, startY: 0, startX: 0, currentY: 0, currentX: 0, originalTop: 0, originalHeight: 0, currentResourceId: null });
       }
     };
 
@@ -525,8 +538,8 @@ export function CustomCalendar({
                   return (
                     <div
                       key={event.id}
-                      className={`absolute left-0 right-0 rounded-[3px] overflow-hidden cursor-grab hover:brightness-105 transition-all select-none ${
-                        isDragging ? 'opacity-50 cursor-grabbing z-50' : ''
+                      className={`absolute left-0 right-0 rounded-[3px] overflow-hidden cursor-grab hover:brightness-105 select-none ${
+                        isDragging ? 'opacity-30 cursor-grabbing' : ''
                       } ${isResizing ? 'z-50' : ''}`}
                       style={{
                         top: `${top}px`,
@@ -534,6 +547,7 @@ export function CustomCalendar({
                         backgroundColor: bgColor,
                         borderLeft: `2px solid ${darkColor}`,
                         boxShadow: `0 0 0 1px ${darkColor}`,
+                        transition: isDragging ? 'none' : 'all 0.15s ease',
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -553,7 +567,7 @@ export function CustomCalendar({
                           <div className="opacity-80 text-[10px] truncate">{event.title}</div>
                         )}
                         {/* Resize handle at bottom */}
-                        {onEventResize && (
+                        {onEventResize && !isDragging && (
                           <div 
                             className="absolute bottom-0 left-0 right-0 h-3 cursor-s-resize hover:bg-black/20 flex items-center justify-center"
                             onMouseDown={(e) => handleResizeStart(e, event)}
@@ -584,6 +598,31 @@ export function CustomCalendar({
           )}
         </div>
       </div>
+
+      {/* Floating drag card */}
+      {dragState.isDragging && dragState.event && (
+        <div
+          className="fixed z-[100] pointer-events-none rounded-[3px] overflow-hidden shadow-2xl"
+          style={{
+            left: dragState.currentX - 60,
+            top: dragState.currentY - 20,
+            width: 120,
+            height: dragState.originalHeight,
+            backgroundColor: dragState.event.backgroundColor || '#4eb8d5',
+            borderLeft: `2px solid ${darkenColor(dragState.event.backgroundColor || '#4eb8d5', 0.35)}`,
+            transform: 'scale(1.05)',
+            opacity: 0.95,
+          }}
+        >
+          <div className="p-1.5 pl-2 text-white h-full overflow-hidden">
+            <div className="font-semibold text-[11px] drop-shadow-sm">
+              {formatTime(dragState.event.start)} - {formatTime(dragState.event.end)}
+            </div>
+            <div className="font-medium text-xs truncate">{dragState.event.clientName}</div>
+            <div className="opacity-80 text-[10px] truncate">{dragState.event.title}</div>
+          </div>
+        </div>
+      )}
 
       {/* Slot Context Menu */}
       {slotMenu.isOpen && slotMenu.slotInfo && (
