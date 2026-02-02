@@ -27,11 +27,11 @@ export default function SetupPage() {
       </div>
 
       <Tabs defaultValue="settings">
-        <TabsList className="mb-6">
-          <TabsTrigger value="settings">Налаштування</TabsTrigger>
-          <TabsTrigger value="online">Присутність в інтернеті</TabsTrigger>
-          <TabsTrigger value="marketing">Маркетинг</TabsTrigger>
-          <TabsTrigger value="other">Інше</TabsTrigger>
+        <TabsList className="mb-6 w-full justify-start overflow-x-auto flex-nowrap">
+          <TabsTrigger value="settings" className="shrink-0">Налаштування</TabsTrigger>
+          <TabsTrigger value="online" className="shrink-0">Присутність в інтернеті</TabsTrigger>
+          <TabsTrigger value="marketing" className="shrink-0">Маркетинг</TabsTrigger>
+          <TabsTrigger value="other" className="shrink-0">Інше</TabsTrigger>
         </TabsList>
 
         <TabsContent value="settings">
