@@ -3,6 +3,15 @@
 import { useMemo, useRef } from 'react';
 import Image from 'next/image';
 
+// Функция затемнения цвета
+function darkenColor(hex: string, amount: number = 0.3): string {
+  const color = hex.replace('#', '');
+  const r = Math.max(0, parseInt(color.substring(0, 2), 16) * (1 - amount));
+  const g = Math.max(0, parseInt(color.substring(2, 4), 16) * (1 - amount));
+  const b = Math.max(0, parseInt(color.substring(4, 6), 16) * (1 - amount));
+  return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+}
+
 export interface BookingEvent {
   id: string;
   title: string;
@@ -215,22 +224,26 @@ export function CustomCalendar({
                   // Точное позиционирование — карточка касается линий времени
                   const top = (startMinutes / 60) * hourHeight;
                   const height = (durationMinutes / 60) * hourHeight;
+                  const bgColor = event.backgroundColor || '#4eb8d5';
+                  const darkColor = darkenColor(bgColor, 0.35);
 
                   return (
                     <div
                       key={event.id}
-                      className="absolute left-0.5 right-0.5 rounded-md overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-all hover:scale-[1.005] border border-white/20"
+                      className="absolute left-0 right-0.5 rounded-r-md rounded-l-none overflow-hidden cursor-pointer hover:brightness-105 transition-all"
                       style={{
                         top: `${top}px`,
                         height: `${height}px`,
-                        background: `linear-gradient(145deg, ${event.backgroundColor || '#4eb8d5'}, ${event.backgroundColor || '#4eb8d5'}ee)`,
+                        backgroundColor: bgColor,
+                        borderLeft: `3px solid ${darkColor}`,
+                        boxShadow: `0 0 0 0.5px ${darkColor}`,
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
                         onEventClick?.(event);
                       }}
                     >
-                      <div className="p-1.5 text-white h-full overflow-hidden">
+                      <div className="p-1.5 pl-2 text-white h-full overflow-hidden">
                         <div className="font-semibold text-[11px] drop-shadow-sm">
                           {formatTime(event.start)} - {formatTime(event.end)}
                         </div>
