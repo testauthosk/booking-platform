@@ -27,10 +27,21 @@ export default function StaffServices() {
   const [editPrice, setEditPrice] = useState('');
   const [saving, setSaving] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [addTab, setAddTab] = useState<'select' | 'create'>('select');
+  
+  // New service form
+  const [newServiceName, setNewServiceName] = useState('');
+  const [newServiceDuration, setNewServiceDuration] = useState('30');
+  const [newServicePrice, setNewServicePrice] = useState('');
+  const [newServiceDescription, setNewServiceDescription] = useState('');
+  const [creatingService, setCreatingService] = useState(false);
+
+  const [salonId, setSalonId] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('staffToken');
     const id = localStorage.getItem('staffId');
+    const salon = localStorage.getItem('staffSalonId');
     
     if (!token) {
       router.push('/staff/login');
@@ -38,6 +49,7 @@ export default function StaffServices() {
     }
     
     setStaffId(id || '');
+    setSalonId(salon || '');
     setLoading(false);
   }, [router]);
 
@@ -122,6 +134,44 @@ export default function StaffServices() {
     }
   };
 
+  const openAddModal = () => {
+    setAddTab('select');
+    setNewServiceName('');
+    setNewServiceDuration('30');
+    setNewServicePrice('');
+    setNewServiceDescription('');
+    setAddModalOpen(true);
+  };
+
+  const createService = async () => {
+    if (!newServiceName || !newServicePrice || !salonId) return;
+    
+    setCreatingService(true);
+    try {
+      const res = await fetch('/api/staff/services/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          salonId,
+          masterId: staffId,
+          name: newServiceName,
+          duration: parseInt(newServiceDuration) || 30,
+          price: parseInt(newServicePrice),
+          description: newServiceDescription || null
+        })
+      });
+      
+      if (res.ok) {
+        setAddModalOpen(false);
+        loadServices();
+      }
+    } catch (error) {
+      console.error('Create service error:', error);
+    } finally {
+      setCreatingService(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -157,14 +207,12 @@ export default function StaffServices() {
               {enabledCount} активних
             </p>
           </div>
-          {services.filter(s => !s.isEnabled).length > 0 && (
-            <button 
-              onClick={() => setAddModalOpen(true)}
-              className="h-9 w-12 rounded-xl bg-primary text-primary-foreground font-bold flex items-center justify-center hover:bg-primary/90 transition-colors"
-            >
-              <Plus className="h-5 w-5 stroke-[3]" />
-            </button>
-          )}
+          <button 
+            onClick={openAddModal}
+            className="h-9 w-12 rounded-xl bg-primary text-primary-foreground font-bold flex items-center justify-center hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="h-5 w-5 stroke-[3]" />
+          </button>
         </div>
       </header>
 
@@ -292,10 +340,11 @@ export default function StaffServices() {
         />
       )}
       <div 
-        className={`fixed inset-x-4 bottom-4 max-h-[70vh] bg-card rounded-2xl shadow-xl z-50 transform transition-all duration-300 ease-out overflow-hidden flex flex-col ${
+        className={`fixed inset-x-4 bottom-4 max-h-[80vh] bg-card rounded-2xl shadow-xl z-50 transform transition-all duration-300 ease-out overflow-hidden flex flex-col ${
           addModalOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
         }`}
       >
+        {/* Header */}
         <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
           <h2 className="font-semibold">Додати послугу</h2>
           <button 
@@ -305,33 +354,130 @@ export default function StaffServices() {
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="p-4 overflow-y-auto flex-1 space-y-2">
-          {services.filter(s => !s.isEnabled).length > 0 ? (
-            services.filter(s => !s.isEnabled).map((service) => (
-              <button
-                key={service.id}
-                onClick={() => {
-                  toggleService(service.id, true);
-                  setAddModalOpen(false);
-                }}
-                className="w-full p-3 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all text-left flex items-center justify-between"
-              >
-                <div>
-                  <p className="font-medium">{service.name}</p>
-                  <p className="text-sm text-muted-foreground">{service.duration} хв</p>
+
+        {/* Tabs */}
+        <div className="flex border-b border-border shrink-0">
+          <button
+            onClick={() => setAddTab('select')}
+            className={`flex-1 py-3 text-sm font-medium transition-colors ${
+              addTab === 'select' 
+                ? 'text-primary border-b-2 border-primary' 
+                : 'text-muted-foreground'
+            }`}
+          >
+            Обрати
+          </button>
+          <button
+            onClick={() => setAddTab('create')}
+            className={`flex-1 py-3 text-sm font-medium transition-colors ${
+              addTab === 'create' 
+                ? 'text-primary border-b-2 border-primary' 
+                : 'text-muted-foreground'
+            }`}
+          >
+            Створити
+          </button>
+        </div>
+
+        {/* Tab content */}
+        <div className="flex-1 overflow-y-auto">
+          {addTab === 'select' ? (
+            <div className="p-4 space-y-2">
+              {services.filter(s => !s.isEnabled).length > 0 ? (
+                services.filter(s => !s.isEnabled).map((service) => (
+                  <button
+                    key={service.id}
+                    onClick={() => {
+                      toggleService(service.id, true);
+                      setAddModalOpen(false);
+                    }}
+                    className="w-full p-3 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all text-left flex items-center justify-between"
+                  >
+                    <div>
+                      <p className="font-medium">{service.name}</p>
+                      <p className="text-sm text-muted-foreground">{service.duration} хв</p>
+                    </div>
+                    <span className="font-semibold">{service.price} ₴</span>
+                  </button>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground mb-2">Немає доступних послуг</p>
+                  <button 
+                    onClick={() => setAddTab('create')}
+                    className="text-primary text-sm"
+                  >
+                    Створити нову →
+                  </button>
                 </div>
-                <div className="text-right">
-                  <span className="font-semibold">{service.price} ₴</span>
-                  <p className="text-xs text-muted-foreground">Натисніть щоб додати</p>
-                </div>
-              </button>
-            ))
+              )}
+            </div>
           ) : (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">Всі послуги вже додано ✓</p>
+            <div className="p-4 space-y-4">
+              {/* Name */}
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Назва послуги *</label>
+                <Input
+                  value={newServiceName}
+                  onChange={(e) => setNewServiceName(e.target.value)}
+                  placeholder="Наприклад: Стрижка"
+                />
+              </div>
+
+              {/* Duration */}
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Тривалість (хв)</label>
+                <Input
+                  type="number"
+                  value={newServiceDuration}
+                  onChange={(e) => setNewServiceDuration(e.target.value)}
+                  placeholder="30"
+                />
+              </div>
+
+              {/* Price */}
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Ціна (₴) *</label>
+                <Input
+                  type="number"
+                  value={newServicePrice}
+                  onChange={(e) => setNewServicePrice(e.target.value)}
+                  placeholder="500"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Опис (необовʼязково)</label>
+                <Input
+                  value={newServiceDescription}
+                  onChange={(e) => setNewServiceDescription(e.target.value)}
+                  placeholder="Короткий опис послуги"
+                />
+              </div>
             </div>
           )}
         </div>
+
+        {/* Footer for create tab */}
+        {addTab === 'create' && (
+          <div className="p-4 border-t border-border shrink-0">
+            <button
+              onClick={createService}
+              disabled={creatingService || !newServiceName || !newServicePrice}
+              className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {creatingService ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  <Check className="h-5 w-5" />
+                  Створити послугу
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

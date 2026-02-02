@@ -265,26 +265,32 @@ export default function StaffDashboard() {
           </Card>
         </div>
 
-        {/* Quick actions - horizontal compact */}
+        {/* Quick actions */}
         <div className="grid grid-cols-2 gap-3">
           <Card 
-            className="p-2.5 cursor-pointer hover:shadow-md transition-all active:scale-[0.98] flex items-center gap-2"
+            className="p-3 cursor-pointer hover:shadow-md transition-all active:scale-[0.98] flex items-center gap-3"
             onClick={() => router.push('/staff/calendar')}
           >
-            <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
-              <Calendar className="h-4 w-4 text-blue-600" />
+            <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+              <Calendar className="h-5 w-5 text-blue-600" />
             </div>
-            <span className="font-medium text-sm">Календар</span>
+            <div>
+              <p className="font-medium text-sm">Календар</p>
+              <p className="text-xs text-muted-foreground">Розклад</p>
+            </div>
           </Card>
 
           <Card 
-            className="p-2.5 cursor-pointer hover:shadow-md transition-all active:scale-[0.98] flex items-center gap-2"
+            className="p-3 cursor-pointer hover:shadow-md transition-all active:scale-[0.98] flex items-center gap-3"
             onClick={() => router.push('/staff/services')}
           >
-            <div className="h-8 w-8 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
-              <Tag className="h-4 w-4 text-purple-600" />
+            <div className="h-10 w-10 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
+              <Tag className="h-5 w-5 text-purple-600" />
             </div>
-            <span className="font-medium text-sm">Послуги</span>
+            <div>
+              <p className="font-medium text-sm">Послуги</p>
+              <p className="text-xs text-muted-foreground">Ціни</p>
+            </div>
           </Card>
         </div>
 
