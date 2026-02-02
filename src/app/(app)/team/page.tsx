@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Search, Plus, Filter, MoreVertical, Menu, Bell, Clock, UserPlus, Loader2, Copy, Check, Mail } from 'lucide-react';
+import { Search, Plus, Filter, MoreVertical, Menu, Bell, Clock, UserPlus, Loader2, Copy, Check, Mail, ChevronRight, Trash2, ExternalLink, Eye } from 'lucide-react';
 import { useSidebar } from '@/components/sidebar-context';
 
 const DEMO_SALON_ID = 'demo-salon-id';
@@ -33,6 +33,8 @@ interface Invitation {
   isUsed: boolean;
   token: string;
   expiresAt: string;
+  viewedAt?: string;
+  createdAt: string;
 }
 
 export default function TeamPage() {
@@ -51,6 +53,10 @@ export default function TeamPage() {
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  
+  // Invitation details modal
+  const [selectedInvitation, setSelectedInvitation] = useState<Invitation | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -132,6 +138,30 @@ export default function TeamPage() {
     setInviteRole('');
     setInviteError(null);
     setInviteLink(null);
+  };
+
+  const handleDeleteInvitation = async (id: string) => {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/invitations/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setSelectedInvitation(null);
+        loadData();
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('uk-UA', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   const filteredMasters = masters.filter(m => 
@@ -238,18 +268,27 @@ export default function TeamPage() {
                 {invitations.map((invitation) => (
                   <Card 
                     key={invitation.id} 
-                    className="p-4 bg-muted/30"
+                    className="p-4 bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => setSelectedInvitation(invitation)}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-full bg-gray-300 flex items-center justify-center">
+                        <div className="h-12 w-12 rounded-full bg-gray-300 flex items-center justify-center relative">
                           <Mail className="h-5 w-5 text-gray-500" />
+                          {invitation.viewedAt && (
+                            <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 bg-green-500 rounded-full flex items-center justify-center">
+                              <Check className="h-2.5 w-2.5 text-white" />
+                            </div>
+                          )}
                         </div>
                         <div>
                           <p className="font-medium">{invitation.name || invitation.email}</p>
-                          <p className="text-sm text-muted-foreground">Запрошення надіслано</p>
+                          <p className="text-sm text-muted-foreground">
+                            {invitation.viewedAt ? 'Відкрив посилання' : 'Очікує'}
+                          </p>
                         </div>
                       </div>
+                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
                     </div>
                   </Card>
                 ))}
@@ -357,6 +396,112 @@ export default function TeamPage() {
               <Button className="w-full" onClick={closeInviteModal}>
                 Готово
               </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Invitation Details Modal */}
+      <Dialog open={!!selectedInvitation} onOpenChange={() => setSelectedInvitation(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Деталі запрошення</DialogTitle>
+          </DialogHeader>
+          
+          {selectedInvitation && (
+            <div className="space-y-4">
+              {/* Status */}
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                {selectedInvitation.viewedAt ? (
+                  <>
+                    <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                      <Eye className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-green-600">Посилання відкрито</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(selectedInvitation.viewedAt)}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center">
+                      <Clock className="h-5 w-5 text-yellow-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-yellow-600">Очікує відкриття</p>
+                      <p className="text-xs text-muted-foreground">Майстер ще не переходив</p>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Info */}
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Email</span>
+                  <span className="text-sm font-medium">{selectedInvitation.email}</span>
+                </div>
+                {selectedInvitation.name && (
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Ім'я</span>
+                    <span className="text-sm font-medium">{selectedInvitation.name}</span>
+                  </div>
+                )}
+                {selectedInvitation.role && (
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Посада</span>
+                    <span className="text-sm font-medium">{selectedInvitation.role}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Створено</span>
+                  <span className="text-sm">{formatDate(selectedInvitation.createdAt)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Дійсне до</span>
+                  <span className="text-sm">{formatDate(selectedInvitation.expiresAt)}</span>
+                </div>
+              </div>
+
+              {/* Link */}
+              <div className="space-y-2">
+                <Label>Посилання</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/join/${selectedInvitation.token}`} 
+                    readOnly 
+                    className="text-xs" 
+                  />
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/join/${selectedInvitation.token}`);
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-2">
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={() => handleDeleteInvitation(selectedInvitation.id)}
+                  disabled={deleting}
+                >
+                  {deleting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="mr-2 h-4 w-4" />
+                  )}
+                  Скасувати запрошення
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>

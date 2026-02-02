@@ -7,6 +7,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { Bell, Check, Calendar, User, FileText, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -104,7 +105,8 @@ export function NotificationBell() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
+      <PopoverContent className="w-80 p-0" align="end" sideOffset={8}>
+        <PopoverPrimitive.Arrow className="fill-white" width={12} height={6} />
         {/* Header */}
         <div className="flex items-center justify-between p-3 border-b">
           <h3 className="font-semibold">Сповіщення</h3>

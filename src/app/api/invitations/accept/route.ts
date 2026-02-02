@@ -111,6 +111,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ valid: false, error: 'Invitation expired' });
     }
 
+    // Записываем что ссылку открыли
+    if (!invitation.viewedAt) {
+      await prisma.staffInvitation.update({
+        where: { id: invitation.id },
+        data: { viewedAt: new Date() },
+      });
+    }
+
     return NextResponse.json({
       valid: true,
       email: invitation.email,

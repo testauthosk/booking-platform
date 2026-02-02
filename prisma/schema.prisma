@@ -335,6 +335,10 @@ model StaffInvitation {
   isUsed          Boolean  @default(false)
   expiresAt       DateTime
   
+  // Tracking
+  viewedAt        DateTime?  // When master opened the link
+  emailSentAt     DateTime?  // When email was sent
+  
   // When accepted, links to master
   masterId        String?  @unique
   
