@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
-import { ChevronLeft, Plus, Loader2, Clock, User } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ChevronLeft, Plus, Loader2, Clock, User, X, Check } from 'lucide-react';
 
 interface Booking {
   id: string;
@@ -17,6 +18,13 @@ interface Booking {
   price?: number;
 }
 
+interface Service {
+  id: string;
+  name: string;
+  duration: number;
+  price: number;
+}
+
 const DAYS_UA = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 const MONTHS_UA = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
 
@@ -28,6 +36,38 @@ export default function StaffCalendar() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
+  const [salonId, setSalonId] = useState('');
+  
+  // Add booking modal
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [services, setServices] = useState<Service[]>([]);
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientPhone, setNewClientPhone] = useState('');
+  const [newServiceId, setNewServiceId] = useState('');
+  const [newTime, setNewTime] = useState('10:00');
+  const [newDuration, setNewDuration] = useState('60');
+  const [newPrice, setNewPrice] = useState('');
+  const [creating, setCreating] = useState(false);
+  
+  // Pickers
+  const [servicePickerOpen, setServicePickerOpen] = useState(false);
+  const [timePickerOpen, setTimePickerOpen] = useState(false);
+  const [durationPickerOpen, setDurationPickerOpen] = useState(false);
+  
+  const timeOptions = Array.from({ length: 28 }, (_, i) => {
+    const hour = 8 + Math.floor(i / 2);
+    const min = i % 2 === 0 ? '00' : '30';
+    return `${hour.toString().padStart(2, '0')}:${min}`;
+  });
+  
+  const durationOptions = [
+    { value: '15', label: '15 хв' },
+    { value: '30', label: '30 хв' },
+    { value: '45', label: '45 хв' },
+    { value: '60', label: '1 год' },
+    { value: '90', label: '1 год 30 хв' },
+    { value: '120', label: '2 год' },
+  ];
 
   // Generate 14 days from today
   const days = Array.from({ length: 14 }, (_, i) => {
@@ -39,6 +79,7 @@ export default function StaffCalendar() {
   useEffect(() => {
     const token = localStorage.getItem('staffToken');
     const id = localStorage.getItem('staffId');
+    const salon = localStorage.getItem('staffSalonId');
     
     if (!token) {
       router.push('/staff/login');
@@ -46,6 +87,7 @@ export default function StaffCalendar() {
     }
     
     setStaffId(id || '');
+    setSalonId(salon || '');
     setLoading(false);
   }, [router]);
 
@@ -54,6 +96,80 @@ export default function StaffCalendar() {
       loadBookings();
     }
   }, [staffId, selectedDate]);
+
+  useEffect(() => {
+    if (staffId) {
+      loadServices();
+    }
+  }, [staffId]);
+
+  const loadServices = async () => {
+    try {
+      const res = await fetch(`/api/staff/services?masterId=${staffId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setServices(data);
+      }
+    } catch (error) {
+      console.error('Load services error:', error);
+    }
+  };
+
+  const openAddModal = () => {
+    setNewClientName('');
+    setNewClientPhone('');
+    setNewServiceId('');
+    setNewTime('10:00');
+    setNewDuration('60');
+    setNewPrice('');
+    setAddModalOpen(true);
+  };
+
+  const handleServiceSelect = (serviceId: string) => {
+    setNewServiceId(serviceId);
+    const service = services.find(s => s.id === serviceId);
+    if (service) {
+      setNewDuration(service.duration.toString());
+      setNewPrice(service.price.toString());
+    }
+    setServicePickerOpen(false);
+  };
+
+  const createBooking = async () => {
+    if (!newClientName || !newClientPhone || !newTime) return;
+    
+    setCreating(true);
+    try {
+      const selectedService = services.find(s => s.id === newServiceId);
+      const dateStr = selectedDate.toISOString().split('T')[0];
+      
+      const res = await fetch('/api/staff/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          masterId: staffId,
+          salonId,
+          serviceId: newServiceId || null,
+          serviceName: selectedService?.name || 'Запис',
+          clientName: newClientName,
+          clientPhone: newClientPhone,
+          date: dateStr,
+          time: newTime,
+          duration: parseInt(newDuration) || 60,
+          price: parseInt(newPrice) || 0
+        })
+      });
+      
+      if (res.ok) {
+        setAddModalOpen(false);
+        loadBookings();
+      }
+    } catch (error) {
+      console.error('Create booking error:', error);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   // Scroll to today on mount
   useEffect(() => {
@@ -123,7 +239,7 @@ export default function StaffCalendar() {
             </div>
           </div>
           <button 
-            onClick={() => {/* TODO: Open new booking modal */}}
+            onClick={openAddModal}
             className="h-10 w-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
           >
             <Plus className="h-5 w-5" />
@@ -253,7 +369,7 @@ export default function StaffCalendar() {
               На цей день ще немає записів
             </p>
             <button 
-              onClick={() => {/* TODO: Open new booking modal */}}
+              onClick={openAddModal}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
             >
               <Plus className="h-4 w-4" />
@@ -261,6 +377,250 @@ export default function StaffCalendar() {
             </button>
           </div>
         )}
+      </div>
+
+      {/* Add Booking Modal */}
+      {addModalOpen && (
+        <div 
+          className="fixed inset-0 bg-white/20 backdrop-blur-sm z-40"
+          onClick={() => setAddModalOpen(false)}
+        />
+      )}
+      <div 
+        className={`fixed inset-x-0 bottom-0 max-h-[85vh] bg-card rounded-t-3xl shadow-xl z-50 transform transition-transform duration-500 ease-out overflow-hidden flex flex-col ${
+          addModalOpen ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
+          <h2 className="font-semibold">Новий запис</h2>
+          <button 
+            onClick={() => setAddModalOpen(false)}
+            className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Client Name */}
+          <div>
+            <label className="text-sm font-medium mb-1.5 block">Імя клієнта *</label>
+            <Input
+              value={newClientName}
+              onChange={(e) => setNewClientName(e.target.value)}
+              placeholder="Наприклад: Олена"
+            />
+          </div>
+
+          {/* Client Phone */}
+          <div>
+            <label className="text-sm font-medium mb-1.5 block">Телефон *</label>
+            <Input
+              value={newClientPhone}
+              onChange={(e) => setNewClientPhone(e.target.value)}
+              placeholder="+380..."
+            />
+          </div>
+
+          {/* Service */}
+          <div>
+            <label className="text-sm font-medium mb-1.5 block">Послуга</label>
+            <button
+              type="button"
+              onClick={() => setServicePickerOpen(true)}
+              className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
+            >
+              <span className={newServiceId ? '' : 'text-muted-foreground'}>
+                {newServiceId 
+                  ? services.find(s => s.id === newServiceId)?.name || 'Оберіть послугу'
+                  : 'Оберіть послугу'}
+              </span>
+              <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Time */}
+          <div>
+            <label className="text-sm font-medium mb-1.5 block">Час *</label>
+            <button
+              type="button"
+              onClick={() => setTimePickerOpen(true)}
+              className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
+            >
+              <span>{newTime}</span>
+              <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Duration */}
+          <div>
+            <label className="text-sm font-medium mb-1.5 block">Тривалість</label>
+            <button
+              type="button"
+              onClick={() => setDurationPickerOpen(true)}
+              className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
+            >
+              <span>{durationOptions.find(d => d.value === newDuration)?.label || '1 год'}</span>
+              <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Price */}
+          <div>
+            <label className="text-sm font-medium mb-1.5 block">Ціна (₴)</label>
+            <Input
+              type="number"
+              value={newPrice}
+              onChange={(e) => setNewPrice(e.target.value)}
+              placeholder="500"
+            />
+          </div>
+        </div>
+
+        <div className="p-4 pb-8 border-t border-border shrink-0">
+          <button
+            onClick={createBooking}
+            disabled={creating || !newClientName || !newClientPhone}
+            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {creating ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <>
+                <Check className="h-5 w-5" />
+                Створити запис
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Service Picker */}
+      {servicePickerOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-[60]"
+          onClick={() => setServicePickerOpen(false)}
+        />
+      )}
+      <div 
+        className={`fixed inset-x-0 bottom-0 bg-zinc-800 rounded-t-2xl z-[70] transform transition-transform duration-300 ${
+          servicePickerOpen ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="p-2 max-h-[50vh] overflow-y-auto">
+          <button
+            onClick={() => {
+              setNewServiceId('');
+              setServicePickerOpen(false);
+            }}
+            className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
+              !newServiceId ? 'text-white' : 'text-zinc-300'
+            }`}
+          >
+            {!newServiceId && <Check className="h-5 w-5" />}
+            <span className={!newServiceId ? '' : 'ml-8'}>Без послуги</span>
+          </button>
+          {services.map((service) => (
+            <button
+              key={service.id}
+              onClick={() => handleServiceSelect(service.id)}
+              className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
+                newServiceId === service.id ? 'text-white' : 'text-zinc-300'
+              }`}
+            >
+              {newServiceId === service.id && <Check className="h-5 w-5" />}
+              <span className={newServiceId === service.id ? '' : 'ml-8'}>
+                {service.name} — {service.price}₴
+              </span>
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setServicePickerOpen(false)}
+          className="w-full py-4 text-center text-zinc-400 border-t border-zinc-700"
+        >
+          <X className="h-5 w-5 mx-auto" />
+        </button>
+      </div>
+
+      {/* Time Picker */}
+      {timePickerOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-[60]"
+          onClick={() => setTimePickerOpen(false)}
+        />
+      )}
+      <div 
+        className={`fixed inset-x-0 bottom-0 bg-zinc-800 rounded-t-2xl z-[70] transform transition-transform duration-300 ${
+          timePickerOpen ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="p-2 max-h-[50vh] overflow-y-auto">
+          {timeOptions.map((time) => (
+            <button
+              key={time}
+              onClick={() => {
+                setNewTime(time);
+                setTimePickerOpen(false);
+              }}
+              className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
+                newTime === time ? 'text-white' : 'text-zinc-300'
+              }`}
+            >
+              {newTime === time && <Check className="h-5 w-5" />}
+              <span className={newTime === time ? '' : 'ml-8'}>{time}</span>
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setTimePickerOpen(false)}
+          className="w-full py-4 text-center text-zinc-400 border-t border-zinc-700"
+        >
+          <X className="h-5 w-5 mx-auto" />
+        </button>
+      </div>
+
+      {/* Duration Picker */}
+      {durationPickerOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-[60]"
+          onClick={() => setDurationPickerOpen(false)}
+        />
+      )}
+      <div 
+        className={`fixed inset-x-0 bottom-0 bg-zinc-800 rounded-t-2xl z-[70] transform transition-transform duration-300 ${
+          durationPickerOpen ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="p-2">
+          {durationOptions.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => {
+                setNewDuration(opt.value);
+                setDurationPickerOpen(false);
+              }}
+              className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
+                newDuration === opt.value ? 'text-white' : 'text-zinc-300'
+              }`}
+            >
+              {newDuration === opt.value && <Check className="h-5 w-5" />}
+              <span className={newDuration === opt.value ? '' : 'ml-8'}>{opt.label}</span>
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setDurationPickerOpen(false)}
+          className="w-full py-4 text-center text-zinc-400 border-t border-zinc-700"
+        >
+          <X className="h-5 w-5 mx-auto" />
+        </button>
       </div>
     </div>
   );
