@@ -161,8 +161,9 @@ export function CustomCalendar({
     currentX: number;
     originalTop: number;
     originalHeight: number;
+    originalWidth: number;
     currentResourceId: string | null;
-  }>({ isDragging: false, event: null, startY: 0, startX: 0, currentY: 0, currentX: 0, originalTop: 0, originalHeight: 0, currentResourceId: null });
+  }>({ isDragging: false, event: null, startY: 0, startX: 0, currentY: 0, currentX: 0, originalTop: 0, originalHeight: 0, originalWidth: 0, currentResourceId: null });
 
   // Resize state
   const [resizeState, setResizeState] = useState<{
@@ -250,20 +251,16 @@ export function CustomCalendar({
   };
 
   // Drag handlers
-  const handleDragStart = (e: React.MouseEvent | React.TouchEvent, event: BookingEvent) => {
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent, event: BookingEvent, element: HTMLElement) => {
     e.stopPropagation();
     e.preventDefault();
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     
-    // Calculate original position
-    const startHour = event.start.getHours();
-    const startMin = event.start.getMinutes();
-    const startMinutes = (startHour - dayStart) * 60 + startMin;
-    const originalTop = (startMinutes / 60) * hourHeight;
-    const durationMs = event.end.getTime() - event.start.getTime();
-    const durationMinutes = durationMs / 60000;
-    const originalHeight = (durationMinutes / 60) * hourHeight;
+    // Get actual element dimensions
+    const rect = element.getBoundingClientRect();
+    const originalWidth = rect.width;
+    const originalHeight = rect.height;
     
     setDragState({
       isDragging: true,
@@ -272,8 +269,9 @@ export function CustomCalendar({
       startX: clientX,
       currentY: clientY,
       currentX: clientX,
-      originalTop,
+      originalTop: rect.top,
       originalHeight,
+      originalWidth,
       currentResourceId: event.resourceId || null
     });
   };
@@ -349,7 +347,7 @@ export function CustomCalendar({
             onEventDrop?.(dragState.event, newStart, newEnd, dragState.event.resourceId);
           }
         }
-        setDragState({ isDragging: false, event: null, startY: 0, startX: 0, currentY: 0, currentX: 0, originalTop: 0, originalHeight: 0, currentResourceId: null });
+        setDragState({ isDragging: false, event: null, startY: 0, startX: 0, currentY: 0, currentX: 0, originalTop: 0, originalHeight: 0, originalWidth: 0, currentResourceId: null });
       }
     };
 
@@ -556,8 +554,8 @@ export function CustomCalendar({
                           onEventClick?.(event);
                         }
                       }}
-                      onMouseDown={(e) => onEventDrop && handleDragStart(e, event)}
-                      onTouchStart={(e) => onEventDrop && handleDragStart(e, event)}
+                      onMouseDown={(e) => onEventDrop && handleDragStart(e, event, e.currentTarget)}
+                      onTouchStart={(e) => onEventDrop && handleDragStart(e, event, e.currentTarget)}
                     >
                       <div className="p-1.5 pl-2 text-white h-full overflow-hidden relative">
                         <div className="font-semibold text-[11px] drop-shadow-sm">
@@ -608,23 +606,25 @@ export function CustomCalendar({
             left: dragState.currentX,
             top: dragState.currentY,
             transform: 'translate(-50%, -30%)',
-            width: 180,
-            minHeight: Math.max(dragState.originalHeight, 60),
+            width: dragState.originalWidth,
+            height: dragState.originalHeight,
             backgroundColor: dragState.event.backgroundColor || '#4eb8d5',
             borderLeft: `4px solid ${darkenColor(dragState.event.backgroundColor || '#4eb8d5', 0.35)}`,
-            borderRadius: 6,
+            borderRadius: 4,
             boxShadow: '0 12px 40px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.2)',
             zIndex: 99999,
             pointerEvents: 'none',
             overflow: 'hidden',
           }}
         >
-          <div style={{ padding: 12, color: 'white' }}>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>
+          <div style={{ padding: '6px 8px', color: 'white', height: '100%' }}>
+            <div style={{ fontWeight: 600, fontSize: 11 }}>
               {formatTime(dragState.event.start)} - {formatTime(dragState.event.end)}
             </div>
-            <div style={{ fontWeight: 600, fontSize: 14, marginTop: 4 }}>{dragState.event.clientName}</div>
-            <div style={{ opacity: 0.9, fontSize: 12, marginTop: 2 }}>{dragState.event.title}</div>
+            <div style={{ fontWeight: 500, fontSize: 12, marginTop: 2 }}>{dragState.event.clientName}</div>
+            {dragState.originalHeight > 50 && (
+              <div style={{ opacity: 0.8, fontSize: 10, marginTop: 2 }}>{dragState.event.title}</div>
+            )}
           </div>
         </div>,
         document.body
