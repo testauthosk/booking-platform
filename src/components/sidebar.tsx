@@ -44,7 +44,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       className={cn(
         'fixed lg:static inset-y-0 left-0 z-50',
         'w-72 lg:w-64 border-r bg-background flex flex-col',
-        'transition-transform duration-300 ease-out will-change-transform',
+        'transition-transform duration-[600ms] ease-out will-change-transform',
         // Mobile: hidden by default, shown when isOpen
         isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       )}

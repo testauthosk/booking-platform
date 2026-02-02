@@ -612,17 +612,17 @@ export default function TeamPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Master Profile Panel Overlay */}
-      {selectedMaster && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-[350ms] ease-out"
-          onClick={() => setSelectedMaster(null)}
-        />
-      )}
+      {/* Master Profile Panel Overlay - always in DOM, fades with panel */}
+      <div 
+        className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-[700ms] ease-out ${
+          selectedMaster ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setSelectedMaster(null)}
+      />
 
       {/* Master Profile Panel - drawer on mobile, wider on desktop */}
       <div 
-        className={`fixed top-0 right-0 h-full w-80 lg:w-[420px] bg-card border-l border-border shadow-xl z-50 transform transition-transform duration-[350ms] ease-out will-change-transform ${
+        className={`fixed top-0 right-0 h-full w-80 lg:w-[420px] bg-card border-l border-border shadow-xl z-50 transform transition-transform duration-[700ms] ease-out will-change-transform ${
           selectedMaster ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -706,17 +706,17 @@ export default function TeamPage() {
         )}
       </div>
 
-      {/* Profile Panel Overlay */}
-      {profileOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-[350ms] ease-out"
-          onClick={() => setProfileOpen(false)}
-        />
-      )}
+      {/* Profile Panel Overlay - always in DOM, fades with panel */}
+      <div 
+        className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-[700ms] ease-out ${
+          profileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setProfileOpen(false)}
+      />
 
       {/* Profile Panel - drawer on mobile, wider on desktop */}
       <div 
-        className={`fixed top-0 right-0 h-full w-80 lg:w-[420px] bg-card border-l border-border shadow-xl z-50 transform transition-transform duration-[350ms] ease-out will-change-transform ${
+        className={`fixed top-0 right-0 h-full w-80 lg:w-[420px] bg-card border-l border-border shadow-xl z-50 transform transition-transform duration-[700ms] ease-out will-change-transform ${
           profileOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
