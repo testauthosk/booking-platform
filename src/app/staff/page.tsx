@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
-import { Calendar, Clock, LogOut, Settings, Loader2, Plus, ChevronRight, X, Tag } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Calendar, Clock, LogOut, Settings, Loader2, Plus, ChevronRight, X, Tag, User, Phone, Check } from 'lucide-react';
 
 interface Booking {
   id: string;
@@ -25,20 +26,41 @@ interface StaffStats {
   nextBooking?: Booking;
 }
 
+interface ServiceOption {
+  id: string;
+  name: string;
+  duration: number;
+  price: number;
+}
+
 export default function StaffDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [staffName, setStaffName] = useState('');
   const [staffId, setStaffId] = useState('');
+  const [salonId, setSalonId] = useState('');
   const [stats, setStats] = useState<StaffStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  
+  // Services for booking form
+  const [services, setServices] = useState<ServiceOption[]>([]);
   const [newBookingOpen, setNewBookingOpen] = useState(false);
+  
+  // New booking form
+  const [bookingService, setBookingService] = useState<ServiceOption | null>(null);
+  const [bookingClientName, setBookingClientName] = useState('');
+  const [bookingClientPhone, setBookingClientPhone] = useState('');
+  const [bookingDate, setBookingDate] = useState(new Date().toISOString().split('T')[0]);
+  const [bookingTime, setBookingTime] = useState('');
+  const [savingBooking, setSavingBooking] = useState(false);
+  const [bookingStep, setBookingStep] = useState<'service' | 'details'>('service');
 
   useEffect(() => {
     const token = localStorage.getItem('staffToken');
     const name = localStorage.getItem('staffName');
     const id = localStorage.getItem('staffId');
+    const salon = localStorage.getItem('staffSalonId');
     
     if (!token) {
       router.push('/staff/login');
@@ -47,12 +69,14 @@ export default function StaffDashboard() {
     
     setStaffName(name || 'Майстер');
     setStaffId(id || '');
+    setSalonId(salon || '');
     setLoading(false);
   }, [router]);
 
   useEffect(() => {
     if (staffId) {
       loadStats();
+      loadServices();
     }
   }, [staffId]);
 
@@ -68,6 +92,63 @@ export default function StaffDashboard() {
       console.error('Load stats error:', error);
     } finally {
       setLoadingStats(false);
+    }
+  };
+
+  const loadServices = async () => {
+    try {
+      const res = await fetch(`/api/staff/services?masterId=${staffId}`);
+      if (res.ok) {
+        const data = await res.json();
+        // Only enabled services
+        setServices(data.filter((s: { isEnabled: boolean }) => s.isEnabled));
+      }
+    } catch (error) {
+      console.error('Load services error:', error);
+    }
+  };
+
+  const openNewBooking = () => {
+    setBookingStep('service');
+    setBookingService(null);
+    setBookingClientName('');
+    setBookingClientPhone('');
+    setBookingDate(new Date().toISOString().split('T')[0]);
+    setBookingTime('');
+    openNewBooking();
+  };
+
+  const createBooking = async () => {
+    if (!bookingService || !bookingClientName || !bookingClientPhone || !bookingDate || !bookingTime) return;
+    
+    setSavingBooking(true);
+    try {
+      const res = await fetch('/api/booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          salonId,
+          masterId: staffId,
+          serviceId: bookingService.id,
+          clientName: bookingClientName,
+          clientPhone: bookingClientPhone,
+          serviceName: bookingService.name,
+          masterName: staffName,
+          date: bookingDate,
+          time: bookingTime,
+          duration: bookingService.duration,
+          price: bookingService.price
+        })
+      });
+      
+      if (res.ok) {
+        setNewBookingOpen(false);
+        loadStats(); // Refresh stats
+      }
+    } catch (error) {
+      console.error('Create booking error:', error);
+    } finally {
+      setSavingBooking(false);
     }
   };
 
@@ -190,8 +271,10 @@ export default function StaffDashboard() {
             className="p-3 cursor-pointer hover:shadow-md transition-all active:scale-[0.98] flex items-center gap-3"
             onClick={() => router.push('/staff/calendar')}
           >
-            <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
-              <Calendar className="h-5 w-5 text-blue-600" />
+            <div className="h-10 w-10 rounded-xl bg-blue-100 flex flex-col items-center justify-center shrink-0">
+              <span className="text-[10px] font-bold text-blue-600 leading-none">
+                {new Date().toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' }).replace('.', '/')}
+              </span>
             </div>
             <div className="min-w-0">
               <p className="font-medium text-sm">Мій календар</p>
@@ -218,7 +301,7 @@ export default function StaffDashboard() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-lg">Записи на сьогодні</h2>
             <button 
-              onClick={() => setNewBookingOpen(true)}
+              onClick={() => openNewBooking()}
               className="h-8 px-3 rounded-lg bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1 hover:bg-primary/90 transition-colors active:scale-[0.98]"
             >
               <Plus className="h-4 w-4" />
@@ -273,7 +356,7 @@ export default function StaffDashboard() {
                 {/* Add button at the end */}
                 <Card 
                   className="p-3 min-w-[100px] shrink-0 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors border-dashed"
-                  onClick={() => setNewBookingOpen(true)}
+                  onClick={() => openNewBooking()}
                 >
                   <Plus className="h-6 w-6 text-muted-foreground mb-1" />
                   <span className="text-xs text-muted-foreground">Додати</span>
@@ -288,7 +371,7 @@ export default function StaffDashboard() {
               <p className="font-medium text-sm mb-1">Вільний день</p>
               <p className="text-xs text-muted-foreground mb-3">Записів немає</p>
               <button 
-                onClick={() => setNewBookingOpen(true)}
+                onClick={() => openNewBooking()}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
               >
                 <Plus className="h-4 w-4" />
@@ -370,12 +453,24 @@ export default function StaffDashboard() {
         />
       )}
       <div 
-        className={`fixed inset-x-4 bottom-4 bg-card rounded-2xl shadow-xl z-50 transform transition-all duration-300 ease-out ${
+        className={`fixed inset-x-4 bottom-4 max-h-[80vh] bg-card rounded-2xl shadow-xl z-50 transform transition-all duration-300 ease-out overflow-hidden flex flex-col ${
           newBookingOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
         }`}
       >
-        <div className="p-4 border-b border-border flex items-center justify-between">
-          <h2 className="font-semibold">Новий запис</h2>
+        <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
+            {bookingStep === 'details' && (
+              <button 
+                onClick={() => setBookingStep('service')}
+                className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
+              >
+                <ChevronRight className="h-5 w-5 rotate-180" />
+              </button>
+            )}
+            <h2 className="font-semibold">
+              {bookingStep === 'service' ? 'Оберіть послугу' : 'Деталі запису'}
+            </h2>
+          </div>
           <button 
             onClick={() => setNewBookingOpen(false)}
             className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
@@ -383,16 +478,126 @@ export default function StaffDashboard() {
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="p-4 text-center py-8">
-          <p className="text-muted-foreground mb-4">Функція в розробці</p>
-          <button 
-            onClick={() => { setNewBookingOpen(false); router.push('/staff/calendar'); }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-medium"
-          >
-            <Calendar className="h-4 w-4" />
-            Відкрити календар
-          </button>
-        </div>
+
+        {/* Step 1: Select service */}
+        {bookingStep === 'service' && (
+          <div className="p-4 overflow-y-auto flex-1">
+            {services.length > 0 ? (
+              <div className="space-y-2">
+                {services.map((service) => (
+                  <button
+                    key={service.id}
+                    onClick={() => {
+                      setBookingService(service);
+                      setBookingStep('details');
+                    }}
+                    className="w-full p-3 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all text-left flex items-center justify-between"
+                  >
+                    <div>
+                      <p className="font-medium">{service.name}</p>
+                      <p className="text-sm text-muted-foreground">{service.duration} хв</p>
+                    </div>
+                    <span className="font-semibold">{service.price} ₴</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Немає активних послуг</p>
+                <button 
+                  onClick={() => { setNewBookingOpen(false); router.push('/staff/services'); }}
+                  className="mt-2 text-primary text-sm"
+                >
+                  Налаштувати послуги
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Step 2: Client details */}
+        {bookingStep === 'details' && bookingService && (
+          <div className="p-4 overflow-y-auto flex-1 space-y-4">
+            {/* Selected service summary */}
+            <div className="p-3 rounded-xl bg-muted/50 flex items-center justify-between">
+              <div>
+                <p className="font-medium text-sm">{bookingService.name}</p>
+                <p className="text-xs text-muted-foreground">{bookingService.duration} хв</p>
+              </div>
+              <span className="font-semibold">{bookingService.price} ₴</span>
+            </div>
+
+            {/* Client name */}
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Імʼя клієнта</label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={bookingClientName}
+                  onChange={(e) => setBookingClientName(e.target.value)}
+                  placeholder="Введіть імʼя"
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            {/* Client phone */}
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Телефон</label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="tel"
+                  value={bookingClientPhone}
+                  onChange={(e) => setBookingClientPhone(e.target.value)}
+                  placeholder="+380"
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            {/* Date */}
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Дата</label>
+              <Input
+                type="date"
+                value={bookingDate}
+                onChange={(e) => setBookingDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+
+            {/* Time */}
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Час</label>
+              <Input
+                type="time"
+                value={bookingTime}
+                onChange={(e) => setBookingTime(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Footer with action button */}
+        {bookingStep === 'details' && (
+          <div className="p-4 border-t border-border shrink-0">
+            <button
+              onClick={createBooking}
+              disabled={savingBooking || !bookingClientName || !bookingClientPhone || !bookingTime}
+              className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {savingBooking ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  <Check className="h-5 w-5" />
+                  Створити запис
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

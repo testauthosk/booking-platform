@@ -38,6 +38,7 @@ export default function StaffLoginPage() {
       localStorage.setItem('staffToken', data.token);
       localStorage.setItem('staffId', data.master.id);
       localStorage.setItem('staffName', data.master.name);
+      localStorage.setItem('staffSalonId', data.master.salonId);
       
       router.push('/staff');
     } catch (err) {
