@@ -330,8 +330,8 @@ export default function StaffServices() {
         />
       )}
       <div 
-        className={`fixed inset-x-4 bottom-4 max-h-[80vh] bg-card rounded-2xl shadow-xl z-50 transform transition-all duration-300 ease-out overflow-hidden flex flex-col ${
-          addModalOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
+        className={`fixed inset-x-0 bottom-0 max-h-[85vh] bg-card rounded-t-3xl shadow-xl z-50 transform transition-transform duration-500 ease-out overflow-hidden flex flex-col ${
+          addModalOpen ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
         {/* Header */}
@@ -411,7 +411,7 @@ export default function StaffServices() {
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-border shrink-0">
+        <div className="p-4 pb-8 border-t border-border shrink-0">
           <button
             onClick={createService}
             disabled={creatingService || !newServiceName || !newServicePrice}
