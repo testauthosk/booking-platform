@@ -265,31 +265,38 @@ export default function StaffDashboard() {
           </Card>
         </div>
 
-        {/* Quick actions */}
+        {/* Quick actions - horizontal layout */}
         <div className="grid grid-cols-2 gap-3">
           <Card 
-            className="p-3 cursor-pointer hover:shadow-md transition-all active:scale-[0.98] flex items-center gap-3"
+            className="p-3 cursor-pointer hover:shadow-md transition-all active:scale-[0.98]"
             onClick={() => router.push('/staff/calendar')}
           >
-            <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
-              <Calendar className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="font-medium text-sm">Календар</p>
-              <p className="text-xs text-muted-foreground">Розклад</p>
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-xl bg-primary flex flex-col items-center justify-center shrink-0 text-primary-foreground">
+                <span className="text-lg font-bold leading-none">{new Date().getDate()}</span>
+                <span className="text-[8px] font-medium uppercase opacity-80">
+                  {new Date().toLocaleDateString('uk-UA', { month: 'short' }).replace('.', '')}
+                </span>
+              </div>
+              <div>
+                <p className="font-medium text-sm">Календар</p>
+                <p className="text-xs text-muted-foreground">Розклад</p>
+              </div>
             </div>
           </Card>
 
           <Card 
-            className="p-3 cursor-pointer hover:shadow-md transition-all active:scale-[0.98] flex items-center gap-3"
+            className="p-3 cursor-pointer hover:shadow-md transition-all active:scale-[0.98]"
             onClick={() => router.push('/staff/services')}
           >
-            <div className="h-10 w-10 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
-              <Tag className="h-5 w-5 text-purple-600" />
-            </div>
-            <div>
-              <p className="font-medium text-sm">Послуги</p>
-              <p className="text-xs text-muted-foreground">Ціни</p>
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
+                <Tag className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">Послуги</p>
+                <p className="text-xs text-muted-foreground">Ціни</p>
+              </div>
             </div>
           </Card>
         </div>
