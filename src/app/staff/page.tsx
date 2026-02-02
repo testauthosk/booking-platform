@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
-import { Calendar, Clock, LogOut, User, Loader2, Plus, ChevronRight, Users, TrendingUp } from 'lucide-react';
+import { Calendar, Clock, LogOut, Settings, Loader2, Plus, ChevronRight, X, Tag } from 'lucide-react';
 
 interface Booking {
   id: string;
@@ -32,6 +32,8 @@ export default function StaffDashboard() {
   const [staffId, setStaffId] = useState('');
   const [stats, setStats] = useState<StaffStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [newBookingOpen, setNewBookingOpen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('staffToken');
@@ -117,16 +119,16 @@ export default function StaffDashboard() {
             </div>
           </div>
           <button 
-            onClick={handleLogout}
+            onClick={() => setSettingsOpen(true)}
             className="h-10 w-10 rounded-xl hover:bg-muted flex items-center justify-center transition-colors"
           >
-            <LogOut className="h-5 w-5 text-muted-foreground" />
+            <Settings className="h-5 w-5 text-muted-foreground" />
           </button>
         </div>
       </header>
 
       {/* Content */}
-      <div className="p-4 space-y-5 pb-24">
+      <div className="p-4 space-y-4 pb-32">
         {/* Greeting */}
         <div>
           <h1 className="text-2xl font-bold">{greeting}!</h1>
@@ -182,28 +184,32 @@ export default function StaffDashboard() {
           </Card>
         </div>
 
-        {/* Quick actions */}
+        {/* Quick actions - compact */}
         <div className="grid grid-cols-2 gap-3">
           <Card 
-            className="p-4 cursor-pointer hover:shadow-md transition-all active:scale-[0.98]"
+            className="p-3 cursor-pointer hover:shadow-md transition-all active:scale-[0.98] flex items-center gap-3"
             onClick={() => router.push('/staff/calendar')}
           >
-            <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center mb-3">
+            <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
               <Calendar className="h-5 w-5 text-blue-600" />
             </div>
-            <p className="font-medium">Мій календар</p>
-            <p className="text-xs text-muted-foreground">Розклад записів</p>
+            <div className="min-w-0">
+              <p className="font-medium text-sm">Мій календар</p>
+              <p className="text-xs text-muted-foreground truncate">Розклад</p>
+            </div>
           </Card>
 
           <Card 
-            className="p-4 cursor-pointer hover:shadow-md transition-all active:scale-[0.98]"
-            onClick={() => router.push('/staff/schedule')}
+            className="p-3 cursor-pointer hover:shadow-md transition-all active:scale-[0.98] flex items-center gap-3"
+            onClick={() => router.push('/staff/services')}
           >
-            <div className="h-10 w-10 rounded-xl bg-purple-100 flex items-center justify-center mb-3">
-              <Clock className="h-5 w-5 text-purple-600" />
+            <div className="h-10 w-10 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
+              <Tag className="h-5 w-5 text-purple-600" />
             </div>
-            <p className="font-medium">Графік роботи</p>
-            <p className="text-xs text-muted-foreground">Робочі години</p>
+            <div className="min-w-0">
+              <p className="font-medium text-sm">Мої послуги</p>
+              <p className="text-xs text-muted-foreground truncate">Ціни</p>
+            </div>
           </Card>
         </div>
 
@@ -212,7 +218,7 @@ export default function StaffDashboard() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-lg">Записи на сьогодні</h2>
             <button 
-              onClick={() => router.push('/staff/calendar?action=new')}
+              onClick={() => setNewBookingOpen(true)}
               className="h-8 px-3 rounded-lg bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1 hover:bg-primary/90 transition-colors active:scale-[0.98]"
             >
               <Plus className="h-4 w-4" />
@@ -226,7 +232,7 @@ export default function StaffDashboard() {
             </div>
           ) : stats?.todayBookings && stats.todayBookings.length > 0 ? (
             <div className="space-y-3">
-              {stats.todayBookings.map((booking, index) => {
+              {stats.todayBookings.map((booking) => {
                 const isPast = (() => {
                   const [h, m] = booking.time.split(':').map(Number);
                   const now = new Date();
@@ -241,7 +247,6 @@ export default function StaffDashboard() {
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      {/* Time block */}
                       <div className={`h-14 w-14 rounded-xl flex flex-col items-center justify-center ${
                         isPast ? 'bg-muted' : 'bg-primary/10'
                       }`}>
@@ -250,7 +255,6 @@ export default function StaffDashboard() {
                         </span>
                       </div>
                       
-                      {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <p className="font-semibold truncate">{booking.clientName}</p>
@@ -274,7 +278,6 @@ export default function StaffDashboard() {
                         </div>
                       </div>
 
-                      {/* Action */}
                       <button className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center shrink-0">
                         <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       </button>
@@ -291,7 +294,7 @@ export default function StaffDashboard() {
               <p className="font-medium mb-1">Немає записів</p>
               <p className="text-sm text-muted-foreground mb-4">Сьогодні у вас вільний день</p>
               <button 
-                onClick={() => router.push('/staff/calendar?action=new')}
+                onClick={() => setNewBookingOpen(true)}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
               >
                 <Plus className="h-4 w-4" />
@@ -299,6 +302,102 @@ export default function StaffDashboard() {
               </button>
             </Card>
           )}
+        </div>
+      </div>
+
+      {/* Settings Panel */}
+      {settingsOpen && (
+        <div 
+          className="fixed inset-0 bg-white/20 backdrop-blur-sm z-40 transition-opacity duration-[560ms] ease-out"
+          onClick={() => setSettingsOpen(false)}
+        />
+      )}
+      <div 
+        className={`fixed top-0 right-0 h-full w-80 bg-card border-l border-border shadow-xl z-50 transform transition-transform duration-[560ms] ease-out will-change-transform ${
+          settingsOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        <div className="flex flex-col h-full pb-20">
+          <div className="p-4 border-b border-border flex items-center justify-between">
+            <h2 className="font-semibold">Налаштування</h2>
+            <button 
+              onClick={() => setSettingsOpen(false)}
+              className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="flex-1 p-4 space-y-1">
+            <button 
+              onClick={() => { setSettingsOpen(false); router.push('/staff/profile'); }}
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted transition-colors text-left"
+            >
+              <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                <Settings className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="font-medium">Мій профіль</p>
+                <p className="text-xs text-muted-foreground">Фото, імʼя, контакти</p>
+              </div>
+            </button>
+
+            <button 
+              onClick={() => { setSettingsOpen(false); router.push('/staff/schedule'); }}
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted transition-colors text-left"
+            >
+              <div className="h-10 w-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="font-medium">Графік роботи</p>
+                <p className="text-xs text-muted-foreground">Робочі години</p>
+              </div>
+            </button>
+          </div>
+
+          <div className="p-4 border-t border-border">
+            <button 
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 transition-colors"
+            >
+              <LogOut className="h-5 w-5" />
+              <span className="font-medium">Вийти</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* New Booking Modal */}
+      {newBookingOpen && (
+        <div 
+          className="fixed inset-0 bg-white/20 backdrop-blur-sm z-40"
+          onClick={() => setNewBookingOpen(false)}
+        />
+      )}
+      <div 
+        className={`fixed inset-x-4 bottom-4 bg-card rounded-2xl shadow-xl z-50 transform transition-all duration-300 ease-out ${
+          newBookingOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
+        }`}
+      >
+        <div className="p-4 border-b border-border flex items-center justify-between">
+          <h2 className="font-semibold">Новий запис</h2>
+          <button 
+            onClick={() => setNewBookingOpen(false)}
+            className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="p-4 text-center py-8">
+          <p className="text-muted-foreground mb-4">Функція в розробці</p>
+          <button 
+            onClick={() => { setNewBookingOpen(false); router.push('/staff/calendar'); }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-medium"
+          >
+            <Calendar className="h-4 w-4" />
+            Відкрити календар
+          </button>
         </div>
       </div>
     </div>
