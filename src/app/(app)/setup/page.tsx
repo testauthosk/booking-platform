@@ -27,11 +27,10 @@ export default function SetupPage() {
       </div>
 
       <Tabs defaultValue="settings">
-        <TabsList className="mb-6 w-full justify-start overflow-x-auto flex-nowrap">
-          <TabsTrigger value="settings" className="shrink-0">Налаштування</TabsTrigger>
-          <TabsTrigger value="online" className="shrink-0">Присутність в інтернеті</TabsTrigger>
-          <TabsTrigger value="marketing" className="shrink-0">Маркетинг</TabsTrigger>
-          <TabsTrigger value="other" className="shrink-0">Інше</TabsTrigger>
+        <TabsList className="mb-6 flex flex-col sm:flex-row w-full sm:w-auto gap-1 h-auto p-1">
+          <TabsTrigger value="settings" className="w-full sm:w-auto justify-center">Налаштування</TabsTrigger>
+          <TabsTrigger value="marketing" className="w-full sm:w-auto justify-center">Маркетинг</TabsTrigger>
+          <TabsTrigger value="other" className="w-full sm:w-auto justify-center">Інше</TabsTrigger>
         </TabsList>
 
         <TabsContent value="settings">
@@ -53,12 +52,6 @@ export default function SetupPage() {
               </Link>
             ))}
           </div>
-        </TabsContent>
-
-        <TabsContent value="online">
-          <Card className="p-8 text-center text-muted-foreground">
-            Налаштування присутності в інтернеті
-          </Card>
         </TabsContent>
 
         <TabsContent value="marketing">
