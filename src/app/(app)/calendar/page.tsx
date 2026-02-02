@@ -246,7 +246,7 @@ export default function CalendarPage() {
         <Button 
           variant="ghost" 
           size="icon" 
-          className="h-10 w-10 rounded-xl transition-transform active:scale-95" 
+          className="h-10 w-10 rounded-xl border border-border transition-transform active:scale-95" 
           onClick={openSidebar}
         >
           <Menu className="h-5 w-5" />

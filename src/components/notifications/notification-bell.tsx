@@ -108,10 +108,10 @@ export function NotificationBell() {
         onKeyDown={(e) => e.key === 'Enter' && setOpen(!open)}
         whileTap={{ scale: 0.95 }}
         className={cn(
-          "relative h-10 w-10 flex items-center justify-center cursor-pointer select-none transition-all duration-200",
+          "relative h-10 w-10 flex items-center justify-center cursor-pointer select-none rounded-xl border border-border",
           open 
-            ? "bg-card rounded-xl rounded-b-none border border-b-0 border-border shadow-lg z-[60]" 
-            : "rounded-xl hover:bg-muted"
+            ? "bg-card rounded-b-none border-b-transparent z-[60]" 
+            : "hover:bg-muted"
         )}
       >
         <Bell className="h-5 w-5 text-foreground pointer-events-none" />
@@ -133,8 +133,12 @@ export function NotificationBell() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="absolute right-0 top-10 w-80 bg-card border border-t-0 border-border rounded-b-xl rounded-tl-xl shadow-lg overflow-hidden z-50"
+            className="absolute right-0 top-[39px] w-80 bg-card border border-border rounded-b-xl rounded-tl-xl overflow-hidden z-50"
+            style={{ marginRight: '0px' }}
           >
+            {/* Top border line with gap for button connection */}
+            <div className="absolute top-0 left-0 right-[39px] h-[1px] bg-border" />
+            
             {/* Header */}
             <div className="flex items-center justify-between p-3 border-b border-border bg-card">
               <h3 className="font-semibold text-foreground">Сповіщення</h3>

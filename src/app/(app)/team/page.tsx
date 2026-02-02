@@ -183,7 +183,7 @@ export default function TeamPage() {
         <Button 
           variant="ghost" 
           size="icon" 
-          className="h-10 w-10 rounded-xl" 
+          className="h-10 w-10 rounded-xl border border-border" 
           onClick={openSidebar}
         >
           <Menu className="h-5 w-5" />
@@ -224,8 +224,8 @@ export default function TeamPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <Button variant="outline" size="icon" className="shrink-0">
-            <Filter className="h-4 w-4" />
+          <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl shrink-0">
+            <Filter className="h-5 w-5" />
           </Button>
         </div>
 
