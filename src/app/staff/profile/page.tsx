@@ -25,6 +25,7 @@ export default function StaffProfile() {
   
   const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -196,26 +197,11 @@ export default function StaffProfile() {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : avatar ? (
-              <>
-                <img 
-                  src={avatar} 
-                  alt={name} 
-                  className="h-24 w-24 rounded-2xl object-cover"
-                />
-                <button 
-                  onClick={async () => {
-                    setAvatar('');
-                    await fetch('/api/staff/profile', {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ masterId: staffId, avatar: '' })
-                    });
-                  }}
-                  className="absolute -top-1 -right-1 h-6 w-6 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shadow"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </>
+              <img 
+                src={avatar} 
+                alt={name} 
+                className="h-24 w-24 rounded-2xl object-cover"
+              />
             ) : (
               <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-3xl font-bold">
                 {name.charAt(0).toUpperCase() || <User className="h-10 w-10" />}
@@ -383,6 +369,64 @@ export default function StaffProfile() {
             </div>
             <span className="font-medium">Обрати з галереї</span>
           </button>
+          
+          {avatar && (
+            <>
+              <div className="border-t border-border my-2" />
+              <button
+                onClick={() => {
+                  setPhotoPickerOpen(false);
+                  setDeleteConfirmOpen(true);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-50 transition-colors text-red-600"
+              >
+                <div className="h-10 w-10 rounded-xl bg-red-100 flex items-center justify-center">
+                  <X className="h-5 w-5 text-red-600" />
+                </div>
+                <span className="font-medium">Видалити фото</span>
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Delete confirmation modal */}
+      <div 
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] transition-all duration-300 ${
+          deleteConfirmOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setDeleteConfirmOpen(false)}
+      />
+      <div 
+        className={`fixed inset-x-4 bottom-4 bg-card rounded-2xl shadow-xl z-[70] transform transition-all duration-300 ${
+          deleteConfirmOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
+        }`}
+      >
+        <div className="p-4 text-center">
+          <p className="font-semibold mb-1">Видалити фото?</p>
+          <p className="text-sm text-muted-foreground mb-4">Ви впевнені, що хочете видалити фото профілю?</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setDeleteConfirmOpen(false)}
+              className="flex-1 py-3 rounded-xl border border-border font-medium hover:bg-muted transition-colors"
+            >
+              Скасувати
+            </button>
+            <button
+              onClick={async () => {
+                setAvatar('');
+                await fetch('/api/staff/profile', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ masterId: staffId, avatar: '' })
+                });
+                setDeleteConfirmOpen(false);
+              }}
+              className="flex-1 py-3 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600 transition-colors"
+            >
+              Видалити
+            </button>
+          </div>
         </div>
       </div>
 
