@@ -763,6 +763,32 @@ export default function StaffCalendar() {
                   </div>
                 );
               })}
+              
+              {/* Current time label */}
+              {isToday(selectedDate) && (() => {
+                // DEBUG: fixed time 16:00
+                const currentHour = 16;
+                const currentMinute = 0;
+                // const now = new Date();
+                // const currentHour = now.getHours();
+                // const currentMinute = now.getMinutes();
+                const timeStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+                if (currentHour >= workingHours.start && currentHour <= workingHours.end) {
+                  const currentMinutes = (currentHour - workingHours.start) * 60 + currentMinute;
+                  const topPosition = currentMinutes * 2;
+                  return (
+                    <div 
+                      className="absolute w-full text-right pr-2 -translate-y-1/2 z-20"
+                      style={{ top: `${topPosition}px` }}
+                    >
+                      <span className="text-xs font-medium text-red-500 border border-red-500 rounded px-0.5 bg-white">
+                        {timeStr}
+                      </span>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
             
             {/* Vertical line with ticks */}
@@ -800,19 +826,15 @@ export default function StaffCalendar() {
                 // const now = new Date();
                 // const currentHour = now.getHours();
                 // const currentMinute = now.getMinutes();
-                const timeStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
                 // Only show if current time is within working hours
                 if (currentHour >= workingHours.start && currentHour <= workingHours.end) {
                   const currentMinutes = (currentHour - workingHours.start) * 60 + currentMinute;
                   const topPosition = currentMinutes * 2; // 2px per minute
                   return (
                     <div 
-                      className="absolute right-0 flex items-center z-20 pointer-events-none -translate-y-1/2"
-                      style={{ top: `${topPosition}px`, left: '-68px' }}
-                    >
-                      <span className="text-xs font-medium text-red-500 border border-red-500 rounded px-1 bg-white">{timeStr}</span>
-                      <div className="flex-1 h-[2px] bg-red-500" />
-                    </div>
+                      className="absolute left-0 right-0 h-[2px] bg-red-500 z-20 pointer-events-none"
+                      style={{ top: `${topPosition}px` }}
+                    />
                   );
                 }
                 return null;
