@@ -309,9 +309,9 @@ export default function StaffDashboard() {
           </div>
           <button 
             onClick={() => setSettingsOpen(true)}
-            className="h-9 w-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors active:scale-[0.98]"
+            className="h-9 w-10 rounded-xl border border-border flex items-center justify-center hover:bg-muted transition-colors active:scale-[0.98]"
           >
-            <Settings className="h-5 w-5" />
+            <Settings className="h-5 w-5 text-muted-foreground" />
           </button>
         </div>
       </header>
