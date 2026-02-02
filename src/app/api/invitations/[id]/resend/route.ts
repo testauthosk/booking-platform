@@ -15,7 +15,6 @@ export async function POST(
     // Находим приглашение
     const invitation = await prisma.staffInvitation.findUnique({
       where: { id },
-      include: { salon: true },
     });
 
     if (!invitation) {
@@ -42,11 +41,11 @@ export async function POST(
         await resend.emails.send({
           from: 'Booking Platform <onboarding@resend.dev>',
           to: invitation.email,
-          subject: `Запрошення до команди ${invitation.salon?.name || 'салону'}`,
+          subject: `Запрошення до команди`,
           html: `
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
               <h2>Вітаємо${invitation.name ? ', ' + invitation.name : ''}!</h2>
-              <p>Вас запрошено приєднатися до команди${invitation.salon?.name ? ' ' + invitation.salon.name : ''}${invitation.role ? ' на посаду ' + invitation.role : ''}.</p>
+              <p>Вас запрошено приєднатися до команди${invitation.role ? ' на посаду ' + invitation.role : ''}.</p>
               <p>Для створення акаунту перейдіть за посиланням:</p>
               <p><a href="${inviteUrl}" style="display: inline-block; padding: 12px 24px; background: #000; color: #fff; text-decoration: none; border-radius: 8px;">Приєднатися</a></p>
               <p style="color: #666; font-size: 14px;">Посилання дійсне 7 днів.</p>

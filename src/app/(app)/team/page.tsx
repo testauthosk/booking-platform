@@ -165,10 +165,14 @@ export default function TeamPage() {
     setResendSuccess(false);
     try {
       const res = await fetch(`/api/invitations/${invitation.id}/resend`, { method: 'POST' });
+      console.log('Resend response status:', res.status);
       if (res.ok) {
         setResendSuccess(true);
-        // Auto-hide after 3 seconds
         setTimeout(() => setResendSuccess(false), 3000);
+      } else {
+        const data = await res.json();
+        console.error('Resend failed:', data);
+        // Показать ошибку можно тут
       }
     } catch (error) {
       console.error('Resend error:', error);
