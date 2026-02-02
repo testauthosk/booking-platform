@@ -44,6 +44,20 @@ interface SalonData {
   address?: string;
 }
 
+interface BookingFromAPI {
+  id: string;
+  masterId: string | null;
+  clientName: string;
+  clientPhone: string;
+  serviceName: string | null;
+  masterName: string | null;
+  date: string;
+  time: string;
+  timeEnd: string | null;
+  duration: number;
+  status: string;
+}
+
 // Украинские названия дней и месяцев
 const ukDays = ['неділя', 'понеділок', 'вівторок', 'середа', 'четвер', "п'ятниця", 'субота'];
 const ukMonths = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
@@ -67,11 +81,12 @@ export default function CalendarPage() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [salonTimezone, setSalonTimezone] = useState<string>('Europe/Kiev');
 
-  // Load masters and salon data from API
+  // Load masters, salon data, and bookings from API
   useEffect(() => {
     if (user?.salonId) {
       loadMasters();
       loadSalon();
+      loadBookings();
     }
   }, [user?.salonId]);
 
@@ -100,6 +115,48 @@ export default function CalendarPage() {
       }
     } catch (error) {
       console.error('Load salon error:', error);
+    }
+  };
+
+  // Load bookings from API
+  const loadBookings = async () => {
+    try {
+      const res = await fetch('/api/booking');
+      if (res.ok) {
+        const data: BookingFromAPI[] = await res.json();
+        // Convert API bookings to BookingEvent format
+        const bookingEvents: BookingEvent[] = data.map(b => {
+          // Parse date and time to create Date objects
+          const [year, month, day] = b.date.split('-').map(Number);
+          const [startHour, startMin] = b.time.split(':').map(Number);
+          
+          const start = new Date(year, month - 1, day, startHour, startMin);
+          
+          let end: Date;
+          if (b.timeEnd) {
+            const [endHour, endMin] = b.timeEnd.split(':').map(Number);
+            end = new Date(year, month - 1, day, endHour, endMin);
+          } else {
+            end = new Date(start.getTime() + b.duration * 60000);
+          }
+
+          return {
+            id: b.id,
+            title: b.serviceName || 'Запис',
+            start,
+            end,
+            resourceId: b.masterId || undefined,
+            clientName: b.clientName,
+            clientPhone: b.clientPhone,
+            serviceName: b.serviceName || undefined,
+            masterName: b.masterName || undefined,
+            status: b.status.toLowerCase(),
+          };
+        });
+        setEvents(bookingEvents);
+      }
+    } catch (error) {
+      console.error('Load bookings error:', error);
     }
   };
 
@@ -287,10 +344,16 @@ export default function CalendarPage() {
       {/* Calendar */}
       <div className="flex-1 overflow-hidden">
         <CustomCalendar
-          events={events.filter(e => {
-            const eventDate = e.start.toDateString();
-            return eventDate === selectedDate.toDateString();
-          })}
+          events={events
+            .filter(e => {
+              const eventDate = e.start.toDateString();
+              return eventDate === selectedDate.toDateString();
+            })
+            .map(e => ({
+              ...e,
+              backgroundColor: e.resourceId ? eventColors[e.resourceId] || '#8b5cf6' : '#8b5cf6',
+            }))
+          }
           resources={resources}
           selectedDate={selectedDate}
           onEventClick={handleEventClick}
