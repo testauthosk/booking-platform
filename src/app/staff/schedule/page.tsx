@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import { ChevronLeft, Loader2, Check, X } from 'lucide-react';
 
 interface DaySchedule {
@@ -140,9 +141,9 @@ export default function StaffSchedule() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-[100dvh] flex flex-col bg-background">
       {/* Header */}
-      <header className="bg-card border-b px-4 py-3 sticky top-0 z-10">
+      <header className="bg-card border-b px-4 py-3 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button 
@@ -160,24 +161,17 @@ export default function StaffSchedule() {
       </header>
 
       {/* Content */}
-      <div className="p-4 pb-20 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-3">
         {DAYS.map(day => {
           const daySchedule = schedule[day.key as keyof WorkingHours];
           return (
             <Card key={day.key} className={`p-4 ${!daySchedule.enabled ? 'opacity-50' : ''}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {/* Toggle */}
-                  <button
-                    onClick={() => toggleDay(day.key)}
-                    className={`h-6 w-11 rounded-full transition-colors relative ${
-                      daySchedule.enabled ? 'bg-primary' : 'bg-muted'
-                    }`}
-                  >
-                    <div className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                      daySchedule.enabled ? 'translate-x-6' : 'translate-x-1'
-                    }`} />
-                  </button>
+                  <Switch
+                    checked={daySchedule.enabled}
+                    onCheckedChange={() => toggleDay(day.key)}
+                  />
                   <span className="font-medium">{day.label}</span>
                 </div>
                 
@@ -205,7 +199,7 @@ export default function StaffSchedule() {
       </div>
 
       {/* Save button */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-card border-t">
+      <div className="shrink-0 p-4 bg-card border-t">
         <button
           onClick={saveSchedule}
           disabled={saving}
