@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 
 // Функция затемнения цвета
@@ -599,30 +600,34 @@ export function CustomCalendar({
         </div>
       </div>
 
-      {/* Floating drag card */}
-      {dragState.isDragging && dragState.event && (
+      {/* Floating drag card - rendered via Portal to avoid transform issues */}
+      {dragState.isDragging && dragState.event && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed z-[100] pointer-events-none rounded-lg overflow-hidden"
           style={{
-            left: `${dragState.currentX}px`,
-            top: `${dragState.currentY}px`,
-            transform: 'translate(-50%, -30%) scale(1.02)',
-            minWidth: '150px',
-            width: '180px',
-            minHeight: `${Math.max(dragState.originalHeight, 60)}px`,
+            position: 'fixed',
+            left: dragState.currentX,
+            top: dragState.currentY,
+            transform: 'translate(-50%, -30%)',
+            width: 180,
+            minHeight: Math.max(dragState.originalHeight, 60),
             backgroundColor: dragState.event.backgroundColor || '#4eb8d5',
             borderLeft: `4px solid ${darkenColor(dragState.event.backgroundColor || '#4eb8d5', 0.35)}`,
+            borderRadius: 6,
             boxShadow: '0 12px 40px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.2)',
+            zIndex: 99999,
+            pointerEvents: 'none',
+            overflow: 'hidden',
           }}
         >
-          <div className="p-3 text-white h-full">
-            <div className="font-bold text-base drop-shadow-md">
+          <div style={{ padding: 12, color: 'white' }}>
+            <div style={{ fontWeight: 700, fontSize: 14 }}>
               {formatTime(dragState.event.start)} - {formatTime(dragState.event.end)}
             </div>
-            <div className="font-semibold text-base mt-1">{dragState.event.clientName}</div>
-            <div className="opacity-90 text-sm mt-0.5">{dragState.event.title}</div>
+            <div style={{ fontWeight: 600, fontSize: 14, marginTop: 4 }}>{dragState.event.clientName}</div>
+            <div style={{ opacity: 0.9, fontSize: 12, marginTop: 2 }}>{dragState.event.title}</div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Slot Context Menu */}
