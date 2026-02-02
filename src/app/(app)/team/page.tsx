@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Search, Plus, Filter, MoreVertical, Menu, Clock, UserPlus, Loader2, Copy, Check, Mail, ChevronRight, Trash2, ExternalLink, Eye } from 'lucide-react';
+import { Search, Plus, Filter, MoreVertical, Menu, Clock, UserPlus, Loader2, Copy, Check, Mail, ChevronRight, Trash2, ExternalLink, Eye, X } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useSidebar } from '@/components/sidebar-context';
 import { useCalendarSettings } from '@/lib/calendar-settings-context';
@@ -405,6 +405,7 @@ export default function TeamPage() {
       <Dialog open={!!selectedInvitation} onOpenChange={() => setSelectedInvitation(null)}>
         <DialogContent 
           className="sm:max-w-md p-0 overflow-hidden"
+          showCloseButton={false}
           style={{ 
             borderColor: getColorForIndex(0),
             borderWidth: '1px',
@@ -418,9 +419,17 @@ export default function TeamPage() {
           />
           
           <div className="p-6 pt-4">
-            <DialogHeader>
-              <DialogTitle>Деталі запрошення</DialogTitle>
-            </DialogHeader>
+            {/* Header with centered title and close button */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-10" /> {/* Spacer for centering */}
+              <DialogTitle className="text-center flex-1">Деталі запрошення</DialogTitle>
+              <button
+                onClick={() => setSelectedInvitation(null)}
+                className="w-10 h-10 rounded-full hover:bg-muted flex items-center justify-center transition-colors"
+              >
+                <X className="h-6 w-6 text-muted-foreground" />
+              </button>
+            </div>
             
             {selectedInvitation && (
               <div className="space-y-4 mt-4">

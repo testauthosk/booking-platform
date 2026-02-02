@@ -106,103 +106,99 @@ export function NotificationBell() {
         tabIndex={0}
         onClick={() => setOpen(!open)}
         onKeyDown={(e) => e.key === 'Enter' && setOpen(!open)}
-        className={cn(
-          "relative h-10 w-10 flex items-center justify-center cursor-pointer select-none",
-          "transition-all duration-300 ease-out",
-          "hover:bg-muted active:scale-95",
-          open 
-            ? "bg-card rounded-t-xl rounded-b-none shadow-lg border border-border border-b-transparent z-[60]" 
-            : "rounded-full"
-        )}
+        className="relative h-10 w-10 flex items-center justify-center cursor-pointer select-none rounded-full hover:bg-muted active:scale-95 transition-all duration-150"
       >
         <Bell className="h-5 w-5 text-foreground pointer-events-none" />
         {unreadCount > 0 && (
-          <span className={cn(
-            "absolute h-4 w-4 bg-destructive rounded-full text-[10px] text-white font-medium flex items-center justify-center pointer-events-none",
-            open ? "top-1 right-1" : "top-0 right-0"
-          )}>
+          <span className="absolute top-0 right-0 h-4 w-4 bg-destructive rounded-full text-[10px] text-white font-medium flex items-center justify-center pointer-events-none">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </div>
 
-      {/* Notification panel */}
-      {open && (
-        <div className="absolute right-0 top-10 w-80 bg-card border border-border border-t-0 rounded-b-xl rounded-tl-xl shadow-lg overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-          {/* Header */}
-          <div className="flex items-center justify-between p-3 border-b border-border">
-            <h3 className="font-semibold text-foreground">Сповіщення</h3>
-            {unreadCount > 0 && (
-              <button
-                onClick={markAllRead}
-                disabled={loading}
-                className="text-xs h-7 px-2 rounded-md hover:bg-muted transition-colors flex items-center gap-1 text-muted-foreground hover:text-foreground cursor-pointer disabled:opacity-50"
-              >
-                {loading ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <>
-                    <Check className="h-3 w-3" />
-                    Прочитати всі
-                  </>
-                )}
-              </button>
-            )}
-          </div>
-
-          {/* Notifications list */}
-          <div className="max-h-80 overflow-y-auto">
-            {notifications.length === 0 ? (
-              <div className="p-6 text-center text-muted-foreground">
-                <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Немає сповіщень</p>
-              </div>
-            ) : (
-              notifications.map((notification) => {
-                const Icon = typeIcons[notification.type] || Bell;
-                
-                return (
-                  <div
-                    key={notification.id}
-                    className={cn(
-                      "p-3 border-b border-border last:border-b-0 hover:bg-muted/50 cursor-pointer transition-colors",
-                      !notification.isRead && "bg-primary/5"
-                    )}
-                  >
-                    <div className="flex gap-3">
-                      <div className={cn(
-                        "h-8 w-8 rounded-full flex items-center justify-center shrink-0",
-                        !notification.isRead 
-                          ? "bg-primary/10 text-primary" 
-                          : "bg-muted text-muted-foreground"
-                      )}>
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className={cn(
-                          "text-sm text-foreground",
-                          !notification.isRead && "font-medium"
-                        )}>
-                          {notification.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {notification.message}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {formatTime(notification.createdAt)}
-                        </p>
-                      </div>
-                      {!notification.isRead && (
-                        <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1" />
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
+      {/* Notification panel - smooth slide animation */}
+      <div 
+        className={cn(
+          "absolute right-0 top-12 w-80 bg-card border border-border rounded-xl shadow-lg overflow-hidden",
+          "transition-all duration-300 ease-out origin-top-right",
+          open 
+            ? "opacity-100 scale-100 translate-y-0" 
+            : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
+        )}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-3 border-b border-border">
+          <h3 className="font-semibold text-foreground">Сповіщення</h3>
+          {unreadCount > 0 && (
+            <button
+              onClick={markAllRead}
+              disabled={loading}
+              className="text-xs h-7 px-2 rounded-md hover:bg-muted transition-colors flex items-center gap-1 text-muted-foreground hover:text-foreground cursor-pointer disabled:opacity-50"
+            >
+              {loading ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <>
+                  <Check className="h-3 w-3" />
+                  Прочитати всі
+                </>
+              )}
+            </button>
+          )}
         </div>
-      )}
+
+        {/* Notifications list */}
+        <div className="max-h-80 overflow-y-auto">
+          {notifications.length === 0 ? (
+            <div className="p-6 text-center text-muted-foreground">
+              <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">Немає сповіщень</p>
+            </div>
+          ) : (
+            notifications.map((notification) => {
+              const Icon = typeIcons[notification.type] || Bell;
+              
+              return (
+                <div
+                  key={notification.id}
+                  className={cn(
+                    "p-3 border-b border-border last:border-b-0 hover:bg-muted/50 cursor-pointer transition-colors",
+                    !notification.isRead && "bg-primary/5"
+                  )}
+                >
+                  <div className="flex gap-3">
+                    <div className={cn(
+                      "h-8 w-8 rounded-full flex items-center justify-center shrink-0",
+                      !notification.isRead 
+                        ? "bg-primary/10 text-primary" 
+                        : "bg-muted text-muted-foreground"
+                    )}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={cn(
+                        "text-sm text-foreground",
+                        !notification.isRead && "font-medium"
+                      )}>
+                        {notification.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {notification.message}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {formatTime(notification.createdAt)}
+                      </p>
+                    </div>
+                    {!notification.isRead && (
+                      <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1" />
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
     </div>
   );
 }
