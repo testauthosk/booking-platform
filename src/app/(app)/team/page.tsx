@@ -620,9 +620,9 @@ export default function TeamPage() {
         />
       )}
 
-      {/* Master Profile Panel */}
+      {/* Master Profile Panel - drawer on mobile, wider on desktop */}
       <div 
-        className={`fixed top-0 right-0 h-full w-80 bg-card border-l border-border shadow-xl z-50 transform transition-transform duration-[350ms] ease-out will-change-transform ${
+        className={`fixed top-0 right-0 h-full w-80 lg:w-[420px] bg-card border-l border-border shadow-xl z-50 transform transition-transform duration-[350ms] ease-out will-change-transform ${
           selectedMaster ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -709,14 +709,14 @@ export default function TeamPage() {
       {/* Profile Panel Overlay */}
       {profileOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-[350ms] ease-out"
+          className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-[350ms] ease-out"
           onClick={() => setProfileOpen(false)}
         />
       )}
 
-      {/* Profile Panel */}
+      {/* Profile Panel - drawer on mobile, wider on desktop */}
       <div 
-        className={`fixed top-0 right-0 h-full w-80 bg-card border-l border-border shadow-xl z-50 transform transition-transform duration-[350ms] ease-out will-change-transform ${
+        className={`fixed top-0 right-0 h-full w-80 lg:w-[420px] bg-card border-l border-border shadow-xl z-50 transform transition-transform duration-[350ms] ease-out will-change-transform ${
           profileOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
