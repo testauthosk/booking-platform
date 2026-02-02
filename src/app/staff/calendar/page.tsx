@@ -1315,74 +1315,87 @@ export default function StaffCalendar() {
         </button>
       </div>
 
-      {/* Confirmation Modal */}
+      {/* Confirmation Modal - Bottom Sheet */}
       {confirmModal.open && (
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] flex items-center justify-center p-4"
+          className="fixed inset-0 bg-white/20 backdrop-blur-sm z-[80]"
           onClick={() => !confirmLoading && setConfirmModal({ open: false, type: null, booking: null })}
-        >
-          <div 
-            className="bg-card rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
+        />
+      )}
+      <div 
+        className={`fixed inset-x-0 bottom-0 bg-card rounded-t-3xl shadow-xl z-[90] transform transition-transform duration-500 ease-out ${
+          confirmModal.open ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        {/* Header with icon */}
+        <div className={`p-4 pb-3 border-b flex items-center gap-3 ${
+          confirmModal.type === 'cancel' ? 'border-red-100' : 'border-orange-100'
+        }`}>
+          <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${
+            confirmModal.type === 'cancel' ? 'bg-red-100' : 'bg-orange-100'
+          }`}>
+            {confirmModal.type === 'cancel' ? (
+              <X className="h-5 w-5 text-red-500" />
+            ) : (
+              <Clock className="h-5 w-5 text-orange-500" />
+            )}
+          </div>
+          <div>
+            <h2 className="font-semibold">
+              {confirmModal.type === 'cancel' ? 'Скасувати запис?' : 'Клієнт не прийшов?'}
+            </h2>
+            {confirmModal.booking && (
+              <p className="text-sm text-muted-foreground">{confirmModal.booking.time} · {confirmModal.booking.serviceName}</p>
+            )}
+          </div>
+          <button 
+            onClick={() => !confirmLoading && setConfirmModal({ open: false, type: null, booking: null })}
+            className="ml-auto h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
           >
-            {/* Icon */}
-            <div className={`pt-6 pb-4 flex justify-center ${
-              confirmModal.type === 'cancel' ? 'bg-red-50' : 'bg-orange-50'
-            }`}>
-              <div className={`h-16 w-16 rounded-full flex items-center justify-center ${
-                confirmModal.type === 'cancel' ? 'bg-red-100' : 'bg-orange-100'
-              }`}>
-                {confirmModal.type === 'cancel' ? (
-                  <X className="h-8 w-8 text-red-500" />
-                ) : (
-                  <Clock className="h-8 w-8 text-orange-500" />
-                )}
-              </div>
-            </div>
-            
-            {/* Content */}
-            <div className="p-5 text-center">
-              <h3 className="text-lg font-bold mb-2">
-                {confirmModal.type === 'cancel' ? 'Скасувати запис?' : 'Клієнт не прийшов?'}
-              </h3>
-              
-              {confirmModal.booking && (
-                <div className="text-sm text-muted-foreground space-y-0.5">
-                  <p><span className="font-medium text-foreground">{confirmModal.booking.clientName}</span></p>
-                  <p>{confirmModal.booking.serviceName}</p>
-                  <p>{confirmModal.booking.time} · {confirmModal.booking.duration} хв</p>
-                </div>
-              )}
-            </div>
-            
-            {/* Actions */}
-            <div className="p-4 pt-0 flex gap-2">
-              <button
-                onClick={() => setConfirmModal({ open: false, type: null, booking: null })}
-                disabled={confirmLoading}
-                className="flex-1 py-3 rounded-xl bg-zinc-100 text-zinc-700 font-medium hover:bg-zinc-200 transition-colors disabled:opacity-50"
-              >
-                Скасувати
-              </button>
-              <button
-                onClick={handleConfirmAction}
-                disabled={confirmLoading}
-                className={`flex-1 py-3 rounded-xl text-white font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${
-                  confirmModal.type === 'cancel' 
-                    ? 'bg-red-500 hover:bg-red-600' 
-                    : 'bg-orange-500 hover:bg-orange-600'
-                }`}
-              >
-                {confirmLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  confirmModal.type === 'cancel' ? 'Так, скасувати' : 'Так, не прийшов'
-                )}
-              </button>
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        
+        {/* Booking info */}
+        {confirmModal.booking && (
+          <div className="p-4">
+            <div className="p-3 bg-muted rounded-xl">
+              <p className="font-semibold">{confirmModal.booking.clientName}</p>
+              <p className="text-sm text-muted-foreground">{confirmModal.booking.serviceName}</p>
+              <p className="text-sm text-muted-foreground">{confirmModal.booking.duration} хв {confirmModal.booking.price ? `· ${confirmModal.booking.price} ₴` : ''}</p>
             </div>
           </div>
+        )}
+        
+        {/* Actions */}
+        <div className="p-4 pb-8 flex gap-2">
+          <button
+            onClick={() => setConfirmModal({ open: false, type: null, booking: null })}
+            disabled={confirmLoading}
+            className="flex-1 py-3 rounded-xl bg-zinc-100 text-zinc-700 font-medium hover:bg-zinc-200 transition-colors disabled:opacity-50"
+          >
+            Ні, назад
+          </button>
+          <button
+            onClick={handleConfirmAction}
+            disabled={confirmLoading}
+            className={`flex-1 py-3 rounded-xl text-white font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${
+              confirmModal.type === 'cancel' 
+                ? 'bg-red-500 hover:bg-red-600' 
+                : 'bg-orange-500 hover:bg-orange-600'
+            }`}
+          >
+            {confirmLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <>
+                {confirmModal.type === 'cancel' ? <X className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+                {confirmModal.type === 'cancel' ? 'Скасувати' : 'Не прийшов'}
+              </>
+            )}
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }
