@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/sidebar';
 import { Header } from '@/components/header';
 import { MobileNav } from '@/components/mobile-nav';
 import { SidebarProvider, useSidebar } from '@/components/sidebar-context';
+import { CalendarSettingsProvider } from '@/lib/calendar-settings-context';
 import { cn } from '@/lib/utils';
 
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
@@ -56,7 +57,9 @@ export default function AppLayout({
 }) {
   return (
     <SidebarProvider>
-      <AppLayoutInner>{children}</AppLayoutInner>
+      <CalendarSettingsProvider>
+        <AppLayoutInner>{children}</AppLayoutInner>
+      </CalendarSettingsProvider>
     </SidebarProvider>
   );
 }
