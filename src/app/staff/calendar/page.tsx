@@ -633,17 +633,79 @@ export default function StaffCalendar() {
                         {/* Action buttons */}
                         {!isPast && booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && (
                           <div className="flex flex-col gap-1 mt-3">
-                            <button className="w-full h-9 rounded-lg bg-green-500 text-white text-sm font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+                            <button 
+                              onClick={async () => {
+                                try {
+                                  const res = await fetch('/api/staff/bookings', {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ bookingId: booking.id, status: 'COMPLETED' })
+                                  });
+                                  if (res.ok) {
+                                    loadBookings();
+                                  } else {
+                                    alert('Помилка при оновленні');
+                                  }
+                                } catch (e) {
+                                  alert('Помилка при оновленні');
+                                }
+                              }}
+                              className="w-full h-9 rounded-lg bg-green-500 text-white text-sm font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                            >
                               <Check className="h-4 w-4" /> Готово
                             </button>
                             <div className="flex gap-1">
-                              <button className="flex-1 h-8 rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors flex items-center justify-center">
+                              <button 
+                                onClick={() => openEditModal(booking)}
+                                className="flex-1 h-8 rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors flex items-center justify-center"
+                              >
                                 <Pencil className="h-4 w-4" />
                               </button>
-                              <button className="flex-1 h-8 rounded-lg bg-orange-50 text-orange-500 hover:bg-orange-100 transition-colors flex items-center justify-center" title="Не прийшов">
+                              <button 
+                                onClick={async () => {
+                                  if (confirm(`Клієнт ${booking.clientName} не прийшов на запис?\n\nВідмітити як "Не прийшов"?`)) {
+                                    try {
+                                      const res = await fetch('/api/staff/bookings', {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ bookingId: booking.id, status: 'NO_SHOW' })
+                                      });
+                                      if (res.ok) {
+                                        loadBookings();
+                                      } else {
+                                        alert('Помилка при оновленні');
+                                      }
+                                    } catch (e) {
+                                      alert('Помилка при оновленні');
+                                    }
+                                  }
+                                }}
+                                className="flex-1 h-8 rounded-lg bg-orange-50 text-orange-500 hover:bg-orange-100 transition-colors flex items-center justify-center" 
+                                title="Не прийшов"
+                              >
                                 <Clock className="h-4 w-4" />
                               </button>
-                              <button className="flex-1 h-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-500 transition-colors flex items-center justify-center">
+                              <button 
+                                onClick={async () => {
+                                  if (confirm(`Скасувати запис?\n\nКлієнт: ${booking.clientName}\nПослуга: ${booking.serviceName}\nЧас: ${booking.time}`)) {
+                                    try {
+                                      const res = await fetch('/api/staff/bookings', {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ bookingId: booking.id, status: 'CANCELLED' })
+                                      });
+                                      if (res.ok) {
+                                        loadBookings();
+                                      } else {
+                                        alert('Помилка при скасуванні');
+                                      }
+                                    } catch (e) {
+                                      alert('Помилка при скасуванні');
+                                    }
+                                  }
+                                }}
+                                className="flex-1 h-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-500 transition-colors flex items-center justify-center"
+                              >
                                 <X className="h-4 w-4" />
                               </button>
                             </div>
