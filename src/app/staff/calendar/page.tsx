@@ -743,14 +743,18 @@ export default function StaffCalendar() {
                       borderBottom: `1px solid ${colors.stripe}`
                     }}
                   >
-                    <div className="p-3 h-full flex justify-between gap-2">
-                      {/* Left: Client info */}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-lg truncate">{booking.clientName}</p>
-                        <p className="text-base text-muted-foreground truncate">{booking.serviceName}</p>
+                    <div className="p-3 h-full flex justify-between gap-3">
+                      {/* Left: Client info - aligned with buttons */}
+                      <div className="flex-1 min-w-0 flex flex-col justify-between">
+                        {/* Top: Name + Service (aligned with Готово button) */}
+                        <div>
+                          <p className="font-bold text-lg truncate leading-9">{booking.clientName}</p>
+                          <p className="text-base text-muted-foreground truncate">{booking.serviceName}</p>
+                        </div>
                         
+                        {/* Bottom: Duration + Price (aligned with bottom buttons) */}
                         {!isBlocked && (
-                          <div className="flex items-baseline gap-3 mt-1">
+                          <div className="flex items-center gap-3 h-8">
                             <span className="text-base text-muted-foreground">{booking.duration} хв</span>
                             {booking.price !== undefined && booking.price > 0 && (
                               <span className="text-lg font-bold">{booking.price} ₴</span>
@@ -759,11 +763,11 @@ export default function StaffCalendar() {
                         )}
                         
                         {booking.status === 'COMPLETED' && (
-                          <span className="inline-block mt-2 text-sm bg-green-200 text-green-700 px-2 py-1 rounded">✓ Завершено</span>
+                          <span className="inline-block text-sm bg-green-200 text-green-700 px-2 py-1 rounded">✓ Завершено</span>
                         )}
                         
                         {booking.status === 'NO_SHOW' && (
-                          <span className="inline-block mt-2 text-sm bg-orange-200 text-orange-700 px-2 py-1 rounded">Не прийшов</span>
+                          <span className="inline-block text-sm bg-orange-200 text-orange-700 px-2 py-1 rounded">Не прийшов</span>
                         )}
                       </div>
                       
