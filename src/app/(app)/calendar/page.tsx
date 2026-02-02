@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Menu, Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { Menu, Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useSidebar } from '@/components/sidebar-context';
 import { EventModal } from '@/components/calendar/event-modal';
@@ -11,100 +11,15 @@ import { CustomCalendar, type BookingEvent, type Resource } from '@/components/c
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useCalendarSettings } from '@/lib/calendar-settings-context';
+import { useAuth } from '@/contexts/AuthContext';
 
-// Demo team members (colors will be assigned from palette)
-const demoTeamMembers = [
-  { id: '1', title: "Don't Pursue" },
-  { id: '2', title: 'Wendy Smith' },
-  { id: '3', title: 'Anna Johnson' },
-  { id: '4', title: 'Mike Brown' },
-  { id: '5', title: 'Sarah Davis' },
-];
-
-// Demo events (colors will be assigned dynamically from palette)
-const today = new Date();
-const todayStr = today.toISOString().split('T')[0];
-
-const createInitialEvents = (getColor: (idx: number) => string): BookingEvent[] => [
-  {
-    id: '1',
-    title: 'Стрижка',
-    start: new Date(`${todayStr}T10:00:00`),
-    end: new Date(`${todayStr}T11:00:00`),
-    resourceId: '1',
-    backgroundColor: getColor(0),
-    clientName: 'John Doe',
-    clientPhone: '+380 99 123 4567',
-    serviceName: 'Стрижка',
-    masterName: "Don't Pursue",
-    status: 'confirmed',
-  },
-  {
-    id: '2',
-    title: 'Фарбування',
-    start: new Date(`${todayStr}T14:00:00`),
-    end: new Date(`${todayStr}T16:30:00`),
-    resourceId: '2',
-    backgroundColor: getColor(1),
-    clientName: 'Jane Smith',
-    clientPhone: '+380 67 234 5678',
-    serviceName: 'Фарбування волосся',
-    masterName: 'Wendy Smith',
-    status: 'confirmed',
-  },
-  {
-    id: '3',
-    title: 'Манікюр',
-    start: new Date(`${todayStr}T11:30:00`),
-    end: new Date(`${todayStr}T12:30:00`),
-    resourceId: '1',
-    backgroundColor: getColor(0),
-    clientName: 'Alex Brown',
-    clientPhone: '+380 50 345 6789',
-    serviceName: 'Манікюр',
-    masterName: "Don't Pursue",
-    status: 'pending',
-  },
-  {
-    id: '4',
-    title: 'Укладка',
-    start: new Date(`${todayStr}T09:00:00`),
-    end: new Date(`${todayStr}T10:00:00`),
-    resourceId: '3',
-    backgroundColor: getColor(2),
-    clientName: 'Maria Wilson',
-    clientPhone: '+380 63 456 7890',
-    serviceName: 'Укладка',
-    masterName: 'Anna Johnson',
-    status: 'confirmed',
-  },
-  {
-    id: '5',
-    title: 'Масаж',
-    start: new Date(`${todayStr}T13:00:00`),
-    end: new Date(`${todayStr}T14:30:00`),
-    resourceId: '4',
-    backgroundColor: getColor(3),
-    clientName: 'Peter Parker',
-    clientPhone: '+380 95 567 8901',
-    serviceName: 'Масаж спини',
-    masterName: 'Mike Brown',
-    status: 'confirmed',
-  },
-  {
-    id: '6',
-    title: 'Педікюр',
-    start: new Date(`${todayStr}T15:00:00`),
-    end: new Date(`${todayStr}T16:30:00`),
-    resourceId: '5',
-    backgroundColor: getColor(4),
-    clientName: 'Emma Stone',
-    clientPhone: '+380 66 678 9012',
-    serviceName: 'Педікюр',
-    masterName: 'Sarah Davis',
-    status: 'confirmed',
-  },
-];
+interface Master {
+  id: string;
+  name: string;
+  avatar?: string;
+  role?: string;
+  color?: string;
+}
 
 // Украинские названия дней и месяцев
 const ukDays = ['неділя', 'понеділок', 'вівторок', 'середа', 'четвер', "п'ятниця", 'субота'];
@@ -120,36 +35,54 @@ const formatDateUk = (date: Date) => {
 export default function CalendarPage() {
   const { open: openSidebar } = useSidebar();
   const { getColorForIndex, settings } = useCalendarSettings();
+  const { user } = useAuth();
   
+  const [masters, setMasters] = useState<Master[]>([]);
+  const [loadingMasters, setLoadingMasters] = useState(true);
+  const [events, setEvents] = useState<BookingEvent[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
+  // Load masters from API
+  useEffect(() => {
+    if (user?.salonId) {
+      loadMasters();
+    }
+  }, [user?.salonId]);
+
+  const loadMasters = async () => {
+    try {
+      const res = await fetch(`/api/masters?salonId=${user?.salonId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setMasters(data);
+      }
+    } catch (error) {
+      console.error('Load masters error:', error);
+    } finally {
+      setLoadingMasters(false);
+    }
+  };
+
   // Create resources with colors from palette
-  const demoResources: Resource[] = useMemo(() => 
-    demoTeamMembers.map((member, idx) => ({
-      ...member,
-      color: getColorForIndex(idx),
+  const resources: Resource[] = useMemo(() => 
+    masters.map((master, idx) => ({
+      id: master.id,
+      title: master.name,
+      avatar: master.avatar,
+      color: master.color || getColorForIndex(idx),
     })),
-    [settings.paletteId] // eslint-disable-line react-hooks/exhaustive-deps
+    [masters, settings.paletteId] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // Create color mapping for resources
   const eventColors: Record<string, string> = useMemo(() => {
     const colors: Record<string, string> = {};
-    demoTeamMembers.forEach((member, idx) => {
-      colors[member.id] = getColorForIndex(idx);
+    masters.forEach((master, idx) => {
+      colors[master.id] = master.color || getColorForIndex(idx);
     });
     return colors;
-  }, [settings.paletteId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const [events, setEvents] = useState<BookingEvent[]>(() => createInitialEvents(getColorForIndex));
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  
-  // Update event colors when palette changes
-  useMemo(() => {
-    setEvents(prev => prev.map(e => ({
-      ...e,
-      backgroundColor: eventColors[e.resourceId || '1'] || getColorForIndex(0),
-    })));
-  }, [settings.paletteId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [masters, settings.paletteId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Навигация по датам
   const goToPrevDay = () => {
@@ -195,7 +128,7 @@ export default function CalendarPage() {
             end, 
             resourceId: resourceId || e.resourceId,
             backgroundColor: eventColors[resourceId || e.resourceId || '1'],
-            masterName: demoResources.find(r => r.id === (resourceId || e.resourceId))?.title,
+            masterName: resources.find(r => r.id === (resourceId || e.resourceId))?.title,
           }
         : e
     ));
@@ -219,7 +152,7 @@ export default function CalendarPage() {
       clientName: booking.clientName,
       clientPhone: booking.clientPhone,
       serviceName: booking.serviceName,
-      masterName: demoResources.find(r => r.id === booking.resourceId)?.title,
+      masterName: resources.find(r => r.id === booking.resourceId)?.title,
       status: 'confirmed',
     };
     setEvents(prev => [...prev, newEvent]);
@@ -318,7 +251,7 @@ export default function CalendarPage() {
             const eventDate = e.start.toDateString();
             return eventDate === selectedDate.toDateString();
           })}
-          resources={demoResources}
+          resources={resources}
           selectedDate={selectedDate}
           onEventClick={handleEventClick}
           onSlotClick={handleSlotClick}
@@ -355,7 +288,7 @@ export default function CalendarPage() {
         onClose={() => setIsNewBookingModalOpen(false)}
         onSave={handleNewBooking}
         slotInfo={selectedSlot}
-        resources={demoResources}
+        resources={resources}
       />
     </div>
   );

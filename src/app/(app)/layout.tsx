@@ -1,14 +1,41 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/sidebar';
 import { Header } from '@/components/header';
 import { MobileNav } from '@/components/mobile-nav';
 import { SidebarProvider, useSidebar } from '@/components/sidebar-context';
 import { CalendarSettingsProvider } from '@/lib/calendar-settings-context';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import { Loader2 } from 'lucide-react';
 
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const { isOpen, close } = useSidebar();
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [loading, user, router]);
+
+  // Show loading while checking auth
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="h-screen flex bg-background overflow-hidden overscroll-none">
@@ -50,17 +77,17 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   );
 }
 
-// TODO: Get salonId from user session
-const DEMO_SALON_ID = 'demo-salon-id';
-
 export default function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { user } = useAuth();
+  const salonId = user?.salonId || 'demo-salon-id';
+
   return (
     <SidebarProvider>
-      <CalendarSettingsProvider salonId={DEMO_SALON_ID}>
+      <CalendarSettingsProvider salonId={salonId}>
         <AppLayoutInner>{children}</AppLayoutInner>
       </CalendarSettingsProvider>
     </SidebarProvider>
