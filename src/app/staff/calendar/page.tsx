@@ -185,6 +185,9 @@ export default function StaffCalendar() {
   }, [staffId]);
 
   const loadWorkingHours = async () => {
+    // Default working hours
+    const defaultHours = { start: 9, end: 21 };
+    
     try {
       const res = await fetch(`/api/staff/profile?masterId=${staffId}`);
       if (res.ok) {
@@ -199,11 +202,15 @@ export default function StaffCalendar() {
             const startHour = parseInt(daySchedule.start.split(':')[0]);
             const endHour = parseInt(daySchedule.end.split(':')[0]);
             setWorkingHours({ start: startHour, end: endHour });
+            return;
           }
         }
       }
+      // Fallback to default
+      setWorkingHours(defaultHours);
     } catch (error) {
       console.error('Load working hours error:', error);
+      setWorkingHours(defaultHours);
     }
   };
 
@@ -502,10 +509,19 @@ export default function StaffCalendar() {
                       <div className={`w-2 h-2 rounded-full mt-1 ${isPastHour ? 'bg-muted-foreground/30' : 'bg-border'}`} />
                     </div>
                     
-                    {/* Booking card or empty */}
-                    <div className="flex-1 pr-4">
+                    {/* Booking card with arrow or empty */}
+                    <div className="flex-1 pr-4 relative">
                       {bookingAtHour && (
-                        <BookingCard booking={bookingAtHour} isPast={isPastHour} isToday={isToday(selectedDate)} />
+                        <>
+                          {/* Arrow from timeline to card */}
+                          <div className="absolute left-0 top-3 flex items-center">
+                            <div className={`w-2 h-0.5 ${isPastHour ? 'bg-muted-foreground/50' : 'bg-primary'}`} />
+                            <div className={`w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent ${isPastHour ? 'border-l-[5px] border-l-muted-foreground/50' : 'border-l-[5px] border-l-primary'}`} />
+                          </div>
+                          <div className="ml-4">
+                            <BookingCard booking={bookingAtHour} isPast={isPastHour} isToday={isToday(selectedDate)} />
+                          </div>
+                        </>
                       )}
                     </div>
                   </div>
@@ -524,10 +540,19 @@ export default function StaffCalendar() {
                       <div className={`w-1 h-1 rounded-full mt-1.5 ${isPast30 ? 'bg-muted-foreground/20' : 'bg-border/50'}`} />
                     </div>
                     
-                    {/* Booking card or empty */}
-                    <div className="flex-1 pr-4">
+                    {/* Booking card with arrow or empty */}
+                    <div className="flex-1 pr-4 relative">
                       {bookingAt30 && (
-                        <BookingCard booking={bookingAt30} isPast={isPast30} isToday={isToday(selectedDate)} />
+                        <>
+                          {/* Arrow from timeline to card */}
+                          <div className="absolute left-0 top-3 flex items-center">
+                            <div className={`w-2 h-0.5 ${isPast30 ? 'bg-muted-foreground/50' : 'bg-primary'}`} />
+                            <div className={`w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent ${isPast30 ? 'border-l-[5px] border-l-muted-foreground/50' : 'border-l-[5px] border-l-primary'}`} />
+                          </div>
+                          <div className="ml-4">
+                            <BookingCard booking={bookingAt30} isPast={isPast30} isToday={isToday(selectedDate)} />
+                          </div>
+                        </>
                       )}
                     </div>
                   </div>
