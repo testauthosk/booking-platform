@@ -595,15 +595,21 @@ export default function StaffCalendar() {
         
       </div>
 
-      {/* Content - scrollable */}
-      <div className="flex-1 pb-4 overflow-y-auto">
+      {/* Content - scrollable with vertical carousel */}
+      <div className="flex-1 overflow-hidden relative">
         {loadingBookings ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ) : showOnlyBookings ? (
-          /* Only bookings mode - simple cards without timeline */
-          <div className="p-4 space-y-3">
+        ) : (
+          <>
+            {/* Bookings list view */}
+            <div 
+              className={`absolute inset-0 pb-4 overflow-y-auto transition-transform duration-500 ease-out ${
+                showOnlyBookings ? 'translate-y-0' : '-translate-y-full'
+              }`}
+            >
+              <div className="p-4 space-y-3">
             {bookings.length > 0 ? (
               bookings
                 .sort((a, b) => a.time.localeCompare(b.time))
@@ -718,10 +724,16 @@ export default function StaffCalendar() {
                 <p className="text-muted-foreground">Немає записів на цей день</p>
               </div>
             )}
-          </div>
-        ) : (
-          /* Full day timeline - new concept */
-          <div className="pt-4">
+              </div>
+            </div>
+            
+            {/* Timeline view */}
+            <div 
+              className={`absolute inset-0 pb-4 overflow-y-auto transition-transform duration-500 ease-out ${
+                showOnlyBookings ? 'translate-y-full' : 'translate-y-0'
+              }`}
+            >
+              <div className="pt-4">
           <div className="relative flex px-4">
             {/* Left: Time labels */}
             <div className="w-12 shrink-0 relative" style={{ height: `${(workingHours.end - workingHours.start + 1) * 120}px` }}>
@@ -905,7 +917,9 @@ export default function StaffCalendar() {
               Кінець роботи. Час додому ❤️
             </p>
           </div>
-          </div>
+              </div>
+            </div>
+          </>
         )}
       </div>
       
