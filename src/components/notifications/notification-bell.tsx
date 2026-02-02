@@ -65,7 +65,6 @@ export function NotificationBell() {
     return () => clearInterval(interval);
   }, [loadNotifications]);
 
-  // Close on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -101,48 +100,48 @@ export function NotificationBell() {
 
   return (
     <div ref={containerRef} className="relative z-50">
-      {/* Bell button - transforms when open to connect with panel */}
+      {/* Bell button */}
       <motion.div
         role="button"
         tabIndex={0}
         onClick={() => setOpen(!open)}
         onKeyDown={(e) => e.key === 'Enter' && setOpen(!open)}
-        animate={{
-          scale: open ? 1 : 1,
-          borderRadius: open ? '12px 12px 0 0' : '50%',
-        }}
-        whileTap={{ scale: 0.95 }}
-        transition={{ duration: 0.2 }}
+        whileTap={{ scale: 0.9 }}
         className={cn(
-          "relative h-10 w-10 flex items-center justify-center cursor-pointer select-none",
+          "relative h-10 w-10 flex items-center justify-center cursor-pointer select-none rounded-full",
           open 
-            ? "bg-card shadow-lg border border-border border-b-0 z-[60]" 
-            : "hover:bg-muted rounded-full"
+            ? "bg-card shadow-md border border-border z-[60]" 
+            : "hover:bg-muted"
         )}
       >
         <Bell className="h-5 w-5 text-foreground pointer-events-none" />
         {unreadCount > 0 && (
-          <motion.span 
-            animate={{ top: open ? 4 : 0, right: open ? 4 : 0 }}
-            transition={{ duration: 0.2 }}
-            className="absolute h-4 w-4 bg-destructive rounded-full text-[10px] text-white font-medium flex items-center justify-center pointer-events-none"
-          >
+          <span className="absolute top-0 right-0 h-4 w-4 bg-destructive rounded-full text-[10px] text-white font-medium flex items-center justify-center pointer-events-none">
             {unreadCount > 9 ? '9+' : unreadCount}
-          </motion.span>
+          </span>
         )}
       </motion.div>
 
-      {/* Notification panel - connects to button */}
+      {/* Notification panel */}
       <AnimatePresence>
         {open && (
           <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="absolute right-0 top-10 w-80 bg-card border border-border border-t-0 rounded-b-xl rounded-tl-xl shadow-lg overflow-hidden z-50"
-            style={{ originY: 0 }}
+            initial={{ opacity: 0, y: -8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="absolute right-0 top-11 w-80 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-50"
+            style={{ 
+              borderTopRightRadius: '20px',
+              marginTop: '2px'
+            }}
           >
+            {/* Connector - визуальное соединение с кнопкой */}
+            <div 
+              className="absolute -top-[3px] right-[15px] w-[10px] h-[6px] bg-card z-10"
+              style={{ borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}
+            />
+            
             {/* Header */}
             <div className="flex items-center justify-between p-3 border-b border-border">
               <h3 className="font-semibold text-foreground">Сповіщення</h3>
