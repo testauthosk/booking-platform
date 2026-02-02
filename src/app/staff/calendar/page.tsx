@@ -109,6 +109,7 @@ export default function StaffCalendar() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
   const [salonId, setSalonId] = useState('');
+  const [workingHours, setWorkingHours] = useState<{ start: number; end: number }>({ start: 8, end: 21 });
   
   // Add booking modal
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -126,11 +127,16 @@ export default function StaffCalendar() {
   const [timePickerOpen, setTimePickerOpen] = useState(false);
   const [durationPickerOpen, setDurationPickerOpen] = useState(false);
   
-  const timeOptions = Array.from({ length: 28 }, (_, i) => {
-    const hour = 8 + Math.floor(i / 2);
-    const min = i % 2 === 0 ? '00' : '30';
-    return `${hour.toString().padStart(2, '0')}:${min}`;
-  });
+  // Time options will be generated based on working hours
+  const getTimeOptions = () => {
+    const slots = (workingHours.end - workingHours.start + 1) * 2;
+    return Array.from({ length: slots }, (_, i) => {
+      const hour = workingHours.start + Math.floor(i / 2);
+      const min = i % 2 === 0 ? '00' : '30';
+      return `${hour.toString().padStart(2, '0')}:${min}`;
+    });
+  };
+  const timeOptions = getTimeOptions();
   
   const durationOptions = [
     { value: '15', label: '15 хв' },
@@ -166,14 +172,39 @@ export default function StaffCalendar() {
   useEffect(() => {
     if (staffId && selectedDate) {
       loadBookings();
+      loadWorkingHours();
     }
   }, [staffId, selectedDate]);
 
   useEffect(() => {
     if (staffId) {
       loadServices();
+      loadWorkingHours();
     }
   }, [staffId]);
+
+  const loadWorkingHours = async () => {
+    try {
+      const res = await fetch(`/api/staff/profile?masterId=${staffId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.workingHours) {
+          // Get day of week for selected date (0=Sun, 1=Mon, etc)
+          const dayOfWeek = selectedDate.getDay();
+          const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+          const daySchedule = data.workingHours[dayNames[dayOfWeek]];
+          
+          if (daySchedule && daySchedule.enabled && daySchedule.start && daySchedule.end) {
+            const startHour = parseInt(daySchedule.start.split(':')[0]);
+            const endHour = parseInt(daySchedule.end.split(':')[0]);
+            setWorkingHours({ start: startHour, end: endHour });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Load working hours error:', error);
+    }
+  };
 
   const loadServices = async () => {
     try {
@@ -374,9 +405,9 @@ export default function StaffCalendar() {
             {/* Vertical timeline line */}
             <div className="absolute left-[52px] top-0 bottom-0 w-px bg-border" />
             
-            {/* Hour slots from 8:00 to 21:00 */}
-            {Array.from({ length: 14 }, (_, i) => {
-              const hour = 8 + i;
+            {/* Hour slots based on working hours */}
+            {Array.from({ length: workingHours.end - workingHours.start + 1 }, (_, i) => {
+              const hour = workingHours.start + i;
               const timeStr = `${hour.toString().padStart(2, '0')}:00`;
               const time30 = `${hour.toString().padStart(2, '0')}:30`;
               
