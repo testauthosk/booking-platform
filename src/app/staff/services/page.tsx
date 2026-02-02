@@ -371,14 +371,14 @@ export default function StaffServices() {
       )}
 
       {/* Add Service Modal */}
-      {addModalOpen && (
-        <div 
-          className="fixed inset-0 bg-white/20 backdrop-blur-sm z-40"
-          onClick={() => setAddModalOpen(false)}
-        />
-      )}
       <div 
-        className={`fixed inset-x-0 bottom-0 max-h-[85vh] bg-card rounded-t-3xl shadow-xl z-50 transform transition-transform duration-500 ease-out overflow-hidden flex flex-col ${
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-all duration-700 ease-in-out ${
+          addModalOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setAddModalOpen(false)}
+      />
+      <div 
+        className={`fixed inset-x-0 bottom-0 max-h-[85vh] bg-card rounded-t-3xl shadow-xl z-50 transform transition-all duration-700 ease-in-out overflow-hidden flex flex-col ${
           addModalOpen ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
