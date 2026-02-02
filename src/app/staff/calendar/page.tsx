@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ChevronLeft, Plus, Loader2, Clock, User, X, Check } from 'lucide-react';
+import { ChevronLeft, Plus, Loader2, Clock, User, X, Check, Pencil } from 'lucide-react';
 
 interface Booking {
   id: string;
@@ -637,7 +637,7 @@ export default function StaffCalendar() {
                 return (
                   <div 
                     key={booking.id}
-                    className={`absolute -left-1 right-4 border border-l-0 rounded-r-xl overflow-hidden ${
+                    className={`absolute -left-2 right-4 border border-l-0 rounded-r-xl overflow-hidden ${
                       booking.status === 'COMPLETED' 
                         ? 'border-green-300 bg-green-50' 
                         : isBlocked
@@ -658,13 +658,6 @@ export default function StaffCalendar() {
                           <p className="text-xs text-muted-foreground">{booking.serviceName}</p>
                         </div>
                         
-                        {/* Delete button - top right, bigger */}
-                        {!isPast && booking.status !== 'COMPLETED' && (
-                          <button className="h-8 w-8 rounded-lg text-red-500 hover:bg-red-50 flex items-center justify-center text-lg">
-                            ✕
-                          </button>
-                        )}
-                        
                         {booking.status === 'COMPLETED' && (
                           <span className="text-xs bg-green-200 text-green-700 px-2 py-0.5 rounded-full">✓</span>
                         )}
@@ -672,22 +665,26 @@ export default function StaffCalendar() {
                       
                       {!isBlocked && (
                         <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                          <span>{booking.duration} хв (h:{height}px)</span>
+                          <span>{booking.duration} хв</span>
                           {booking.price !== undefined && booking.price > 0 && (
                             <span className="font-medium text-foreground">{booking.price} ₴</span>
                           )}
                         </div>
                       )}
                       
+                      {/* Action icons */}
                       {!isPast && booking.status !== 'COMPLETED' && (
                         <div className="flex gap-2 mt-3">
                           {!isBlocked && (
-                            <button className="flex-1 py-2 rounded-lg bg-green-100 text-green-700 text-sm font-medium">
-                              Завершити
+                            <button className="h-10 w-10 rounded-xl bg-green-50 border border-green-200 text-green-600 hover:bg-green-100 flex items-center justify-center transition-colors">
+                              <Check className="h-5 w-5" />
                             </button>
                           )}
-                          <button className="flex-1 py-2 rounded-lg bg-white text-zinc-600 text-sm font-medium border border-zinc-200">
-                            Редагувати
+                          <button className="h-10 w-10 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-600 hover:bg-zinc-100 flex items-center justify-center transition-colors">
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button className="h-10 w-10 rounded-xl bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 flex items-center justify-center transition-colors">
+                            <X className="h-5 w-5" />
                           </button>
                         </div>
                       )}
