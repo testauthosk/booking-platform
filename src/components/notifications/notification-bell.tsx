@@ -1,18 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import * as PopoverPrimitive from '@radix-ui/react-popover';
-import { Bell, Check, Calendar, User, FileText, Loader2 } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Bell, Check, Calendar, User, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const DEMO_SALON_ID = 'demo-salon-id';
-const POLL_INTERVAL = 30000; // 30 секунд
+const POLL_INTERVAL = 30000;
 
 interface Notification {
   id: string;
@@ -47,6 +40,7 @@ export function NotificationBell() {
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const loadNotifications = useCallback(async () => {
     try {
@@ -61,18 +55,29 @@ export function NotificationBell() {
     }
   }, []);
 
-  // Initial load
   useEffect(() => {
     loadNotifications();
   }, [loadNotifications]);
 
-  // Polling
   useEffect(() => {
     const interval = setInterval(loadNotifications, POLL_INTERVAL);
     return () => clearInterval(interval);
   }, [loadNotifications]);
 
-  // Mark all as read
+  // Close on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [open]);
+
   const markAllRead = async () => {
     if (unreadCount === 0) return;
     
@@ -93,40 +98,71 @@ export function NotificationBell() {
     }
   };
 
+  const toggleOpen = () => {
+    setOpen(prev => !prev);
+  };
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-9 w-9 relative">
-          <Bell className="h-5 w-5" />
+    <div ref={containerRef} className="relative z-50">
+      {/* Bell button container - merges with panel when open */}
+      <div
+        className={cn(
+          "relative transition-all duration-300 ease-out",
+          open && "z-[60]"
+        )}
+      >
+        {/* Bell circle button */}
+        <button
+          onClick={toggleOpen}
+          type="button"
+          className={cn(
+            "relative h-10 w-10 flex items-center justify-center transition-all duration-300 ease-out cursor-pointer",
+            "hover:bg-muted",
+            open 
+              ? "bg-card rounded-t-xl rounded-b-none shadow-lg border border-border border-b-0" 
+              : "rounded-full"
+          )}
+        >
+          <Bell className="h-5 w-5 text-foreground" />
           {unreadCount > 0 && (
-            <span className="absolute top-1 right-1 h-4 w-4 bg-red-500 rounded-full text-[10px] text-white font-medium flex items-center justify-center">
+            <span className={cn(
+              "absolute h-4 w-4 bg-destructive rounded-full text-[10px] text-white font-medium flex items-center justify-center transition-all duration-300",
+              open ? "top-1 right-1" : "top-0 right-0"
+            )}>
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end" sideOffset={8}>
-        <PopoverPrimitive.Arrow className="fill-white" width={12} height={6} />
+        </button>
+      </div>
+
+      {/* Notification panel - flows from button */}
+      <div
+        className={cn(
+          "absolute right-0 top-10 w-80 origin-top transition-all duration-300 ease-out z-50",
+          "bg-card border border-border border-t-0 rounded-b-xl rounded-tl-xl shadow-lg overflow-hidden",
+          open 
+            ? "opacity-100 scale-y-100 translate-y-0" 
+            : "opacity-0 scale-y-0 -translate-y-2 pointer-events-none"
+        )}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b">
-          <h3 className="font-semibold">Сповіщення</h3>
+        <div className="flex items-center justify-between p-3 border-b border-border">
+          <h3 className="font-semibold text-foreground">Сповіщення</h3>
           {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs h-7"
+            <button
               onClick={markAllRead}
               disabled={loading}
+              className="text-xs h-7 px-2 rounded-md hover:bg-muted transition-colors flex items-center gap-1 text-muted-foreground hover:text-foreground cursor-pointer disabled:opacity-50"
             >
               {loading ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
               ) : (
                 <>
-                  <Check className="h-3 w-3 mr-1" />
+                  <Check className="h-3 w-3" />
                   Прочитати всі
                 </>
               )}
-            </Button>
+            </button>
           )}
         </div>
 
@@ -145,20 +181,22 @@ export function NotificationBell() {
                 <div
                   key={notification.id}
                   className={cn(
-                    "p-3 border-b last:border-b-0 hover:bg-muted/50 cursor-pointer transition-colors",
-                    !notification.isRead && "bg-blue-50/50"
+                    "p-3 border-b border-border last:border-b-0 hover:bg-muted/50 cursor-pointer transition-colors",
+                    !notification.isRead && "bg-primary/5"
                   )}
                 >
                   <div className="flex gap-3">
                     <div className={cn(
                       "h-8 w-8 rounded-full flex items-center justify-center shrink-0",
-                      !notification.isRead ? "bg-blue-100 text-blue-600" : "bg-muted text-muted-foreground"
+                      !notification.isRead 
+                        ? "bg-primary/10 text-primary" 
+                        : "bg-muted text-muted-foreground"
                     )}>
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className={cn(
-                        "text-sm",
+                        "text-sm text-foreground",
                         !notification.isRead && "font-medium"
                       )}>
                         {notification.title}
@@ -171,7 +209,7 @@ export function NotificationBell() {
                       </p>
                     </div>
                     {!notification.isRead && (
-                      <div className="h-2 w-2 rounded-full bg-blue-500 shrink-0 mt-1" />
+                      <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1" />
                     )}
                   </div>
                 </div>
@@ -179,7 +217,7 @@ export function NotificationBell() {
             })
           )}
         </div>
-      </PopoverContent>
-    </Popover>
+      </div>
+    </div>
   );
 }
