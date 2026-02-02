@@ -878,3 +878,34 @@ button,
   transform: translateY(-4px);
   pointer-events: none;
 }
+
+/* Notification panel animations */
+@keyframes notificationSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes notificationSlideUp {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+}
+
+.notification-panel-enter {
+  animation: notificationSlideDown 0.25s ease-out forwards;
+}
+
+.notification-panel-exit {
+  animation: notificationSlideUp 0.2s ease-out forwards;
+}

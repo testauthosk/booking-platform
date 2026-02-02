@@ -37,7 +37,8 @@ function formatTime(dateStr: string) {
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const [animationClass, setAnimationClass] = useState('');
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -69,7 +70,7 @@ export function NotificationBell() {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        handleClose();
+        closePanel();
       }
     };
     
@@ -79,21 +80,25 @@ export function NotificationBell() {
     }
   }, [open]);
 
-  const handleOpen = () => {
+  const openPanel = () => {
     setOpen(true);
-    setIsAnimating(true);
+    setVisible(true);
+    setAnimationClass('notification-panel-enter');
   };
 
-  const handleClose = () => {
-    setIsAnimating(false);
-    setTimeout(() => setOpen(false), 200);
+  const closePanel = () => {
+    setAnimationClass('notification-panel-exit');
+    setTimeout(() => {
+      setOpen(false);
+      setVisible(false);
+    }, 200);
   };
 
-  const toggleOpen = () => {
+  const togglePanel = () => {
     if (open) {
-      handleClose();
+      closePanel();
     } else {
-      handleOpen();
+      openPanel();
     }
   };
 
@@ -119,41 +124,12 @@ export function NotificationBell() {
 
   return (
     <div ref={containerRef} className="relative">
-      <style jsx>{`
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-8px) scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-        @keyframes slideUp {
-          from {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-          to {
-            opacity: 0;
-            transform: translateY(-8px) scale(0.95);
-          }
-        }
-        .notification-panel-open {
-          animation: slideDown 0.2s ease-out forwards;
-        }
-        .notification-panel-close {
-          animation: slideUp 0.2s ease-out forwards;
-        }
-      `}</style>
-
       {/* Bell button */}
       <div
         role="button"
         tabIndex={0}
-        onClick={toggleOpen}
-        onKeyDown={(e) => e.key === 'Enter' && toggleOpen()}
+        onClick={togglePanel}
+        onKeyDown={(e) => e.key === 'Enter' && togglePanel()}
         className="relative h-10 w-10 flex items-center justify-center cursor-pointer select-none rounded-full hover:bg-muted active:scale-95 transition-transform duration-150"
       >
         <Bell className="h-5 w-5 text-foreground pointer-events-none" />
@@ -165,11 +141,11 @@ export function NotificationBell() {
       </div>
 
       {/* Notification panel */}
-      {open && (
+      {(open || visible) && (
         <div 
           className={cn(
             "absolute right-0 top-12 w-80 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-50",
-            isAnimating ? "notification-panel-open" : "notification-panel-close"
+            animationClass
           )}
         >
           {/* Header */}
