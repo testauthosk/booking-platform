@@ -637,7 +637,7 @@ export default function StaffCalendar() {
                 return (
                   <div 
                     key={booking.id}
-                    className={`absolute left-0 right-4 border border-l-0 rounded-r-xl overflow-hidden ${
+                    className={`absolute -left-1 right-4 border border-l-0 rounded-r-xl overflow-hidden ${
                       booking.status === 'COMPLETED' 
                         ? 'border-green-300 bg-green-50' 
                         : isBlocked
@@ -648,15 +648,23 @@ export default function StaffCalendar() {
                     }`}
                     style={{ 
                       top: `${topPosition}px`, 
-                      height: `${Math.max(height, 80)}px`
+                      height: `${Math.max(height, 100)}px`
                     }}
                   >
-                    <div className="p-3">
+                    <div className="p-3 pb-4">
                       <div className="flex items-start justify-between">
-                        <div>
+                        <div className="flex-1">
                           <p className="font-semibold text-sm">{booking.clientName}</p>
                           <p className="text-xs text-muted-foreground">{booking.serviceName}</p>
                         </div>
+                        
+                        {/* Delete button - top right, bigger */}
+                        {!isPast && booking.status !== 'COMPLETED' && (
+                          <button className="h-8 w-8 rounded-lg text-red-500 hover:bg-red-50 flex items-center justify-center text-lg">
+                            ✕
+                          </button>
+                        )}
+                        
                         {booking.status === 'COMPLETED' && (
                           <span className="text-xs bg-green-200 text-green-700 px-2 py-0.5 rounded-full">✓</span>
                         )}
@@ -672,16 +680,15 @@ export default function StaffCalendar() {
                       )}
                       
                       {!isPast && booking.status !== 'COMPLETED' && (
-                        <div className="flex gap-1.5 mt-2">
+                        <div className="flex gap-2 mt-3">
                           {!isBlocked && (
-                            <button className="flex-1 py-1.5 rounded-lg bg-green-100 text-green-700 text-xs font-medium">
+                            <button className="flex-1 py-2 rounded-lg bg-green-100 text-green-700 text-sm font-medium">
                               Завершити
                             </button>
                           )}
-                          <button className="flex-1 py-1.5 rounded-lg bg-white text-zinc-600 text-xs font-medium border border-zinc-200">
+                          <button className="flex-1 py-2 rounded-lg bg-white text-zinc-600 text-sm font-medium border border-zinc-200">
                             Редагувати
                           </button>
-                          <button className="py-1.5 px-2 text-red-500 text-xs">✕</button>
                         </div>
                       )}
                     </div>
