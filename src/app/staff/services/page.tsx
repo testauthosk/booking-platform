@@ -43,6 +43,19 @@ export default function StaffServices() {
   const [newServiceCategory, setNewServiceCategory] = useState('');
   const [creatingService, setCreatingService] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<Service | null>(null);
+  const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
+  const [durationPickerOpen, setDurationPickerOpen] = useState(false);
+  
+  const durationOptions = [
+    { value: '15', label: '15 хв' },
+    { value: '30', label: '30 хв' },
+    { value: '45', label: '45 хв' },
+    { value: '60', label: '1 год' },
+    { value: '90', label: '1 год 30 хв' },
+    { value: '120', label: '2 год' },
+    { value: '150', label: '2 год 30 хв' },
+    { value: '180', label: '3 год' },
+  ];
 
   useEffect(() => {
     const token = localStorage.getItem('staffToken');
@@ -395,23 +408,20 @@ export default function StaffServices() {
           {/* Category */}
           <div>
             <label className="text-sm font-medium mb-1.5 block">Категорія</label>
-            <div className="relative">
-              <select
-                value={newServiceCategory}
-                onChange={(e) => setNewServiceCategory(e.target.value)}
-                className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              >
-                <option value="">Без категорії</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
-                ))}
-              </select>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={() => setCategoryPickerOpen(true)}
+              className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
+            >
+              <span className={newServiceCategory ? '' : 'text-muted-foreground'}>
+                {newServiceCategory 
+                  ? categories.find(c => c.id === newServiceCategory)?.name || 'Без категорії'
+                  : 'Без категорії'}
+              </span>
+              <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
             {categories.length === 0 && (
               <p className="text-xs text-muted-foreground mt-1">
                 Категорії створює адміністратор
@@ -421,28 +431,19 @@ export default function StaffServices() {
 
           {/* Duration */}
           <div>
-            <label className="text-sm font-medium mb-1.5 block">Тривалість (хв)</label>
-            <div className="relative">
-              <select
-                value={newServiceDuration}
-                onChange={(e) => setNewServiceDuration(e.target.value)}
-                className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              >
-                <option value="15">15 хв</option>
-                <option value="30">30 хв</option>
-                <option value="45">45 хв</option>
-                <option value="60">1 год</option>
-                <option value="90">1 год 30 хв</option>
-                <option value="120">2 год</option>
-                <option value="150">2 год 30 хв</option>
-                <option value="180">3 год</option>
-              </select>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
+            <label className="text-sm font-medium mb-1.5 block">Тривалість</label>
+            <button
+              type="button"
+              onClick={() => setDurationPickerOpen(true)}
+              className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
+            >
+              <span>
+                {durationOptions.find(d => d.value === newServiceDuration)?.label || '30 хв'}
+              </span>
+              <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
           </div>
 
           {/* Price */}
@@ -474,6 +475,92 @@ export default function StaffServices() {
             )}
           </button>
         </div>
+      </div>
+
+      {/* Category Picker Bottom Sheet */}
+      {categoryPickerOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-[60]"
+          onClick={() => setCategoryPickerOpen(false)}
+        />
+      )}
+      <div 
+        className={`fixed inset-x-0 bottom-0 bg-zinc-800 rounded-t-2xl z-[70] transform transition-transform duration-300 ${
+          categoryPickerOpen ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="p-2">
+          <button
+            onClick={() => {
+              setNewServiceCategory('');
+              setCategoryPickerOpen(false);
+            }}
+            className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
+              !newServiceCategory ? 'text-white' : 'text-zinc-300'
+            }`}
+          >
+            {!newServiceCategory && <Check className="h-5 w-5" />}
+            <span className={!newServiceCategory ? '' : 'ml-8'}>Без категорії</span>
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => {
+                setNewServiceCategory(cat.id);
+                setCategoryPickerOpen(false);
+              }}
+              className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
+                newServiceCategory === cat.id ? 'text-white' : 'text-zinc-300'
+              }`}
+            >
+              {newServiceCategory === cat.id && <Check className="h-5 w-5" />}
+              <span className={newServiceCategory === cat.id ? '' : 'ml-8'}>{cat.name}</span>
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setCategoryPickerOpen(false)}
+          className="w-full py-4 text-center text-zinc-400 border-t border-zinc-700"
+        >
+          <X className="h-5 w-5 mx-auto" />
+        </button>
+      </div>
+
+      {/* Duration Picker Bottom Sheet */}
+      {durationPickerOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-[60]"
+          onClick={() => setDurationPickerOpen(false)}
+        />
+      )}
+      <div 
+        className={`fixed inset-x-0 bottom-0 bg-zinc-800 rounded-t-2xl z-[70] transform transition-transform duration-300 ${
+          durationPickerOpen ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="p-2 max-h-[50vh] overflow-y-auto">
+          {durationOptions.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => {
+                setNewServiceDuration(opt.value);
+                setDurationPickerOpen(false);
+              }}
+              className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
+                newServiceDuration === opt.value ? 'text-white' : 'text-zinc-300'
+              }`}
+            >
+              {newServiceDuration === opt.value && <Check className="h-5 w-5" />}
+              <span className={newServiceDuration === opt.value ? '' : 'ml-8'}>{opt.label}</span>
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setDurationPickerOpen(false)}
+          className="w-full py-4 text-center text-zinc-400 border-t border-zinc-700"
+        >
+          <X className="h-5 w-5 mx-auto" />
+        </button>
       </div>
     </div>
   );
