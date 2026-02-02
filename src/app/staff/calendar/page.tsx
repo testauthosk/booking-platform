@@ -615,20 +615,22 @@ export default function StaffCalendar() {
                         )}
                         
                         {/* Action buttons */}
-                        {booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && (
-                          <div className="flex items-center gap-1.5 mt-3">
-                            <button className="flex-1 h-8 rounded-lg bg-green-500 text-white text-xs font-medium hover:bg-green-600 transition-colors flex items-center justify-center gap-1">
-                              <Check className="h-3.5 w-3.5" /> Готово
+                        {!isPast && booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && (
+                          <div className="flex flex-col gap-1 mt-3">
+                            <button className="w-full h-9 rounded-lg bg-green-500 text-white text-sm font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+                              <Check className="h-4 w-4" /> Готово
                             </button>
-                            <button className="h-8 w-8 rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors flex items-center justify-center">
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                            <button className="h-8 w-8 rounded-lg bg-orange-50 text-orange-500 hover:bg-orange-100 transition-colors flex items-center justify-center" title="Не прийшов">
-                              <Clock className="h-3.5 w-3.5" />
-                            </button>
-                            <button className="h-8 w-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-500 transition-colors flex items-center justify-center">
-                              <X className="h-3.5 w-3.5" />
-                            </button>
+                            <div className="flex gap-1">
+                              <button className="flex-1 h-8 rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors flex items-center justify-center">
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                              <button className="flex-1 h-8 rounded-lg bg-orange-50 text-orange-500 hover:bg-orange-100 transition-colors flex items-center justify-center" title="Не прийшов">
+                                <Clock className="h-4 w-4" />
+                              </button>
+                              <button className="flex-1 h-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-500 transition-colors flex items-center justify-center">
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -765,20 +767,22 @@ export default function StaffCalendar() {
                     </div>
                     
                     {/* Action buttons - absolute bottom */}
-                    {booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && (
-                      <div className="absolute bottom-2 left-3 right-3 flex items-center gap-2">
-                        <button className="flex-1 h-9 rounded-lg bg-green-500 text-white text-sm font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+                    {!isPast && booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && (
+                      <div className="absolute bottom-2 left-3 right-3 flex flex-col gap-1">
+                        <button className="w-full h-9 rounded-lg bg-green-500 text-white text-sm font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-1.5 shadow-sm">
                           <Check className="h-4 w-4" /> Готово
                         </button>
-                        <button className="h-9 w-9 rounded-lg bg-white text-zinc-600 hover:bg-zinc-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm">
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button className="h-9 w-9 rounded-lg bg-white text-orange-500 hover:bg-orange-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm" title="Не прийшов">
-                          <Clock className="h-4 w-4" />
-                        </button>
-                        <button className="h-9 w-9 rounded-lg bg-white text-red-400 hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm">
-                          <X className="h-4 w-4" />
-                        </button>
+                        <div className="flex gap-1">
+                          <button className="flex-1 h-8 rounded-lg bg-white text-zinc-600 hover:bg-zinc-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm">
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button className="flex-1 h-8 rounded-lg bg-white text-orange-500 hover:bg-orange-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm" title="Не прийшов">
+                            <Clock className="h-4 w-4" />
+                          </button>
+                          <button className="flex-1 h-8 rounded-lg bg-white text-red-400 hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm">
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
