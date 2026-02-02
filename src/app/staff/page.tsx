@@ -372,9 +372,9 @@ export default function StaffDashboard() {
             onClick={() => router.push('/staff/calendar')}
           >
             <div className="flex items-center gap-3">
-              <div className="h-11 w-11 rounded-xl bg-primary flex flex-col items-center justify-center shrink-0 text-primary-foreground">
+              <div className="h-11 w-11 rounded-xl border border-border flex flex-col items-center justify-center shrink-0">
                 <span className="text-lg font-bold leading-none">{new Date().getDate()}</span>
-                <span className="text-[8px] font-medium uppercase opacity-80">
+                <span className="text-[8px] font-medium uppercase text-muted-foreground">
                   {new Date().toLocaleDateString('uk-UA', { month: 'short' }).replace('.', '')}
                 </span>
               </div>
@@ -390,8 +390,8 @@ export default function StaffDashboard() {
             onClick={() => router.push('/staff/services')}
           >
             <div className="flex items-center gap-3">
-              <div className="h-11 w-11 rounded-xl bg-primary flex items-center justify-center shrink-0">
-                <Tag className="h-5 w-5 text-primary-foreground" />
+              <div className="h-11 w-11 rounded-xl border border-border flex items-center justify-center shrink-0">
+                <Tag className="h-5 w-5 text-muted-foreground" />
               </div>
               <div>
                 <p className="font-medium text-sm">Послуги</p>
