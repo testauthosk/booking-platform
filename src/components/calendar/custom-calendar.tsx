@@ -184,7 +184,7 @@ export function CustomCalendar({
         <div className="flex relative" style={{ minWidth: timeColWidth + resources.length * colMinWidth }}>
           {/* Time column */}
           <div 
-            className="flex-shrink-0 sticky left-0 z-10 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 relative"
+            className="flex-shrink-0 sticky left-0 z-30 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 relative"
             style={{ width: timeColWidth }}
           >
             {timeSlots.map((time, idx) => (
