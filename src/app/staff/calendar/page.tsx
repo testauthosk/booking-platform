@@ -605,7 +605,7 @@ export default function StaffCalendar() {
           <>
             {/* Bookings list view */}
             <div 
-              className={`absolute inset-0 pb-4 overflow-y-auto bg-background transition-transform duration-500 ease-out ${
+              className={`absolute inset-0 pb-4 overflow-y-auto bg-background transition-transform duration-700 ease-in-out ${
                 showOnlyBookings ? 'translate-y-0 z-10' : '-translate-y-full z-0'
               }`}
             >
