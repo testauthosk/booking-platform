@@ -65,6 +65,10 @@ export default function TeamPage() {
   
   // Profile panel
   const [profileOpen, setProfileOpen] = useState(false);
+  
+  // Master profile
+  const [selectedMaster, setSelectedMaster] = useState<Master | null>(null);
+  const [deletingMaster, setDeletingMaster] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -197,6 +201,27 @@ export default function TeamPage() {
     }
   };
 
+  const handleDeleteMaster = async (masterId: string) => {
+    if (!confirm('Ви впевнені, що хочете видалити цього майстра?')) return;
+    
+    setDeletingMaster(true);
+    try {
+      const res = await fetch(`/api/masters/${masterId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setSelectedMaster(null);
+        loadData();
+        showToast('Майстра видалено');
+      } else {
+        showToast('Помилка при видаленні', true);
+      }
+    } catch (error) {
+      console.error('Delete master error:', error);
+      showToast('Помилка при видаленні', true);
+    } finally {
+      setDeletingMaster(false);
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('uk-UA', {
       day: 'numeric',
@@ -285,6 +310,7 @@ export default function TeamPage() {
               <Card 
                 key={master.id} 
                 className="p-4 transition-all hover:shadow-md cursor-pointer"
+                onClick={() => setSelectedMaster(master)}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
@@ -296,9 +322,7 @@ export default function TeamPage() {
                       <p className="text-sm text-muted-foreground">{master.role || 'Майстер'}</p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
                 </div>
               </Card>
             ))}
@@ -588,17 +612,111 @@ export default function TeamPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Master Profile Panel Overlay */}
+      {selectedMaster && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-500"
+          onClick={() => setSelectedMaster(null)}
+        />
+      )}
+
+      {/* Master Profile Panel */}
+      <div 
+        className={`fixed top-0 right-0 h-full w-80 bg-card border-l border-border shadow-xl z-50 transform transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+          selectedMaster ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        {selectedMaster && (
+          <div className="flex flex-col h-full">
+            {/* Header */}
+            <div className="p-4 border-b border-border flex items-center justify-between">
+              <h2 className="font-semibold">Профіль майстра</h2>
+              <button 
+                onClick={() => setSelectedMaster(null)}
+                className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Master Info */}
+            <div className="p-4 border-b border-border">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-16 w-16 rounded-xl bg-orange-500 flex items-center justify-center text-white text-2xl font-semibold">
+                  {selectedMaster.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-lg font-semibold">{selectedMaster.name}</p>
+                  <p className="text-sm text-muted-foreground">{selectedMaster.role || 'Майстер'}</p>
+                </div>
+              </div>
+              {selectedMaster.email && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Mail className="h-4 w-4" />
+                  <span>{selectedMaster.email}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Stats */}
+            <div className="p-4 border-b border-border">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Статистика</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-xl bg-muted/50">
+                  <p className="text-xs text-muted-foreground mb-1">Записи сьогодні</p>
+                  <p className="text-xl font-bold">5</p>
+                </div>
+                <div className="p-3 rounded-xl bg-muted/50">
+                  <p className="text-xs text-muted-foreground mb-1">Всього клієнтів</p>
+                  <p className="text-xl font-bold">48</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex-1 p-4">
+              <div className="space-y-1">
+                <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted transition-colors text-left">
+                  <CalendarDays className="h-5 w-5 text-muted-foreground" />
+                  <span>Розклад</span>
+                </button>
+                <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted transition-colors text-left">
+                  <Settings className="h-5 w-5 text-muted-foreground" />
+                  <span>Налаштування</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Delete */}
+            <div className="p-4 border-t border-border">
+              <button 
+                onClick={() => handleDeleteMaster(selectedMaster.id)}
+                disabled={deletingMaster}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 transition-colors"
+              >
+                {deletingMaster ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                <span>Видалити майстра</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Profile Panel Overlay */}
       {profileOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-300"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-500"
           onClick={() => setProfileOpen(false)}
         />
       )}
 
       {/* Profile Panel */}
       <div 
-        className={`fixed top-0 right-0 h-full w-80 bg-card border-l border-border shadow-xl z-50 transform transition-transform duration-300 ease-out ${
+        className={`fixed top-0 right-0 h-full w-80 bg-card border-l border-border shadow-xl z-50 transform transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
           profileOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
