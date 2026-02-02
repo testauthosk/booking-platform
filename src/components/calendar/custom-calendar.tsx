@@ -148,7 +148,7 @@ export function CustomCalendar({
                   style={{ minWidth: colMinWidth, flex: 1, height: headerHeight }}
                 >
                   <div 
-                    className="w-11 h-11 rounded-full flex items-center justify-center overflow-hidden shadow-lg ring-2 ring-white/60"
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden shadow-lg ring-2 ring-white/60"
                     style={{ backgroundColor: resource.color || '#9ca3af' }}
                   >
                     {resource.avatar ? (
