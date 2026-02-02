@@ -60,6 +60,16 @@ export default function StaffDashboard() {
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [timePickerOpen, setTimePickerOpen] = useState(false);
   
+  // Block time (вільний запис)
+  const [blockTimeOpen, setBlockTimeOpen] = useState(false);
+  const [blockDate, setBlockDate] = useState(new Date());
+  const [blockTimeStart, setBlockTimeStart] = useState('10:00');
+  const [blockTimeEnd, setBlockTimeEnd] = useState('11:00');
+  const [blockDatePickerOpen, setBlockDatePickerOpen] = useState(false);
+  const [blockStartPickerOpen, setBlockStartPickerOpen] = useState(false);
+  const [blockEndPickerOpen, setBlockEndPickerOpen] = useState(false);
+  const [savingBlock, setSavingBlock] = useState(false);
+  
   const timeOptions = Array.from({ length: 28 }, (_, i) => {
     const hour = 8 + Math.floor(i / 2);
     const min = i % 2 === 0 ? '00' : '30';
@@ -146,6 +156,50 @@ export default function StaffDashboard() {
     if (date.toDateString() === today.toDateString()) return 'Сьогодні';
     if (date.toDateString() === tomorrow.toDateString()) return 'Завтра';
     return `${date.getDate()} ${MONTHS_UA[date.getMonth()]}`;
+  };
+  
+  const openBlockTime = () => {
+    setBlockDate(new Date());
+    setBlockTimeStart('10:00');
+    setBlockTimeEnd('11:00');
+    setBlockTimeOpen(true);
+  };
+  
+  const createBlockTime = async () => {
+    setSavingBlock(true);
+    try {
+      const dateStr = blockDate.toISOString().split('T')[0];
+      
+      // Calculate duration
+      const [startH, startM] = blockTimeStart.split(':').map(Number);
+      const [endH, endM] = blockTimeEnd.split(':').map(Number);
+      const duration = (endH * 60 + endM) - (startH * 60 + startM);
+      
+      const res = await fetch('/api/staff/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          masterId: staffId,
+          salonId,
+          clientName: 'Зайнято',
+          clientPhone: '-',
+          serviceName: 'Вільний запис',
+          date: dateStr,
+          time: blockTimeStart,
+          duration: duration,
+          price: 0
+        })
+      });
+      
+      if (res.ok) {
+        setBlockTimeOpen(false);
+        loadStats();
+      }
+    } catch (error) {
+      console.error('Create block error:', error);
+    } finally {
+      setSavingBlock(false);
+    }
   };
   
   const formatPhoneNumber = (value: string) => {
@@ -274,27 +328,19 @@ export default function StaffDashboard() {
           </p>
         </div>
 
-        {/* Next booking highlight */}
+        {/* Next booking - compact */}
         {stats?.nextBooking && (
-          <Card className="p-4 bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-orange-600 uppercase tracking-wider">Наступний запис</span>
-              {getTimeUntil(stats.nextBooking.time) && (
-                <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
-                  {getTimeUntil(stats.nextBooking.time)}
-                </span>
-              )}
+          <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-orange-50 border border-orange-100">
+            <div className="h-9 w-14 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600 text-sm font-bold">
+              {stats.nextBooking.time}
             </div>
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-xl bg-white flex items-center justify-center text-orange-600 font-bold shadow-sm">
-                {stats.nextBooking.time}
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold">{stats.nextBooking.clientName}</p>
-                <p className="text-sm text-muted-foreground">{stats.nextBooking.serviceName}</p>
-              </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{stats.nextBooking.clientName} · {stats.nextBooking.serviceName}</p>
             </div>
-          </Card>
+            {getTimeUntil(stats.nextBooking.time) && (
+              <span className="text-xs text-orange-600 shrink-0">{getTimeUntil(stats.nextBooking.time)}</span>
+            )}
+          </div>
         )}
 
         {/* Stats row */}
@@ -359,12 +405,21 @@ export default function StaffDashboard() {
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-lg">Записи на сьогодні</h2>
-            <button 
-              onClick={() => openNewBooking()}
-              className="h-9 w-12 rounded-xl bg-primary text-primary-foreground font-bold flex items-center justify-center hover:bg-primary/90 transition-colors active:scale-[0.98]"
-            >
-              <Plus className="h-5 w-5 stroke-[3]" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={openBlockTime}
+                className="h-9 px-3 rounded-xl border border-border text-sm font-medium flex items-center gap-1.5 hover:bg-muted transition-colors active:scale-[0.98]"
+              >
+                <Clock className="h-4 w-4" />
+                Вільний
+              </button>
+              <button 
+                onClick={() => openNewBooking()}
+                className="h-9 w-10 rounded-xl bg-primary text-primary-foreground font-bold flex items-center justify-center hover:bg-primary/90 transition-colors active:scale-[0.98]"
+              >
+                <Plus className="h-5 w-5 stroke-[3]" />
+              </button>
+            </div>
           </div>
 
           {loadingStats ? (
@@ -747,6 +802,213 @@ export default function StaffDashboard() {
         </div>
         <button
           onClick={() => setTimePickerOpen(false)}
+          className="w-full py-4 text-center text-zinc-400 border-t border-zinc-700"
+        >
+          <X className="h-5 w-5 mx-auto" />
+        </button>
+      </div>
+
+      {/* Block Time Modal */}
+      {blockTimeOpen && (
+        <div 
+          className="fixed inset-0 bg-white/20 backdrop-blur-sm z-40"
+          onClick={() => setBlockTimeOpen(false)}
+        />
+      )}
+      <div 
+        className={`fixed inset-x-4 bottom-4 bg-card rounded-2xl shadow-xl z-50 transform transition-all duration-300 ease-out overflow-hidden ${
+          blockTimeOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
+        }`}
+      >
+        <div className="p-4 border-b border-border flex items-center justify-between">
+          <h2 className="font-semibold">Вільний запис</h2>
+          <button 
+            onClick={() => setBlockTimeOpen(false)}
+            className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-4">
+          <p className="text-sm text-muted-foreground">Заблокуйте час у графіку</p>
+          
+          {/* Date */}
+          <div>
+            <label className="text-sm font-medium mb-1.5 block">Дата</label>
+            <button
+              type="button"
+              onClick={() => setBlockDatePickerOpen(true)}
+              className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
+            >
+              <span>{formatDateDisplay(blockDate)}</span>
+              <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Time range */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Початок</label>
+              <button
+                type="button"
+                onClick={() => setBlockStartPickerOpen(true)}
+                className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
+              >
+                <span>{blockTimeStart}</span>
+                <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Кінець</label>
+              <button
+                type="button"
+                onClick={() => setBlockEndPickerOpen(true)}
+                className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
+              >
+                <span>{blockTimeEnd}</span>
+                <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 border-t border-border">
+          <button
+            onClick={createBlockTime}
+            disabled={savingBlock}
+            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {savingBlock ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <>
+                <Check className="h-5 w-5" />
+                Заблокувати
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Block Date Picker */}
+      {blockDatePickerOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-[60]"
+          onClick={() => setBlockDatePickerOpen(false)}
+        />
+      )}
+      <div 
+        className={`fixed inset-x-0 bottom-0 bg-zinc-800 rounded-t-2xl z-[70] transform transition-transform duration-300 ${
+          blockDatePickerOpen ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="p-2 max-h-[50vh] overflow-y-auto">
+          {dateOptions.map((date, index) => {
+            const isSelected = date.toDateString() === blockDate.toDateString();
+            const isToday = date.toDateString() === new Date().toDateString();
+            return (
+              <button
+                key={index}
+                onClick={() => {
+                  setBlockDate(date);
+                  setBlockDatePickerOpen(false);
+                }}
+                className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
+                  isSelected ? 'text-white' : 'text-zinc-300'
+                }`}
+              >
+                {isSelected && <Check className="h-5 w-5" />}
+                <span className={isSelected ? '' : 'ml-8'}>
+                  {DAYS_UA[date.getDay()]}, {date.getDate()} {MONTHS_UA[date.getMonth()]}
+                  {isToday && <span className="ml-2 text-zinc-400">(сьогодні)</span>}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <button
+          onClick={() => setBlockDatePickerOpen(false)}
+          className="w-full py-4 text-center text-zinc-400 border-t border-zinc-700"
+        >
+          <X className="h-5 w-5 mx-auto" />
+        </button>
+      </div>
+
+      {/* Block Start Time Picker */}
+      {blockStartPickerOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-[60]"
+          onClick={() => setBlockStartPickerOpen(false)}
+        />
+      )}
+      <div 
+        className={`fixed inset-x-0 bottom-0 bg-zinc-800 rounded-t-2xl z-[70] transform transition-transform duration-300 ${
+          blockStartPickerOpen ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="p-2 max-h-[50vh] overflow-y-auto">
+          {timeOptions.map((time) => (
+            <button
+              key={time}
+              onClick={() => {
+                setBlockTimeStart(time);
+                setBlockStartPickerOpen(false);
+              }}
+              className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
+                blockTimeStart === time ? 'text-white' : 'text-zinc-300'
+              }`}
+            >
+              {blockTimeStart === time && <Check className="h-5 w-5" />}
+              <span className={blockTimeStart === time ? '' : 'ml-8'}>{time}</span>
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setBlockStartPickerOpen(false)}
+          className="w-full py-4 text-center text-zinc-400 border-t border-zinc-700"
+        >
+          <X className="h-5 w-5 mx-auto" />
+        </button>
+      </div>
+
+      {/* Block End Time Picker */}
+      {blockEndPickerOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-[60]"
+          onClick={() => setBlockEndPickerOpen(false)}
+        />
+      )}
+      <div 
+        className={`fixed inset-x-0 bottom-0 bg-zinc-800 rounded-t-2xl z-[70] transform transition-transform duration-300 ${
+          blockEndPickerOpen ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="p-2 max-h-[50vh] overflow-y-auto">
+          {timeOptions.map((time) => (
+            <button
+              key={time}
+              onClick={() => {
+                setBlockTimeEnd(time);
+                setBlockEndPickerOpen(false);
+              }}
+              className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
+                blockTimeEnd === time ? 'text-white' : 'text-zinc-300'
+              }`}
+            >
+              {blockTimeEnd === time && <Check className="h-5 w-5" />}
+              <span className={blockTimeEnd === time ? '' : 'ml-8'}>{time}</span>
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setBlockEndPickerOpen(false)}
           className="w-full py-4 text-center text-zinc-400 border-t border-zinc-700"
         >
           <X className="h-5 w-5 mx-auto" />
