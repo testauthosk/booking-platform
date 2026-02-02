@@ -291,106 +291,118 @@ export default function StaffCalendar() {
         ))}
       </div>
 
-      {/* Bookings list */}
-      <div className="p-4 pb-24 space-y-3">
+      {/* Timeline view */}
+      <div className="p-4 pb-24">
         {loadingBookings ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : bookings.length > 0 ? (
-          <>
-            {bookings.map((booking) => {
-              const isPast = (() => {
-                if (!isToday(selectedDate)) return false;
-                const [h, m] = booking.time.split(':').map(Number);
-                const now = new Date();
-                return h < now.getHours() || (h === now.getHours() && m < now.getMinutes());
-              })();
-              
-              const isBlocked = booking.clientName === 'Зайнято';
-              
-              return (
-                <Card 
-                  key={booking.id} 
-                  className={`overflow-hidden ${
-                    booking.status === 'COMPLETED' 
-                      ? 'border-green-200' 
-                      : isBlocked
-                      ? 'border-zinc-300 bg-zinc-50'
-                      : isPast 
-                      ? 'opacity-50' 
-                      : ''
-                  }`}
-                >
-                  <div className="flex">
-                    {/* Time block */}
-                    <div className={`w-20 py-4 flex flex-col items-center justify-center shrink-0 ${
-                      booking.status === 'COMPLETED'
-                        ? 'bg-green-100'
-                        : isBlocked
-                        ? 'bg-zinc-200'
-                        : isPast
-                        ? 'bg-muted'
-                        : 'bg-primary/10'
-                    }`}>
-                      <span className={`text-lg font-bold ${
-                        booking.status === 'COMPLETED'
-                          ? 'text-green-700'
-                          : isBlocked
-                          ? 'text-zinc-600'
-                          : isPast
-                          ? 'text-muted-foreground'
-                          : 'text-primary'
-                      }`}>
+          <div className="relative">
+            {/* Vertical timeline line */}
+            <div className="absolute left-[52px] top-0 bottom-0 w-0.5 bg-border" />
+            
+            <div className="space-y-6">
+              {bookings.map((booking) => {
+                const isPast = (() => {
+                  if (!isToday(selectedDate)) return false;
+                  const [h, m] = booking.time.split(':').map(Number);
+                  const now = new Date();
+                  return h < now.getHours() || (h === now.getHours() && m < now.getMinutes());
+                })();
+                
+                const isBlocked = booking.clientName === 'Зайнято';
+                
+                // Calculate end time
+                const endTime = booking.timeEnd || (() => {
+                  const [h, m] = booking.time.split(':').map(Number);
+                  const endMins = h * 60 + m + booking.duration;
+                  const endH = Math.floor(endMins / 60);
+                  const endM = endMins % 60;
+                  return `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+                })();
+                
+                return (
+                  <div key={booking.id} className="relative flex">
+                    {/* Time labels on left */}
+                    <div className="w-12 shrink-0 flex flex-col justify-between py-2 pr-2 text-right">
+                      <span className={`text-xs font-semibold ${isPast ? 'text-muted-foreground' : 'text-foreground'}`}>
                         {booking.time}
                       </span>
-                      {booking.timeEnd && (
-                        <span className="text-xs text-muted-foreground">
-                          до {booking.timeEnd}
-                        </span>
-                      )}
+                      <span className="text-xs text-muted-foreground">
+                        {endTime}
+                      </span>
                     </div>
                     
-                    {/* Content */}
-                    <div className="flex-1 p-4">
-                      <div className="flex items-start justify-between mb-1">
-                        <div>
-                          <p className="font-semibold">{booking.clientName}</p>
-                          <p className="text-sm text-muted-foreground">{booking.serviceName}</p>
-                        </div>
-                        {booking.status === 'COMPLETED' && (
-                          <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                            ✓
-                          </span>
-                        )}
+                    {/* Connector arrows */}
+                    <div className="w-6 shrink-0 relative flex flex-col justify-between py-3">
+                      {/* Top arrow */}
+                      <div className="flex items-center">
+                        <div className={`w-3 h-0.5 ${isPast ? 'bg-muted-foreground' : 'bg-primary'}`} />
+                        <div className={`w-2 h-2 rounded-full ${isPast ? 'bg-muted-foreground' : 'bg-primary'}`} />
                       </div>
-                      
-                      {!isBlocked && (
-                        <div className="flex items-center gap-3 mt-2 text-sm">
-                          <span className="text-muted-foreground">{booking.duration} хв</span>
-                          {booking.price !== undefined && booking.price > 0 && (
-                            <span className="font-medium">{booking.price} ₴</span>
+                      {/* Bottom arrow */}
+                      <div className="flex items-center">
+                        <div className="w-3 h-0.5 bg-muted-foreground/50" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50" />
+                      </div>
+                    </div>
+                    
+                    {/* Booking card */}
+                    <Card className={`flex-1 ${
+                      booking.status === 'COMPLETED' 
+                        ? 'border-green-300 bg-green-50/30' 
+                        : isBlocked
+                        ? 'border-zinc-300 bg-zinc-50'
+                        : isPast 
+                        ? 'opacity-60' 
+                        : ''
+                    }`}>
+                      <div className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <p className="font-semibold">{booking.clientName}</p>
+                            <p className="text-sm text-muted-foreground">{booking.serviceName}</p>
+                          </div>
+                          {booking.status === 'COMPLETED' && (
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                              ✓
+                            </span>
                           )}
                         </div>
-                      )}
-                      
-                      {/* Quick actions */}
-                      {!isPast && booking.status !== 'COMPLETED' && !isBlocked && (
-                        <div className="flex gap-2 mt-3">
-                          <button className="flex-1 py-2 rounded-lg bg-green-50 text-green-700 text-sm font-medium hover:bg-green-100 transition-colors border border-green-200">
-                            Завершити
-                          </button>
-                          <button className="flex-1 py-2 rounded-lg bg-zinc-50 text-zinc-600 text-sm font-medium hover:bg-zinc-100 transition-colors border border-zinc-200">
-                            Скасувати
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                        
+                        {!isBlocked && (
+                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                            <span>{booking.duration} хв</span>
+                            {booking.price !== undefined && booking.price > 0 && (
+                              <span className="font-medium text-foreground">{booking.price} ₴</span>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Actions */}
+                        {!isPast && booking.status !== 'COMPLETED' && (
+                          <div className="flex gap-2 mt-3">
+                            {!isBlocked && (
+                              <button className="flex-1 py-2 rounded-lg bg-green-50 text-green-700 text-sm font-medium hover:bg-green-100 transition-colors border border-green-200">
+                                Завершити
+                              </button>
+                            )}
+                            <button className="flex-1 py-2 rounded-lg bg-zinc-50 text-zinc-600 text-sm font-medium hover:bg-zinc-100 transition-colors border border-zinc-200">
+                              Редагувати
+                            </button>
+                            <button className="py-2 px-3 rounded-lg text-red-500 text-sm font-medium hover:bg-red-50 transition-colors">
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
                   </div>
-                </Card>
-              );
-            })}
-          </>
+                );
+              })}
+            </div>
+          </div>
         ) : (
           <div className="text-center py-20">
             <div className="h-20 w-20 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
