@@ -128,7 +128,7 @@ export default function StaffDashboard() {
       </header>
 
       {/* Content */}
-      <div className="p-4 space-y-4 pb-32">
+      <div className="p-4 space-y-4 pb-40">
         {/* Greeting */}
         <div>
           <h1 className="text-2xl font-bold">{greeting}!</h1>
@@ -213,7 +213,7 @@ export default function StaffDashboard() {
           </Card>
         </div>
 
-        {/* Today's appointments */}
+        {/* Today's appointments - horizontal timeline */}
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-lg">Записи на сьогодні</h2>
@@ -222,83 +222,77 @@ export default function StaffDashboard() {
               className="h-8 px-3 rounded-lg bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1 hover:bg-primary/90 transition-colors active:scale-[0.98]"
             >
               <Plus className="h-4 w-4" />
-              Додати
             </button>
           </div>
 
           {loadingStats ? (
-            <div className="flex items-center justify-center py-12">
+            <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : stats?.todayBookings && stats.todayBookings.length > 0 ? (
-            <div className="space-y-3">
-              {stats.todayBookings.map((booking) => {
-                const isPast = (() => {
-                  const [h, m] = booking.time.split(':').map(Number);
-                  const now = new Date();
-                  return h < now.getHours() || (h === now.getHours() && m < now.getMinutes());
-                })();
-                
-                return (
-                  <Card 
-                    key={booking.id}
-                    className={`p-4 transition-all ${isPast ? 'opacity-60' : ''} ${
-                      booking.status === 'COMPLETED' ? 'border-green-200 bg-green-50/50' : ''
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className={`h-14 w-14 rounded-xl flex flex-col items-center justify-center ${
-                        isPast ? 'bg-muted' : 'bg-primary/10'
+            <div className="overflow-x-auto -mx-4 px-4 scrollbar-hide">
+              <div className="flex gap-3 pb-2" style={{ minWidth: 'min-content' }}>
+                {stats.todayBookings.map((booking) => {
+                  const isPast = (() => {
+                    const [h, m] = booking.time.split(':').map(Number);
+                    const now = new Date();
+                    return h < now.getHours() || (h === now.getHours() && m < now.getMinutes());
+                  })();
+                  
+                  return (
+                    <Card 
+                      key={booking.id}
+                      className={`p-3 min-w-[140px] max-w-[160px] shrink-0 transition-all ${isPast ? 'opacity-50' : ''} ${
+                        booking.status === 'COMPLETED' ? 'border-green-300 bg-green-50' : ''
+                      }`}
+                    >
+                      {/* Time badge */}
+                      <div className={`inline-flex items-center px-2 py-1 rounded-lg text-sm font-bold mb-2 ${
+                        isPast ? 'bg-muted text-muted-foreground' : 
+                        booking.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : 
+                        'bg-primary/10 text-primary'
                       }`}>
-                        <span className={`text-lg font-bold ${isPast ? 'text-muted-foreground' : 'text-primary'}`}>
-                          {booking.time.split(':')[0]}:{booking.time.split(':')[1]}
-                        </span>
+                        {booking.time}
                       </div>
                       
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="font-semibold truncate">{booking.clientName}</p>
-                          {booking.status === 'COMPLETED' && (
-                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full shrink-0">
-                              ✓
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground truncate">{booking.serviceName}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-muted-foreground">
-                            {booking.duration} хв
-                          </span>
-                          {booking.price && (
-                            <>
-                              <span className="text-muted-foreground">•</span>
-                              <span className="text-xs font-medium">{booking.price} ₴</span>
-                            </>
-                          )}
-                        </div>
+                      {/* Client */}
+                      <p className="font-semibold text-sm truncate mb-0.5">{booking.clientName}</p>
+                      <p className="text-xs text-muted-foreground truncate mb-2">{booking.serviceName}</p>
+                      
+                      {/* Bottom row */}
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">{booking.duration} хв</span>
+                        {booking.price && (
+                          <span className="font-medium">{booking.price} ₴</span>
+                        )}
                       </div>
-
-                      <button className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center shrink-0">
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      </button>
-                    </div>
-                  </Card>
-                );
-              })}
+                    </Card>
+                  );
+                })}
+                
+                {/* Add button at the end */}
+                <Card 
+                  className="p-3 min-w-[100px] shrink-0 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors border-dashed"
+                  onClick={() => setNewBookingOpen(true)}
+                >
+                  <Plus className="h-6 w-6 text-muted-foreground mb-1" />
+                  <span className="text-xs text-muted-foreground">Додати</span>
+                </Card>
+              </div>
             </div>
           ) : (
-            <Card className="p-8 text-center">
-              <div className="h-16 w-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
-                <Calendar className="h-8 w-8 text-muted-foreground" />
+            <Card className="p-6 text-center">
+              <div className="h-12 w-12 rounded-xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
+                <Calendar className="h-6 w-6 text-muted-foreground" />
               </div>
-              <p className="font-medium mb-1">Немає записів</p>
-              <p className="text-sm text-muted-foreground mb-4">Сьогодні у вас вільний день</p>
+              <p className="font-medium text-sm mb-1">Вільний день</p>
+              <p className="text-xs text-muted-foreground mb-3">Записів немає</p>
               <button 
                 onClick={() => setNewBookingOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
               >
                 <Plus className="h-4 w-4" />
-                Створити запис
+                Створити
               </button>
             </Card>
           )}
