@@ -100,33 +100,48 @@ export function NotificationBell() {
   };
 
   return (
-    <div ref={containerRef} className="relative">
-      {/* Bell button */}
+    <div ref={containerRef} className="relative z-50">
+      {/* Bell button - transforms when open to connect with panel */}
       <motion.div
         role="button"
         tabIndex={0}
         onClick={() => setOpen(!open)}
         onKeyDown={(e) => e.key === 'Enter' && setOpen(!open)}
+        animate={{
+          scale: open ? 1 : 1,
+          borderRadius: open ? '12px 12px 0 0' : '50%',
+        }}
         whileTap={{ scale: 0.95 }}
-        className="relative h-10 w-10 flex items-center justify-center cursor-pointer select-none rounded-full hover:bg-muted"
+        transition={{ duration: 0.2 }}
+        className={cn(
+          "relative h-10 w-10 flex items-center justify-center cursor-pointer select-none",
+          open 
+            ? "bg-card shadow-lg border border-border border-b-0 z-[60]" 
+            : "hover:bg-muted rounded-full"
+        )}
       >
         <Bell className="h-5 w-5 text-foreground pointer-events-none" />
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 h-4 w-4 bg-destructive rounded-full text-[10px] text-white font-medium flex items-center justify-center pointer-events-none">
+          <motion.span 
+            animate={{ top: open ? 4 : 0, right: open ? 4 : 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute h-4 w-4 bg-destructive rounded-full text-[10px] text-white font-medium flex items-center justify-center pointer-events-none"
+          >
             {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
+          </motion.span>
         )}
       </motion.div>
 
-      {/* Notification panel */}
+      {/* Notification panel - connects to button */}
       <AnimatePresence>
         {open && (
           <motion.div 
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="absolute right-0 top-12 w-80 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-50"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="absolute right-0 top-10 w-80 bg-card border border-border border-t-0 rounded-b-xl rounded-tl-xl shadow-lg overflow-hidden z-50"
+            style={{ originY: 0 }}
           >
             {/* Header */}
             <div className="flex items-center justify-between p-3 border-b border-border">
