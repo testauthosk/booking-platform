@@ -903,7 +903,7 @@ export default function StaffCalendar() {
       
       {/* Add Booking Modal */}
       <div 
-        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-500 ${
           addModalOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setAddModalOpen(false)}
@@ -1152,7 +1152,7 @@ export default function StaffCalendar() {
 
       {/* Edit Booking Modal */}
       <div 
-        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-500 ${
           editModalOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setEditModalOpen(false)}
@@ -1317,7 +1317,7 @@ export default function StaffCalendar() {
 
       {/* Confirmation Modal - Bottom Sheet */}
       <div 
-        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] transition-opacity duration-500 ${
           confirmModal.open ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => !confirmLoading && setConfirmModal({ open: false, type: null, booking: null })}
