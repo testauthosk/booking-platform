@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Search, Plus, Filter, MoreVertical, Menu, Bell, Clock, UserPlus, Loader2, Copy, Check, Mail, ChevronRight, Trash2, ExternalLink, Eye } from 'lucide-react';
 import { useSidebar } from '@/components/sidebar-context';
+import { useCalendarSettings } from '@/lib/calendar-settings-context';
 
 const DEMO_SALON_ID = 'demo-salon-id';
 
@@ -39,6 +40,7 @@ interface Invitation {
 
 export default function TeamPage() {
   const { open: openSidebar } = useSidebar();
+  const { getColorForIndex } = useCalendarSettings();
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [masters, setMasters] = useState<Master[]>([]);
@@ -403,39 +405,52 @@ export default function TeamPage() {
 
       {/* Invitation Details Modal */}
       <Dialog open={!!selectedInvitation} onOpenChange={() => setSelectedInvitation(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Деталі запрошення</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+          {/* Color stripe from palette */}
+          <div 
+            className="h-16 w-full"
+            style={{ backgroundColor: getColorForIndex(0) }}
+          />
           
-          {selectedInvitation && (
-            <div className="space-y-4">
-              {/* Status */}
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                {selectedInvitation.viewedAt ? (
-                  <>
-                    <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                      <Eye className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-green-600">Посилання відкрито</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDate(selectedInvitation.viewedAt)}
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center">
-                      <Clock className="h-5 w-5 text-yellow-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-yellow-600">Очікує відкриття</p>
-                      <p className="text-xs text-muted-foreground">Майстер ще не переходив</p>
-                    </div>
-                  </>
-                )}
-              </div>
+          <div className="p-6 pt-4">
+            <DialogHeader>
+              <DialogTitle>Деталі запрошення</DialogTitle>
+            </DialogHeader>
+            
+            {selectedInvitation && (
+              <div className="space-y-4 mt-4">
+                {/* Status */}
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                  {selectedInvitation.viewedAt ? (
+                    <>
+                      <div 
+                        className="h-10 w-10 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: `${getColorForIndex(2)}20` }}
+                      >
+                        <Eye className="h-5 w-5" style={{ color: getColorForIndex(2) }} />
+                      </div>
+                      <div>
+                        <p className="font-medium" style={{ color: getColorForIndex(2) }}>Посилання відкрито</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDate(selectedInvitation.viewedAt)}
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div 
+                        className="h-10 w-10 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: `${getColorForIndex(1)}20` }}
+                      >
+                        <Clock className="h-5 w-5" style={{ color: getColorForIndex(1) }} />
+                      </div>
+                      <div>
+                        <p className="font-medium" style={{ color: getColorForIndex(1) }}>Очікує відкриття</p>
+                        <p className="text-xs text-muted-foreground">Майстер ще не переходив</p>
+                      </div>
+                    </>
+                  )}
+                </div>
 
               {/* Info */}
               <div className="space-y-3">
@@ -503,7 +518,8 @@ export default function TeamPage() {
                 </Button>
               </div>
             </div>
-          )}
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
