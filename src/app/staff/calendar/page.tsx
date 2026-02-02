@@ -110,6 +110,7 @@ export default function StaffCalendar() {
   const [loadingBookings, setLoadingBookings] = useState(false);
   const [salonId, setSalonId] = useState('');
   const [workingHours, setWorkingHours] = useState<{ start: number; end: number }>({ start: 8, end: 21 });
+  const [showOnlyBookings, setShowOnlyBookings] = useState(false);
   
   // Add booking modal
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -367,40 +368,87 @@ export default function StaffCalendar() {
         </div>
       </header>
 
-      {/* Days horizontal scroll */}
-      <div 
-        ref={daysRef}
-        className="flex gap-2 px-4 py-4 overflow-x-auto scrollbar-hide bg-card border-b"
-      >
-        {days.map((date, index) => (
+      {/* Days horizontal scroll - sticky */}
+      <div className="sticky top-[60px] z-10 bg-card border-b">
+        <div 
+          ref={daysRef}
+          className="flex gap-2 px-4 py-3 overflow-x-auto scrollbar-hide"
+        >
+          {days.map((date, index) => (
+            <button
+              key={index}
+              onClick={() => setSelectedDate(date)}
+              className={`flex flex-col items-center min-w-[56px] py-2 px-2 rounded-xl transition-all ${
+                isSelected(date)
+                  ? 'bg-primary text-primary-foreground shadow-lg scale-105'
+                  : isToday(date)
+                  ? 'bg-primary/10 text-primary'
+                  : 'hover:bg-muted'
+              }`}
+            >
+              <span className="text-xs font-medium opacity-70">
+                {DAYS_UA[date.getDay()]}
+              </span>
+              <span className="text-xl font-bold">
+                {date.getDate()}
+              </span>
+            </button>
+          ))}
+        </div>
+        
+        {/* Toggle button */}
+        <div className="px-4 pb-3">
           <button
-            key={index}
-            onClick={() => setSelectedDate(date)}
-            className={`flex flex-col items-center min-w-[56px] py-2 px-2 rounded-xl transition-all ${
-              isSelected(date)
-                ? 'bg-primary text-primary-foreground shadow-lg scale-105'
-                : isToday(date)
-                ? 'bg-primary/10 text-primary'
-                : 'hover:bg-muted'
+            onClick={() => setShowOnlyBookings(!showOnlyBookings)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+              showOnlyBookings 
+                ? 'bg-primary text-primary-foreground' 
+                : 'bg-muted text-muted-foreground'
             }`}
           >
-            <span className="text-xs font-medium opacity-70">
-              {DAYS_UA[date.getDay()]}
-            </span>
-            <span className="text-xl font-bold">
-              {date.getDate()}
-            </span>
+            {showOnlyBookings ? '✓ Тільки записи' : 'Тільки записи'}
           </button>
-        ))}
+        </div>
       </div>
 
-      {/* Full day timeline */}
-      <div className="pb-24 relative">
+      {/* Content - scrollable */}
+      <div className="pb-24 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
         {loadingBookings ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
+        ) : showOnlyBookings ? (
+          /* Only bookings mode */
+          <div className="p-4 space-y-3">
+            {bookings.length > 0 ? (
+              bookings.map((booking) => {
+                const isPast = (() => {
+                  if (!isToday(selectedDate)) return false;
+                  const [h, m] = booking.time.split(':').map(Number);
+                  const now = new Date();
+                  return h < now.getHours() || (h === now.getHours() && m < now.getMinutes());
+                })();
+                return (
+                  <div key={booking.id} className="flex gap-3">
+                    <div className="w-14 shrink-0 text-right">
+                      <span className={`text-sm font-semibold ${isPast ? 'text-muted-foreground' : 'text-primary'}`}>
+                        {booking.time}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <BookingCard booking={booking} isPast={isPast} isToday={isToday(selectedDate)} />
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Немає записів на цей день</p>
+              </div>
+            )}
+          </div>
         ) : (
+          /* Full day timeline mode */
           <div className="relative">
             {/* Vertical timeline line */}
             <div className="absolute left-[52px] top-0 bottom-0 w-px bg-border" />
