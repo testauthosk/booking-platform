@@ -586,51 +586,48 @@ export default function StaffCalendar() {
                         borderLeft: `3px solid ${colors.stripe}`
                       }}
                     >
-                      <div className="p-3 flex justify-between">
-                        {/* Left: Content */}
-                        <div className="flex-1 min-w-0">
-                          {/* Time badge */}
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-bold text-primary">{booking.time}</span>
-                            <span className="text-sm text-muted-foreground">—</span>
-                            <span className="text-sm font-medium text-muted-foreground">{endTime}</span>
-                          </div>
-                          
-                          <p className="font-bold text-base truncate">{booking.clientName}</p>
-                          <p className="text-sm text-muted-foreground truncate">{booking.serviceName}</p>
-                          
-                          {!isBlocked && (
-                            <div className="mt-2">
-                              <span className="text-sm text-muted-foreground">{booking.duration} хв</span>
-                              {booking.price !== undefined && booking.price > 0 && (
-                                <p className="text-lg font-semibold mt-0.5">{booking.price} ₴</p>
-                              )}
-                            </div>
-                          )}
-                          
-                          {booking.status === 'COMPLETED' && (
-                            <span className="inline-block mt-2 text-xs bg-green-200 text-green-700 px-2 py-0.5 rounded-full">✓ Завершено</span>
-                          )}
-                          
-                          {booking.status === 'NO_SHOW' && (
-                            <span className="inline-block mt-2 text-xs bg-orange-200 text-orange-700 px-2 py-0.5 rounded-full">Не прийшов</span>
-                          )}
+                      <div className="p-3">
+                        {/* Time badge */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm font-bold text-primary">{booking.time}</span>
+                          <span className="text-sm text-muted-foreground">—</span>
+                          <span className="text-sm font-medium text-muted-foreground">{endTime}</span>
                         </div>
                         
-                        {/* Right: Action buttons - compact icons */}
+                        <p className="font-semibold truncate">{booking.clientName}</p>
+                        <p className="text-sm text-muted-foreground truncate">{booking.serviceName}</p>
+                        
+                        {!isBlocked && (
+                          <div className="flex items-baseline gap-3 mt-1">
+                            <span className="text-sm text-muted-foreground">{booking.duration} хв</span>
+                            {booking.price !== undefined && booking.price > 0 && (
+                              <span className="text-base font-bold">{booking.price} ₴</span>
+                            )}
+                          </div>
+                        )}
+                        
+                        {booking.status === 'COMPLETED' && (
+                          <span className="inline-block mt-2 text-xs bg-green-200 text-green-700 px-2 py-0.5 rounded">✓ Завершено</span>
+                        )}
+                        
+                        {booking.status === 'NO_SHOW' && (
+                          <span className="inline-block mt-2 text-xs bg-orange-200 text-orange-700 px-2 py-0.5 rounded">Не прийшов</span>
+                        )}
+                        
+                        {/* Action buttons */}
                         {!isPast && booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && (
-                          <div className="flex flex-col items-end gap-1 ml-2 shrink-0">
-                            <button className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Видалити">
-                              <X className="h-4 w-4" />
+                          <div className="flex items-center gap-1.5 mt-3">
+                            <button className="flex-1 h-8 rounded-lg bg-green-500 text-white text-xs font-medium hover:bg-green-600 transition-colors flex items-center justify-center gap-1">
+                              <Check className="h-3.5 w-3.5" /> Готово
                             </button>
-                            <button className="p-1.5 rounded-md text-green-500 hover:text-green-700 hover:bg-green-50 transition-colors" title="Завершити">
-                              <Check className="h-4 w-4" />
-                            </button>
-                            <button className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors" title="Редагувати">
+                            <button className="h-8 w-8 rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors flex items-center justify-center">
                               <Pencil className="h-3.5 w-3.5" />
                             </button>
-                            <button className="p-1.5 rounded-md text-orange-400 hover:text-orange-600 hover:bg-orange-50 transition-colors" title="Не прийшов">
+                            <button className="h-8 w-8 rounded-lg bg-orange-50 text-orange-500 hover:bg-orange-100 transition-colors flex items-center justify-center" title="Не прийшов">
                               <Clock className="h-3.5 w-3.5" />
+                            </button>
+                            <button className="h-8 w-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-500 transition-colors flex items-center justify-center">
+                              <X className="h-3.5 w-3.5" />
                             </button>
                           </div>
                         )}
@@ -741,44 +738,44 @@ export default function StaffCalendar() {
                       borderLeft: `3px solid ${colors.stripe}`
                     }}
                   >
-                    <div className="p-3 h-full flex justify-between">
-                      {/* Left: Content */}
+                    <div className="p-2.5 h-full flex flex-col">
+                      {/* Top: Client info */}
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-base truncate">{booking.clientName}</p>
-                        <p className="text-sm text-muted-foreground truncate">{booking.serviceName}</p>
+                        <p className="font-semibold text-sm truncate">{booking.clientName}</p>
+                        <p className="text-xs text-muted-foreground truncate">{booking.serviceName}</p>
                         
                         {!isBlocked && (
-                          <div className="mt-2">
-                            <span className="text-sm text-muted-foreground">{booking.duration} хв</span>
+                          <div className="flex items-baseline gap-3 mt-1">
+                            <span className="text-xs text-muted-foreground">{booking.duration} хв</span>
                             {booking.price !== undefined && booking.price > 0 && (
-                              <p className="text-lg font-semibold mt-0.5">{booking.price} ₴</p>
+                              <span className="text-sm font-bold">{booking.price} ₴</span>
                             )}
                           </div>
                         )}
                         
                         {booking.status === 'COMPLETED' && (
-                          <span className="inline-block mt-2 text-xs bg-green-200 text-green-700 px-2 py-0.5 rounded-full">✓ Завершено</span>
+                          <span className="inline-block mt-1 text-[10px] bg-green-200 text-green-700 px-1.5 py-0.5 rounded">✓ Завершено</span>
                         )}
                         
                         {booking.status === 'NO_SHOW' && (
-                          <span className="inline-block mt-2 text-xs bg-orange-200 text-orange-700 px-2 py-0.5 rounded-full">Не прийшов</span>
+                          <span className="inline-block mt-1 text-[10px] bg-orange-200 text-orange-700 px-1.5 py-0.5 rounded">Не прийшов</span>
                         )}
                       </div>
                       
-                      {/* Right: Action buttons - compact icons */}
+                      {/* Bottom: Action buttons */}
                       {!isPast && booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && (
-                        <div className="flex flex-col items-end gap-1 ml-2 shrink-0">
-                          <button className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Видалити">
-                            <X className="h-4 w-4" />
+                        <div className="flex items-center gap-1 mt-auto pt-1">
+                          <button className="flex-1 h-7 rounded-md bg-green-500 text-white text-[10px] font-medium hover:bg-green-600 transition-colors flex items-center justify-center gap-1">
+                            <Check className="h-3 w-3" /> Готово
                           </button>
-                          <button className="p-1.5 rounded-md text-green-500 hover:text-green-700 hover:bg-green-50 transition-colors" title="Завершити">
-                            <Check className="h-4 w-4" />
+                          <button className="h-7 w-7 rounded-md bg-white/80 text-zinc-600 hover:bg-white transition-colors flex items-center justify-center border border-zinc-200">
+                            <Pencil className="h-3 w-3" />
                           </button>
-                          <button className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors" title="Редагувати">
-                            <Pencil className="h-3.5 w-3.5" />
+                          <button className="h-7 w-7 rounded-md bg-white/80 text-orange-500 hover:bg-white transition-colors flex items-center justify-center border border-zinc-200" title="Не прийшов">
+                            <Clock className="h-3 w-3" />
                           </button>
-                          <button className="p-1.5 rounded-md text-orange-400 hover:text-orange-600 hover:bg-orange-50 transition-colors text-[9px] font-medium" title="Не прийшов">
-                            <Clock className="h-3.5 w-3.5" />
+                          <button className="h-7 w-7 rounded-md bg-white/80 text-red-400 hover:bg-white hover:text-red-500 transition-colors flex items-center justify-center border border-zinc-200">
+                            <X className="h-3 w-3" />
                           </button>
                         </div>
                       )}
