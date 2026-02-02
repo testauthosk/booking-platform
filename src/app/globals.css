@@ -133,6 +133,12 @@
   display: none;
 }
 
+/* Prevent iOS rubber band / pull-to-refresh on fixed elements */
+.overscroll-none {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto;
+}
+
 /* Custom animations for smooth transitions - SLOW and SMOOTH */
 @keyframes fadeIn {
   from {

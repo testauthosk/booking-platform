@@ -178,7 +178,7 @@ export function CustomCalendar({
       {/* SCROLLABLE BODY */}
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-auto"
+        className="flex-1 overflow-auto overscroll-none"
         onScroll={handleScroll}
       >
         <div className="flex relative" style={{ minWidth: timeColWidth + resources.length * colMinWidth }}>
