@@ -96,25 +96,19 @@ export default function CataloguePage() {
     loadData();
   }, []);
 
-  const loadData = async (showLoading = true) => {
+  const loadData = async () => {
     // Only show loading on initial load
-    if (showLoading && services.length === 0) {
+    if (services.length === 0) {
       setLoading(true);
     }
     try {
-      const [catRes, svcRes] = await Promise.all([
-        fetch(`/api/categories?salonId=${DEMO_SALON_ID}`),
-        fetch(`/api/services?salonId=${DEMO_SALON_ID}`),
-      ]);
+      // Один запрос вместо двух
+      const res = await fetch(`/api/catalogue?salonId=${DEMO_SALON_ID}`);
       
-      if (catRes.ok) {
-        const catData = await catRes.json();
-        setCategories(catData);
-      }
-      
-      if (svcRes.ok) {
-        const svcData = await svcRes.json();
-        setServices(svcData);
+      if (res.ok) {
+        const data = await res.json();
+        setCategories(data.categories || []);
+        setServices(data.services || []);
       }
     } catch (error) {
       console.error('Load error:', error);
