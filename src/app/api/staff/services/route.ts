@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       orderBy: [{ category: { sortOrder: 'asc' } }, { sortOrder: 'asc' }]
     });
 
-    // Get master's enabled services
+    // Get master's enabled services with custom prices
     const masterServices = await prisma.masterService.findMany({
       where: { masterId },
       select: { serviceId: true, customPrice: true, customDuration: true }
@@ -41,15 +41,19 @@ export async function GET(request: NextRequest) {
     );
 
     // Combine data
-    const services = salonServices.map(service => ({
-      id: service.id,
-      name: service.name,
-      description: service.description,
-      duration: masterServiceMap.get(service.id)?.customDuration || service.duration,
-      price: masterServiceMap.get(service.id)?.customPrice || service.price,
-      categoryName: service.category?.name,
-      isEnabled: masterServiceMap.has(service.id)
-    }));
+    const services = salonServices.map(service => {
+      const masterService = masterServiceMap.get(service.id);
+      return {
+        id: service.id,
+        name: service.name,
+        description: service.description,
+        duration: masterService?.customDuration || service.duration,
+        price: masterService?.customPrice ?? service.price,
+        basePrice: service.price,
+        categoryName: service.category?.name,
+        isEnabled: masterServiceMap.has(service.id)
+      };
+    });
 
     return NextResponse.json(services);
   } catch (error) {
@@ -58,29 +62,38 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// PUT toggle service for master
+// PUT toggle service or update price for master
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { masterId, serviceId, enabled } = body;
+    const { masterId, serviceId, enabled, customPrice, customDuration } = body;
 
     if (!masterId || !serviceId) {
       return NextResponse.json({ error: 'masterId and serviceId required' }, { status: 400 });
     }
 
-    if (enabled) {
-      // Enable service - create link
+    if (enabled === false) {
+      // Disable service - remove link
+      await prisma.masterService.deleteMany({
+        where: { masterId, serviceId }
+      });
+    } else {
+      // Enable or update service
+      const updateData: Record<string, unknown> = {};
+      if (customPrice !== undefined) updateData.customPrice = customPrice;
+      if (customDuration !== undefined) updateData.customDuration = customDuration;
+
       await prisma.masterService.upsert({
         where: {
           masterId_serviceId: { masterId, serviceId }
         },
-        create: { masterId, serviceId },
-        update: {}
-      });
-    } else {
-      // Disable service - remove link
-      await prisma.masterService.deleteMany({
-        where: { masterId, serviceId }
+        create: { 
+          masterId, 
+          serviceId,
+          customPrice: customPrice ?? null,
+          customDuration: customDuration ?? null
+        },
+        update: updateData
       });
     }
 
