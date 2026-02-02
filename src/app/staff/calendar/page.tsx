@@ -904,7 +904,7 @@ export default function StaffCalendar() {
       {/* Add Booking Modal */}
       {addModalOpen && (
         <div 
-          className="fixed inset-0 bg-white/20 backdrop-blur-sm z-40"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
           onClick={() => setAddModalOpen(false)}
         />
       )}
@@ -1318,7 +1318,7 @@ export default function StaffCalendar() {
       {/* Confirmation Modal - Bottom Sheet */}
       {confirmModal.open && (
         <div 
-          className="fixed inset-0 bg-white/20 backdrop-blur-sm z-[80]"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80]"
           onClick={() => !confirmLoading && setConfirmModal({ open: false, type: null, booking: null })}
         />
       )}
