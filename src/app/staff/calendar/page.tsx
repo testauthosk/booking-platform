@@ -743,48 +743,50 @@ export default function StaffCalendar() {
                       borderBottom: `1px solid ${colors.stripe}`
                     }}
                   >
-                    <div className="p-3">
-                      {/* Client info */}
-                      <p className="font-bold text-lg truncate">{booking.clientName}</p>
-                      <p className="text-base text-muted-foreground truncate">{booking.serviceName}</p>
+                    <div className="p-3 h-full flex justify-between gap-2">
+                      {/* Left: Client info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-lg truncate">{booking.clientName}</p>
+                        <p className="text-base text-muted-foreground truncate">{booking.serviceName}</p>
+                        
+                        {!isBlocked && (
+                          <div className="flex items-baseline gap-3 mt-1">
+                            <span className="text-base text-muted-foreground">{booking.duration} хв</span>
+                            {booking.price !== undefined && booking.price > 0 && (
+                              <span className="text-lg font-bold">{booking.price} ₴</span>
+                            )}
+                          </div>
+                        )}
+                        
+                        {booking.status === 'COMPLETED' && (
+                          <span className="inline-block mt-2 text-sm bg-green-200 text-green-700 px-2 py-1 rounded">✓ Завершено</span>
+                        )}
+                        
+                        {booking.status === 'NO_SHOW' && (
+                          <span className="inline-block mt-2 text-sm bg-orange-200 text-orange-700 px-2 py-1 rounded">Не прийшов</span>
+                        )}
+                      </div>
                       
-                      {!isBlocked && (
-                        <div className="flex items-baseline gap-3 mt-1">
-                          <span className="text-base text-muted-foreground">{booking.duration} хв</span>
-                          {booking.price !== undefined && booking.price > 0 && (
-                            <span className="text-lg font-bold">{booking.price} ₴</span>
-                          )}
+                      {/* Right: Action buttons */}
+                      {!isPast && booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && (
+                        <div className="flex flex-col gap-1 shrink-0">
+                          <button className="h-9 px-4 rounded-lg bg-green-500 text-white text-sm font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+                            <Check className="h-4 w-4" /> Готово
+                          </button>
+                          <div className="flex gap-1">
+                            <button className="flex-1 h-8 rounded-lg bg-white text-zinc-600 hover:bg-zinc-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm">
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button className="flex-1 h-8 rounded-lg bg-white text-orange-500 hover:bg-orange-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm" title="Не прийшов">
+                              <Clock className="h-4 w-4" />
+                            </button>
+                            <button className="flex-1 h-8 rounded-lg bg-white text-red-400 hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm">
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
                         </div>
-                      )}
-                      
-                      {booking.status === 'COMPLETED' && (
-                        <span className="inline-block mt-2 text-sm bg-green-200 text-green-700 px-2 py-1 rounded">✓ Завершено</span>
-                      )}
-                      
-                      {booking.status === 'NO_SHOW' && (
-                        <span className="inline-block mt-2 text-sm bg-orange-200 text-orange-700 px-2 py-1 rounded">Не прийшов</span>
                       )}
                     </div>
-                    
-                    {/* Action buttons - absolute bottom */}
-                    {!isPast && booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && (
-                      <div className="absolute bottom-2 left-3 right-3 flex flex-col gap-1">
-                        <button className="w-full h-9 rounded-lg bg-green-500 text-white text-sm font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-1.5 shadow-sm">
-                          <Check className="h-4 w-4" /> Готово
-                        </button>
-                        <div className="flex gap-1">
-                          <button className="flex-1 h-8 rounded-lg bg-white text-zinc-600 hover:bg-zinc-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm">
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                          <button className="flex-1 h-8 rounded-lg bg-white text-orange-500 hover:bg-orange-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm" title="Не прийшов">
-                            <Clock className="h-4 w-4" />
-                          </button>
-                          <button className="flex-1 h-8 rounded-lg bg-white text-red-400 hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm">
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 );
               })}
