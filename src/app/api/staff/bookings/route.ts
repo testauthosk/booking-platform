@@ -12,10 +12,36 @@ export async function POST(request: NextRequest) {
 
     // Calculate timeEnd
     const [hours, minutes] = time.split(':').map(Number);
-    const endMinutes = hours * 60 + minutes + (duration || 60);
+    const startMinutes = hours * 60 + minutes;
+    const endMinutes = startMinutes + (duration || 60);
     const endHours = Math.floor(endMinutes / 60);
     const endMins = endMinutes % 60;
     const timeEnd = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+
+    // Check for overlapping bookings
+    const existingBookings = await prisma.booking.findMany({
+      where: {
+        masterId,
+        date,
+        status: { not: 'CANCELLED' }
+      },
+      select: { time: true, timeEnd: true, duration: true }
+    });
+
+    // Check if new booking overlaps with any existing booking
+    for (const existing of existingBookings) {
+      const [exH, exM] = existing.time.split(':').map(Number);
+      const exStart = exH * 60 + exM;
+      const exEnd = exStart + existing.duration;
+      
+      // Check overlap: new booking starts before existing ends AND new booking ends after existing starts
+      if (startMinutes < exEnd && endMinutes > exStart) {
+        return NextResponse.json({ 
+          error: 'На цей час вже є запис', 
+          overlappingTime: existing.time 
+        }, { status: 409 });
+      }
+    }
 
     // Get master info
     const master = await prisma.master.findUnique({

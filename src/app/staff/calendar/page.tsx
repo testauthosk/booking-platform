@@ -406,9 +406,17 @@ export default function StaffCalendar() {
       if (res.ok) {
         setAddModalOpen(false);
         loadBookings();
+      } else {
+        const data = await res.json();
+        if (res.status === 409) {
+          alert(data.error || 'На цей час вже є запис');
+        } else {
+          alert('Помилка при створенні запису');
+        }
       }
     } catch (error) {
       console.error('Create booking error:', error);
+      alert('Помилка при створенні запису');
     } finally {
       setCreating(false);
     }
@@ -539,49 +547,103 @@ export default function StaffCalendar() {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : showOnlyBookings ? (
-          /* Only bookings mode - compact with timeline */
-          <div className="relative">
+          /* Only bookings mode - simple cards without timeline */
+          <div className="p-4 space-y-3">
             {bookings.length > 0 ? (
-              <>
-                {/* Vertical timeline line */}
-                <div className="absolute left-[52px] top-0 bottom-0 w-px bg-border" />
-                
-                <div className="py-4 space-y-6">
-                  {bookings.map((booking) => {
-                    const isPast = (() => {
-                      if (!isToday(selectedDate)) return false;
-                      const [h, m] = booking.time.split(':').map(Number);
-                      const now = new Date();
-                      return h < now.getHours() || (h === now.getHours() && m < now.getMinutes());
-                    })();
-                    
-                    return (
-                      <div key={booking.id} className="flex items-start">
-                        {/* Time label */}
-                        <div className="w-12 shrink-0 pr-2 text-right">
-                          <span className={`text-xs font-bold ${isPast ? 'text-muted-foreground' : 'text-primary'}`}>
-                            {booking.time}
-                          </span>
+              bookings
+                .sort((a, b) => a.time.localeCompare(b.time))
+                .map((booking) => {
+                  const isPast = (() => {
+                    if (!isToday(selectedDate)) return false;
+                    const [h, m] = booking.time.split(':').map(Number);
+                    const now = new Date();
+                    return h < now.getHours() || (h === now.getHours() && m < now.getMinutes());
+                  })();
+                  
+                  // Calculate end time
+                  const [h, m] = booking.time.split(':').map(Number);
+                  const endMins = h * 60 + m + booking.duration;
+                  const endH = Math.floor(endMins / 60);
+                  const endM = endMins % 60;
+                  const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+                  
+                  const colors = getColorVariants(masterColor);
+                  const isBlocked = booking.clientName === 'Зайнято';
+                  
+                  return (
+                    <div 
+                      key={booking.id}
+                      className={`rounded-xl overflow-hidden ${
+                        booking.status === 'COMPLETED' 
+                          ? 'bg-green-50' 
+                          : isBlocked
+                          ? 'bg-zinc-100'
+                          : isPast 
+                          ? 'opacity-60' 
+                          : ''
+                      }`}
+                      style={{ 
+                        backgroundColor: booking.status === 'COMPLETED' ? undefined : isBlocked ? undefined : colors.bg,
+                        borderLeft: `3px solid ${colors.accent}`,
+                        boxShadow: `inset 0 0 0 1px ${colors.border}`
+                      }}
+                    >
+                      <div className="p-3 flex justify-between">
+                        {/* Left: Content */}
+                        <div className="flex-1 min-w-0">
+                          {/* Time badge */}
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-bold text-primary">{booking.time}</span>
+                            <span className="text-xs text-muted-foreground">—</span>
+                            <span className="text-xs font-medium text-muted-foreground">{endTime}</span>
+                          </div>
+                          
+                          <p className="font-semibold text-sm truncate">{booking.clientName}</p>
+                          <p className="text-xs text-muted-foreground truncate">{booking.serviceName}</p>
+                          
+                          {!isBlocked && (
+                            <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                              <span>{booking.duration} хв</span>
+                              {booking.price !== undefined && booking.price > 0 && (
+                                <span className="font-medium text-foreground">{booking.price} ₴</span>
+                              )}
+                            </div>
+                          )}
+                          
+                          {booking.status === 'COMPLETED' && (
+                            <span className="inline-block mt-1 text-xs bg-green-200 text-green-700 px-2 py-0.5 rounded-full">✓ Завершено</span>
+                          )}
+                          
+                          {booking.status === 'NO_SHOW' && (
+                            <span className="inline-block mt-1 text-xs bg-orange-200 text-orange-700 px-2 py-0.5 rounded-full">Не прийшов</span>
+                          )}
                         </div>
                         
-                        {/* Dot */}
-                        <div className="w-6 shrink-0 flex justify-center">
-                          <div className={`w-2.5 h-2.5 rounded-full mt-0.5 ${isPast ? 'bg-muted-foreground' : 'bg-primary'}`} />
-                        </div>
-                        
-                        {/* Card with arrows */}
-                        <div className="flex-1 pr-4">
-                          <TimelineBookingCard 
-                            booking={booking} 
-                            isPast={isPast} 
-                            isToday={isToday(selectedDate)} 
-                          />
-                        </div>
+                        {/* Right: Action buttons */}
+                        {!isPast && booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && (
+                          <div className="flex flex-col gap-1 ml-2 shrink-0">
+                            <div className="flex gap-1 justify-end">
+                              <button className="h-7 px-2 rounded-lg bg-orange-50 border border-orange-200 text-orange-600 hover:bg-orange-100 flex items-center justify-center transition-colors text-[10px] font-medium">
+                                Не прийшов
+                              </button>
+                              <button className="h-7 w-7 rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 flex items-center justify-center transition-colors">
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                            <div className="flex gap-1 justify-end">
+                              <button className="h-7 px-2 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-600 hover:bg-zinc-100 flex items-center justify-center transition-colors text-[10px] font-medium">
+                                Редагувати
+                              </button>
+                              <button className="h-7 w-7 rounded-lg bg-green-50 border border-green-200 text-green-600 hover:bg-green-100 flex items-center justify-center transition-colors">
+                                <Check className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    );
-                  })}
-                </div>
-              </>
+                    </div>
+                  );
+                })
             ) : (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">Немає записів на цей день</p>
@@ -683,30 +745,11 @@ export default function StaffCalendar() {
                       height: `${height}px`,
                       backgroundColor: booking.status === 'COMPLETED' ? undefined : isBlocked ? undefined : colors.bg,
                       borderLeft: `3px solid ${colors.accent}`,
-                      boxShadow: `0 0 0 1px ${colors.border}`
+                      boxShadow: `inset 0 0 0 1px ${colors.border}`
                     }}
                   >
-                    <div className="p-2 h-full flex">
-                      {/* Left: Action buttons */}
-                      {!isPast && booking.status !== 'COMPLETED' && !isBlocked && (
-                        <div className="flex flex-col gap-1 mr-2">
-                          {/* Delete on top */}
-                          <button className="h-8 w-8 rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 flex items-center justify-center transition-colors">
-                            <X className="h-4 w-4" />
-                          </button>
-                          {/* Complete + Edit below, horizontal */}
-                          <div className="flex gap-1">
-                            <button className="h-8 w-8 rounded-lg bg-green-50 border border-green-200 text-green-600 hover:bg-green-100 flex items-center justify-center transition-colors">
-                              <Check className="h-4 w-4" />
-                            </button>
-                            <button className="h-8 w-8 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-600 hover:bg-zinc-100 flex items-center justify-center transition-colors">
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Right: Content */}
+                    <div className="p-2 h-full flex justify-between">
+                      {/* Left: Content */}
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm truncate">{booking.clientName}</p>
                         <p className="text-xs text-muted-foreground truncate">{booking.serviceName}</p>
@@ -723,7 +766,35 @@ export default function StaffCalendar() {
                         {booking.status === 'COMPLETED' && (
                           <span className="inline-block mt-1 text-xs bg-green-200 text-green-700 px-2 py-0.5 rounded-full">✓ Завершено</span>
                         )}
+                        
+                        {booking.status === 'NO_SHOW' && (
+                          <span className="inline-block mt-1 text-xs bg-orange-200 text-orange-700 px-2 py-0.5 rounded-full">Не прийшов</span>
+                        )}
                       </div>
+                      
+                      {/* Right: Action buttons */}
+                      {!isPast && booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && (
+                        <div className="flex flex-col gap-1 ml-2 shrink-0">
+                          {/* Top row: "Не прийшов" + X */}
+                          <div className="flex gap-1 justify-end">
+                            <button className="h-7 px-2 rounded-lg bg-orange-50 border border-orange-200 text-orange-600 hover:bg-orange-100 flex items-center justify-center transition-colors text-[10px] font-medium">
+                              Не прийшов
+                            </button>
+                            <button className="h-7 w-7 rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 flex items-center justify-center transition-colors">
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                          {/* Bottom row: "Редагувати" + ✓ */}
+                          <div className="flex gap-1 justify-end">
+                            <button className="h-7 px-2 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-600 hover:bg-zinc-100 flex items-center justify-center transition-colors text-[10px] font-medium">
+                              Редагувати
+                            </button>
+                            <button className="h-7 w-7 rounded-lg bg-green-50 border border-green-200 text-green-600 hover:bg-green-100 flex items-center justify-center transition-colors">
+                              <Check className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
