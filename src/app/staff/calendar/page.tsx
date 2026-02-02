@@ -28,6 +28,88 @@ interface Service {
 const DAYS_UA = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 const MONTHS_UA = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
 
+// Timeline booking card with arrows
+function TimelineBookingCard({ booking, isPast, isToday: isTodayDate }: { booking: Booking; isPast: boolean; isToday: boolean }) {
+  const isBlocked = booking.clientName === 'Зайнято';
+  
+  // Calculate end time
+  const [h, m] = booking.time.split(':').map(Number);
+  const endMins = h * 60 + m + booking.duration;
+  const endH = Math.floor(endMins / 60);
+  const endM = endMins % 60;
+  const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+  
+  return (
+    <div className="relative">
+      {/* Top arrow - from card to line */}
+      <div className="absolute -left-4 top-3 flex items-center">
+        <div className={`w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent ${isPast ? 'border-r-[6px] border-r-muted-foreground/40' : 'border-r-[6px] border-r-primary'}`} />
+        <div className={`w-2 h-0.5 ${isPast ? 'bg-muted-foreground/40' : 'bg-primary'}`} />
+      </div>
+      
+      {/* Bottom arrow - from card to line with end time */}
+      <div className="absolute -left-4 bottom-3 flex items-center">
+        <div className="w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-r-[5px] border-r-muted-foreground/30" />
+        <div className="w-2 h-0.5 bg-muted-foreground/30" />
+      </div>
+      
+      {/* End time label */}
+      <div className="absolute -left-[72px] bottom-2 text-[10px] text-muted-foreground w-12 text-right">
+        {endTime}
+      </div>
+      
+      {/* Card */}
+      <Card className={`${
+        booking.status === 'COMPLETED' 
+          ? 'border-green-300 bg-green-50/30' 
+          : isBlocked
+          ? 'border-zinc-300 bg-zinc-50'
+          : isPast 
+          ? 'opacity-50' 
+          : ''
+      }`}>
+        <div className="p-3">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="font-semibold text-sm">{booking.clientName}</p>
+              <p className="text-xs text-muted-foreground">{booking.serviceName}</p>
+            </div>
+            {booking.status === 'COMPLETED' && (
+              <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">✓</span>
+            )}
+          </div>
+          
+          {!isBlocked && (
+            <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
+              <span>{booking.duration} хв</span>
+              {booking.price !== undefined && booking.price > 0 && (
+                <span className="font-medium text-foreground">{booking.price} ₴</span>
+              )}
+            </div>
+          )}
+          
+          {/* Actions */}
+          {!isPast && booking.status !== 'COMPLETED' && (
+            <div className="flex gap-1.5 mt-2">
+              {!isBlocked && (
+                <button className="flex-1 py-1.5 rounded-lg bg-green-50 text-green-700 text-xs font-medium hover:bg-green-100 transition-colors border border-green-200">
+                  Завершити
+                </button>
+              )}
+              <button className="flex-1 py-1.5 rounded-lg bg-zinc-50 text-zinc-600 text-xs font-medium hover:bg-zinc-100 transition-colors border border-zinc-200">
+                Редагувати
+              </button>
+              <button className="py-1.5 px-2 rounded-lg text-red-500 text-xs font-medium hover:bg-red-50 transition-colors">
+                ✕
+              </button>
+            </div>
+          )}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 // Booking card component
 function BookingCard({ booking, isPast, isToday: isTodayDate }: { booking: Booking; isPast: boolean; isToday: boolean }) {
   const isBlocked = booking.clientName === 'Зайнято';
@@ -424,15 +506,15 @@ export default function StaffCalendar() {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : showOnlyBookings ? (
-          /* Only bookings mode - compact with arrows and times */
-          <div className="relative p-4">
+          /* Only bookings mode - compact with timeline */
+          <div className="relative">
             {bookings.length > 0 ? (
               <>
                 {/* Vertical timeline line */}
-                <div className="absolute left-[68px] top-4 bottom-4 w-px bg-border" />
+                <div className="absolute left-[52px] top-0 bottom-0 w-px bg-border" />
                 
-                <div className="space-y-4">
-                  {bookings.map((booking, index) => {
+                <div className="py-4 space-y-6">
+                  {bookings.map((booking) => {
                     const isPast = (() => {
                       if (!isToday(selectedDate)) return false;
                       const [h, m] = booking.time.split(':').map(Number);
@@ -440,45 +522,27 @@ export default function StaffCalendar() {
                       return h < now.getHours() || (h === now.getHours() && m < now.getMinutes());
                     })();
                     
-                    // Calculate end time
-                    const [h, m] = booking.time.split(':').map(Number);
-                    const endMins = h * 60 + m + booking.duration;
-                    const endH = Math.floor(endMins / 60);
-                    const endM = endMins % 60;
-                    const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
-                    const showEndTime = endM !== 0 && endM !== 30;
-                    
                     return (
-                      <div key={booking.id} className="flex relative">
-                        {/* Time labels */}
-                        <div className="w-14 shrink-0 flex flex-col justify-between pr-1 text-right py-2">
+                      <div key={booking.id} className="flex items-start">
+                        {/* Time label */}
+                        <div className="w-12 shrink-0 pr-2 text-right">
                           <span className={`text-xs font-bold ${isPast ? 'text-muted-foreground' : 'text-primary'}`}>
                             {booking.time}
                           </span>
-                          <span className={`text-[10px] ${showEndTime ? 'text-muted-foreground' : 'opacity-0'}`}>
-                            {endTime}
-                          </span>
                         </div>
                         
-                        {/* Dots and arrows */}
-                        <div className="w-8 shrink-0 relative flex flex-col justify-between py-3">
-                          {/* Top: dot + arrow */}
-                          <div className="flex items-center">
-                            <div className={`w-2 h-2 rounded-full ${isPast ? 'bg-muted-foreground' : 'bg-primary'}`} />
-                            <div className={`flex-1 h-0.5 ${isPast ? 'bg-muted-foreground/50' : 'bg-primary'}`} />
-                            <div className={`w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent ${isPast ? 'border-l-[5px] border-l-muted-foreground/50' : 'border-l-[5px] border-l-primary'}`} />
-                          </div>
-                          {/* Bottom: dot + arrow */}
-                          <div className="flex items-center">
-                            <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 ml-0.5" />
-                            <div className="flex-1 h-0.5 bg-muted-foreground/30" />
-                            <div className="w-0 h-0 border-t-[3px] border-t-transparent border-b-[3px] border-b-transparent border-l-[4px] border-l-muted-foreground/30" />
-                          </div>
+                        {/* Dot */}
+                        <div className="w-6 shrink-0 flex justify-center">
+                          <div className={`w-2.5 h-2.5 rounded-full mt-0.5 ${isPast ? 'bg-muted-foreground' : 'bg-primary'}`} />
                         </div>
                         
-                        {/* Card */}
+                        {/* Card with arrows */}
                         <div className="flex-1 pr-4">
-                          <BookingCard booking={booking} isPast={isPast} isToday={isToday(selectedDate)} />
+                          <TimelineBookingCard 
+                            booking={booking} 
+                            isPast={isPast} 
+                            isToday={isToday(selectedDate)} 
+                          />
                         </div>
                       </div>
                     );
@@ -527,19 +591,14 @@ export default function StaffCalendar() {
                       <div className={`w-2 h-2 rounded-full mt-1 ${isPastHour ? 'bg-muted-foreground/30' : 'bg-border'}`} />
                     </div>
                     
-                    {/* Booking card with arrow or empty */}
-                    <div className="flex-1 pr-4 relative">
+                    {/* Booking card or empty */}
+                    <div className="flex-1 pr-4">
                       {bookingAtHour && (
-                        <>
-                          {/* Arrow from timeline to card */}
-                          <div className="absolute left-0 top-3 flex items-center">
-                            <div className={`w-2 h-0.5 ${isPastHour ? 'bg-muted-foreground/50' : 'bg-primary'}`} />
-                            <div className={`w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent ${isPastHour ? 'border-l-[5px] border-l-muted-foreground/50' : 'border-l-[5px] border-l-primary'}`} />
-                          </div>
-                          <div className="ml-4">
-                            <BookingCard booking={bookingAtHour} isPast={isPastHour} isToday={isToday(selectedDate)} />
-                          </div>
-                        </>
+                        <TimelineBookingCard 
+                          booking={bookingAtHour} 
+                          isPast={isPastHour} 
+                          isToday={isToday(selectedDate)} 
+                        />
                       )}
                     </div>
                   </div>
@@ -558,19 +617,14 @@ export default function StaffCalendar() {
                       <div className={`w-1 h-1 rounded-full mt-1.5 ${isPast30 ? 'bg-muted-foreground/20' : 'bg-border/50'}`} />
                     </div>
                     
-                    {/* Booking card with arrow or empty */}
-                    <div className="flex-1 pr-4 relative">
+                    {/* Booking card or empty */}
+                    <div className="flex-1 pr-4">
                       {bookingAt30 && (
-                        <>
-                          {/* Arrow from timeline to card */}
-                          <div className="absolute left-0 top-3 flex items-center">
-                            <div className={`w-2 h-0.5 ${isPast30 ? 'bg-muted-foreground/50' : 'bg-primary'}`} />
-                            <div className={`w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent ${isPast30 ? 'border-l-[5px] border-l-muted-foreground/50' : 'border-l-[5px] border-l-primary'}`} />
-                          </div>
-                          <div className="ml-4">
-                            <BookingCard booking={bookingAt30} isPast={isPast30} isToday={isToday(selectedDate)} />
-                          </div>
-                        </>
+                        <TimelineBookingCard 
+                          booking={bookingAt30} 
+                          isPast={isPast30} 
+                          isToday={isToday(selectedDate)} 
+                        />
                       )}
                     </div>
                   </div>
