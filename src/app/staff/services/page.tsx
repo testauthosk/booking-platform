@@ -17,11 +17,18 @@ interface Service {
   isEnabled: boolean;
 }
 
+interface Category {
+  id: string;
+  name: string;
+}
+
 export default function StaffServices() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [staffId, setStaffId] = useState('');
+  const [salonId, setSalonId] = useState('');
   const [services, setServices] = useState<Service[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editPrice, setEditPrice] = useState('');
@@ -33,9 +40,8 @@ export default function StaffServices() {
   const [newServiceDuration, setNewServiceDuration] = useState('30');
   const [newServicePrice, setNewServicePrice] = useState('');
   const [newServiceDescription, setNewServiceDescription] = useState('');
+  const [newServiceCategory, setNewServiceCategory] = useState('');
   const [creatingService, setCreatingService] = useState(false);
-
-  const [salonId, setSalonId] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('staffToken');
@@ -58,6 +64,12 @@ export default function StaffServices() {
     }
   }, [staffId]);
 
+  useEffect(() => {
+    if (salonId) {
+      loadCategories();
+    }
+  }, [salonId]);
+
   const loadServices = async () => {
     setLoadingServices(true);
     try {
@@ -70,6 +82,18 @@ export default function StaffServices() {
       console.error('Load services error:', error);
     } finally {
       setLoadingServices(false);
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      const res = await fetch(`/api/staff/categories?salonId=${salonId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCategories(data);
+      }
+    } catch (error) {
+      console.error('Load categories error:', error);
     }
   };
 
@@ -133,11 +157,15 @@ export default function StaffServices() {
     setNewServiceDuration('30');
     setNewServicePrice('');
     setNewServiceDescription('');
+    setNewServiceCategory('');
     setAddModalOpen(true);
   };
 
   const createService = async () => {
-    if (!newServiceName || !newServicePrice || !salonId) return;
+    if (!newServiceName || !newServicePrice || !salonId) {
+      console.log('Missing fields:', { newServiceName, newServicePrice, salonId });
+      return;
+    }
     
     setCreatingService(true);
     try {
@@ -150,7 +178,8 @@ export default function StaffServices() {
           name: newServiceName,
           duration: parseInt(newServiceDuration) || 30,
           price: parseInt(newServicePrice),
-          description: newServiceDescription || null
+          description: newServiceDescription || null,
+          categoryId: newServiceCategory || null
         })
       });
       
@@ -326,6 +355,26 @@ export default function StaffServices() {
               onChange={(e) => setNewServiceName(e.target.value)}
               placeholder="Наприклад: Стрижка"
             />
+          </div>
+
+          {/* Category */}
+          <div>
+            <label className="text-sm font-medium mb-1.5 block">Категорія</label>
+            <select
+              value={newServiceCategory}
+              onChange={(e) => setNewServiceCategory(e.target.value)}
+              className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"
+            >
+              <option value="">Без категорії</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+            {categories.length === 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Категорії створює адміністратор
+              </p>
+            )}
           </div>
 
           {/* Duration */}

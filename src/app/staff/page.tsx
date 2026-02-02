@@ -290,8 +290,8 @@ export default function StaffDashboard() {
             onClick={() => router.push('/staff/services')}
           >
             <div className="flex items-center gap-3">
-              <div className="h-11 w-11 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
-                <Tag className="h-5 w-5 text-purple-600" />
+              <div className="h-11 w-11 rounded-xl bg-primary flex items-center justify-center shrink-0">
+                <Tag className="h-5 w-5 text-primary-foreground" />
               </div>
               <div>
                 <p className="font-medium text-sm">Послуги</p>

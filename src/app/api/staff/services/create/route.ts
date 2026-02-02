@@ -5,10 +5,12 @@ import prisma from '@/lib/prisma';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { salonId, masterId, name, duration, price, description } = body;
+    const { salonId, masterId, name, duration, price, description, categoryId } = body;
+
+    console.log('Create service request:', { salonId, masterId, name, price, categoryId });
 
     if (!salonId || !masterId || !name || !price) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required fields', details: { salonId, masterId, name, price } }, { status: 400 });
     }
 
     // Create service in salon
@@ -19,6 +21,7 @@ export async function POST(request: NextRequest) {
         duration: duration || 30,
         price,
         description: description || null,
+        categoryId: categoryId || null,
         sortOrder: 999, // Add to end
       }
     });
