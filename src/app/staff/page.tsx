@@ -583,15 +583,15 @@ export default function StaffDashboard() {
       </div>
 
       {/* New Booking Modal */}
-      {newBookingOpen && (
-        <div 
-          className="fixed inset-0 bg-white/20 backdrop-blur-sm z-40"
-          onClick={() => setNewBookingOpen(false)}
-        />
-      )}
       <div 
-        className={`fixed inset-x-4 bottom-4 max-h-[80vh] bg-card rounded-2xl shadow-xl z-50 transform transition-all duration-300 ease-out overflow-hidden flex flex-col ${
-          newBookingOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-all duration-700 ease-in-out ${
+          newBookingOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setNewBookingOpen(false)}
+      />
+      <div 
+        className={`fixed inset-x-0 bottom-0 max-h-[85vh] bg-card rounded-t-3xl shadow-xl z-50 transform transition-all duration-700 ease-in-out overflow-hidden flex flex-col ${
+          newBookingOpen ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
         <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
@@ -832,15 +832,15 @@ export default function StaffDashboard() {
       </div>
 
       {/* Block Time Modal */}
-      {blockTimeOpen && (
-        <div 
-          className="fixed inset-0 bg-white/20 backdrop-blur-sm z-40"
-          onClick={() => setBlockTimeOpen(false)}
-        />
-      )}
       <div 
-        className={`fixed inset-x-4 bottom-4 bg-card rounded-2xl shadow-xl z-50 transform transition-all duration-300 ease-out overflow-hidden ${
-          blockTimeOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-all duration-700 ease-in-out ${
+          blockTimeOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setBlockTimeOpen(false)}
+      />
+      <div 
+        className={`fixed inset-x-0 bottom-0 bg-card rounded-t-3xl shadow-xl z-50 transform transition-all duration-700 ease-in-out overflow-hidden ${
+          blockTimeOpen ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
         <div className="p-4 border-b border-border flex items-center justify-between">
