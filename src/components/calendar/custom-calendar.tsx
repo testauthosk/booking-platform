@@ -212,17 +212,18 @@ export function CustomCalendar({
                 {/* Events */}
                 {getEventsForResource(resource.id).map((event) => {
                   const { startMinutes, durationMinutes } = getEventPosition(event);
-                  const top = (startMinutes / 60) * hourHeight + 3;
-                  const height = (durationMinutes / 60) * hourHeight - 6;
+                  // Точное позиционирование — карточка касается линий времени
+                  const top = (startMinutes / 60) * hourHeight;
+                  const height = (durationMinutes / 60) * hourHeight;
 
                   return (
                     <div
                       key={event.id}
-                      className="absolute left-1 right-1 rounded-lg overflow-hidden cursor-pointer shadow-md hover:shadow-lg transition-all hover:scale-[1.01] border border-white/30"
+                      className="absolute left-0.5 right-0.5 rounded-md overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-all hover:scale-[1.005] border border-white/20"
                       style={{
                         top: `${top}px`,
                         height: `${height}px`,
-                        background: `linear-gradient(145deg, ${event.backgroundColor || '#4eb8d5'}, ${event.backgroundColor || '#4eb8d5'}dd)`,
+                        background: `linear-gradient(145deg, ${event.backgroundColor || '#4eb8d5'}, ${event.backgroundColor || '#4eb8d5'}ee)`,
                       }}
                       onClick={(e) => {
                         e.stopPropagation();

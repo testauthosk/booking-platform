@@ -239,9 +239,9 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      {/* Mobile header */}
-      <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b bg-background sticky top-0 z-20">
+    <div className="flex flex-col h-[calc(100vh-5rem)] lg:h-[calc(100vh-4rem)] bg-background overflow-hidden">
+      {/* Mobile header - fixed */}
+      <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b bg-background shrink-0 z-20">
         <Button 
           variant="ghost" 
           size="icon" 
