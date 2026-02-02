@@ -265,37 +265,26 @@ export default function StaffDashboard() {
           </Card>
         </div>
 
-        {/* Quick actions - compact */}
+        {/* Quick actions - horizontal compact */}
         <div className="grid grid-cols-2 gap-3">
           <Card 
-            className="p-3 cursor-pointer hover:shadow-md transition-all active:scale-[0.98] flex items-center gap-3"
+            className="p-2.5 cursor-pointer hover:shadow-md transition-all active:scale-[0.98] flex items-center gap-2"
             onClick={() => router.push('/staff/calendar')}
           >
-            <div className="h-12 w-12 rounded-xl bg-primary flex flex-col items-center justify-center shrink-0 text-primary-foreground">
-              <span className="text-lg font-bold leading-none">
-                {new Date().getDate()}
-              </span>
-              <span className="text-[9px] font-medium uppercase opacity-80">
-                {new Date().toLocaleDateString('uk-UA', { month: 'short' }).replace('.', '')}
-              </span>
+            <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+              <Calendar className="h-4 w-4 text-blue-600" />
             </div>
-            <div className="min-w-0">
-              <p className="font-medium text-sm">Мій календар</p>
-              <p className="text-xs text-muted-foreground truncate">Розклад</p>
-            </div>
+            <span className="font-medium text-sm">Календар</span>
           </Card>
 
           <Card 
-            className="p-3 cursor-pointer hover:shadow-md transition-all active:scale-[0.98] flex items-center gap-3"
+            className="p-2.5 cursor-pointer hover:shadow-md transition-all active:scale-[0.98] flex items-center gap-2"
             onClick={() => router.push('/staff/services')}
           >
-            <div className="h-10 w-10 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
-              <Tag className="h-5 w-5 text-purple-600" />
+            <div className="h-8 w-8 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
+              <Tag className="h-4 w-4 text-purple-600" />
             </div>
-            <div className="min-w-0">
-              <p className="font-medium text-sm">Мої послуги</p>
-              <p className="text-xs text-muted-foreground truncate">Ціни</p>
-            </div>
+            <span className="font-medium text-sm">Послуги</span>
           </Card>
         </div>
 
@@ -305,9 +294,9 @@ export default function StaffDashboard() {
             <h2 className="font-semibold text-lg">Записи на сьогодні</h2>
             <button 
               onClick={() => openNewBooking()}
-              className="h-8 px-3 rounded-lg bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1 hover:bg-primary/90 transition-colors active:scale-[0.98]"
+              className="h-9 w-12 rounded-xl bg-primary text-primary-foreground font-bold flex items-center justify-center hover:bg-primary/90 transition-colors active:scale-[0.98]"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-5 w-5 stroke-[3]" />
             </button>
           </div>
 

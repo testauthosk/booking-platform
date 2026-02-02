@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ChevronLeft, Loader2, Clock, Tag, Check, X, Edit2 } from 'lucide-react';
+import { ChevronLeft, Loader2, Clock, Tag, Check, X, Edit2, Plus } from 'lucide-react';
 
 interface Service {
   id: string;
@@ -26,6 +26,7 @@ export default function StaffServices() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editPrice, setEditPrice] = useState('');
   const [saving, setSaving] = useState(false);
+  const [addModalOpen, setAddModalOpen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('staffToken');
@@ -156,18 +157,16 @@ export default function StaffServices() {
               {enabledCount} активних
             </p>
           </div>
+          {services.filter(s => !s.isEnabled).length > 0 && (
+            <button 
+              onClick={() => setAddModalOpen(true)}
+              className="h-9 w-12 rounded-xl bg-primary text-primary-foreground font-bold flex items-center justify-center hover:bg-primary/90 transition-colors"
+            >
+              <Plus className="h-5 w-5 stroke-[3]" />
+            </button>
+          )}
         </div>
       </header>
-
-      {/* Enable all hint */}
-      {services.length > 0 && enabledCount === 0 && (
-        <div className="mx-4 mt-4 p-4 rounded-xl bg-blue-50 border border-blue-200">
-          <p className="text-sm text-blue-800 font-medium mb-2">👆 Оберіть послуги</p>
-          <p className="text-xs text-blue-600">
-            Натисніть на квадратик зліва щоб увімкнути послугу
-          </p>
-        </div>
-      )}
 
       {/* Content */}
       <div className="p-4 pb-40 space-y-4">
@@ -283,6 +282,56 @@ export default function StaffServices() {
             </p>
           </div>
         )}
+      </div>
+
+      {/* Add Service Modal */}
+      {addModalOpen && (
+        <div 
+          className="fixed inset-0 bg-white/20 backdrop-blur-sm z-40"
+          onClick={() => setAddModalOpen(false)}
+        />
+      )}
+      <div 
+        className={`fixed inset-x-4 bottom-4 max-h-[70vh] bg-card rounded-2xl shadow-xl z-50 transform transition-all duration-300 ease-out overflow-hidden flex flex-col ${
+          addModalOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
+        }`}
+      >
+        <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
+          <h2 className="font-semibold">Додати послугу</h2>
+          <button 
+            onClick={() => setAddModalOpen(false)}
+            className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="p-4 overflow-y-auto flex-1 space-y-2">
+          {services.filter(s => !s.isEnabled).length > 0 ? (
+            services.filter(s => !s.isEnabled).map((service) => (
+              <button
+                key={service.id}
+                onClick={() => {
+                  toggleService(service.id, true);
+                  setAddModalOpen(false);
+                }}
+                className="w-full p-3 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all text-left flex items-center justify-between"
+              >
+                <div>
+                  <p className="font-medium">{service.name}</p>
+                  <p className="text-sm text-muted-foreground">{service.duration} хв</p>
+                </div>
+                <div className="text-right">
+                  <span className="font-semibold">{service.price} ₴</span>
+                  <p className="text-xs text-muted-foreground">Натисніть щоб додати</p>
+                </div>
+              </button>
+            ))
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Всі послуги вже додано ✓</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
