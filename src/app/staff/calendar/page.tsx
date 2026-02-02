@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ChevronLeft, Plus, Loader2, Clock, User, X, Check, Pencil } from 'lucide-react';
+import { ChevronLeft, Plus, Loader2, Clock, User, X, Check, Pencil, Phone } from 'lucide-react';
 
 interface Booking {
   id: string;
@@ -721,6 +721,15 @@ export default function StaffCalendar() {
                 // Get color variants from master color
                 const colors = getColorVariants(masterColor);
                 
+                // Diagonal stripes pattern for past bookings
+                const stripesPattern = isPast ? `repeating-linear-gradient(
+                  45deg,
+                  transparent,
+                  transparent 5px,
+                  rgba(0,0,0,0.07) 5px,
+                  rgba(0,0,0,0.07) 10px
+                )` : undefined;
+                
                 return (
                   <div 
                     key={booking.id}
@@ -729,14 +738,13 @@ export default function StaffCalendar() {
                         ? 'bg-green-50' 
                         : isBlocked
                         ? 'bg-zinc-100'
-                        : isPast 
-                        ? 'opacity-60' 
                         : ''
                     }`}
                     style={{ 
                       top: `${topPosition}px`, 
                       height: `${height + 1}px`,
                       backgroundColor: booking.status === 'COMPLETED' ? undefined : isBlocked ? undefined : colors.bg,
+                      backgroundImage: stripesPattern,
                       borderLeft: `4px solid ${colors.stripe}`,
                       borderTop: `1px solid ${colors.stripe}`,
                       borderRight: `1px solid ${colors.stripe}`,
@@ -746,13 +754,13 @@ export default function StaffCalendar() {
                     <div className="p-3 h-full flex justify-between gap-3">
                       {/* Left: Client info - aligned with buttons */}
                       <div className="flex-1 min-w-0 flex flex-col justify-between">
-                        {/* Top: Name + Service (aligned with Готово button) */}
+                        {/* Top: Name + Service */}
                         <div>
                           <p className="font-bold text-lg truncate leading-9">{booking.clientName}</p>
                           <p className="text-base text-muted-foreground truncate">{booking.serviceName}</p>
                         </div>
                         
-                        {/* Bottom: Duration + Price (aligned with bottom buttons) */}
+                        {/* Bottom: Duration + Price */}
                         {!isBlocked && (
                           <div className="flex items-center gap-3 h-8">
                             <span className="text-base text-muted-foreground">{booking.duration} хв</span>
@@ -772,22 +780,29 @@ export default function StaffCalendar() {
                       </div>
                       
                       {/* Right: Action buttons */}
-                      {!isPast && booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && (
+                      {booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && (
                         <div className="flex flex-col gap-1 shrink-0">
-                          <button className="h-9 px-4 rounded-lg bg-green-500 text-white text-sm font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-1.5 shadow-sm">
-                            <Check className="h-4 w-4" /> Готово
-                          </button>
-                          <div className="flex gap-1">
-                            <button className="flex-1 h-8 rounded-lg bg-white text-zinc-600 hover:bg-zinc-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm">
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button className="flex-1 h-8 rounded-lg bg-white text-orange-500 hover:bg-orange-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm" title="Не прийшов">
-                              <Clock className="h-4 w-4" />
-                            </button>
-                            <button className="flex-1 h-8 rounded-lg bg-white text-red-400 hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm">
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
+                          {/* Call button - always visible */}
+                          <a 
+                            href={`tel:${booking.clientPhone}`}
+                            className="h-9 px-4 rounded-lg bg-green-500 text-white text-sm font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                          >
+                            <Phone className="h-4 w-4" /> Зателефонувати
+                          </a>
+                          {/* Other buttons - only for non-past */}
+                          {!isPast && (
+                            <div className="flex gap-1">
+                              <button className="flex-1 h-8 rounded-lg bg-white text-zinc-600 hover:bg-zinc-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm">
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                              <button className="flex-1 h-8 rounded-lg bg-white text-orange-500 hover:bg-orange-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm" title="Не прийшов">
+                                <Clock className="h-4 w-4" />
+                              </button>
+                              <button className="flex-1 h-8 rounded-lg bg-white text-red-400 hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm">
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
