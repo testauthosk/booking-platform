@@ -12,12 +12,12 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="h-screen flex bg-background overflow-hidden overscroll-none">
-      {/* Mobile overlay - slides from right to meet sidebar */}
+      {/* Mobile overlay - frosted glass fade */}
       <div
         className={cn(
-          "fixed inset-0 bg-black/50 z-40 lg:hidden",
-          "transition-transform duration-[600ms] ease-out will-change-transform",
-          isOpen ? "translate-x-0" : "translate-x-full pointer-events-none"
+          "fixed inset-0 bg-white/30 backdrop-blur-md z-40 lg:hidden",
+          "transition-opacity duration-[600ms] ease-out",
+          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
         onClick={close}
       />
