@@ -219,12 +219,12 @@ export default function TeamPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Пошук учасників команди" 
-              className="pl-10" 
+              className="pl-10 h-10" 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl shrink-0">
+          <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl shrink-0 border-border">
             <Filter className="h-5 w-5" />
           </Button>
         </div>
