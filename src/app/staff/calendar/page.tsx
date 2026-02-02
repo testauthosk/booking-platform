@@ -28,7 +28,7 @@ interface Service {
 const DAYS_UA = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 const MONTHS_UA = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
 
-// Timeline booking card with arrows
+// Timeline booking card with arrows pointing left from card
 function TimelineBookingCard({ booking, isPast, isToday: isTodayDate }: { booking: Booking; isPast: boolean; isToday: boolean }) {
   const isBlocked = booking.clientName === 'Зайнято';
   
@@ -38,75 +38,79 @@ function TimelineBookingCard({ booking, isPast, isToday: isTodayDate }: { bookin
   const endH = Math.floor(endMins / 60);
   const endM = endMins % 60;
   const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+  const showEndTime = endM !== 0 && endM !== 30;
   
   return (
-    <div className="relative">
-      {/* Top arrow - from card to line */}
-      <div className="absolute -left-4 top-3 flex items-center">
-        <div className={`w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent ${isPast ? 'border-r-[6px] border-r-muted-foreground/40' : 'border-r-[6px] border-r-primary'}`} />
-        <div className={`w-2 h-0.5 ${isPast ? 'bg-muted-foreground/40' : 'bg-primary'}`} />
-      </div>
+    <Card className={`relative overflow-visible ${
+      booking.status === 'COMPLETED' 
+        ? 'border-green-300 bg-green-50/30' 
+        : isBlocked
+        ? 'border-zinc-300 bg-zinc-50'
+        : isPast 
+        ? 'opacity-50' 
+        : ''
+    }`}>
+      {/* Top arrow < pointing left from card */}
+      <div 
+        className={`absolute -left-[10px] top-3 w-0 h-0 
+          border-t-[8px] border-t-transparent 
+          border-b-[8px] border-b-transparent 
+          ${isPast ? 'border-r-[10px] border-r-zinc-300' : 'border-r-[10px] border-r-primary'}`}
+      />
       
-      {/* Bottom arrow - from card to line with end time */}
-      <div className="absolute -left-4 bottom-3 flex items-center">
-        <div className="w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-r-[5px] border-r-muted-foreground/30" />
-        <div className="w-2 h-0.5 bg-muted-foreground/30" />
-      </div>
+      {/* Bottom arrow < pointing left from card */}
+      <div 
+        className="absolute -left-[8px] bottom-3 w-0 h-0 
+          border-t-[6px] border-t-transparent 
+          border-b-[6px] border-b-transparent 
+          border-r-[8px] border-r-zinc-300"
+      />
       
-      {/* End time label */}
-      <div className="absolute -left-[72px] bottom-2 text-[10px] text-muted-foreground w-12 text-right">
-        {endTime}
-      </div>
+      {/* End time - inside card at bottom left */}
+      {showEndTime && (
+        <div className="absolute -left-[8px] bottom-[-18px] text-[10px] text-muted-foreground">
+          {endTime}
+        </div>
+      )}
       
-      {/* Card */}
-      <Card className={`${
-        booking.status === 'COMPLETED' 
-          ? 'border-green-300 bg-green-50/30' 
-          : isBlocked
-          ? 'border-zinc-300 bg-zinc-50'
-          : isPast 
-          ? 'opacity-50' 
-          : ''
-      }`}>
-        <div className="p-3">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <p className="font-semibold text-sm">{booking.clientName}</p>
-              <p className="text-xs text-muted-foreground">{booking.serviceName}</p>
-            </div>
-            {booking.status === 'COMPLETED' && (
-              <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">✓</span>
-            )}
+      <div className="p-3">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <p className="font-semibold text-sm">{booking.clientName}</p>
+            <p className="text-xs text-muted-foreground">{booking.serviceName}</p>
           </div>
-          
-          {!isBlocked && (
-            <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
-              <span>{booking.duration} хв</span>
-              {booking.price !== undefined && booking.price > 0 && (
-                <span className="font-medium text-foreground">{booking.price} ₴</span>
-              )}
-            </div>
-          )}
-          
-          {/* Actions */}
-          {!isPast && booking.status !== 'COMPLETED' && (
-            <div className="flex gap-1.5 mt-2">
-              {!isBlocked && (
-                <button className="flex-1 py-1.5 rounded-lg bg-green-50 text-green-700 text-xs font-medium hover:bg-green-100 transition-colors border border-green-200">
-                  Завершити
-                </button>
-              )}
-              <button className="flex-1 py-1.5 rounded-lg bg-zinc-50 text-zinc-600 text-xs font-medium hover:bg-zinc-100 transition-colors border border-zinc-200">
-                Редагувати
-              </button>
-              <button className="py-1.5 px-2 rounded-lg text-red-500 text-xs font-medium hover:bg-red-50 transition-colors">
-                ✕
-              </button>
-            </div>
+          {booking.status === 'COMPLETED' && (
+            <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">✓</span>
           )}
         </div>
-      </Card>
-    </div>
+        
+        {!isBlocked && (
+          <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
+            <span>{booking.duration} хв</span>
+            {booking.price !== undefined && booking.price > 0 && (
+              <span className="font-medium text-foreground">{booking.price} ₴</span>
+            )}
+          </div>
+        )}
+        
+        {/* Actions */}
+        {!isPast && booking.status !== 'COMPLETED' && (
+          <div className="flex gap-1.5 mt-2">
+            {!isBlocked && (
+              <button className="flex-1 py-1.5 rounded-lg bg-green-50 text-green-700 text-xs font-medium hover:bg-green-100 transition-colors border border-green-200">
+                Завершити
+              </button>
+            )}
+            <button className="flex-1 py-1.5 rounded-lg bg-zinc-50 text-zinc-600 text-xs font-medium hover:bg-zinc-100 transition-colors border border-zinc-200">
+              Редагувати
+            </button>
+            <button className="py-1.5 px-2 rounded-lg text-red-500 text-xs font-medium hover:bg-red-50 transition-colors">
+              ✕
+            </button>
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }
 
