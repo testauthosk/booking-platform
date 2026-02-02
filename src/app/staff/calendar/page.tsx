@@ -291,91 +291,106 @@ export default function StaffCalendar() {
         ))}
       </div>
 
-      {/* Timeline view */}
-      <div className="p-4 pb-24">
+      {/* Bookings list */}
+      <div className="p-4 pb-24 space-y-3">
         {loadingBookings ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : bookings.length > 0 ? (
-          <div className="relative">
-            {/* Time line */}
-            <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-border" />
-            
-            <div className="space-y-4">
-              {bookings.map((booking, index) => {
-                const isPast = (() => {
-                  if (!isToday(selectedDate)) return false;
-                  const [h, m] = booking.time.split(':').map(Number);
-                  const now = new Date();
-                  return h < now.getHours() || (h === now.getHours() && m < now.getMinutes());
-                })();
-                
-                return (
-                  <div key={booking.id} className="flex gap-4 relative">
-                    {/* Time dot */}
-                    <div className="flex flex-col items-center z-10">
-                      <div className={`h-3 w-3 rounded-full ${
-                        booking.status === 'COMPLETED' 
-                          ? 'bg-green-500' 
-                          : isPast 
-                          ? 'bg-muted-foreground' 
-                          : 'bg-primary'
-                      }`} />
-                      <span className={`text-xs font-medium mt-1 ${
-                        isPast ? 'text-muted-foreground' : ''
+          <>
+            {bookings.map((booking) => {
+              const isPast = (() => {
+                if (!isToday(selectedDate)) return false;
+                const [h, m] = booking.time.split(':').map(Number);
+                const now = new Date();
+                return h < now.getHours() || (h === now.getHours() && m < now.getMinutes());
+              })();
+              
+              const isBlocked = booking.clientName === 'Зайнято';
+              
+              return (
+                <Card 
+                  key={booking.id} 
+                  className={`overflow-hidden ${
+                    booking.status === 'COMPLETED' 
+                      ? 'border-green-200' 
+                      : isBlocked
+                      ? 'border-zinc-300 bg-zinc-50'
+                      : isPast 
+                      ? 'opacity-50' 
+                      : ''
+                  }`}
+                >
+                  <div className="flex">
+                    {/* Time block */}
+                    <div className={`w-20 py-4 flex flex-col items-center justify-center shrink-0 ${
+                      booking.status === 'COMPLETED'
+                        ? 'bg-green-100'
+                        : isBlocked
+                        ? 'bg-zinc-200'
+                        : isPast
+                        ? 'bg-muted'
+                        : 'bg-primary/10'
+                    }`}>
+                      <span className={`text-lg font-bold ${
+                        booking.status === 'COMPLETED'
+                          ? 'text-green-700'
+                          : isBlocked
+                          ? 'text-zinc-600'
+                          : isPast
+                          ? 'text-muted-foreground'
+                          : 'text-primary'
                       }`}>
                         {booking.time}
                       </span>
+                      {booking.timeEnd && (
+                        <span className="text-xs text-muted-foreground">
+                          до {booking.timeEnd}
+                        </span>
+                      )}
                     </div>
                     
-                    {/* Booking card */}
-                    <Card className={`flex-1 p-4 ${
-                      booking.status === 'COMPLETED' 
-                        ? 'border-green-200 bg-green-50/50' 
-                        : isPast 
-                        ? 'opacity-60' 
-                        : ''
-                    }`}>
-                      <div className="flex items-start justify-between mb-2">
+                    {/* Content */}
+                    <div className="flex-1 p-4">
+                      <div className="flex items-start justify-between mb-1">
                         <div>
                           <p className="font-semibold">{booking.clientName}</p>
                           <p className="text-sm text-muted-foreground">{booking.serviceName}</p>
                         </div>
                         {booking.status === 'COMPLETED' && (
                           <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                            Завершено
+                            ✓
                           </span>
                         )}
                       </div>
                       
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          <span>{booking.duration} хв</span>
+                      {!isBlocked && (
+                        <div className="flex items-center gap-3 mt-2 text-sm">
+                          <span className="text-muted-foreground">{booking.duration} хв</span>
+                          {booking.price !== undefined && booking.price > 0 && (
+                            <span className="font-medium">{booking.price} ₴</span>
+                          )}
                         </div>
-                        {booking.price && (
-                          <span className="font-medium text-foreground">{booking.price} ₴</span>
-                        )}
-                      </div>
+                      )}
                       
                       {/* Quick actions */}
-                      {!isPast && booking.status !== 'COMPLETED' && (
+                      {!isPast && booking.status !== 'COMPLETED' && !isBlocked && (
                         <div className="flex gap-2 mt-3">
-                          <button className="flex-1 py-2 rounded-lg bg-green-100 text-green-700 text-sm font-medium hover:bg-green-200 transition-colors">
+                          <button className="flex-1 py-2 rounded-lg bg-green-50 text-green-700 text-sm font-medium hover:bg-green-100 transition-colors border border-green-200">
                             Завершити
                           </button>
-                          <button className="flex-1 py-2 rounded-lg bg-muted text-muted-foreground text-sm font-medium hover:bg-muted/80 transition-colors">
+                          <button className="flex-1 py-2 rounded-lg bg-zinc-50 text-zinc-600 text-sm font-medium hover:bg-zinc-100 transition-colors border border-zinc-200">
                             Скасувати
                           </button>
                         </div>
                       )}
-                    </Card>
+                    </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                </Card>
+              );
+            })}
+          </>
         ) : (
           <div className="text-center py-20">
             <div className="h-20 w-20 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
