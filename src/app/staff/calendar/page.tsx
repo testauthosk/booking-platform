@@ -807,8 +807,8 @@ export default function StaffCalendar() {
                   const topPosition = currentMinutes * 2; // 2px per minute
                   return (
                     <div 
-                      className="absolute right-0 flex items-center z-20 pointer-events-none"
-                      style={{ top: `${topPosition}px`, left: '-60px' }}
+                      className="absolute right-0 flex items-center z-20 pointer-events-none -translate-y-1/2"
+                      style={{ top: `${topPosition}px`, left: '-68px' }}
                     >
                       <span className="text-xs font-medium text-red-500 border border-red-500 rounded px-1 bg-white">{timeStr}</span>
                       <div className="flex-1 h-[2px] bg-red-500" />
