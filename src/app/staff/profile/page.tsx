@@ -6,6 +6,20 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ChevronLeft, Loader2, Check, Camera, User } from 'lucide-react';
 
+// Палітра кольорів (earth-harmony)
+const COLOR_PALETTE = [
+  { hex: '#87C2CA', name: 'Тибетський камінь' },
+  { hex: '#BAB8A8', name: 'Зелене дерево' },
+  { hex: '#E6D17B', name: 'Пшеничне золото' },
+  { hex: '#DF93B4', name: 'Квітка персика' },
+  { hex: '#94B5FD', name: 'Каролінський синій' },
+  { hex: '#C0B283', name: 'Піщаний беж' },
+  { hex: '#9DF0B3', name: "М'ятний тонік" },
+  { hex: '#BDB7DB', name: 'Мелроуз' },
+  { hex: '#D3E08C', name: 'Зелене зачарування' },
+  { hex: '#F1C764', name: 'Медовий' },
+];
+
 export default function StaffProfile() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -18,6 +32,7 @@ export default function StaffProfile() {
   const [bio, setBio] = useState('');
   const [avatar, setAvatar] = useState('');
   const [role, setRole] = useState('');
+  const [color, setColor] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('staffToken');
@@ -49,6 +64,7 @@ export default function StaffProfile() {
         setBio(data.bio || '');
         setAvatar(data.avatar || '');
         setRole(data.role || '');
+        setColor(data.color || COLOR_PALETTE[0].hex);
       }
     } catch (error) {
       console.error('Load profile error:', error);
@@ -65,7 +81,8 @@ export default function StaffProfile() {
           masterId: staffId,
           name,
           phone,
-          bio
+          bio,
+          color
         })
       });
       
@@ -131,6 +148,33 @@ export default function StaffProfile() {
             <span className="mt-3 text-sm text-muted-foreground">{role}</span>
           )}
         </div>
+
+        {/* Color picker */}
+        <Card className="p-4">
+          <h3 className="font-medium mb-3">Колір у календарі</h3>
+          <p className="text-xs text-muted-foreground mb-3">
+            Цей колір відображатиметься у календарі бронювань
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {COLOR_PALETTE.map((c) => (
+              <button
+                key={c.hex}
+                onClick={() => setColor(c.hex)}
+                className={`w-10 h-10 rounded-xl transition-all ${
+                  color === c.hex 
+                    ? 'ring-2 ring-offset-2 ring-primary scale-110' 
+                    : 'hover:scale-105'
+                }`}
+                style={{ backgroundColor: c.hex }}
+                title={c.name}
+              >
+                {color === c.hex && (
+                  <Check className="h-5 w-5 text-white mx-auto drop-shadow" />
+                )}
+              </button>
+            ))}
+          </div>
+        </Card>
 
         {/* Form */}
         <div className="space-y-4">

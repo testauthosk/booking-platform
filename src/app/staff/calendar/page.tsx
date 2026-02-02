@@ -28,6 +28,30 @@ interface Service {
 const DAYS_UA = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 const MONTHS_UA = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
 
+// Функція для генерації світлого фону та бордеру з hex кольору
+function getColorVariants(hex: string) {
+  // Parse hex
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  
+  // Light background (mix with white ~85%)
+  const bgR = Math.round(r + (255 - r) * 0.85);
+  const bgG = Math.round(g + (255 - g) * 0.85);
+  const bgB = Math.round(b + (255 - b) * 0.85);
+  
+  // Border (mix with white ~60%)
+  const bdR = Math.round(r + (255 - r) * 0.6);
+  const bdG = Math.round(g + (255 - g) * 0.6);
+  const bdB = Math.round(b + (255 - b) * 0.6);
+  
+  return {
+    bg: `rgb(${bgR}, ${bgG}, ${bgB})`,
+    border: `rgb(${bdR}, ${bdG}, ${bdB})`,
+    accent: hex
+  };
+}
+
 // Timeline booking card with arrows pointing left from card
 function TimelineBookingCard({ booking, isPast, isToday: isTodayDate }: { booking: Booking; isPast: boolean; isToday: boolean }) {
   const isBlocked = booking.clientName === 'Зайнято';
@@ -197,6 +221,7 @@ export default function StaffCalendar() {
   const [salonId, setSalonId] = useState('');
   const [workingHours, setWorkingHours] = useState<{ start: number; end: number }>({ start: 8, end: 21 });
   const [showOnlyBookings, setShowOnlyBookings] = useState(false);
+  const [masterColor, setMasterColor] = useState('#87C2CA'); // default color
   
   // Add booking modal
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -278,6 +303,10 @@ export default function StaffCalendar() {
       const res = await fetch(`/api/staff/profile?masterId=${staffId}`);
       if (res.ok) {
         const data = await res.json();
+        // Load master color
+        if (data.color) {
+          setMasterColor(data.color);
+        }
         if (data.workingHours) {
           // Get day of week for selected date (0=Sun, 1=Mon, etc)
           const dayOfWeek = selectedDate.getDay();
@@ -634,6 +663,9 @@ export default function StaffCalendar() {
                 const endM = endMins % 60;
                 const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
                 
+                // Get color variants from master color
+                const colors = getColorVariants(masterColor);
+                
                 return (
                   <div 
                     key={booking.id}
@@ -643,12 +675,16 @@ export default function StaffCalendar() {
                         : isBlocked
                         ? 'border-zinc-300 bg-zinc-100'
                         : isPast 
-                        ? 'border-zinc-200 bg-zinc-50 opacity-60' 
-                        : 'border-orange-200 bg-orange-50'
+                        ? 'opacity-60' 
+                        : ''
                     }`}
                     style={{ 
                       top: `${topPosition}px`, 
-                      height: `${Math.max(height, 100)}px`
+                      height: `${Math.max(height, 100)}px`,
+                      ...(booking.status !== 'COMPLETED' && !isBlocked && {
+                        backgroundColor: colors.bg,
+                        borderColor: colors.border
+                      })
                     }}
                   >
                     <div className="p-3 pb-4">

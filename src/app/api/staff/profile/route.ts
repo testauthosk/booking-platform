@@ -20,7 +20,8 @@ export async function GET(request: NextRequest) {
         avatar: true,
         bio: true,
         role: true,
-        workingHours: true
+        workingHours: true,
+        color: true
       }
     });
 
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { masterId, name, phone, bio, workingHours } = body;
+    const { masterId, name, phone, bio, workingHours, color } = body;
 
     if (!masterId) {
       return NextResponse.json({ error: 'masterId required' }, { status: 400 });
@@ -50,7 +51,8 @@ export async function PUT(request: NextRequest) {
         ...(name && { name }),
         ...(phone !== undefined && { phone }),
         ...(bio !== undefined && { bio }),
-        ...(workingHours !== undefined && { workingHours })
+        ...(workingHours !== undefined && { workingHours }),
+        ...(color !== undefined && { color })
       }
     });
 

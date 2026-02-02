@@ -143,6 +143,9 @@ model Master {
   // Working hours (JSON, overrides salon if set)
   workingHours    Json?
 
+  // Calendar color (hex, e.g. #4eb8d5)
+  color           String?
+
   // Status
   isActive        Boolean  @default(true)
   sortOrder       Int      @default(0)
