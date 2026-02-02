@@ -424,49 +424,67 @@ export default function StaffCalendar() {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : showOnlyBookings ? (
-          /* Only bookings mode - with start/end times */
-          <div className="p-4 space-y-4">
+          /* Only bookings mode - compact with arrows and times */
+          <div className="relative p-4">
             {bookings.length > 0 ? (
-              bookings.map((booking) => {
-                const isPast = (() => {
-                  if (!isToday(selectedDate)) return false;
-                  const [h, m] = booking.time.split(':').map(Number);
-                  const now = new Date();
-                  return h < now.getHours() || (h === now.getHours() && m < now.getMinutes());
-                })();
+              <>
+                {/* Vertical timeline line */}
+                <div className="absolute left-[68px] top-4 bottom-4 w-px bg-border" />
                 
-                // Calculate end time
-                const [h, m] = booking.time.split(':').map(Number);
-                const endMins = h * 60 + m + booking.duration;
-                const endH = Math.floor(endMins / 60);
-                const endM = endMins % 60;
-                const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
-                const showEndTime = endM !== 0 && endM !== 30;
-                
-                return (
-                  <div key={booking.id} className="flex gap-3 relative">
-                    {/* Time column with line */}
-                    <div className="w-14 shrink-0 flex flex-col items-end relative">
-                      <span className={`text-sm font-bold ${isPast ? 'text-muted-foreground' : 'text-primary'}`}>
-                        {booking.time}
-                      </span>
-                      {/* Vertical line */}
-                      <div className={`absolute right-[-8px] top-5 bottom-[-16px] w-px ${isPast ? 'bg-muted' : 'bg-primary/30'}`} />
-                      {/* Top dot */}
-                      <div className={`absolute right-[-10px] top-1.5 w-1.5 h-1.5 rounded-full ${isPast ? 'bg-muted-foreground' : 'bg-primary'}`} />
-                      {/* End time */}
-                      <span className={`text-xs mt-auto ${showEndTime ? 'text-muted-foreground' : 'text-transparent'}`}>
-                        {showEndTime ? endTime : endTime}
-                      </span>
-                      {/* Bottom dot */}
-                      <div className={`absolute right-[-9px] bottom-0 w-1 h-1 rounded-full bg-muted-foreground/50`} />
-                    </div>
-                    <div className="flex-1">
-                      <BookingCard booking={booking} isPast={isPast} isToday={isToday(selectedDate)} />
-                    </div>
-                  </div>
-                );
-              })
+                <div className="space-y-4">
+                  {bookings.map((booking, index) => {
+                    const isPast = (() => {
+                      if (!isToday(selectedDate)) return false;
+                      const [h, m] = booking.time.split(':').map(Number);
+                      const now = new Date();
+                      return h < now.getHours() || (h === now.getHours() && m < now.getMinutes());
+                    })();
+                    
+                    // Calculate end time
+                    const [h, m] = booking.time.split(':').map(Number);
+                    const endMins = h * 60 + m + booking.duration;
+                    const endH = Math.floor(endMins / 60);
+                    const endM = endMins % 60;
+                    const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+                    const showEndTime = endM !== 0 && endM !== 30;
+                    
+                    return (
+                      <div key={booking.id} className="flex relative">
+                        {/* Time labels */}
+                        <div className="w-14 shrink-0 flex flex-col justify-between pr-1 text-right py-2">
+                          <span className={`text-xs font-bold ${isPast ? 'text-muted-foreground' : 'text-primary'}`}>
+                            {booking.time}
+                          </span>
+                          <span className={`text-[10px] ${showEndTime ? 'text-muted-foreground' : 'opacity-0'}`}>
+                            {endTime}
+                          </span>
+                        </div>
+                        
+                        {/* Dots and arrows */}
+                        <div className="w-8 shrink-0 relative flex flex-col justify-between py-3">
+                          {/* Top: dot + arrow */}
+                          <div className="flex items-center">
+                            <div className={`w-2 h-2 rounded-full ${isPast ? 'bg-muted-foreground' : 'bg-primary'}`} />
+                            <div className={`flex-1 h-0.5 ${isPast ? 'bg-muted-foreground/50' : 'bg-primary'}`} />
+                            <div className={`w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent ${isPast ? 'border-l-[5px] border-l-muted-foreground/50' : 'border-l-[5px] border-l-primary'}`} />
+                          </div>
+                          {/* Bottom: dot + arrow */}
+                          <div className="flex items-center">
+                            <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 ml-0.5" />
+                            <div className="flex-1 h-0.5 bg-muted-foreground/30" />
+                            <div className="w-0 h-0 border-t-[3px] border-t-transparent border-b-[3px] border-b-transparent border-l-[4px] border-l-muted-foreground/30" />
+                          </div>
+                        </div>
+                        
+                        {/* Card */}
+                        <div className="flex-1 pr-4">
+                          <BookingCard booking={booking} isPast={isPast} isToday={isToday(selectedDate)} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
             ) : (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">Немає записів на цей день</p>
