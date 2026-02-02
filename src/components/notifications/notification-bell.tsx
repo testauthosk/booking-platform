@@ -37,6 +37,7 @@ function formatTime(dateStr: string) {
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -68,7 +69,7 @@ export function NotificationBell() {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
+        handleClose();
       }
     };
     
@@ -77,6 +78,24 @@ export function NotificationBell() {
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [open]);
+
+  const handleOpen = () => {
+    setOpen(true);
+    setIsAnimating(true);
+  };
+
+  const handleClose = () => {
+    setIsAnimating(false);
+    setTimeout(() => setOpen(false), 200);
+  };
+
+  const toggleOpen = () => {
+    if (open) {
+      handleClose();
+    } else {
+      handleOpen();
+    }
+  };
 
   const markAllRead = async () => {
     if (unreadCount === 0) return;
@@ -100,13 +119,42 @@ export function NotificationBell() {
 
   return (
     <div ref={containerRef} className="relative">
+      <style jsx>{`
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-8px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        @keyframes slideUp {
+          from {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+          to {
+            opacity: 0;
+            transform: translateY(-8px) scale(0.95);
+          }
+        }
+        .notification-panel-open {
+          animation: slideDown 0.2s ease-out forwards;
+        }
+        .notification-panel-close {
+          animation: slideUp 0.2s ease-out forwards;
+        }
+      `}</style>
+
       {/* Bell button */}
       <div
         role="button"
         tabIndex={0}
-        onClick={() => setOpen(!open)}
-        onKeyDown={(e) => e.key === 'Enter' && setOpen(!open)}
-        className="relative h-10 w-10 flex items-center justify-center cursor-pointer select-none rounded-full hover:bg-muted active:scale-95 transition-all duration-150"
+        onClick={toggleOpen}
+        onKeyDown={(e) => e.key === 'Enter' && toggleOpen()}
+        className="relative h-10 w-10 flex items-center justify-center cursor-pointer select-none rounded-full hover:bg-muted active:scale-95 transition-transform duration-150"
       >
         <Bell className="h-5 w-5 text-foreground pointer-events-none" />
         {unreadCount > 0 && (
@@ -116,89 +164,88 @@ export function NotificationBell() {
         )}
       </div>
 
-      {/* Notification panel - smooth slide animation */}
-      <div 
-        className={cn(
-          "absolute right-0 top-12 w-80 bg-card border border-border rounded-xl shadow-lg overflow-hidden",
-          "transition-all duration-300 ease-out origin-top-right",
-          open 
-            ? "opacity-100 scale-100 translate-y-0" 
-            : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
-        )}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b border-border">
-          <h3 className="font-semibold text-foreground">Сповіщення</h3>
-          {unreadCount > 0 && (
-            <button
-              onClick={markAllRead}
-              disabled={loading}
-              className="text-xs h-7 px-2 rounded-md hover:bg-muted transition-colors flex items-center gap-1 text-muted-foreground hover:text-foreground cursor-pointer disabled:opacity-50"
-            >
-              {loading ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <>
-                  <Check className="h-3 w-3" />
-                  Прочитати всі
-                </>
-              )}
-            </button>
+      {/* Notification panel */}
+      {open && (
+        <div 
+          className={cn(
+            "absolute right-0 top-12 w-80 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-50",
+            isAnimating ? "notification-panel-open" : "notification-panel-close"
           )}
-        </div>
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between p-3 border-b border-border">
+            <h3 className="font-semibold text-foreground">Сповіщення</h3>
+            {unreadCount > 0 && (
+              <button
+                onClick={markAllRead}
+                disabled={loading}
+                className="text-xs h-7 px-2 rounded-md hover:bg-muted transition-colors flex items-center gap-1 text-muted-foreground hover:text-foreground cursor-pointer disabled:opacity-50"
+              >
+                {loading ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <>
+                    <Check className="h-3 w-3" />
+                    Прочитати всі
+                  </>
+                )}
+              </button>
+            )}
+          </div>
 
-        {/* Notifications list */}
-        <div className="max-h-80 overflow-y-auto">
-          {notifications.length === 0 ? (
-            <div className="p-6 text-center text-muted-foreground">
-              <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">Немає сповіщень</p>
-            </div>
-          ) : (
-            notifications.map((notification) => {
-              const Icon = typeIcons[notification.type] || Bell;
-              
-              return (
-                <div
-                  key={notification.id}
-                  className={cn(
-                    "p-3 border-b border-border last:border-b-0 hover:bg-muted/50 cursor-pointer transition-colors",
-                    !notification.isRead && "bg-primary/5"
-                  )}
-                >
-                  <div className="flex gap-3">
-                    <div className={cn(
-                      "h-8 w-8 rounded-full flex items-center justify-center shrink-0",
-                      !notification.isRead 
-                        ? "bg-primary/10 text-primary" 
-                        : "bg-muted text-muted-foreground"
-                    )}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={cn(
-                        "text-sm text-foreground",
-                        !notification.isRead && "font-medium"
-                      )}>
-                        {notification.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {notification.message}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {formatTime(notification.createdAt)}
-                      </p>
-                    </div>
-                    {!notification.isRead && (
-                      <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1" />
+          {/* Notifications list */}
+          <div className="max-h-80 overflow-y-auto">
+            {notifications.length === 0 ? (
+              <div className="p-6 text-center text-muted-foreground">
+                <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Немає сповіщень</p>
+              </div>
+            ) : (
+              notifications.map((notification) => {
+                const Icon = typeIcons[notification.type] || Bell;
+                
+                return (
+                  <div
+                    key={notification.id}
+                    className={cn(
+                      "p-3 border-b border-border last:border-b-0 hover:bg-muted/50 cursor-pointer transition-colors",
+                      !notification.isRead && "bg-primary/5"
                     )}
+                  >
+                    <div className="flex gap-3">
+                      <div className={cn(
+                        "h-8 w-8 rounded-full flex items-center justify-center shrink-0",
+                        !notification.isRead 
+                          ? "bg-primary/10 text-primary" 
+                          : "bg-muted text-muted-foreground"
+                      )}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={cn(
+                          "text-sm text-foreground",
+                          !notification.isRead && "font-medium"
+                        )}>
+                          {notification.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {notification.message}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {formatTime(notification.createdAt)}
+                        </p>
+                      </div>
+                      {!notification.isRead && (
+                        <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1" />
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })
-          )}
+                );
+              })
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

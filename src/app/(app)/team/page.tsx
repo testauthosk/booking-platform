@@ -412,13 +412,7 @@ export default function TeamPage() {
             borderStyle: 'solid'
           }}
         >
-          {/* Color stripe from palette */}
-          <div 
-            className="h-8 w-full"
-            style={{ backgroundColor: getColorForIndex(0) }}
-          />
-          
-          <div className="p-6 pt-4">
+          <div className="p-6">
             {/* Header with centered title and close button */}
             <div className="flex items-center justify-between mb-4">
               <div className="w-10" /> {/* Spacer for centering */}
