@@ -560,58 +560,39 @@ export default function StaffCalendar() {
             )}
           </div>
         ) : (
-          /* Full day timeline mode - fixed grid with positioned cards */
-          <div className="relative flex">
-            {/* Left: Time labels (static) */}
-            <div className="w-12 shrink-0">
+          /* Full day timeline - new concept */
+          <div className="relative flex px-4">
+            {/* Left: Time labels */}
+            <div className="w-12 shrink-0 relative" style={{ height: `${(workingHours.end - workingHours.start + 1) * 120}px` }}>
               {Array.from({ length: workingHours.end - workingHours.start + 1 }, (_, i) => {
                 const hour = workingHours.start + i;
                 const timeStr = `${hour.toString().padStart(2, '0')}:00`;
                 const isPastHour = isToday(selectedDate) && hour < new Date().getHours();
                 
                 return (
-                  <div key={hour} className="h-[120px]">
-                    <div className="pr-2 text-right">
-                      <span className={`text-xs font-medium ${isPastHour ? 'text-muted-foreground/50' : 'text-muted-foreground'}`}>
-                        {timeStr}
-                      </span>
-                    </div>
-                    <div className="pr-2 text-right h-[60px] flex items-start pt-[26px]">
-                      <span className="text-[10px] text-muted-foreground/50 ml-auto">30</span>
-                    </div>
+                  <div 
+                    key={hour} 
+                    className="absolute w-full text-right pr-3"
+                    style={{ top: `${i * 120}px` }}
+                  >
+                    <span className={`text-xs font-medium ${isPastHour ? 'text-muted-foreground/40' : 'text-muted-foreground'}`}>
+                      {timeStr}
+                    </span>
                   </div>
                 );
               })}
             </div>
             
-            {/* Center: Timeline with dots */}
-            <div className="w-6 shrink-0 relative">
-              <div className="absolute left-1/2 top-0 bottom-0 w-px bg-border -translate-x-1/2" />
-              {Array.from({ length: workingHours.end - workingHours.start + 1 }, (_, i) => {
-                const hour = workingHours.start + i;
-                const isPastHour = isToday(selectedDate) && hour < new Date().getHours();
-                const isPast30 = isToday(selectedDate) && (hour < new Date().getHours() || (hour === new Date().getHours() && 30 < new Date().getMinutes()));
-                
-                return (
-                  <div key={hour} className="h-[120px]">
-                    <div className="flex justify-center">
-                      <div className={`w-2 h-2 rounded-full ${isPastHour ? 'bg-muted-foreground/30' : 'bg-border'}`} />
-                    </div>
-                    <div className="flex justify-center h-[60px] pt-[26px]">
-                      <div className={`w-1 h-1 rounded-full ${isPast30 ? 'bg-muted-foreground/20' : 'bg-border/50'}`} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            {/* Vertical line */}
+            <div className="w-px bg-zinc-300 shrink-0" style={{ height: `${(workingHours.end - workingHours.start + 1) * 120}px` }} />
             
-            {/* Right: Cards area (relative positioning) */}
-            <div className="flex-1 relative pr-4" style={{ minHeight: `${(workingHours.end - workingHours.start + 1) * 120}px` }}>
+            {/* Right: Cards area */}
+            <div className="flex-1 relative" style={{ minHeight: `${(workingHours.end - workingHours.start + 1) * 120}px` }}>
               {bookings.map((booking) => {
                 const [startH, startM] = booking.time.split(':').map(Number);
                 const startMinutes = (startH - workingHours.start) * 60 + startM;
-                const topPosition = (startMinutes / 30) * 60; // 60px per 30 min
-                const height = (booking.duration / 30) * 60;
+                const topPosition = startMinutes * 2; // 2px per minute (120px per hour)
+                const height = booking.duration * 2; // 2px per minute
                 
                 const isPast = isToday(selectedDate) && (startH < new Date().getHours() || (startH === new Date().getHours() && startM < new Date().getMinutes()));
                 const isBlocked = booking.clientName === 'Зайнято';
@@ -625,64 +606,54 @@ export default function StaffCalendar() {
                 return (
                   <div 
                     key={booking.id}
-                    className="absolute left-0 right-4"
-                    style={{ top: `${topPosition}px`, minHeight: `${Math.max(height - 8, 80)}px` }}
-                  >
-                    <Card className={`h-full relative ${
+                    className={`absolute left-0 right-4 border border-l-0 rounded-r-xl overflow-hidden ${
                       booking.status === 'COMPLETED' 
-                        ? 'border-green-300 bg-green-50/30' 
+                        ? 'border-green-300 bg-green-50' 
                         : isBlocked
-                        ? 'border-zinc-300 bg-zinc-50'
+                        ? 'border-zinc-300 bg-zinc-100'
                         : isPast 
-                        ? 'opacity-50' 
-                        : 'bg-orange-50/50 border-orange-200'
-                    }`}>
-                      {/* Top arrow - synced with start time */}
-                      <div 
-                        className={`absolute -left-3 top-0 w-0 h-0 
-                          border-t-[10px] border-t-transparent 
-                          border-b-[10px] border-b-transparent 
-                          ${isPast ? 'border-r-[12px] border-r-zinc-300' : 'border-r-[12px] border-r-orange-300'}`}
-                        style={{ top: '0px' }}
-                      />
-                      
-                      {/* Bottom arrow - synced with end time */}
-                      <div 
-                        className="absolute -left-2.5 w-0 h-0 
-                          border-t-[8px] border-t-transparent 
-                          border-b-[8px] border-b-transparent 
-                          border-r-[10px] border-r-zinc-300"
-                        style={{ bottom: '0px' }}
-                      />
-                      
-                      <div className="p-3">
-                        <p className="font-semibold text-sm">{booking.clientName}</p>
-                        <p className="text-xs text-muted-foreground">{booking.serviceName}</p>
-                        
-                        {!isBlocked && (
-                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                            <span>{booking.time} — {endTime}</span>
-                            {booking.price !== undefined && booking.price > 0 && (
-                              <span className="font-medium text-foreground">{booking.price} ₴</span>
-                            )}
-                          </div>
-                        )}
-                        
-                        {!isPast && booking.status !== 'COMPLETED' && (
-                          <div className="flex gap-1.5 mt-2">
-                            {!isBlocked && (
-                              <button className="flex-1 py-1.5 rounded-lg bg-green-50 text-green-700 text-xs font-medium border border-green-200">
-                                Завершити
-                              </button>
-                            )}
-                            <button className="flex-1 py-1.5 rounded-lg bg-white text-zinc-600 text-xs font-medium border border-zinc-200">
-                              Редагувати
-                            </button>
-                            <button className="py-1.5 px-2 text-red-500 text-xs">✕</button>
-                          </div>
+                        ? 'border-zinc-200 bg-zinc-50 opacity-60' 
+                        : 'border-orange-200 bg-orange-50'
+                    }`}
+                    style={{ 
+                      top: `${topPosition}px`, 
+                      height: `${Math.max(height, 80)}px`
+                    }}
+                  >
+                    <div className="p-3 h-full flex flex-col">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-semibold text-sm">{booking.clientName}</p>
+                          <p className="text-xs text-muted-foreground">{booking.serviceName}</p>
+                        </div>
+                        {booking.status === 'COMPLETED' && (
+                          <span className="text-xs bg-green-200 text-green-700 px-2 py-0.5 rounded-full">✓</span>
                         )}
                       </div>
-                    </Card>
+                      
+                      {!isBlocked && (
+                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                          <span>{booking.duration} хв</span>
+                          {booking.price !== undefined && booking.price > 0 && (
+                            <span className="font-medium text-foreground">{booking.price} ₴</span>
+                          )}
+                        </div>
+                      )}
+                      
+                      {!isPast && booking.status !== 'COMPLETED' && (
+                        <div className="flex gap-1.5 mt-auto pt-2">
+                          {!isBlocked && (
+                            <button className="flex-1 py-1.5 rounded-lg bg-green-100 text-green-700 text-xs font-medium">
+                              Завершити
+                            </button>
+                          )}
+                          <button className="flex-1 py-1.5 rounded-lg bg-white text-zinc-600 text-xs font-medium border border-zinc-200">
+                            Редагувати
+                          </button>
+                          <button className="py-1.5 px-2 text-red-500 text-xs">✕</button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}
