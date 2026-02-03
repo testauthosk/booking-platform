@@ -5,10 +5,39 @@ import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { 
-  Loader2, Eye, EyeOff, Scissors, ArrowRight, ArrowLeft, Check, Mail, Phone,
+  Loader2, Scissors, ArrowRight, ArrowLeft, Check, Mail, Phone,
   Sparkles, Heart, Flower2, Dumbbell, Sun, Palette, Stethoscope, PawPrint, Grid3X3,
-  User, Users, Building2, Car, Monitor
+  User, Users, Building2, Car, Monitor, Eye as EyeIcon
 } from 'lucide-react';
+
+// Animated Eye Icon with strike-through line
+function AnimatedEye({ crossed, className }: { crossed: boolean; className?: string }) {
+  return (
+    <div className={`relative ${className}`}>
+      <EyeIcon className="w-5 h-5" />
+      <svg 
+        className="absolute inset-0 w-5 h-5" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2"
+        strokeLinecap="round"
+      >
+        <line 
+          x1="2" 
+          y1="2" 
+          x2="22" 
+          y2="22" 
+          className="transition-all duration-300 ease-out origin-top-left"
+          style={{
+            strokeDasharray: 30,
+            strokeDashoffset: crossed ? 0 : 30,
+          }}
+        />
+      </svg>
+    </div>
+  );
+}
 
 // ===== Password Strength =====
 function checkPasswordStrength(password: string) {
@@ -241,13 +270,19 @@ export default function RegisterPage() {
     input::-webkit-credentials-auto-fill-button,
     input::-webkit-contacts-auto-fill-button,
     input::-webkit-credit-card-auto-fill-button,
+    input::-webkit-textfield-decoration-container,
+    input::-webkit-inner-spin-button,
+    input::-webkit-outer-spin-button,
     input::-ms-reveal,
     input::-ms-clear {
       display: none !important;
       visibility: hidden !important;
       pointer-events: none !important;
-      width: 0 !important;
-      height: 0 !important;
+      position: absolute !important;
+      right: -9999px !important;
+    }
+    input[type="password"]::-webkit-textfield-decoration-container {
+      display: none !important;
     }
   `;
 
@@ -398,7 +433,7 @@ export default function RegisterPage() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
                   >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    <AnimatedEye crossed={!showPassword} />
                   </button>
                 </div>
 
@@ -463,7 +498,7 @@ export default function RegisterPage() {
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
                     >
-                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      <AnimatedEye crossed={!showConfirmPassword} />
                     </button>
                   </div>
                 </div>
