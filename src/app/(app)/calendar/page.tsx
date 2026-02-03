@@ -8,6 +8,7 @@ import { useSidebar } from '@/components/sidebar-context';
 import { EventModal } from '@/components/calendar/event-modal';
 import { NewBookingModal } from '@/components/calendar/new-booking-modal';
 import { BlockTimeModal } from '@/components/calendar/block-time-modal';
+import { EditBookingModal } from '@/components/calendar/edit-booking-modal';
 import { CustomCalendar, type BookingEvent, type Resource, type SlotMenuAction, type TimeStep } from '@/components/calendar/custom-calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -82,13 +83,15 @@ export default function CalendarPage() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [salonTimezone, setSalonTimezone] = useState<string>('Europe/Kiev');
   const [timeStep, setTimeStep] = useState<TimeStep>(30);
+  const [services, setServices] = useState<{ id: string; name: string; duration: number; price: number }[]>([]);
 
-  // Load masters, salon data, and bookings from API
+  // Load masters, salon data, bookings, and services from API
   useEffect(() => {
     if (user?.salonId) {
       loadMasters();
       loadSalon();
       loadBookings();
+      loadServices();
     }
   }, [user?.salonId]);
 
@@ -117,6 +120,18 @@ export default function CalendarPage() {
       }
     } catch (error) {
       console.error('Load salon error:', error);
+    }
+  };
+
+  const loadServices = async () => {
+    try {
+      const res = await fetch(`/api/services?salonId=${user?.salonId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setServices(data);
+      }
+    } catch (error) {
+      console.error('Load services error:', error);
     }
   };
 
@@ -242,6 +257,7 @@ export default function CalendarPage() {
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [isNewBookingModalOpen, setIsNewBookingModalOpen] = useState(false);
   const [isBlockTimeModalOpen, setIsBlockTimeModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date; resourceId?: string } | null>(null);
 
   const handleEventClick = (event: BookingEvent) => {
@@ -514,8 +530,8 @@ export default function CalendarPage() {
         isOpen={isEventModalOpen}
         onClose={() => setIsEventModalOpen(false)}
         onEdit={(event) => {
-          console.log('Edit event:', event);
           setIsEventModalOpen(false);
+          setIsEditModalOpen(true);
         }}
         onDelete={handleDeleteEvent}
       />
@@ -542,6 +558,32 @@ export default function CalendarPage() {
           onSave={loadBookings}
         />
       )}
+
+      {/* Edit Booking Modal */}
+      <EditBookingModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        booking={selectedEvent ? {
+          id: selectedEvent.id,
+          serviceId: selectedEvent.serviceId,
+          serviceName: selectedEvent.serviceName,
+          date: selectedEvent.start.toISOString().split('T')[0],
+          time: `${selectedEvent.start.getHours().toString().padStart(2, '0')}:${selectedEvent.start.getMinutes().toString().padStart(2, '0')}`,
+          duration: Math.round((selectedEvent.end.getTime() - selectedEvent.start.getTime()) / 60000),
+          extraTime: (selectedEvent as any).extraTime || 0,
+          masterId: selectedEvent.resourceId,
+        } : null}
+        services={services}
+        onSave={async (data) => {
+          const res = await fetch(`/api/bookings/${data.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+          });
+          if (!res.ok) throw new Error('Failed to update');
+          await loadBookings();
+        }}
+      />
     </div>
   );
 }

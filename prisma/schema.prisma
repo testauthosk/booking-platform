@@ -185,6 +185,7 @@ model Booking {
   time             String
   timeEnd          String?
   duration         Int           @default(60)
+  extraTime        Int           @default(0)   // Додатковий час (для клієнтів що люблять поговорити)
   price            Int           @default(0)
   status           BookingStatus @default(CONFIRMED)
   notes            String?
