@@ -547,6 +547,23 @@ export default function CalendarPage() {
           setIsEditModalOpen(true);
         }}
         onDelete={handleDeleteEvent}
+        onExtend={async (event, minutes) => {
+          try {
+            const currentDuration = Math.round((event.end.getTime() - event.start.getTime()) / 60000);
+            await fetch(`/api/bookings/${event.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                extraTime: ((event as any).extraTime || 0) + minutes,
+                duration: currentDuration + minutes,
+              }),
+            });
+            await loadBookings();
+            setIsEventModalOpen(false);
+          } catch (error) {
+            console.error('Extend error:', error);
+          }
+        }}
       />
 
       {/* New booking modal */}

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { BookingEvent } from './booking-calendar';
 import { Button } from '@/components/ui/button';
-import { X, Clock, User, Phone, Scissors, Calendar, Edit, Trash2 } from 'lucide-react';
+import { X, Clock, User, Phone, Scissors, Calendar, Edit, Trash2, Timer } from 'lucide-react';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
 
@@ -13,9 +13,10 @@ interface EventModalProps {
   onClose: () => void;
   onEdit?: (event: BookingEvent) => void;
   onDelete?: (event: BookingEvent) => void;
+  onExtend?: (event: BookingEvent, minutes: number) => void;
 }
 
-export function EventModal({ event, isOpen, onClose, onEdit, onDelete }: EventModalProps) {
+export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend }: EventModalProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -155,6 +156,22 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete }: EventMo
             </div>
           </div>
         </div>
+
+        {/* Quick extend buttons */}
+        {onExtend && event.status !== 'cancelled' && (
+          <div className="px-4 py-2 border-t flex gap-2">
+            <span className="text-sm text-muted-foreground self-center">Продовжити:</span>
+            {[10, 15, 30].map((mins) => (
+              <button
+                key={mins}
+                onClick={() => onExtend(event, mins)}
+                className="px-3 py-1.5 rounded-lg bg-violet-100 text-violet-700 text-sm font-medium hover:bg-violet-200 transition-colors"
+              >
+                +{mins}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Actions */}
         <div className="p-4 border-t flex gap-2 pb-6 lg:pb-4">
