@@ -69,11 +69,15 @@ export function ColleagueBookingModal({
   const [colleagueBookings, setColleagueBookings] = useState<any[]>([]);
   const [timeEnd, setTimeEnd] = useState<string>('');
 
-  // Завантажити колег при відкритті
+  // Завантажити колег при відкритті (тільки якщо ще не завантажено)
   useEffect(() => {
     if (isOpen) {
-      loadColleagues();
-      loadClients();
+      if (colleagues.length === 0) {
+        loadColleagues();
+      }
+      if (clients.length === 0) {
+        loadClients();
+      }
       resetState();
     }
   }, [isOpen]);
@@ -297,6 +301,16 @@ export function ColleagueBookingModal({
     return d.toLocaleDateString('uk-UA', { weekday: 'short', day: 'numeric', month: 'short' });
   };
 
+  // Форматування телефону: XX XXX XX XX
+  const formatPhoneDisplay = (phone: string) => {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 0) return '';
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 5) return `${digits.slice(0, 2)} ${digits.slice(2)}`;
+    if (digits.length <= 7) return `${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5)}`;
+    return `${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5, 7)} ${digits.slice(7, 9)}`;
+  };
+
   return (
     <>
       {/* Backdrop - high z-index to cover everything */}
@@ -337,15 +351,24 @@ export function ColleagueBookingModal({
           </button>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        {/* Content - min-height prevents jumping */}
+        <div className="flex-1 overflow-y-auto p-4 min-h-[300px]">
           {/* Step 1: Colleague */}
           {step === 'colleague' && (
             <div className="space-y-2">
               {isLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
+                // Skeleton loaders
+                <>
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 animate-pulse">
+                      <div className="h-12 w-12 rounded-full bg-muted" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 w-24 bg-muted rounded" />
+                        <div className="h-3 w-16 bg-muted rounded" />
+                      </div>
+                    </div>
+                  ))}
+                </>
               ) : colleagues.length > 0 ? (
                 colleagues.map((colleague) => (
                   <button
@@ -389,9 +412,18 @@ export function ColleagueBookingModal({
           {step === 'services' && (
             <div className="space-y-2">
               {isLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
+                // Skeleton loaders
+                <>
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted/50 animate-pulse">
+                      <div className="space-y-2">
+                        <div className="h-4 w-32 bg-muted rounded" />
+                        <div className="h-3 w-16 bg-muted rounded" />
+                      </div>
+                      <div className="h-4 w-12 bg-muted rounded" />
+                    </div>
+                  ))}
+                </>
               ) : services.length > 0 ? (
                 services.map((service) => {
                   const isSelected = selectedServices.some(s => s.id === service.id);
@@ -438,19 +470,28 @@ export function ColleagueBookingModal({
                     const date = new Date();
                     date.setDate(date.getDate() + i);
                     const isSelected = selectedDate.toDateString() === date.toDateString();
+                    const isToday = i === 0;
+                    const now = new Date();
+                    // Закрито якщо сьогодні і вже пізно (після 19:00)
+                    const isClosed = isToday && now.getHours() >= 19;
+                    
                     return (
                       <button
                         key={i}
-                        onClick={() => setSelectedDate(new Date(date))}
+                        onClick={() => !isClosed && setSelectedDate(new Date(date))}
+                        disabled={isClosed}
                         className={cn(
                           "flex flex-col items-center px-3 py-2 rounded-xl shrink-0 transition-all",
-                          isSelected 
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted/50 hover:bg-muted"
+                          isClosed 
+                            ? "bg-muted/30 text-muted-foreground/50 cursor-not-allowed"
+                            : isSelected 
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted/50 hover:bg-muted"
                         )}
                       >
                         <span className="text-xs">{date.toLocaleDateString('uk-UA', { weekday: 'short' })}</span>
                         <span className="text-lg font-bold">{date.getDate()}</span>
+                        {isClosed && <span className="text-[10px]">закрито</span>}
                       </button>
                     );
                   })}
@@ -512,39 +553,64 @@ export function ColleagueBookingModal({
 
                   {/* Clients list */}
                   <div className="space-y-2 max-h-[40vh] overflow-y-auto">
-                    {filteredClients.map((client) => (
-                      <button
-                        key={client.id}
-                        onClick={() => setSelectedClient(client)}
-                        className={cn(
-                          "w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left",
-                          selectedClient?.id === client.id
-                            ? "bg-primary/10 border-2 border-primary"
-                            : "bg-muted/50 hover:bg-muted border-2 border-transparent"
-                        )}
-                      >
-                        <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">
-                          {client.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-medium">{client.name}</p>
-                          <p className="text-sm text-muted-foreground">{client.phone}</p>
-                        </div>
-                        {selectedClient?.id === client.id && (
-                          <Check className="h-5 w-5 text-primary ml-auto" />
-                        )}
-                      </button>
-                    ))}
+                    {filteredClients.length > 0 ? (
+                      filteredClients.map((client) => (
+                        <button
+                          key={client.id}
+                          onClick={() => setSelectedClient(client)}
+                          className={cn(
+                            "w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left",
+                            selectedClient?.id === client.id
+                              ? "bg-primary/10 border-2 border-primary"
+                              : "bg-muted/50 hover:bg-muted border-2 border-transparent"
+                          )}
+                        >
+                          <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">
+                            {client.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-medium">{client.name}</p>
+                            <p className="text-sm text-muted-foreground">{client.phone}</p>
+                          </div>
+                          {selectedClient?.id === client.id && (
+                            <Check className="h-5 w-5 text-primary ml-auto" />
+                          )}
+                        </button>
+                      ))
+                    ) : clientSearch ? (
+                      // Не знайдено — показати кнопку додати
+                      <div className="text-center py-4">
+                        <p className="text-muted-foreground mb-3">Клієнта "{clientSearch}" не знайдено</p>
+                        <button
+                          onClick={() => {
+                            // Визначити чи це ім'я чи телефон
+                            const isPhone = /^\d+$/.test(clientSearch.replace(/\s/g, ''));
+                            if (isPhone) {
+                              setNewClientPhone(clientSearch.replace(/\D/g, '').slice(0, 9));
+                            } else {
+                              setNewClientName(clientSearch);
+                            }
+                            setIsNewClient(true);
+                          }}
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-medium"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Додати "{clientSearch}"
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
 
-                  {/* Add new client button */}
-                  <button
-                    onClick={() => setIsNewClient(true)}
-                    className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-dashed border-muted-foreground/30 hover:border-primary hover:bg-primary/5 transition-colors"
-                  >
-                    <Plus className="h-5 w-5" />
-                    <span className="font-medium">Додати нового клієнта</span>
-                  </button>
+                  {/* Add new client button - тільки якщо є клієнти */}
+                  {(filteredClients.length > 0 || !clientSearch) && (
+                    <button
+                      onClick={() => setIsNewClient(true)}
+                      className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-dashed border-muted-foreground/30 hover:border-primary hover:bg-primary/5 transition-colors"
+                    >
+                      <Plus className="h-5 w-5" />
+                      <span className="font-medium">Додати нового клієнта</span>
+                    </button>
+                  )}
                 </>
               ) : (
                 /* New client form */
@@ -574,7 +640,7 @@ export function ColleagueBookingModal({
                       <span className="px-3 py-3 bg-muted rounded-l-xl text-muted-foreground">+380</span>
                       <input
                         type="tel"
-                        value={newClientPhone}
+                        value={formatPhoneDisplay(newClientPhone)}
                         onChange={(e) => setNewClientPhone(e.target.value.replace(/\D/g, '').slice(0, 9))}
                         placeholder="XX XXX XX XX"
                         className="flex-1 px-4 py-3 rounded-r-xl bg-muted/50 border-none outline-none"
@@ -621,7 +687,13 @@ export function ColleagueBookingModal({
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Дата та час</p>
-                    <p className="font-medium">{formatDate(selectedDate)}, {selectedTime}</p>
+                    <p className="font-medium">
+                      {formatDate(selectedDate)}, {selectedTime} - {(() => {
+                        const [h, m] = selectedTime.split(':').map(Number);
+                        const endMinutes = h * 60 + m + getTotalDuration();
+                        return `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
+                      })()}
+                    </p>
                   </div>
                 </div>
 
