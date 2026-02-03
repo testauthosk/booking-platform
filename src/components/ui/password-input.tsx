@@ -1,21 +1,14 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import dynamic from 'next/dynamic';
-import type { LottieRefCurrentProps } from 'lottie-react';
 
-// Correct dynamic import syntax for lottie-react
-const Lottie = dynamic(
-  () => import('lottie-react').then((mod) => mod.default),
-  { 
-    ssr: false,
-    loading: () => <div className="w-6 h-6 bg-muted rounded-full animate-pulse" />
-  }
+// Use @lottiefiles/react-lottie-player - more reliable with Next.js
+const Player = dynamic(
+  () => import('@lottiefiles/react-lottie-player').then((mod) => mod.Player),
+  { ssr: false }
 );
-
-// Animation data
-import eyeAnimationData from '@/assets/eye-password.json';
 
 interface PasswordInputProps {
   value: string;
@@ -36,26 +29,13 @@ export function PasswordInput({
 }: PasswordInputProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const lottieRef = useRef<LottieRefCurrentProps>(null);
 
-  // Ensure client-side rendering
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const togglePassword = () => {
     setShowPassword(!showPassword);
-    
-    // Control animation direction
-    if (lottieRef.current) {
-      if (!showPassword) {
-        lottieRef.current.setDirection(1);
-        lottieRef.current.play();
-      } else {
-        lottieRef.current.setDirection(-1);
-        lottieRef.current.play();
-      }
-    }
   };
 
   return (
@@ -76,12 +56,14 @@ export function PasswordInput({
         aria-label={showPassword ? 'Сховати пароль' : 'Показати пароль'}
       >
         {mounted ? (
-          <Lottie
-            lottieRef={lottieRef}
-            animationData={eyeAnimationData}
+          <Player
+            key={showPassword ? 'visible' : 'hidden'}
+            src="/animations/eye-password.json"
+            background="transparent"
+            speed={1.5}
             loop={false}
-            autoplay={false}
-            style={{ width: 24, height: 24, display: 'block' }}
+            autoplay={true}
+            style={{ width: 28, height: 28, display: 'block' }}
           />
         ) : (
           <div className="w-6 h-6 bg-muted rounded-full animate-pulse" />
