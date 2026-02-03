@@ -86,32 +86,26 @@ export function TimeWheelPicker({
     return `${startH.toString().padStart(2, '0')}:${startM.toString().padStart(2, '0')}`;
   }, [workingHours]);
 
-  // Past times are now filtered out during generation, no need for runtime check
-
   const [selectedStart, setSelectedStart] = useState(startTime);
   const [selectedEnd, setSelectedEnd] = useState(calculateEndTime(startTime, duration));
 
   const startRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
-  const isSyncing = useRef(false);
+  const activeWheel = useRef<'start' | 'end' | null>(null);
   const scrollTimeout = useRef<NodeJS.Timeout>();
+  const lastScrollTime = useRef(0);
 
-  // Scroll to index instantly (for init)
-  const scrollToIndex = (ref: HTMLDivElement | null, index: number, smooth = false) => {
-    if (!ref) return;
-    const y = index * ITEM_HEIGHT;
-    if (smooth) {
-      ref.scrollTo({ top: y, behavior: 'smooth' });
-    } else {
-      ref.scrollTop = y;
-    }
-  };
-
-  // Update end time when duration changes (no auto-scroll to prevent jerky movement)
+  // Update end time when duration changes
   useEffect(() => {
     const newEnd = calculateEndTime(selectedStart, duration);
     setSelectedEnd(newEnd);
     onTimeChange(selectedStart, newEnd);
+    
+    // Sync end wheel position
+    const endIdx = endTimeSlots.indexOf(newEnd);
+    if (endIdx >= 0 && endRef.current) {
+      endRef.current.scrollTop = endIdx * ITEM_HEIGHT;
+    }
   }, [duration]);
 
   // Initialize scroll positions
@@ -121,59 +115,69 @@ export function TimeWheelPicker({
     const endIdx = endTimeSlots.indexOf(endTime);
     
     requestAnimationFrame(() => {
-      scrollToIndex(startRef.current, Math.max(0, startIdx), false);
-      scrollToIndex(endRef.current, Math.max(0, endIdx), false);
+      if (startRef.current) startRef.current.scrollTop = Math.max(0, startIdx) * ITEM_HEIGHT;
+      if (endRef.current) endRef.current.scrollTop = Math.max(0, endIdx) * ITEM_HEIGHT;
     });
   }, [timeSlots, endTimeSlots]);
 
-  // Handle scroll end with snap
-  const handleScrollEnd = (
-    ref: HTMLDivElement,
-    slots: string[],
-    setSelected: (val: string) => void,
-    isStart: boolean
-  ) => {
+  // Real-time scroll sync - moves other wheel as you scroll
+  const handleScroll = (isStart: boolean) => {
+    const now = Date.now();
+    const ref = isStart ? startRef.current : endRef.current;
+    const otherRef = isStart ? endRef.current : startRef.current;
+    if (!ref || !otherRef) return;
+
+    // Set active wheel on first scroll
+    if (!activeWheel.current || now - lastScrollTime.current > 150) {
+      activeWheel.current = isStart ? 'start' : 'end';
+    }
+    lastScrollTime.current = now;
+
+    // Only sync if this is the active wheel
+    if ((isStart && activeWheel.current !== 'start') || (!isStart && activeWheel.current !== 'end')) {
+      return;
+    }
+
     const scrollTop = ref.scrollTop;
     const index = Math.round(scrollTop / ITEM_HEIGHT);
+    const slots = isStart ? timeSlots : endTimeSlots;
     const clampedIndex = Math.max(0, Math.min(index, slots.length - 1));
-    const newTime = slots[clampedIndex];
-
-    // Snap to position
-    scrollToIndex(ref, clampedIndex, true);
+    const currentTime = slots[clampedIndex];
 
     if (isStart) {
-      setSelected(newTime);
-      const newEnd = calculateEndTime(newTime, duration);
-      setSelectedEnd(newEnd);
-      onTimeChange(newTime, newEnd);
-
-      // Don't auto-scroll end wheel - just update the value
-      // This prevents jerky movement when scrolling start
-    } else {
-      const newStart = calculateStartTime(newTime, duration);
-      if (timeSlots.includes(newStart)) {
-        setSelected(newTime);
-        setSelectedStart(newStart);
-        onTimeChange(newStart, newTime);
-
-        // Don't auto-scroll start wheel - just update the value
-        // This prevents jerky movement when scrolling end
+      // Sync end wheel in real-time
+      const newEnd = calculateEndTime(currentTime, duration);
+      const endIdx = endTimeSlots.indexOf(newEnd);
+      if (endIdx >= 0) {
+        otherRef.scrollTop = endIdx * ITEM_HEIGHT;
       }
+      setSelectedStart(currentTime);
+      setSelectedEnd(newEnd);
+    } else {
+      // Sync start wheel in real-time  
+      const newStart = calculateStartTime(currentTime, duration);
+      const startIdx = timeSlots.indexOf(newStart);
+      if (startIdx >= 0) {
+        otherRef.scrollTop = startIdx * ITEM_HEIGHT;
+      }
+      setSelectedEnd(currentTime);
+      setSelectedStart(newStart);
     }
-  };
 
-  const onScroll = (isStart: boolean) => {
-    if (isSyncing.current) return;
-    
+    // Debounce the final snap and callback
     if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
     scrollTimeout.current = setTimeout(() => {
-      const ref = isStart ? startRef.current : endRef.current;
-      const slots = isStart ? timeSlots : endTimeSlots;
-      const setSelected = isStart ? setSelectedStart : setSelectedEnd;
-      if (ref) {
-        handleScrollEnd(ref, slots, setSelected, isStart);
-      }
-    }, 80);
+      // Snap to nearest item
+      ref.scrollTo({ top: clampedIndex * ITEM_HEIGHT, behavior: 'smooth' });
+      
+      // Final values
+      const finalStart = isStart ? currentTime : calculateStartTime(currentTime, duration);
+      const finalEnd = isStart ? calculateEndTime(currentTime, duration) : currentTime;
+      onTimeChange(finalStart, finalEnd);
+      
+      // Reset active wheel
+      activeWheel.current = null;
+    }, 100);
   };
 
   // Render wheel items
@@ -184,7 +188,7 @@ export function TimeWheelPicker({
       <>
         {/* Top padding */}
         {Array.from({ length: paddingCount }).map((_, i) => (
-          <div key={`top-${i}`} className="snap-center" style={{ height: ITEM_HEIGHT }} />
+          <div key={`top-${i}`} style={{ height: ITEM_HEIGHT }} />
         ))}
         
         {slots.map((time) => {
@@ -194,7 +198,7 @@ export function TimeWheelPicker({
             <div
               key={time}
               style={{ height: ITEM_HEIGHT }}
-              className={`flex items-center justify-center select-none transition-all duration-100 snap-center ${
+              className={`flex items-center justify-center select-none transition-all duration-75 ${
                 isSelected
                   ? 'text-white font-semibold text-lg'
                   : 'text-zinc-500'
@@ -207,7 +211,7 @@ export function TimeWheelPicker({
         
         {/* Bottom padding */}
         {Array.from({ length: paddingCount }).map((_, i) => (
-          <div key={`bot-${i}`} className="snap-center" style={{ height: ITEM_HEIGHT }} />
+          <div key={`bot-${i}`} style={{ height: ITEM_HEIGHT }} />
         ))}
       </>
     );
@@ -238,8 +242,8 @@ export function TimeWheelPicker({
           {/* Scrollable area */}
           <div
             ref={startRef}
-            onScroll={() => onScroll(true)}
-            className="h-full overflow-y-auto overflow-x-hidden scrollbar-hide snap-y snap-mandatory"
+            onScroll={() => handleScroll(true)}
+            className="h-full overflow-y-auto overflow-x-hidden scrollbar-hide"
             style={{
               touchAction: 'pan-y',
               overscrollBehavior: 'contain',
@@ -280,8 +284,8 @@ export function TimeWheelPicker({
           {/* Scrollable area */}
           <div
             ref={endRef}
-            onScroll={() => onScroll(false)}
-            className="h-full overflow-y-auto overflow-x-hidden scrollbar-hide snap-y snap-mandatory"
+            onScroll={() => handleScroll(false)}
+            className="h-full overflow-y-auto overflow-x-hidden scrollbar-hide"
             style={{
               touchAction: 'pan-y',
               overscrollBehavior: 'contain',
