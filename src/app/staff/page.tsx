@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Calendar, Clock, LogOut, Settings, Loader2, Plus, ChevronRight, X, Tag, User, Phone, Check } from 'lucide-react';
+import { TimeWheelPicker } from '@/components/time-wheel-picker';
 
 interface Booking {
   id: string;
@@ -54,6 +55,7 @@ export default function StaffDashboard() {
   const [bookingClientPhone, setBookingClientPhone] = useState('');
   const [bookingDate, setBookingDate] = useState(new Date());
   const [bookingTime, setBookingTime] = useState('10:00');
+  const [bookingEndTime, setBookingEndTime] = useState('11:00');
   const [savingBooking, setSavingBooking] = useState(false);
   const [bookingStep, setBookingStep] = useState<'service' | 'details'>('service');
   
@@ -259,6 +261,7 @@ export default function StaffDashboard() {
           masterName: staffName,
           date: dateStr,
           time: bookingTime,
+          timeEnd: bookingEndTime,
           duration: bookingService.duration,
           price: bookingService.price
         })
@@ -626,6 +629,12 @@ export default function StaffDashboard() {
                     key={service.id}
                     onClick={() => {
                       setBookingService(service);
+                      // Calculate end time based on service duration
+                      const [h, m] = bookingTime.split(':').map(Number);
+                      const endMins = h * 60 + m + service.duration;
+                      const endH = Math.floor(endMins / 60);
+                      const endM = endMins % 60;
+                      setBookingEndTime(`${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`);
                       setBookingStep('details');
                     }}
                     className="w-full p-3 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all text-left flex items-center justify-between"
@@ -748,7 +757,7 @@ export default function StaffDashboard() {
                 onClick={() => setTimePickerOpen(true)}
                 className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
               >
-                <span>{bookingTime}</span>
+                <span>{bookingTime} — {bookingEndTime}</span>
                 <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
@@ -822,7 +831,7 @@ export default function StaffDashboard() {
         </button>
       </div>
 
-      {/* Time Picker Bottom Sheet */}
+      {/* Time Picker Bottom Sheet with Dual Wheels */}
       {timePickerOpen && (
         <div 
           className="fixed inset-0 bg-black/40 z-[60]"
@@ -834,45 +843,34 @@ export default function StaffDashboard() {
           timePickerOpen ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
-        <div className="p-2 max-h-[50vh] overflow-y-auto">
-          {timeOptions.map((time) => {
-            // Check if time is in the past for today
-            const isToday = bookingDate.toDateString() === new Date().toDateString();
-            const now = new Date();
-            const [h, m] = time.split(':').map(Number);
-            const isPast = isToday && (h < now.getHours() || (h === now.getHours() && m <= now.getMinutes()));
-            
-            return (
-              <button
-                key={time}
-                onClick={() => {
-                  if (!isPast) {
-                    setBookingTime(time);
-                    setTimePickerOpen(false);
-                  }
-                }}
-                disabled={isPast}
-                className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
-                  isPast 
-                    ? 'text-zinc-600 line-through cursor-not-allowed' 
-                    : bookingTime === time 
-                    ? 'text-white' 
-                    : 'text-zinc-300'
-                }`}
-              >
-                {bookingTime === time && !isPast && <Check className="h-5 w-5" />}
-                <span className={bookingTime === time && !isPast ? '' : 'ml-8'}>{time}</span>
-                {isPast && <span className="text-xs text-zinc-500 ml-auto">минуло</span>}
-              </button>
-            );
-          })}
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-white font-semibold">Оберіть час</h3>
+            <button
+              onClick={() => setTimePickerOpen(false)}
+              className="text-zinc-400 hover:text-white"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          
+          <TimeWheelPicker
+            startTime={bookingTime}
+            duration={bookingService?.duration || 60}
+            onTimeChange={(start, end) => {
+              setBookingTime(start);
+              setBookingEndTime(end);
+            }}
+            isToday={bookingDate.toDateString() === new Date().toDateString()}
+          />
+          
+          <button
+            onClick={() => setTimePickerOpen(false)}
+            className="w-full mt-4 py-3 rounded-xl bg-primary text-primary-foreground font-medium"
+          >
+            Готово
+          </button>
         </div>
-        <button
-          onClick={() => setTimePickerOpen(false)}
-          className="w-full py-4 text-center text-zinc-400 border-t border-zinc-700"
-        >
-          <X className="h-5 w-5 mx-auto" />
-        </button>
       </div>
 
       {/* Block Time Modal */}

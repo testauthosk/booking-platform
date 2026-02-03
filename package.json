@@ -45,6 +45,7 @@
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "19.2.3",
+    "react-mobile-picker": "^1.2.0",
     "resend": "^6.9.1",
     "tailwind-merge": "^3.4.0",
     "use-long-press": "^3.3.0"
