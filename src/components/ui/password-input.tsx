@@ -2,7 +2,14 @@
 
 import { useState, useRef } from 'react';
 import { Input } from '@/components/ui/input';
-import Lottie, { LottieRefCurrentProps } from 'lottie-react';
+import dynamic from 'next/dynamic';
+import type { LottieRefCurrentProps } from 'lottie-react';
+
+// Dynamic import to avoid SSR issues
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
+
+// Animation data
+import eyeAnimationData from '@/assets/eye-password.json';
 
 interface PasswordInputProps {
   value: string;
@@ -12,9 +19,6 @@ interface PasswordInputProps {
   id?: string;
   name?: string;
 }
-
-// Eye animation - local file
-import eyeAnimationData from '@/assets/eye-password.json';
 
 export function PasswordInput({
   value,
