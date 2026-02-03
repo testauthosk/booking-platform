@@ -26,6 +26,7 @@ export function TimeWheelPicker({
     const currentHour = now.getHours();
     const currentMin = now.getMinutes();
     
+    // First pass - try to filter past times if isToday
     for (let h = workingHours.start; h <= workingHours.end; h++) {
       for (let m = 0; m < 60; m += 5) {
         if (h === workingHours.end && m > 0) continue;
@@ -35,6 +36,17 @@ export function TimeWheelPicker({
         slots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
       }
     }
+    
+    // If no slots available (all times passed), show all times anyway
+    if (slots.length === 0) {
+      for (let h = workingHours.start; h <= workingHours.end; h++) {
+        for (let m = 0; m < 60; m += 5) {
+          if (h === workingHours.end && m > 0) continue;
+          slots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+        }
+      }
+    }
+    
     return slots;
   }, [workingHours, isToday]);
 
