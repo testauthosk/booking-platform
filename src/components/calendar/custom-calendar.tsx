@@ -536,7 +536,7 @@ export function CustomCalendar({
         <div className="flex" style={{ width: timeColWidth + totalColumnsWidth }}>
           {/* Time column */}
           <div 
-            className="flex-shrink-0 sticky left-0 z-30 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 relative"
+            className="flex-shrink-0 sticky left-0 z-30 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 relative overflow-hidden"
             style={{ width: timeColWidth }}
           >
             {timeSlots.map((time, idx) => (
@@ -545,7 +545,7 @@ export function CustomCalendar({
                 className="flex items-start justify-end pr-2 border-r border-slate-200/60 dark:border-slate-700/60"
                 style={{ height: hourHeight }}
               >
-                <span className="text-sm text-slate-500 dark:text-slate-400 font-semibold -mt-2">
+                <span className="text-sm text-slate-500 dark:text-slate-400 font-semibold mt-1">
                   {time}
                 </span>
               </div>
