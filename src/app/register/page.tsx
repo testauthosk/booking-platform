@@ -7,37 +7,8 @@ import Link from 'next/link';
 import { 
   Loader2, Scissors, ArrowRight, ArrowLeft, Check, Mail, Phone,
   Sparkles, Heart, Flower2, Dumbbell, Sun, Palette, Stethoscope, PawPrint, Grid3X3,
-  User, Users, Building2, Car, Monitor, Eye as EyeIcon
+  User, Users, Building2, Car, Monitor, Eye, EyeOff
 } from 'lucide-react';
-
-// Animated Eye Icon with strike-through line
-function AnimatedEye({ crossed }: { crossed: boolean }) {
-  return (
-    <div className="relative w-5 h-5">
-      <EyeIcon className="w-5 h-5" />
-      <svg 
-        className="absolute inset-0 w-5 h-5" 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
-        strokeWidth="2"
-        strokeLinecap="round"
-      >
-        <line 
-          x1="2" 
-          y1="2" 
-          x2="22" 
-          y2="22" 
-          style={{
-            strokeDasharray: 30,
-            strokeDashoffset: crossed ? 0 : 30,
-            transition: 'stroke-dashoffset 0.3s ease-out'
-          }}
-        />
-      </svg>
-    </div>
-  );
-}
 
 // ===== Password Strength =====
 function checkPasswordStrength(password: string) {
@@ -83,7 +54,7 @@ function checkPasswordStrength(password: string) {
 const BUSINESS_CATEGORIES = [
   { id: 'barbershop', name: 'Барбершоп', icon: Scissors },
   { id: 'nails', name: 'Манікюр', icon: Sparkles },
-  { id: 'brows', name: 'Брови та вії', icon: EyeIcon },
+  { id: 'brows', name: 'Брови та вії', icon: Eye },
   { id: 'beauty', name: 'Салон краси', icon: Heart },
   { id: 'spa', name: 'Спа & масаж', icon: Flower2 },
   { id: 'fitness', name: 'Фітнес', icon: Dumbbell },
@@ -395,11 +366,12 @@ export default function RegisterPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="email@example.com"
                     autoComplete="off"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-colors text-gray-900 text-base"
+                    style={{ fontSize: '16px' }}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-colors text-gray-900"
                   />
                 ) : (
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium text-base">+380</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium" style={{ fontSize: '16px' }}>+380</span>
                     <input
                       type="tel"
                       value={phone}
@@ -407,7 +379,8 @@ export default function RegisterPage() {
                       placeholder="XX XXX XX XX"
                       maxLength={12}
                       autoComplete="off"
-                      className="w-full pl-16 pr-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-colors text-gray-900 text-base"
+                      style={{ fontSize: '16px' }}
+                      className="w-full pl-16 pr-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-colors text-gray-900"
                     />
                   </div>
                 )}
@@ -433,7 +406,7 @@ export default function RegisterPage() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
                   >
-                    <AnimatedEye crossed={!showPassword} />
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
 
@@ -498,7 +471,7 @@ export default function RegisterPage() {
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
                     >
-                      <AnimatedEye crossed={!showConfirmPassword} />
+                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
                 </div>
