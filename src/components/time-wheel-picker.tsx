@@ -93,53 +93,70 @@ export function TimeWheelPicker({
     }
   };
 
+  // Track if we're programmatically scrolling to prevent loops
+  const isScrollingEnd = useRef(false);
+  const isScrollingStart = useRef(false);
+
   const handleStartScroll = () => {
-    if (!startRef.current) return;
+    if (!startRef.current || isScrollingStart.current) return;
+    
     const itemHeight = 44;
     const scrollTop = startRef.current.scrollTop;
     const index = Math.round(scrollTop / itemHeight);
     const newStart = timeSlots[Math.min(index, timeSlots.length - 1)];
     
-    if (newStart && newStart !== selectedStart && !isTimePast(newStart)) {
+    if (newStart && !isTimePast(newStart)) {
       setSelectedStart(newStart);
       const newEnd = calculateEndTime(newStart, duration);
       setSelectedEnd(newEnd);
       onTimeChange(newStart, newEnd);
-      scrollToTime(endRef.current, newEnd, endTimeSlots);
+      
+      // Sync end wheel immediately
+      if (endRef.current && !isScrollingEnd.current) {
+        isScrollingEnd.current = true;
+        const endIndex = endTimeSlots.indexOf(newEnd);
+        if (endIndex >= 0) {
+          endRef.current.scrollTop = endIndex * itemHeight;
+        }
+        requestAnimationFrame(() => {
+          isScrollingEnd.current = false;
+        });
+      }
     }
   };
 
   const handleEndScroll = () => {
-    if (!endRef.current) return;
+    if (!endRef.current || isScrollingEnd.current) return;
+    
     const itemHeight = 44;
     const scrollTop = endRef.current.scrollTop;
     const index = Math.round(scrollTop / itemHeight);
     const newEnd = endTimeSlots[Math.min(index, endTimeSlots.length - 1)];
     
-    if (newEnd && newEnd !== selectedEnd) {
-      setSelectedEnd(newEnd);
+    if (newEnd) {
       const newStart = calculateStartTime(newEnd, duration);
-      if (!isTimePast(newStart)) {
+      if (!isTimePast(newStart) && timeSlots.includes(newStart)) {
+        setSelectedEnd(newEnd);
         setSelectedStart(newStart);
         onTimeChange(newStart, newEnd);
-        scrollToTime(startRef.current, newStart, timeSlots);
+        
+        // Sync start wheel immediately
+        if (startRef.current && !isScrollingStart.current) {
+          isScrollingStart.current = true;
+          const startIndex = timeSlots.indexOf(newStart);
+          if (startIndex >= 0) {
+            startRef.current.scrollTop = startIndex * itemHeight;
+          }
+          requestAnimationFrame(() => {
+            isScrollingStart.current = false;
+          });
+        }
       }
     }
   };
 
-  // Debounced scroll handlers
-  const scrollTimeoutStart = useRef<NodeJS.Timeout>();
-  const scrollTimeoutEnd = useRef<NodeJS.Timeout>();
-
-  const onStartScroll = () => {
-    if (scrollTimeoutStart.current) clearTimeout(scrollTimeoutStart.current);
-    scrollTimeoutStart.current = setTimeout(handleStartScroll, 100);
-  };
-
-  const onEndScroll = () => {
-    if (scrollTimeoutEnd.current) clearTimeout(scrollTimeoutEnd.current);
-    scrollTimeoutEnd.current = setTimeout(handleEndScroll, 100);
-  };
+  const onStartScroll = handleStartScroll;
+  const onEndScroll = handleEndScroll;
 
   return (
     <div className="flex gap-4">
