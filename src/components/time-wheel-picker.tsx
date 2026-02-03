@@ -204,7 +204,7 @@ export function TimeWheelPicker({
       <>
         {/* Top padding */}
         {Array.from({ length: paddingCount }).map((_, i) => (
-          <div key={`top-${i}`} style={{ height: ITEM_HEIGHT }} />
+          <div key={`top-${i}`} className="snap-center" style={{ height: ITEM_HEIGHT }} />
         ))}
         
         {slots.map((time) => {
@@ -214,7 +214,7 @@ export function TimeWheelPicker({
             <div
               key={time}
               style={{ height: ITEM_HEIGHT }}
-              className={`flex items-center justify-center select-none transition-all duration-100 ${
+              className={`flex items-center justify-center select-none transition-all duration-100 snap-center ${
                 isSelected
                   ? 'text-white font-semibold text-lg'
                   : 'text-zinc-500'
@@ -227,7 +227,7 @@ export function TimeWheelPicker({
         
         {/* Bottom padding */}
         {Array.from({ length: paddingCount }).map((_, i) => (
-          <div key={`bot-${i}`} style={{ height: ITEM_HEIGHT }} />
+          <div key={`bot-${i}`} className="snap-center" style={{ height: ITEM_HEIGHT }} />
         ))}
       </>
     );
@@ -259,7 +259,7 @@ export function TimeWheelPicker({
           <div
             ref={startRef}
             onScroll={() => onScroll(true)}
-            className="h-full overflow-y-auto overflow-x-hidden scrollbar-hide"
+            className="h-full overflow-y-auto overflow-x-hidden scrollbar-hide snap-y snap-mandatory"
             style={{
               touchAction: 'pan-y',
               overscrollBehavior: 'contain',
@@ -301,7 +301,7 @@ export function TimeWheelPicker({
           <div
             ref={endRef}
             onScroll={() => onScroll(false)}
-            className="h-full overflow-y-auto overflow-x-hidden scrollbar-hide"
+            className="h-full overflow-y-auto overflow-x-hidden scrollbar-hide snap-y snap-mandatory"
             style={{
               touchAction: 'pan-y',
               overscrollBehavior: 'contain',
