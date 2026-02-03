@@ -42,20 +42,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const { user, loading: authLoading, signOut, isSuperAdmin } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  
+  const isLoginPage = pathname === '/admin/login';
 
-  // Skip layout for login page
-  if (pathname === '/admin/login') {
-    return <>{children}</>;
-  }
-
-  // Redirect if not super admin
+  // Redirect if not super admin (must be before any conditional returns)
   useEffect(() => {
+    if (isLoginPage) return; // Don't redirect on login page
+    
     if (!authLoading && !user) {
       router.push('/admin/login');
     } else if (!authLoading && user && !isSuperAdmin) {
       router.push('/dashboard');
     }
-  }, [authLoading, user, isSuperAdmin, router]);
+  }, [authLoading, user, isSuperAdmin, router, isLoginPage]);
+
+  // Skip layout for login page
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
 
   if (authLoading) {
     return (
