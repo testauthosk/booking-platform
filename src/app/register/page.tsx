@@ -331,41 +331,35 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Email or Phone - тільки fade, без руху */}
-              <div className="relative">
+              {/* Email or Phone */}
+              <div>
                 <label className="block text-[14px] font-medium text-gray-700 mb-1.5">
                   {authMethod === 'email' ? 'Email' : 'Телефон'} *
                 </label>
                 
-                {/* Email input */}
-                <div className={`transition-opacity duration-200 ${
-                  authMethod === 'email' ? 'opacity-100' : 'opacity-0 absolute inset-0 top-6 pointer-events-none'
-                }`}>
+                {authMethod === 'email' ? (
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="email@example.com"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-gray-900"
+                    autoComplete="off"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-colors text-gray-900"
                   />
-                </div>
-                
-                {/* Phone input */}
-                <div className={`transition-opacity duration-200 ${
-                  authMethod === 'phone' ? 'opacity-100' : 'opacity-0 absolute inset-0 top-6 pointer-events-none'
-                }`}>
+                ) : (
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">+380</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium text-[14px]">+380</span>
                     <input
                       type="tel"
                       value={phone}
                       onChange={(e) => handlePhoneChange(e.target.value)}
                       placeholder="XX XXX XX XX"
                       maxLength={12}
-                      className="w-full pl-16 pr-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-gray-900"
+                      autoComplete="off"
+                      className="w-full pl-16 pr-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-colors text-gray-900"
                     />
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Password */}
@@ -377,17 +371,21 @@ export default function RegisterPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Мінімум 6 символів"
-                    autoComplete="new-password"
-                    data-lpignore="true"
-                    data-form-type="other"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-gray-900 pr-12"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-colors text-gray-900 pr-12"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-all duration-200"
                   >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    <div className="relative w-5 h-5">
+                      <Eye className={`w-5 h-5 absolute inset-0 transition-all duration-200 ${showPassword ? 'opacity-0 scale-75' : 'opacity-100 scale-100'}`} />
+                      <EyeOff className={`w-5 h-5 absolute inset-0 transition-all duration-200 ${showPassword ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`} />
+                    </div>
                   </button>
                 </div>
 
@@ -426,9 +424,10 @@ export default function RegisterPage() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Повторіть пароль"
                     autoComplete="off"
-                    data-lpignore="true"
-                    data-form-type="other"
-                    className={`w-full px-4 py-3 rounded-xl border outline-none transition-all text-gray-900 pr-20 ${
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    className={`w-full px-4 py-3 rounded-xl border outline-none transition-colors text-gray-900 pr-20 ${
                       confirmPassword && password !== confirmPassword
                         ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20'
                         : confirmPassword && password === confirmPassword
@@ -436,9 +435,9 @@ export default function RegisterPage() {
                         : 'border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20'
                     }`}
                   />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                     {confirmPassword && (
-                      <span>
+                      <span className="transition-all duration-200">
                         {password === confirmPassword ? (
                           <Check className="w-5 h-5 text-green-500" />
                         ) : (
@@ -449,9 +448,12 @@ export default function RegisterPage() {
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                      className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-all duration-200"
                     >
-                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      <div className="relative w-5 h-5">
+                        <Eye className={`w-5 h-5 absolute inset-0 transition-all duration-200 ${showConfirmPassword ? 'opacity-0 scale-75' : 'opacity-100 scale-100'}`} />
+                        <EyeOff className={`w-5 h-5 absolute inset-0 transition-all duration-200 ${showConfirmPassword ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`} />
+                      </div>
                     </button>
                   </div>
                 </div>
