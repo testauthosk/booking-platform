@@ -70,6 +70,19 @@ export function ColleagueBookingModal({
   const [colleagueBookings, setColleagueBookings] = useState<any[]>([]);
   const [timeEnd, setTimeEnd] = useState<string>('');
 
+  const resetState = useCallback(() => {
+    setStep('colleague');
+    setSelectedColleague(null);
+    setSelectedServices([]);
+    setSelectedDate(new Date());
+    setSelectedTime('');
+    setSelectedClient(null);
+    setIsNewClient(false);
+    setNewClientName('');
+    setNewClientPhone('');
+    setClientSearch('');
+  }, []);
+
   // Зберігати стан 3 хвилини після закриття
   usePreservedModal(isOpen, resetState);
 
@@ -91,19 +104,6 @@ export function ColleagueBookingModal({
       loadServices(selectedColleague.id);
     }
   }, [selectedColleague]);
-
-  const resetState = useCallback(() => {
-    setStep('colleague');
-    setSelectedColleague(null);
-    setSelectedServices([]);
-    setSelectedDate(new Date());
-    setSelectedTime('');
-    setSelectedClient(null);
-    setIsNewClient(false);
-    setNewClientName('');
-    setNewClientPhone('');
-    setClientSearch('');
-  }, []);
 
   const loadColleagues = async () => {
     setIsLoading(true);
