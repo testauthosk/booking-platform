@@ -53,7 +53,10 @@ export function TimeWheelPicker({
     // End time = start time + duration, so filter accordingly
     const minEndTotal = isToday ? (currentHour * 60 + currentMin + duration) : (workingHours.start * 60 + duration);
     
-    for (let h = workingHours.start; h <= workingHours.end + 2; h++) {
+    // Extend to workingHours.end + 4 hours to support long services (up to 3h = 180min)
+    const maxHour = Math.min(workingHours.end + 4, 23);
+    
+    for (let h = workingHours.start; h <= maxHour; h++) {
       for (let m = 0; m < 60; m += 5) {
         const totalMin = h * 60 + m;
         
@@ -104,16 +107,30 @@ export function TimeWheelPicker({
     }
   };
 
-  // Initialize
+  // Update end time when duration changes
+  useEffect(() => {
+    const newEnd = calculateEndTime(selectedStart, duration);
+    setSelectedEnd(newEnd);
+    onTimeChange(selectedStart, newEnd);
+    
+    // Scroll end wheel to new position
+    const endIdx = endTimeSlots.indexOf(newEnd);
+    if (endIdx >= 0 && endRef.current) {
+      scrollToIndex(endRef.current, endIdx, true);
+    }
+  }, [duration]);
+
+  // Initialize scroll positions
   useEffect(() => {
     const startIdx = timeSlots.indexOf(startTime);
-    const endIdx = endTimeSlots.indexOf(calculateEndTime(startTime, duration));
+    const endTime = calculateEndTime(startTime, duration);
+    const endIdx = endTimeSlots.indexOf(endTime);
     
     requestAnimationFrame(() => {
       scrollToIndex(startRef.current, Math.max(0, startIdx), false);
       scrollToIndex(endRef.current, Math.max(0, endIdx), false);
     });
-  }, []);
+  }, [timeSlots, endTimeSlots]);
 
   // Handle scroll end with snap
   const handleScrollEnd = (
