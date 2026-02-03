@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Loader2, Eye, EyeOff, Scissors } from 'lucide-react';
 
@@ -120,8 +121,11 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-gray-400 text-sm mt-6">
-          Проблемы с входом? Обратитесь к администратору
+        <p className="text-center text-gray-500 text-sm mt-6">
+          Немає акаунту?{' '}
+          <Link href="/register" className="text-violet-600 font-medium hover:underline">
+            Зареєструватись
+          </Link>
         </p>
       </div>
     </div>
