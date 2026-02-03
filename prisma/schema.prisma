@@ -248,6 +248,10 @@ model Client {
   phone           String
   email           String?
 
+  // Telegram for reminders
+  telegramChatId  String?
+  telegramUsername String?
+
   // Stats
   visitsCount     Int      @default(0)
   totalSpent      Int      @default(0)
@@ -265,6 +269,7 @@ model Client {
   @@unique([salonId, phone])
   @@index([salonId])
   @@index([phone])
+  @@index([telegramChatId])
 }
 
 // ==================== BOOKINGS ====================
@@ -424,6 +429,52 @@ model Notification {
   @@index([recipientId])
   @@index([isRead])
   @@index([createdAt])
+}
+
+// ==================== REMINDERS ====================
+
+model ReminderSettings {
+  id              String   @id @default(uuid())
+  
+  salonId         String   @unique
+  
+  // Когда отправлять (часов до визита)
+  reminder24h     Boolean  @default(true)   // За 24 часа
+  reminder2h      Boolean  @default(true)   // За 2 часа
+  
+  // Шаблоны сообщений
+  template24h     String?  // Шаблон за 24ч
+  template2h      String?  // Шаблон за 2ч
+  
+  // Активность
+  isActive        Boolean  @default(true)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([salonId])
+}
+
+model SentReminder {
+  id              String   @id @default(uuid())
+  
+  bookingId       String
+  
+  // Тип напоминания
+  type            String   // "24h", "2h"
+  
+  // Канал доставки
+  channel         String   // "telegram", "sms"
+  
+  // Статус
+  status          String   @default("sent")  // "sent", "delivered", "failed"
+  errorMessage    String?
+  
+  sentAt          DateTime @default(now())
+  
+  @@unique([bookingId, type])
+  @@index([bookingId])
+  @@index([sentAt])
 }
 
 // ==================== INVENTORY ====================

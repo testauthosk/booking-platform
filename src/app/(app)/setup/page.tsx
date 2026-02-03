@@ -9,12 +9,14 @@ import {
   FileText,
   ChevronRight,
   History,
+  Bell,
 } from 'lucide-react';
 import Link from 'next/link';
 
 const settingsCategories = [
   { icon: Building2, label: 'Налаштування бізнесу', description: 'Вкажіть відомості про компанію, керуйте філіями', href: '/setup/business' },
   { icon: Calendar, label: 'Планування', description: 'Налаштуйте розклад та онлайн-запис', href: '/setup/schedule' },
+  { icon: Bell, label: 'Нагадування клієнтам', description: 'Автоматичні сповіщення в Telegram перед візитом', href: '/setup/reminders' },
   { icon: Users, label: 'Команда', description: 'Керуйте дозволами, комісіями та відпустками', href: '/setup/team' },
   { icon: FileText, label: 'Анкети', description: 'Налаштовуйте шаблони анкет', href: '/setup/forms' },
   { icon: History, label: 'Історія змін', description: 'Журнал всіх дій майстрів та адміністраторів', href: '/setup/history' },
