@@ -22,14 +22,14 @@ import {
 const navItems = [
   { href: '/dashboard', icon: Home, label: 'Головна' },
   { href: '/calendar', icon: Calendar, label: 'Календар' },
-  { href: '/sales', icon: ShoppingBag, label: 'Продажі' },
+  // { href: '/sales', icon: ShoppingBag, label: 'Продажі' },  // TODO: потім
   { href: '/inventory', icon: Package, label: 'Склад' },
   { href: '/clients', icon: Users, label: 'Клієнти' },
   { href: '/catalogue', icon: BookOpen, label: 'Каталог' },
   { href: '/team', icon: UserCircle, label: 'Команда' },
-  { href: '/marketing', icon: Megaphone, label: 'Маркетинг' },
-  { href: '/reports', icon: BarChart3, label: 'Звіти' },
-  { href: '/addons', icon: Grid3X3, label: 'Доповнення' },
+  // { href: '/marketing', icon: Megaphone, label: 'Маркетинг' },  // TODO: потім
+  // { href: '/reports', icon: BarChart3, label: 'Звіти' },  // TODO: потім
+  // { href: '/addons', icon: Grid3X3, label: 'Доповнення' },  // TODO: потім
   { href: '/setup', icon: Settings, label: 'Налаштування' },
 ];
 

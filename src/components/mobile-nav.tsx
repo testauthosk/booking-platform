@@ -9,12 +9,13 @@ import {
   Plus,
   Smile,
   LayoutGrid,
+  Package,
 } from 'lucide-react';
 
 const navItems = [
   { href: '/calendar', icon: Calendar },
   { href: '/catalogue', icon: Tag },
-  { href: '/sales', icon: Plus, isMain: true },
+  { href: '/inventory', icon: Package, isMain: true },  // Склад замість Продажів
   { href: '/clients', icon: Smile },
   { href: '/dashboard', icon: LayoutGrid },
 ];
