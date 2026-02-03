@@ -467,7 +467,7 @@ export default function StaffDashboard() {
             </div>
           ) : stats?.todayBookings && stats.todayBookings.length > 0 ? (
             <div className="overflow-x-auto -mx-4 scrollbar-hide">
-              <div className="flex gap-3 pb-2 px-4 pr-8">
+              <div className="flex gap-3 pb-2 px-4">
                 {stats.todayBookings.map((booking) => {
                   const isPast = (() => {
                     const [h, m] = booking.time.split(':').map(Number);
@@ -514,6 +514,9 @@ export default function StaffDashboard() {
                   <Plus className="h-8 w-8 text-muted-foreground mb-2" />
                   <span className="text-sm font-medium text-muted-foreground">Додати</span>
                 </Card>
+                
+                {/* Spacer for scroll padding */}
+                <div className="w-4 shrink-0" aria-hidden="true" />
               </div>
             </div>
           ) : (
