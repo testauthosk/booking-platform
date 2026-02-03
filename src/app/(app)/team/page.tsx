@@ -318,7 +318,7 @@ export default function TeamPage() {
       </header>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-4 lg:p-6">
+      <div className="flex-1 overflow-auto p-4 lg:p-6 pb-24">
         {/* Desktop title */}
         <div className="hidden lg:flex items-center justify-between mb-6">
           <div>
