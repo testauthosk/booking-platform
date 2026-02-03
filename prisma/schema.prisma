@@ -76,13 +76,15 @@ model Salon {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  users       User[]
-  masters     Master[]
-  services    Service[]
-  categories  ServiceCategory[]
-  clients     Client[]
-  bookings    Booking[]
-  reviews     Review[]
+  users             User[]
+  masters           Master[]
+  services          Service[]
+  categories        ServiceCategory[]
+  clients           Client[]
+  bookings          Booking[]
+  reviews           Review[]
+  products          Product[]
+  productCategories ProductCategory[]
 
   @@index([slug])
   @@index([isActive])
@@ -210,6 +212,7 @@ model Service {
   // Relations
   masters         MasterService[]
   bookings        Booking[]
+  serviceProducts ServiceProduct[]
 
   @@index([salonId])
   @@index([categoryId])
@@ -421,6 +424,124 @@ model Notification {
   @@index([recipientId])
   @@index([isRead])
   @@index([createdAt])
+}
+
+// ==================== INVENTORY ====================
+
+model ProductCategory {
+  id              String   @id @default(uuid())
+
+  salonId         String
+  salon           Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
+
+  name            String
+  sortOrder       Int      @default(0)
+
+  products        Product[]
+
+  createdAt       DateTime @default(now())
+
+  @@index([salonId])
+}
+
+model Product {
+  id              String   @id @default(uuid())
+
+  salonId         String
+  salon           Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
+
+  categoryId      String?
+  category        ProductCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  name            String
+  description     String?
+  sku             String?           // Артикул
+  barcode         String?           // Штрих-код
+
+  // Pricing
+  costPrice       Int      @default(0)  // Закупочная цена
+  sellPrice       Int      @default(0)  // Цена продажи
+
+  // Stock
+  quantity        Int      @default(0)  // Текущий остаток
+  minQuantity     Int      @default(0)  // Минимальный остаток (для алертов)
+  unit            String   @default("шт")  // Единица измерения
+
+  // Photo
+  image           String?
+
+  // Status
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  movements       StockMovement[]
+  serviceProducts ServiceProduct[]
+
+  @@unique([salonId, sku])
+  @@index([salonId])
+  @@index([categoryId])
+}
+
+enum StockMovementType {
+  IN          // Приход
+  OUT         // Продажа
+  ADJUSTMENT  // Коррекция (інвентаризація)
+  WRITE_OFF   // Списание
+  SERVICE     // Використано на послугу
+}
+
+model StockMovement {
+  id              String   @id @default(uuid())
+
+  salonId         String
+
+  productId       String
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  type            StockMovementType
+  quantity        Int               // + для прихода, - для расхода
+  
+  // Prices at moment
+  costPrice       Int?              // Закупочная (для IN)
+  sellPrice       Int?              // Продажная (для OUT)
+
+  // Reference
+  bookingId       String?           // Если списано на услугу
+  
+  note            String?
+  
+  // Who made
+  actorType       String?           // "admin", "master", "system"
+  actorId         String?
+  actorName       String?
+
+  createdAt       DateTime @default(now())
+
+  @@index([salonId])
+  @@index([productId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// Связь: какие товары списываются при услуге
+model ServiceProduct {
+  id              String   @id @default(uuid())
+
+  serviceId       String
+  service         Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  productId       String
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  quantity        Int      @default(1)  // Сколько списывать
+
+  @@unique([serviceId, productId])
+  @@index([serviceId])
+  @@index([productId])
 }
 
 // ==================== REVIEWS ====================

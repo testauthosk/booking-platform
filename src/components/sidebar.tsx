@@ -16,12 +16,14 @@ import {
   Grid3X3,
   HelpCircle,
   X,
+  Package,
 } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', icon: Home, label: 'Головна' },
   { href: '/calendar', icon: Calendar, label: 'Календар' },
   { href: '/sales', icon: ShoppingBag, label: 'Продажі' },
+  { href: '/inventory', icon: Package, label: 'Склад' },
   { href: '/clients', icon: Users, label: 'Клієнти' },
   { href: '/catalogue', icon: BookOpen, label: 'Каталог' },
   { href: '/team', icon: UserCircle, label: 'Команда' },
