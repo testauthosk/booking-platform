@@ -408,17 +408,17 @@ export default function RegisterPage() {
                 )}
               </div>
 
-              {/* Confirm Password - без eye icon */}
+              {/* Confirm Password */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Підтвердіть пароль *</label>
                 <div className="relative">
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Повторіть пароль"
                     autoComplete="new-password"
-                    className={`w-full px-4 py-3 rounded-xl border outline-none transition-all text-gray-900 pr-12 ${
+                    className={`w-full px-4 py-3 rounded-xl border outline-none transition-all text-gray-900 pr-20 ${
                       confirmPassword && password !== confirmPassword
                         ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20'
                         : confirmPassword && password === confirmPassword
@@ -426,15 +426,24 @@ export default function RegisterPage() {
                         : 'border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20'
                     }`}
                   />
-                  {confirmPassword && (
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2">
-                      {password === confirmPassword ? (
-                        <Check className="w-5 h-5 text-green-500" />
-                      ) : (
-                        <span className="text-red-500 text-lg">✕</span>
-                      )}
-                    </span>
-                  )}
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    {confirmPassword && (
+                      <span>
+                        {password === confirmPassword ? (
+                          <Check className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <span className="text-red-500 text-lg">✕</span>
+                        )}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
                 </div>
               </div>
 
