@@ -142,6 +142,8 @@ export function CustomCalendar({
   
   // Constants
   const hourHeight = 60; // 60px per hour
+  const timeColWidth = 50;
+  const colMinWidth = 120;
 
   // Slot context menu state
   const [slotMenu, setSlotMenu] = useState<{
@@ -390,8 +392,6 @@ export function CustomCalendar({
   const currentMin = salonTime.minutes;
   
   const headerHeight = 80;
-  const timeColWidth = 50;
-  const colMinWidth = 120;
   
   const formatTime = (date: Date) => 
     `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
