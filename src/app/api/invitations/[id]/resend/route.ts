@@ -39,7 +39,7 @@ export async function POST(
     });
 
     // Отправляем email
-    const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://booking-platform-ruddy.vercel.app'}/join/${invitation.token}`;
+    const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://booking-platform-production-7d5d.up.railway.app'}/join/${invitation.token}`;
     const salonName = salon?.name || 'салону';
     const salonLogo = salon?.logo;
     
@@ -81,6 +81,11 @@ export async function POST(
               </p>
             </div>
           `,
+        });
+        // Оновлюємо emailSentAt
+        await prisma.staffInvitation.update({
+          where: { id },
+          data: { emailSentAt: new Date() }
         });
         console.log(`Resend email sent to ${invitation.email} from ${salonName}`);
       } catch (emailError) {
