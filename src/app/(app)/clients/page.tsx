@@ -8,15 +8,20 @@ import { Search, Plus, Filter, Menu, Bell, ChevronRight, Loader2, Users } from '
 import { useSidebar } from '@/components/sidebar-context';
 import { MigrationBanner } from '@/components/migration/migration-banner';
 import { ImportModal } from '@/components/migration/import-modal';
+import { ClientCard } from '@/components/clients/client-card';
 
 interface Client {
   id: string;
   name: string;
   phone: string;
   email?: string;
+  telegramUsername?: string;
+  telegramChatId?: string;
   visitsCount: number;
   totalSpent: number;
+  lastVisit?: string;
   notes?: string;
+  createdAt: string;
 }
 
 interface SalonInfo {
@@ -31,6 +36,7 @@ export default function ClientsPage() {
   const [salonInfo, setSalonInfo] = useState<SalonInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
   // Завантаження клієнтів та інфо про салон
   useEffect(() => {
@@ -110,6 +116,25 @@ export default function ClientsPage() {
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  const handleEditClient = (client: Client) => {
+    // TODO: відкрити модалку редагування
+    console.log('Edit client:', client);
+  };
+
+  const handleDeleteClient = async (clientId: string) => {
+    if (!confirm('Ви впевнені що хочете видалити цього клієнта?')) return;
+    
+    try {
+      const res = await fetch(`/api/clients?id=${clientId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setClients(prev => prev.filter(c => c.id !== clientId));
+        setSelectedClient(null);
+      }
+    } catch (error) {
+      console.error('Error deleting client:', error);
+    }
   };
 
   // Показувати банер якщо є previousPlatform, не закрито, і клієнтів мало
@@ -206,6 +231,7 @@ export default function ClientsPage() {
                   <Card 
                     key={client.id} 
                     className="p-4 transition-all hover:shadow-md active:scale-[0.99] cursor-pointer"
+                    onClick={() => setSelectedClient(client)}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
@@ -215,7 +241,7 @@ export default function ClientsPage() {
                         <div>
                           <p className="font-medium">{client.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            {client.visitsCount} візитів • {client.phone}
+                            {client.visitsCount} візитів • {client.totalSpent.toLocaleString()} ₴
                           </p>
                         </div>
                       </div>
@@ -268,6 +294,17 @@ export default function ClientsPage() {
         previousPlatform={salonInfo?.previousPlatform || 'other'}
         onImport={handleImport}
       />
+
+      {/* Client Card */}
+      {selectedClient && (
+        <ClientCard
+          client={selectedClient}
+          isOpen={!!selectedClient}
+          onClose={() => setSelectedClient(null)}
+          onEdit={handleEditClient}
+          onDelete={handleDeleteClient}
+        />
+      )}
     </div>
   );
 }
