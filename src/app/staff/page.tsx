@@ -768,16 +768,32 @@ export default function StaffDashboard() {
             {/* Time */}
             <div>
               <label className="text-sm font-medium mb-1.5 block">Час</label>
-              <button
-                type="button"
-                onClick={() => setTimePickerOpen(true)}
-                className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
-              >
-                <span>{bookingTime} — {bookingEndTime}</span>
-                <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
+              {(() => {
+                const isToday = bookingDate.toDateString() === new Date().toDateString();
+                const now = new Date();
+                const workdayEnded = isToday && now.getHours() >= staffWorkingHours.end;
+                
+                if (workdayEnded) {
+                  return (
+                    <div className="w-full h-11 px-4 rounded-xl border border-input bg-muted/50 text-sm flex items-center text-muted-foreground">
+                      Робочий день закінчився
+                    </div>
+                  );
+                }
+                
+                return (
+                  <button
+                    type="button"
+                    onClick={() => setTimePickerOpen(true)}
+                    className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
+                  >
+                    <span>{bookingTime} — {bookingEndTime}</span>
+                    <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                );
+              })()}
             </div>
           </div>
         )}

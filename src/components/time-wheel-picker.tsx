@@ -169,9 +169,9 @@ export function TimeWheelPicker({
         
         {/* Duration indicator overlay */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="flex flex-col items-center text-zinc-500">
+          <div className="flex flex-col items-center text-zinc-500 -mt-4">
             <span className="text-xl">→</span>
-            <span className="text-[10px]">{duration}хв</span>
+            <span className="text-[10px] -mt-1">{duration}хв</span>
           </div>
         </div>
       </div>
