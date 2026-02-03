@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Input } from '@/components/ui/input';
 
 interface PasswordInputProps {
   value: string;
@@ -16,72 +15,53 @@ export function PasswordInput({
   value,
   onChange,
   placeholder = 'Пароль',
-  className,
+  className = '',
   id,
   name,
 }: PasswordInputProps) {
-  const [showPassword, setShowPassword] = useState(false);
+  const [visible, setVisible] = useState(false);
 
   return (
-    <div className="relative" style={{ transform: 'translateZ(0)' }}>
-      <Input
-        type={showPassword ? 'text' : 'password'}
+    <div className="relative">
+      <input
+        type={visible ? 'text' : 'password'}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`pr-12 ${className || ''}`}
         id={id}
         name={name}
         autoComplete="new-password"
+        className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 pr-10 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+        style={{ fontSize: '16px' }}
       />
       <button
         type="button"
-        onClick={() => setShowPassword(!showPassword)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-zinc-700 transition-colors"
-        aria-label={showPassword ? 'Сховати пароль' : 'Показати пароль'}
+        onClick={() => setVisible(!visible)}
+        className="absolute right-0 top-0 h-10 w-10 flex items-center justify-center text-muted-foreground hover:text-foreground"
       >
-        <svg 
-          width="20" 
-          height="20" 
-          viewBox="0 0 24 24" 
-          fill="none" 
-          stroke="currentColor" 
-          strokeWidth="2" 
-          strokeLinecap="round" 
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
           strokeLinejoin="round"
-          className="flex-shrink-0"
         >
-          {/* Eye shape */}
           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-          {/* Pupil */}
           <circle cx="12" cy="12" r="3" />
-          {/* Animated slash - draws diagonally */}
-          <line 
-            x1="2" 
-            y1="2" 
-            x2="22" 
+          <line
+            x1="2"
+            y1="2"
+            x2="22"
             y2="22"
             strokeDasharray="30"
-            strokeDashoffset={showPassword ? 30 : 0}
-            style={{
-              transition: 'stroke-dashoffset 0.3s ease-in-out'
-            }}
+            strokeDashoffset={visible ? 30 : 0}
+            style={{ transition: 'stroke-dashoffset 0.25s ease' }}
           />
         </svg>
       </button>
-
-      <style jsx global>{`
-        /* Hide browser's built-in password toggle */
-        input::-ms-reveal,
-        input::-ms-clear,
-        input::-webkit-contacts-auto-fill-button,
-        input::-webkit-credentials-auto-fill-button {
-          display: none !important;
-        }
-        input[type="password"]::-webkit-textfield-decoration-container {
-          display: none !important;
-        }
-      `}</style>
     </div>
   );
 }
