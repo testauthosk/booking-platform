@@ -68,18 +68,40 @@ export function ColleagueBookingModal({
   const [isSaving, setIsSaving] = useState(false);
   const [colleagueBookings, setColleagueBookings] = useState<any[]>([]);
   const [timeEnd, setTimeEnd] = useState<string>('');
+  const [clearTimeoutId, setClearTimeoutId] = useState<NodeJS.Timeout | null>(null);
 
-  // Завантажити колег при відкритті (тільки якщо ще не завантажено)
+  // Завантажити колег при відкритті
   useEffect(() => {
     if (isOpen) {
+      // Скасувати таймер очищення якщо був
+      if (clearTimeoutId) {
+        clearTimeout(clearTimeoutId);
+        setClearTimeoutId(null);
+      }
+      
+      // Завантажити дані тільки якщо ще не завантажено
       if (colleagues.length === 0) {
         loadColleagues();
       }
       if (clients.length === 0) {
         loadClients();
       }
-      resetState();
+      // НЕ очищаємо state — зберігаємо прогрес
+    } else {
+      // Модалка закрилась — запустити таймер на 3 хвилини
+      const timeoutId = setTimeout(() => {
+        resetState();
+        setClearTimeoutId(null);
+      }, 3 * 60 * 1000); // 3 хвилини
+      setClearTimeoutId(timeoutId);
     }
+    
+    // Cleanup при unmount
+    return () => {
+      if (clearTimeoutId) {
+        clearTimeout(clearTimeoutId);
+      }
+    };
   }, [isOpen]);
 
   // Завантажити послуги при виборі колеги
