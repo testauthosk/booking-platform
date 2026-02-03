@@ -200,7 +200,8 @@ export default function RegisterPage() {
       if (signInResult?.error) {
         router.push('/login?registered=true');
       } else {
-        router.push('/dashboard?welcome=true');
+        // Після реєстрації — на onboarding
+        router.push('/onboarding');
       }
 
     } catch (err) {
