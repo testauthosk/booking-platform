@@ -7,6 +7,7 @@ import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useSidebar } from '@/components/sidebar-context';
 import { EventModal } from '@/components/calendar/event-modal';
 import { NewBookingModal } from '@/components/calendar/new-booking-modal';
+import { BlockTimeModal } from '@/components/calendar/block-time-modal';
 import { CustomCalendar, type BookingEvent, type Resource, type SlotMenuAction, type TimeStep } from '@/components/calendar/custom-calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -122,12 +123,18 @@ export default function CalendarPage() {
   // Load bookings from API
   const loadBookings = async () => {
     try {
-      const res = await fetch('/api/booking');
-      if (res.ok) {
-        const data: BookingFromAPI[] = await res.json();
-        // Convert API bookings to BookingEvent format
-        const bookingEvents: BookingEvent[] = data.map(b => {
-          // Parse date and time to create Date objects
+      // Завантажуємо записи та блокування паралельно
+      const [bookingsRes, blocksRes] = await Promise.all([
+        fetch('/api/booking'),
+        fetch(`/api/time-blocks?salonId=${user?.salonId}`)
+      ]);
+
+      const allEvents: BookingEvent[] = [];
+
+      // Записи
+      if (bookingsRes.ok) {
+        const data: BookingFromAPI[] = await bookingsRes.json();
+        data.forEach(b => {
           const [year, month, day] = b.date.split('-').map(Number);
           const [startHour, startMin] = b.time.split(':').map(Number);
           
@@ -141,7 +148,7 @@ export default function CalendarPage() {
             end = new Date(start.getTime() + b.duration * 60000);
           }
 
-          return {
+          allEvents.push({
             id: b.id,
             title: b.serviceName || 'Запис',
             start,
@@ -152,10 +159,39 @@ export default function CalendarPage() {
             serviceName: b.serviceName || undefined,
             masterName: b.masterName || undefined,
             status: b.status.toLowerCase(),
-          };
+            type: 'booking',
+          });
         });
-        setEvents(bookingEvents);
       }
+
+      // Блокування
+      if (blocksRes.ok) {
+        const blocks = await blocksRes.json();
+        blocks.forEach((block: any) => {
+          const [year, month, day] = block.date.split('-').map(Number);
+          const [startHour, startMin] = block.startTime.split(':').map(Number);
+          const [endHour, endMin] = block.endTime.split(':').map(Number);
+          
+          const start = new Date(year, month - 1, day, startHour, startMin);
+          const end = new Date(year, month - 1, day, endHour, endMin);
+
+          allEvents.push({
+            id: block.id,
+            title: block.title || 'Заблоковано',
+            start,
+            end,
+            resourceId: block.masterId || undefined,
+            type: 'block',
+            blockType: block.type,
+            backgroundColor: block.type === 'BREAK' ? '#64748b' :
+                            block.type === 'LUNCH' ? '#f59e0b' :
+                            block.type === 'DAY_OFF' ? '#ef4444' :
+                            block.type === 'VACATION' ? '#22c55e' : '#8b5cf6',
+          });
+        });
+      }
+
+      setEvents(allEvents);
     } catch (error) {
       console.error('Load bookings error:', error);
     }
@@ -205,6 +241,7 @@ export default function CalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<BookingEvent | null>(null);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [isNewBookingModalOpen, setIsNewBookingModalOpen] = useState(false);
+  const [isBlockTimeModalOpen, setIsBlockTimeModalOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date; resourceId?: string } | null>(null);
 
   const handleEventClick = (event: BookingEvent) => {
@@ -271,8 +308,12 @@ export default function CalendarPage() {
       });
       setIsNewBookingModalOpen(true);
     } else if (action.type === 'block-time') {
-      // TODO: Implement block time
-      console.log('Block time:', action);
+      setSelectedSlot({ 
+        start: action.start, 
+        end: action.end, 
+        resourceId: action.resourceId 
+      });
+      setIsBlockTimeModalOpen(true);
     } else if (action.type === 'group-booking') {
       // TODO: Implement group booking
       console.log('Group booking:', action);
@@ -487,6 +528,20 @@ export default function CalendarPage() {
         slotInfo={selectedSlot}
         resources={resources}
       />
+
+      {/* Block Time Modal */}
+      {selectedSlot && (
+        <BlockTimeModal
+          isOpen={isBlockTimeModalOpen}
+          onClose={() => setIsBlockTimeModalOpen(false)}
+          date={selectedSlot.start}
+          time={`${selectedSlot.start.getHours().toString().padStart(2, '0')}:${selectedSlot.start.getMinutes().toString().padStart(2, '0')}`}
+          masterId={selectedSlot.resourceId}
+          masterName={resources.find(r => r.id === selectedSlot.resourceId)?.title}
+          salonId={user?.salonId || ''}
+          onSave={loadBookings}
+        />
+      )}
     </div>
   );
 }

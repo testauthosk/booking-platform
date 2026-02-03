@@ -91,6 +91,7 @@ model Master {
   salon        Salon           @relation(fields: [salonId], references: [id], onDelete: Cascade)
   services     MasterService[]
   reviews      Review[]
+  timeBlocks   TimeBlock[]
 
   @@index([salonId])
   @@index([isActive])
@@ -387,6 +388,34 @@ model Review {
   @@index([salonId])
   @@index([masterId])
   @@index([rating])
+}
+
+model TimeBlock {
+  id        String        @id @default(uuid())
+  salonId   String
+  masterId  String?
+  date      String        // YYYY-MM-DD
+  startTime String        // HH:mm
+  endTime   String        // HH:mm
+  title     String?       // Обід, Перерва, Вихідний...
+  type      TimeBlockType @default(BREAK)
+  isAllDay  Boolean       @default(false)
+  repeat    String?       // daily, weekly, none
+  color     String?
+  createdAt DateTime      @default(now())
+  master    Master?       @relation(fields: [masterId], references: [id], onDelete: Cascade)
+
+  @@index([salonId])
+  @@index([masterId])
+  @@index([date])
+}
+
+enum TimeBlockType {
+  BREAK      // Перерва
+  LUNCH      // Обід
+  DAY_OFF    // Вихідний
+  VACATION   // Відпустка
+  OTHER      // Інше
 }
 
 enum UserRole {

@@ -25,6 +25,9 @@ export interface BookingEvent {
   serviceName?: string;
   masterName?: string;
   status?: string;
+  // Для блокування часу
+  type?: 'booking' | 'block';
+  blockType?: 'BREAK' | 'LUNCH' | 'DAY_OFF' | 'VACATION' | 'OTHER';
 }
 
 interface WorkingDay {
@@ -669,12 +672,35 @@ export function CustomCalendar({
                       onTouchStart={(e) => onEventDrop && handleDragStart(e, event, e.currentTarget)}
                     >
                       <div className="p-2 pl-3 text-white h-full overflow-hidden relative">
-                        <div className="font-semibold text-sm drop-shadow-sm">
-                          {formatTime(event.start)} - {formatTime(event.end)}
-                        </div>
-                        <div className="font-medium text-base truncate">{event.clientName}</div>
-                        {height > 80 && (
-                          <div className="opacity-80 text-sm truncate">{event.title}</div>
+                        {event.type === 'block' ? (
+                          // Block time card
+                          <>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-base">
+                                {event.blockType === 'BREAK' ? '☕' : 
+                                 event.blockType === 'LUNCH' ? '🍽️' : 
+                                 event.blockType === 'DAY_OFF' ? '🚫' : 
+                                 event.blockType === 'VACATION' ? '🏖️' : '⏰'}
+                              </span>
+                              <span className="font-medium text-sm truncate">{event.title}</span>
+                            </div>
+                            {height > 50 && (
+                              <div className="text-xs opacity-80 mt-0.5">
+                                {formatTime(event.start)} - {formatTime(event.end)}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          // Regular booking card
+                          <>
+                            <div className="font-semibold text-sm drop-shadow-sm">
+                              {formatTime(event.start)} - {formatTime(event.end)}
+                            </div>
+                            <div className="font-medium text-base truncate">{event.clientName}</div>
+                            {height > 80 && (
+                              <div className="opacity-80 text-sm truncate">{event.title}</div>
+                            )}
+                          </>
                         )}
                         {/* Resize handle at bottom */}
                         {onEventResize && !isDragging && (
