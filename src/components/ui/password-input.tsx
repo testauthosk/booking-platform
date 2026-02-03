@@ -29,89 +29,54 @@ export function PasswordInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`pr-12 ${className || ''}`}
+        className={`pr-12 ${className || ''} [&::-ms-reveal]:hidden [&::-webkit-credentials-auto-fill-button]:hidden`}
         id={id}
         name={name}
+        style={{ 
+          // Hide Safari's built-in password toggle
+          WebkitTextSecurity: showPassword ? 'none' : undefined 
+        }}
+        autoComplete="off"
       />
       <button
         type="button"
         onClick={() => setShowPassword(!showPassword)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-muted rounded transition-colors"
+        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-zinc-800 transition-colors"
         aria-label={showPassword ? 'Сховати пароль' : 'Показати пароль'}
       >
-        {/* CSS-only animated eye */}
-        <div className={`eye ${!showPassword ? 'slash' : ''}`}>
-          <div></div>
-          <div></div>
-        </div>
+        {/* SVG Eye with animated slash */}
+        <svg 
+          width="20" 
+          height="20" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          stroke="currentColor" 
+          strokeWidth="2" 
+          strokeLinecap="round" 
+          strokeLinejoin="round"
+        >
+          {/* Eye shape */}
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+          {/* Pupil */}
+          <circle cx="12" cy="12" r="3" />
+          {/* Animated slash line */}
+          <line 
+            x1="1" 
+            y1="1" 
+            x2="23" 
+            y2="23"
+            className={`transition-all duration-200 origin-center ${
+              showPassword 
+                ? 'opacity-0 scale-0' 
+                : 'opacity-100 scale-100'
+            }`}
+            style={{
+              transformOrigin: 'center',
+              transition: 'opacity 0.2s ease, transform 0.2s ease'
+            }}
+          />
+        </svg>
       </button>
-      
-      <style jsx>{`
-        .eye {
-          width: 1.25em;
-          height: 0.75em;
-          position: relative;
-          display: inline-block;
-          --background: #fff;
-          --color: #71717a;
-          cursor: pointer;
-        }
-        .eye:hover {
-          --color: #18181b;
-        }
-        .eye div {
-          overflow: hidden;
-          height: 50%;
-          position: relative;
-          margin-bottom: -1px;
-        }
-        .eye div:before {
-          content: '';
-          background: var(--color);
-          position: absolute;
-          left: 0;
-          right: 0;
-          height: 300%;
-          border-radius: 100%;
-          transition: background 0.2s;
-        }
-        .eye div:last-child:before {
-          bottom: 0;
-        }
-        /* Pupil */
-        .eye:before {
-          content: '';
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: 0.35em;
-          height: 0.35em;
-          background: var(--color);
-          border: 0.1em solid var(--background);
-          border-radius: 100%;
-          z-index: 1;
-          transition: background 0.2s;
-        }
-        /* Slash line */
-        .eye:after {
-          content: '';
-          position: absolute;
-          top: -0.15em;
-          left: calc(33.333% - 0.15em);
-          transform: rotate(45deg) scaleX(0);
-          transform-origin: left center;
-          width: 90%;
-          height: 0.12em;
-          background: var(--color);
-          border-top: 0.1em solid var(--background);
-          z-index: 2;
-          transition: transform 0.2s ease-out, background 0.2s;
-        }
-        .eye.slash:after {
-          transform: rotate(45deg) scaleX(1);
-        }
-      `}</style>
     </div>
   );
 }
