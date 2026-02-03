@@ -396,12 +396,9 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-all duration-200"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
                   >
-                    <div className="relative w-5 h-5">
-                      <Eye className={`w-5 h-5 absolute inset-0 transition-all duration-200 ${showPassword ? 'opacity-0 scale-75' : 'opacity-100 scale-100'}`} />
-                      <EyeOff className={`w-5 h-5 absolute inset-0 transition-all duration-200 ${showPassword ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`} />
-                    </div>
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
 
@@ -464,12 +461,9 @@ export default function RegisterPage() {
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-all duration-200"
+                      className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
                     >
-                      <div className="relative w-5 h-5">
-                        <Eye className={`w-5 h-5 absolute inset-0 transition-all duration-200 ${showConfirmPassword ? 'opacity-0 scale-75' : 'opacity-100 scale-100'}`} />
-                        <EyeOff className={`w-5 h-5 absolute inset-0 transition-all duration-200 ${showConfirmPassword ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`} />
-                      </div>
+                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
                 </div>
