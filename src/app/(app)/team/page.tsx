@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,7 +17,7 @@ import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useSidebar } from '@/components/sidebar-context';
 import { useCalendarSettings } from '@/lib/calendar-settings-context';
 
-const DEMO_SALON_ID = 'demo-salon-id';
+const DEFAULT_SALON_ID = '93b6801f-0193-4706-896b-3de71f3799e1';
 
 interface Master {
   id: string;
@@ -58,12 +59,16 @@ interface MasterStats {
 }
 
 export default function TeamPage() {
+  const { data: session } = useSession();
   const { open: openSidebar } = useSidebar();
   const { getColorForIndex } = useCalendarSettings();
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [masters, setMasters] = useState<Master[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  
+  // Використовуємо salonId з сесії або дефолтний
+  const salonId = session?.user?.salonId || DEFAULT_SALON_ID;
   
   // Invite modal
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
@@ -91,8 +96,10 @@ export default function TeamPage() {
   const [loadingStats, setLoadingStats] = useState(false);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (salonId) {
+      loadData();
+    }
+  }, [salonId]);
 
   // Load master stats when selected
   useEffect(() => {
@@ -122,8 +129,8 @@ export default function TeamPage() {
     setLoading(true);
     try {
       const [mastersRes, invitationsRes] = await Promise.all([
-        fetch(`/api/masters?salonId=${DEMO_SALON_ID}`),
-        fetch(`/api/invitations?salonId=${DEMO_SALON_ID}`),
+        fetch(`/api/masters?salonId=${salonId}`),
+        fetch(`/api/invitations?salonId=${salonId}`),
       ]);
       
       if (mastersRes.ok) {
@@ -152,7 +159,7 @@ export default function TeamPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          salonId: DEMO_SALON_ID,
+          salonId: salonId,
           email: inviteEmail,
           name: inviteName || undefined,
           role: inviteRole || undefined,
