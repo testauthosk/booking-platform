@@ -1131,17 +1131,18 @@ export default function StaffDashboard() {
         </button>
       </div>
 
-      {/* Colleague Booking Modal */}
-      <ColleagueBookingModal
-        isOpen={colleagueBookingOpen}
-        onClose={() => setColleagueBookingOpen(false)}
-        salonId={salonId}
-        currentMasterId={staffId}
-        onSuccess={() => {
-          // Оновити дані після створення
-          loadStats();
-        }}
-      />
+      {/* Colleague Booking Modal - temporarily disabled for debugging */}
+      {colleagueBookingOpen && salonId && staffId && (
+        <ColleagueBookingModal
+          isOpen={colleagueBookingOpen}
+          onClose={() => setColleagueBookingOpen(false)}
+          salonId={salonId}
+          currentMasterId={staffId}
+          onSuccess={() => {
+            loadStats();
+          }}
+        />
+      )}
     </div>
   );
 }
