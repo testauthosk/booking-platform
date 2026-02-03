@@ -26,31 +26,71 @@ async function getUniqueSlug(baseName: string): Promise<string> {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, password, name, salonName, phone } = body
+    const { 
+      salonName, 
+      salonPhone,
+      authMethod, 
+      email, 
+      phone, 
+      password, 
+      name 
+    } = body
 
     // Валідація
-    if (!email || !password || !salonName) {
+    if (!salonName) {
       return NextResponse.json(
-        { error: 'Email, пароль та назва салону обов\'язкові' },
+        { error: 'Назва салону обов\'язкова' },
         { status: 400 }
       )
     }
 
-    if (password.length < 6) {
+    if (!password || password.length < 6) {
       return NextResponse.json(
         { error: 'Пароль має бути не менше 6 символів' },
         { status: 400 }
       )
     }
 
-    // Перевірка чи email вже існує
+    // Визначаємо email для входу (email або телефон як email)
+    let loginEmail: string
+    
+    if (authMethod === 'phone' && phone) {
+      // Використовуємо телефон як "email" для логіна
+      loginEmail = phone.replace(/[^+\d]/g, '') // Очищаємо: +380XXXXXXXXX
+      
+      if (!/^\+380\d{9}$/.test(loginEmail)) {
+        return NextResponse.json(
+          { error: 'Невірний формат телефону' },
+          { status: 400 }
+        )
+      }
+    } else if (authMethod === 'email' && email) {
+      loginEmail = email.toLowerCase().trim()
+      
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginEmail)) {
+        return NextResponse.json(
+          { error: 'Невірний формат email' },
+          { status: 400 }
+        )
+      }
+    } else {
+      return NextResponse.json(
+        { error: 'Вкажіть email або телефон' },
+        { status: 400 }
+      )
+    }
+
+    // Перевірка чи email/телефон вже існує
     const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase().trim() }
+      where: { email: loginEmail }
     })
 
     if (existingUser) {
       return NextResponse.json(
-        { error: 'Користувач з таким email вже існує' },
+        { error: authMethod === 'phone' 
+          ? 'Користувач з таким номером вже існує' 
+          : 'Користувач з таким email вже існує' 
+        },
         { status: 400 }
       )
     }
@@ -68,8 +108,8 @@ export async function POST(request: NextRequest) {
         data: {
           name: salonName.trim(),
           slug,
-          phone: phone?.trim() || null,
-          email: email.toLowerCase().trim(),
+          phone: salonPhone || null,
+          email: authMethod === 'email' ? loginEmail : null,
           // Дефолтні робочі години
           workingHours: {
             monday: { start: '09:00', end: '20:00', enabled: true },
@@ -86,10 +126,10 @@ export async function POST(request: NextRequest) {
       // Створюємо користувача-власника
       const user = await tx.user.create({
         data: {
-          email: email.toLowerCase().trim(),
+          email: loginEmail, // email або телефон (для входу)
           passwordHash,
           name: name?.trim() || null,
-          phone: phone?.trim() || null,
+          phone: authMethod === 'phone' ? loginEmail : null, // Телефон окремо
           role: 'SALON_OWNER',
           salonId: salon.id
         }
@@ -113,7 +153,7 @@ export async function POST(request: NextRequest) {
       return { user, salon }
     })
 
-    console.log('[REGISTER] New salon created:', result.salon.name, 'by', result.user.email)
+    console.log('[REGISTER] New salon created:', result.salon.name, 'by', loginEmail)
 
     return NextResponse.json({
       success: true,
