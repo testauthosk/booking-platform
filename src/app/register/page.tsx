@@ -83,7 +83,7 @@ function checkPasswordStrength(password: string) {
 const BUSINESS_CATEGORIES = [
   { id: 'barbershop', name: 'Барбершоп', icon: Scissors },
   { id: 'nails', name: 'Манікюр', icon: Sparkles },
-  { id: 'brows', name: 'Брови та вії', icon: Eye },
+  { id: 'brows', name: 'Брови та вії', icon: EyeIcon },
   { id: 'beauty', name: 'Салон краси', icon: Heart },
   { id: 'spa', name: 'Спа & масаж', icon: Flower2 },
   { id: 'fitness', name: 'Фітнес', icon: Dumbbell },
