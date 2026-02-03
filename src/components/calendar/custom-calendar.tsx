@@ -143,7 +143,77 @@ export function CustomCalendar({
   // Constants
   const hourHeight = 60; // 60px per hour
   const timeColWidth = 50;
-  const colMinWidth = 120;
+  const colMinWidth = 120; // Minimum column width
+  
+  // Calculate dynamic column width
+  const [containerWidth, setContainerWidth] = useState(0);
+  
+  useEffect(() => {
+    const updateWidth = () => {
+      if (scrollRef.current) {
+        setContainerWidth(scrollRef.current.clientWidth);
+      }
+    };
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
+  
+  // Column width: divide available space, but minimum colMinWidth
+  const availableWidth = containerWidth - timeColWidth;
+  const calculatedColWidth = resources.length > 0 ? availableWidth / resources.length : colMinWidth;
+  const colWidth = Math.max(colMinWidth, calculatedColWidth);
+  const totalColumnsWidth = resources.length * colWidth;
+  const needsHorizontalScroll = totalColumnsWidth > availableWidth;
+  
+  // Drag to scroll state
+  const [scrollDrag, setScrollDrag] = useState<{
+    isDragging: boolean;
+    startX: number;
+    startY: number;
+    scrollLeft: number;
+    scrollTop: number;
+  }>({ isDragging: false, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0 });
+  
+  const handleScrollDragStart = (e: React.MouseEvent) => {
+    // Only activate on middle mouse or when not clicking on events
+    if (e.button === 1 || (e.target as HTMLElement).closest('[data-event]') === null) {
+      if (scrollRef.current && e.button === 1) {
+        e.preventDefault();
+        setScrollDrag({
+          isDragging: true,
+          startX: e.clientX,
+          startY: e.clientY,
+          scrollLeft: scrollRef.current.scrollLeft,
+          scrollTop: scrollRef.current.scrollTop,
+        });
+      }
+    }
+  };
+  
+  useEffect(() => {
+    if (!scrollDrag.isDragging) return;
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      if (scrollRef.current) {
+        const dx = e.clientX - scrollDrag.startX;
+        const dy = e.clientY - scrollDrag.startY;
+        scrollRef.current.scrollLeft = scrollDrag.scrollLeft - dx;
+        scrollRef.current.scrollTop = scrollDrag.scrollTop - dy;
+      }
+    };
+    
+    const handleMouseUp = () => {
+      setScrollDrag(prev => ({ ...prev, isDragging: false }));
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [scrollDrag]);
 
   // Slot context menu state
   const [slotMenu, setSlotMenu] = useState<{
@@ -344,8 +414,7 @@ export function CustomCalendar({
         // Determine which resource column we're over
         const scrollRect = scrollRef.current.getBoundingClientRect();
         const relativeX = clientX - scrollRect.left + scrollRef.current.scrollLeft - timeColWidth;
-        const columnWidth = (scrollRect.width - timeColWidth) / resources.length;
-        const resourceIndex = Math.floor(relativeX / columnWidth);
+        const resourceIndex = Math.floor(relativeX / colWidth);
         const clampedIndex = Math.max(0, Math.min(resourceIndex, resources.length - 1));
         const newResourceId = resources[clampedIndex]?.id || dragState.event.resourceId;
         
@@ -375,7 +444,7 @@ export function CustomCalendar({
       document.removeEventListener('touchmove', handleMove);
       document.removeEventListener('touchend', handleEnd);
     };
-  }, [dragState, resizeState, onEventDrop, onEventResize, dayStart, dayEnd, resources, timeColWidth]);
+  }, [dragState, resizeState, onEventDrop, onEventResize, dayStart, dayEnd, resources, timeColWidth, colWidth]);
 
   const [salonTime, setSalonTime] = useState(() => getTimeInTimezone(timezone));
   
@@ -420,13 +489,13 @@ export function CustomCalendar({
           >
             <div 
               className="flex"
-              style={{ width: resources.length * colMinWidth }}
+              style={{ width: totalColumnsWidth }}
             >
               {resources.map((resource, idx) => (
                 <div
                   key={`header-${resource.id}`}
                   className={`flex flex-col items-center justify-center py-2 gap-1 border-r border-slate-200/60 dark:border-slate-700/60`}
-                  style={{ width: colMinWidth, height: headerHeight }}
+                  style={{ width: colWidth, height: headerHeight }}
                 >
                   <div 
                     className="w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden shadow-lg ring-2 ring-white/60"
@@ -459,10 +528,12 @@ export function CustomCalendar({
       {/* SCROLLABLE BODY */}
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-auto overscroll-none"
+        className={`flex-1 overflow-auto overscroll-none ${scrollDrag.isDragging ? 'cursor-grabbing' : ''}`}
         onScroll={handleScroll}
+        onMouseDown={handleScrollDragStart}
+        style={{ cursor: needsHorizontalScroll ? 'grab' : undefined }}
       >
-        <div className="flex" style={{ width: timeColWidth + resources.length * colMinWidth }}>
+        <div className="flex" style={{ width: timeColWidth + totalColumnsWidth }}>
           {/* Time column */}
           <div 
             className="flex-shrink-0 sticky left-0 z-30 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 relative"
@@ -496,12 +567,12 @@ export function CustomCalendar({
           </div>
 
           {/* Resource columns */}
-          <div className="flex" style={{ width: resources.length * colMinWidth }}>
+          <div className="flex" style={{ width: totalColumnsWidth }}>
             {resources.map((resource) => (
               <div
                 key={`col-${resource.id}`}
                 className="relative border-r border-slate-200/60 dark:border-slate-700/60"
-                style={{ width: colMinWidth }}
+                style={{ width: colWidth }}
               >
                 {/* Hour lines - two 30-min slots per hour */}
                 {timeSlots.map((time, idx) => {
