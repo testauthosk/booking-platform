@@ -6,6 +6,7 @@ import {
   Search, Plus, Calendar, Loader2, Users
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { TimeWheelPicker } from '@/components/time-wheel-picker';
 
 interface Master {
   id: string;
@@ -65,6 +66,8 @@ export function ColleagueBookingModal({
   const [newClientPhone, setNewClientPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [colleagueBookings, setColleagueBookings] = useState<any[]>([]);
+  const [timeEnd, setTimeEnd] = useState<string>('');
 
   // Завантажити колег при відкритті
   useEffect(() => {
@@ -137,6 +140,27 @@ export function ColleagueBookingModal({
       console.error('Error loading clients:', error);
     }
   };
+
+  // Завантажити записи колеги для вибраної дати
+  const loadColleagueBookings = async (masterId: string, date: Date) => {
+    try {
+      const dateStr = date.toISOString().split('T')[0];
+      const res = await fetch(`/api/booking?masterId=${masterId}&date=${dateStr}`);
+      if (res.ok) {
+        const data = await res.json();
+        setColleagueBookings(data);
+      }
+    } catch (error) {
+      console.error('Error loading colleague bookings:', error);
+    }
+  };
+
+  // Завантажувати записи при зміні дати або колеги
+  useEffect(() => {
+    if (selectedColleague && step === 'datetime') {
+      loadColleagueBookings(selectedColleague.id, selectedDate);
+    }
+  }, [selectedColleague, selectedDate, step]);
 
   const toggleService = (service: Service) => {
     setSelectedServices(prev => {
@@ -275,10 +299,10 @@ export function ColleagueBookingModal({
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop - high z-index to cover everything */}
       <div 
         className={cn(
-          "fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300",
+          "fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] transition-opacity duration-300",
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
         onClick={onClose}
@@ -287,7 +311,7 @@ export function ColleagueBookingModal({
       {/* Modal */}
       <div 
         className={cn(
-          "fixed inset-x-0 bottom-0 max-h-[90vh] bg-card rounded-t-3xl shadow-xl z-50",
+          "fixed inset-x-0 bottom-0 max-h-[90vh] bg-card rounded-t-3xl shadow-xl z-[110]",
           "transform transition-all duration-300 ease-out overflow-hidden flex flex-col",
           isOpen ? "translate-y-0" : "translate-y-full"
         )}
@@ -406,7 +430,7 @@ export function ColleagueBookingModal({
           {/* Step 3: DateTime */}
           {step === 'datetime' && (
             <div className="space-y-4">
-              {/* Date - простий вибір */}
+              {/* Date */}
               <div>
                 <p className="text-sm text-muted-foreground mb-2">Дата</p>
                 <div className="flex gap-2 overflow-x-auto pb-2">
@@ -433,25 +457,38 @@ export function ColleagueBookingModal({
                 </div>
               </div>
 
-              {/* Time */}
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">Час</p>
-                <div className="grid grid-cols-4 gap-2">
-                  {generateTimeSlots().map((time) => (
-                    <button
-                      key={time}
-                      onClick={() => setSelectedTime(time)}
-                      className={cn(
-                        "py-2 rounded-xl text-sm font-medium transition-all",
-                        selectedTime === time
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted/50 hover:bg-muted"
-                      )}
-                    >
-                      {time}
-                    </button>
-                  ))}
+              {/* Colleague's bookings for this day */}
+              {colleagueBookings.length > 0 && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Записи {selectedColleague?.name} на цей день
+                  </p>
+                  <div className="space-y-1.5 max-h-[120px] overflow-y-auto">
+                    {colleagueBookings.map((booking: any) => (
+                      <div 
+                        key={booking.id}
+                        className="flex items-center justify-between px-3 py-2 bg-muted/50 rounded-lg text-sm"
+                      >
+                        <span className="font-medium">{booking.time} - {booking.timeEnd || '?'}</span>
+                        <span className="text-muted-foreground truncate ml-2">{booking.clientName}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+              )}
+
+              {/* Time Wheel Picker */}
+              <div className="bg-zinc-900 rounded-2xl p-4">
+                <TimeWheelPicker
+                  startTime={selectedTime || '10:00'}
+                  duration={getTotalDuration()}
+                  onTimeChange={(start, end) => {
+                    setSelectedTime(start);
+                    setTimeEnd(end);
+                  }}
+                  workingHours={{ start: 9, end: 20 }}
+                  isToday={selectedDate.toDateString() === new Date().toDateString()}
+                />
               </div>
             </div>
           )}
