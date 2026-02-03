@@ -1139,7 +1139,6 @@ export default function StaffDashboard() {
         currentMasterId={staffId}
         onSuccess={() => {
           // Оновити дані після створення
-          loadTodayBookings();
           loadStats();
         }}
       />
