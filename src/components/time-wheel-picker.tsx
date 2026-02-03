@@ -94,6 +94,34 @@ export function TimeWheelPicker({
   const activeWheel = useRef<'start' | 'end' | null>(null);
   const scrollTimeout = useRef<NodeJS.Timeout>();
   const lastScrollTime = useRef(0);
+  const animationRef = useRef<number>();
+
+  // Smooth scroll animation using requestAnimationFrame
+  const smoothScrollTo = useCallback((element: HTMLDivElement, targetTop: number, duration = 150) => {
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+    }
+    
+    const startTop = element.scrollTop;
+    const distance = targetTop - startTop;
+    const startTime = performance.now();
+    
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function for smooth feel
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      
+      element.scrollTop = startTop + distance * easeOut;
+      
+      if (progress < 1) {
+        animationRef.current = requestAnimationFrame(animate);
+      }
+    };
+    
+    animationRef.current = requestAnimationFrame(animate);
+  }, []);
 
   // Update end time when duration changes
   useEffect(() => {
@@ -145,20 +173,20 @@ export function TimeWheelPicker({
     const currentTime = slots[clampedIndex];
 
     if (isStart) {
-      // Sync end wheel in real-time
+      // Sync end wheel with smooth animation
       const newEnd = calculateEndTime(currentTime, duration);
       const endIdx = endTimeSlots.indexOf(newEnd);
       if (endIdx >= 0) {
-        otherRef.scrollTop = endIdx * ITEM_HEIGHT;
+        smoothScrollTo(otherRef, endIdx * ITEM_HEIGHT, 120);
       }
       setSelectedStart(currentTime);
       setSelectedEnd(newEnd);
     } else {
-      // Sync start wheel in real-time  
+      // Sync start wheel with smooth animation
       const newStart = calculateStartTime(currentTime, duration);
       const startIdx = timeSlots.indexOf(newStart);
       if (startIdx >= 0) {
-        otherRef.scrollTop = startIdx * ITEM_HEIGHT;
+        smoothScrollTo(otherRef, startIdx * ITEM_HEIGHT, 120);
       }
       setSelectedEnd(currentTime);
       setSelectedStart(newStart);
