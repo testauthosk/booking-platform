@@ -969,6 +969,34 @@ export default function StaffCalendar() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Busy slots timeline */}
+          {bookings.length > 0 && (
+            <div className="pb-2">
+              <p className="text-xs text-muted-foreground mb-2">Зайнято сьогодні:</p>
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                {bookings
+                  .filter(b => b.status !== 'CANCELLED')
+                  .sort((a, b) => a.time.localeCompare(b.time))
+                  .map((booking) => {
+                    const [h, m] = booking.time.split(':').map(Number);
+                    const endMins = h * 60 + m + booking.duration;
+                    const endH = Math.floor(endMins / 60);
+                    const endM = endMins % 60;
+                    const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+                    return (
+                      <div
+                        key={booking.id}
+                        className="shrink-0 px-3 py-1.5 rounded-full bg-red-50 border border-red-200 text-xs"
+                      >
+                        <span className="font-medium text-red-700">{booking.time}-{endTime}</span>
+                        <span className="text-red-500 ml-1">{booking.clientName}</span>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+
           {/* Client Name */}
           <div>
             <label className="text-sm font-medium mb-1.5 block">Імя клієнта *</label>
