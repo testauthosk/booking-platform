@@ -21,26 +21,52 @@ export function TimeWheelPicker({
   const VISIBLE_COUNT = 5;
   const WHEEL_HEIGHT = ITEM_HEIGHT * VISIBLE_COUNT;
 
-  // Generate time slots
+  // Generate time slots (filter out past times if today)
   const generateTimeSlots = useCallback(() => {
     const slots: string[] = [];
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMin = now.getMinutes();
+    
     for (let h = workingHours.start; h <= workingHours.end; h++) {
-      slots.push(`${h.toString().padStart(2, '0')}:00`);
+      // Check :00
+      if (!isToday || h > currentHour || (h === currentHour && 0 > currentMin)) {
+        slots.push(`${h.toString().padStart(2, '0')}:00`);
+      }
+      // Check :30
       if (h < workingHours.end) {
+        if (!isToday || h > currentHour || (h === currentHour && 30 > currentMin)) {
+          slots.push(`${h.toString().padStart(2, '0')}:30`);
+        }
+      }
+    }
+    return slots;
+  }, [workingHours, isToday]);
+
+  const generateEndTimeSlots = useCallback(() => {
+    const slots: string[] = [];
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMin = now.getMinutes();
+    
+    // End time = start time + duration, so filter accordingly
+    const minEndHour = isToday ? currentHour : workingHours.start;
+    const minEndMin = isToday ? currentMin + duration : 0;
+    
+    for (let h = workingHours.start; h <= workingHours.end + 2; h++) {
+      const totalMin0 = h * 60;
+      const totalMin30 = h * 60 + 30;
+      const minTotal = minEndHour * 60 + minEndMin;
+      
+      if (totalMin0 >= minTotal) {
+        slots.push(`${h.toString().padStart(2, '0')}:00`);
+      }
+      if (totalMin30 >= minTotal) {
         slots.push(`${h.toString().padStart(2, '0')}:30`);
       }
     }
     return slots;
-  }, [workingHours]);
-
-  const generateEndTimeSlots = useCallback(() => {
-    const slots: string[] = [];
-    for (let h = workingHours.start; h <= workingHours.end + 2; h++) {
-      slots.push(`${h.toString().padStart(2, '0')}:00`);
-      slots.push(`${h.toString().padStart(2, '0')}:30`);
-    }
-    return slots;
-  }, [workingHours]);
+  }, [workingHours, isToday, duration]);
 
   const timeSlots = generateTimeSlots();
   const endTimeSlots = generateEndTimeSlots();
@@ -60,12 +86,7 @@ export function TimeWheelPicker({
     return `${startH.toString().padStart(2, '0')}:${startM.toString().padStart(2, '0')}`;
   }, [workingHours]);
 
-  const isTimePast = useCallback((time: string): boolean => {
-    if (!isToday) return false;
-    const now = new Date();
-    const [h, m] = time.split(':').map(Number);
-    return h < now.getHours() || (h === now.getHours() && m <= now.getMinutes());
-  }, [isToday]);
+  // Past times are now filtered out during generation, no need for runtime check
 
   const [selectedStart, setSelectedStart] = useState(startTime);
   const [selectedEnd, setSelectedEnd] = useState(calculateEndTime(startTime, duration));
@@ -113,25 +134,23 @@ export function TimeWheelPicker({
     scrollToIndex(ref, clampedIndex, true);
 
     if (isStart) {
-      if (!isTimePast(newTime)) {
-        setSelected(newTime);
-        const newEnd = calculateEndTime(newTime, duration);
-        setSelectedEnd(newEnd);
-        onTimeChange(newTime, newEnd);
+      setSelected(newTime);
+      const newEnd = calculateEndTime(newTime, duration);
+      setSelectedEnd(newEnd);
+      onTimeChange(newTime, newEnd);
 
-        // Sync end wheel
-        if (!isSyncing.current) {
-          isSyncing.current = true;
-          const endIdx = endTimeSlots.indexOf(newEnd);
-          if (endIdx >= 0) {
-            scrollToIndex(endRef.current, endIdx, true);
-          }
-          setTimeout(() => { isSyncing.current = false; }, 200);
+      // Sync end wheel
+      if (!isSyncing.current) {
+        isSyncing.current = true;
+        const endIdx = endTimeSlots.indexOf(newEnd);
+        if (endIdx >= 0) {
+          scrollToIndex(endRef.current, endIdx, true);
         }
+        setTimeout(() => { isSyncing.current = false; }, 200);
       }
     } else {
       const newStart = calculateStartTime(newTime, duration);
-      if (!isTimePast(newStart) && timeSlots.includes(newStart)) {
+      if (timeSlots.includes(newStart)) {
         setSelected(newTime);
         setSelectedStart(newStart);
         onTimeChange(newStart, newTime);
@@ -164,11 +183,7 @@ export function TimeWheelPicker({
   };
 
   // Render wheel items
-  const renderWheel = (
-    slots: string[],
-    selected: string,
-    isPastCheck: boolean
-  ) => {
+  const renderWheel = (slots: string[], selected: string) => {
     const paddingCount = Math.floor(VISIBLE_COUNT / 2);
     
     return (
@@ -179,7 +194,6 @@ export function TimeWheelPicker({
         ))}
         
         {slots.map((time) => {
-          const isPast = isPastCheck && isTimePast(time);
           const isSelected = time === selected;
           
           return (
@@ -187,9 +201,7 @@ export function TimeWheelPicker({
               key={time}
               style={{ height: ITEM_HEIGHT }}
               className={`flex items-center justify-center select-none transition-all duration-100 ${
-                isPast
-                  ? 'text-zinc-600 line-through'
-                  : isSelected
+                isSelected
                   ? 'text-white font-semibold text-lg'
                   : 'text-zinc-500'
               }`}
@@ -240,7 +252,7 @@ export function TimeWheelPicker({
               WebkitOverflowScrolling: 'touch'
             }}
           >
-            {renderWheel(timeSlots, selectedStart, true)}
+            {renderWheel(timeSlots, selectedStart)}
           </div>
         </div>
       </div>
@@ -282,7 +294,7 @@ export function TimeWheelPicker({
               WebkitOverflowScrolling: 'touch'
             }}
           >
-            {renderWheel(endTimeSlots, selectedEnd, false)}
+            {renderWheel(endTimeSlots, selectedEnd)}
           </div>
         </div>
       </div>
