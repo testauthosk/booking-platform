@@ -74,10 +74,10 @@ export default function StaffDashboard() {
   const [blockEndPickerOpen, setBlockEndPickerOpen] = useState(false);
   const [savingBlock, setSavingBlock] = useState(false);
   
-  const timeOptions = Array.from({ length: 28 }, (_, i) => {
-    const hour = 8 + Math.floor(i / 2);
-    const min = i % 2 === 0 ? '00' : '30';
-    return `${hour.toString().padStart(2, '0')}:${min}`;
+  const timeOptions = Array.from({ length: 84 }, (_, i) => {
+    const hour = 8 + Math.floor(i / 6);
+    const min = (i % 6) * 10;
+    return `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
   });
   
   const DAYS_UA = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
