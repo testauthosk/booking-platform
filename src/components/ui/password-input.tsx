@@ -56,15 +56,17 @@ export function PasswordInput({
         aria-label={showPassword ? 'Сховати пароль' : 'Показати пароль'}
       >
         {mounted ? (
-          <Player
-            key={showPassword ? 'visible' : 'hidden'}
-            src="/animations/eye-password.json"
-            background="transparent"
-            speed={1.5}
-            loop={false}
-            autoplay={true}
-            style={{ width: 28, height: 28, display: 'block' }}
-          />
+          <div style={{ filter: 'invert(0.4)' }}>
+            <Player
+              key={showPassword ? 'visible' : 'hidden'}
+              src="/animations/eye-password.json"
+              background="transparent"
+              speed={1.5}
+              loop={false}
+              autoplay={true}
+              style={{ width: 28, height: 28, display: 'block' }}
+            />
+          </div>
         ) : (
           <div className="w-6 h-6 bg-muted rounded-full animate-pulse" />
         )}
