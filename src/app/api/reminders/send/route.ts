@@ -54,9 +54,16 @@ function formatTemplate(template: string, data: Record<string, string>): string 
 }
 
 export async function POST(request: NextRequest) {
-  // Verify cron secret
+  // Verify cron secret (Vercel sends it as CRON_SECRET header)
   const authHeader = request.headers.get('authorization');
-  if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
+  const vercelCron = request.headers.get('x-vercel-cron');
+  
+  // Allow if: Vercel cron job, or correct CRON_SECRET, or no secret configured
+  const isVercelCron = vercelCron === '1';
+  const hasValidSecret = CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`;
+  const noSecretConfigured = !CRON_SECRET;
+  
+  if (!isVercelCron && !hasValidSecret && !noSecretConfigured) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
