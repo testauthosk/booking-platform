@@ -1,12 +1,18 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import dynamic from 'next/dynamic';
 import type { LottieRefCurrentProps } from 'lottie-react';
 
-// Dynamic import to avoid SSR issues
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
+// Correct dynamic import syntax for lottie-react
+const Lottie = dynamic(
+  () => import('lottie-react').then((mod) => mod.default),
+  { 
+    ssr: false,
+    loading: () => <div className="w-6 h-6 bg-muted rounded-full animate-pulse" />
+  }
+);
 
 // Animation data
 import eyeAnimationData from '@/assets/eye-password.json';
@@ -29,7 +35,13 @@ export function PasswordInput({
   name,
 }: PasswordInputProps) {
   const [showPassword, setShowPassword] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const lottieRef = useRef<LottieRefCurrentProps>(null);
+
+  // Ensure client-side rendering
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const togglePassword = () => {
     setShowPassword(!showPassword);
@@ -37,11 +49,9 @@ export function PasswordInput({
     // Control animation direction
     if (lottieRef.current) {
       if (!showPassword) {
-        // Show password - play forward (eye closes)
         lottieRef.current.setDirection(1);
         lottieRef.current.play();
       } else {
-        // Hide password - play reverse (eye opens)
         lottieRef.current.setDirection(-1);
         lottieRef.current.play();
       }
@@ -65,13 +75,17 @@ export function PasswordInput({
         className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center hover:bg-muted rounded-md transition-colors"
         aria-label={showPassword ? 'Сховати пароль' : 'Показати пароль'}
       >
-        <Lottie
-          lottieRef={lottieRef}
-          animationData={eyeAnimationData}
-          loop={false}
-          autoplay={false}
-          style={{ width: 24, height: 24 }}
-        />
+        {mounted ? (
+          <Lottie
+            lottieRef={lottieRef}
+            animationData={eyeAnimationData}
+            loop={false}
+            autoplay={false}
+            style={{ width: 24, height: 24, display: 'block' }}
+          />
+        ) : (
+          <div className="w-6 h-6 bg-muted rounded-full animate-pulse" />
+        )}
       </button>
     </div>
   );
