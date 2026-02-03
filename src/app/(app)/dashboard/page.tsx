@@ -1,14 +1,92 @@
 'use client';
-import { NotificationBell } from '@/components/notifications/notification-bell';
 
+import { useEffect, useState } from 'react';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Menu, Bell, TrendingUp, Calendar, Users, DollarSign } from 'lucide-react';
+import { Menu, TrendingUp, Calendar, Users, DollarSign, Loader2 } from 'lucide-react';
 import { useSidebar } from '@/components/sidebar-context';
 import Link from 'next/link';
 
+interface Booking {
+  id: string;
+  client_name: string;
+  date: string;
+  time: string;
+  duration: number;
+  service_name: string;
+  status: string;
+}
+
+interface DashboardData {
+  salon: {
+    name: string;
+  } | null;
+  clients: Array<{ id: string }>;
+  bookings: Booking[];
+}
+
 export default function DashboardPage() {
   const { open: openSidebar } = useSidebar();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/dashboard/data')
+      .then(res => res.json())
+      .then(setData)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Get upcoming bookings (today and future, not cancelled)
+  const getUpcomingBookings = () => {
+    if (!data?.bookings) return [];
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return data.bookings
+      .filter(b => {
+        const bookingDate = new Date(b.date);
+        bookingDate.setHours(0, 0, 0, 0);
+        return bookingDate >= today && b.status !== 'cancelled';
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.date + 'T' + a.time);
+        const dateB = new Date(b.date + 'T' + b.time);
+        return dateA.getTime() - dateB.getTime();
+      })
+      .slice(0, 5);
+  };
+
+  // Format date for display
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const months = ['січ.', 'лют.', 'бер.', 'квіт.', 'трав.', 'черв.', 'лип.', 'серп.', 'вер.', 'жовт.', 'лист.', 'груд.'];
+    return `${date.getDate()} ${months[date.getMonth()]}`;
+  };
+
+  // Format duration
+  const formatDuration = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours > 0 && mins > 0) return `${hours}г ${mins}хв`;
+    if (hours > 0) return `${hours}г`;
+    return `${mins}хв`;
+  };
+
+  const upcomingBookings = getUpcomingBookings();
+  const totalClients = data?.clients?.length || 0;
+  const totalBookings = upcomingBookings.length;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -28,7 +106,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-1">
           <NotificationBell />
           <div className="h-10 w-10 rounded-xl bg-orange-500 flex items-center justify-center text-white text-sm font-medium">
-            D
+            {data?.salon?.name?.[0] || 'T'}
           </div>
         </div>
       </header>
@@ -61,7 +139,7 @@ export default function DashboardPage() {
                   <Calendar className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">3</p>
+                  <p className="text-2xl font-bold">{totalBookings}</p>
                   <p className="text-xs text-muted-foreground">Записи</p>
                 </div>
               </div>
@@ -75,7 +153,7 @@ export default function DashboardPage() {
                   <Users className="h-5 w-5 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">2</p>
+                  <p className="text-2xl font-bold">{totalClients}</p>
                   <p className="text-xs text-muted-foreground">Клієнти</p>
                 </div>
               </div>
@@ -89,7 +167,7 @@ export default function DashboardPage() {
                   <TrendingUp className="h-5 w-5 text-orange-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">+12%</p>
+                  <p className="text-2xl font-bold">—</p>
                   <p className="text-xs text-muted-foreground">Зростання</p>
                 </div>
               </div>
@@ -108,38 +186,27 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex items-center justify-between p-3 border rounded-lg transition-all hover:bg-muted/50">
-              <div>
-                <p className="font-medium">Стрижка</p>
-                <p className="text-sm text-muted-foreground">John Doe · 1г 45хв</p>
-              </div>
-              <div className="text-sm text-muted-foreground text-right">
-                <p>31 січ.</p>
-                <p>11:00</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 border rounded-lg transition-all hover:bg-muted/50">
-              <div>
-                <p className="font-medium">Фарбування</p>
-                <p className="text-sm text-muted-foreground">Jane Smith · 2г 30хв</p>
-              </div>
-              <div className="text-sm text-muted-foreground text-right">
-                <p>1 лют.</p>
-                <p>14:00</p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-3 border rounded-lg transition-all hover:bg-muted/50">
-              <div>
-                <p className="font-medium">Манікюр</p>
-                <p className="text-sm text-muted-foreground">Alex Brown · 1г</p>
-              </div>
-              <div className="text-sm text-muted-foreground text-right">
-                <p>2 лют.</p>
-                <p>10:30</p>
-              </div>
-            </div>
+            {upcomingBookings.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">Немає найближчих записів</p>
+            ) : (
+              upcomingBookings.map((booking) => (
+                <div 
+                  key={booking.id}
+                  className="flex items-center justify-between p-3 border rounded-lg transition-all hover:bg-muted/50"
+                >
+                  <div>
+                    <p className="font-medium">{booking.service_name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {booking.client_name} · {formatDuration(booking.duration)}
+                    </p>
+                  </div>
+                  <div className="text-sm text-muted-foreground text-right">
+                    <p>{formatDate(booking.date)}</p>
+                    <p>{booking.time}</p>
+                  </div>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
 
