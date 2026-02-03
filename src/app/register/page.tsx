@@ -11,9 +11,9 @@ import {
 } from 'lucide-react';
 
 // Animated Eye Icon with strike-through line
-function AnimatedEye({ crossed, className }: { crossed: boolean; className?: string }) {
+function AnimatedEye({ crossed }: { crossed: boolean }) {
   return (
-    <div className={`relative ${className}`}>
+    <div className="relative w-5 h-5">
       <EyeIcon className="w-5 h-5" />
       <svg 
         className="absolute inset-0 w-5 h-5" 
@@ -28,10 +28,10 @@ function AnimatedEye({ crossed, className }: { crossed: boolean; className?: str
           y1="2" 
           x2="22" 
           y2="22" 
-          className="transition-all duration-300 ease-out origin-top-left"
           style={{
             strokeDasharray: 30,
             strokeDashoffset: crossed ? 0 : 30,
+            transition: 'stroke-dashoffset 0.3s ease-out'
           }}
         />
       </svg>
