@@ -140,10 +140,10 @@ export function CustomCalendar({
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
-  // Constants
-  const hourHeight = 60; // 60px per hour
-  const timeColWidth = 50;
-  const colMinWidth = 120; // Minimum column width
+  // Constants (doubled for better readability)
+  const hourHeight = 120; // 120px per hour
+  const timeColWidth = 70;
+  const colMinWidth = 200; // Minimum column width
   
   // Calculate dynamic column width
   const [containerWidth, setContainerWidth] = useState(0);
@@ -460,7 +460,7 @@ export function CustomCalendar({
   const currentHour = salonTime.hours;
   const currentMin = salonTime.minutes;
   
-  const headerHeight = 80;
+  const headerHeight = 100;
   
   const formatTime = (date: Date) => 
     `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
@@ -498,24 +498,24 @@ export function CustomCalendar({
                   style={{ width: colWidth, height: headerHeight }}
                 >
                   <div 
-                    className="w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden shadow-lg ring-2 ring-white/60"
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden shadow-lg ring-2 ring-white/60"
                     style={{ backgroundColor: resource.color || '#9ca3af' }}
                   >
                     {resource.avatar ? (
                       <Image 
                         src={resource.avatar} 
                         alt={resource.title} 
-                        width={44} 
-                        height={44} 
+                        width={56} 
+                        height={56} 
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <span className="text-white text-base font-semibold">
+                      <span className="text-white text-xl font-semibold">
                         {resource.title.charAt(0).toUpperCase()}
                       </span>
                     )}
                   </div>
-                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 text-center px-1">
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 text-center px-1">
                     {getFirstName(resource.title)}
                   </span>
                 </div>
@@ -545,7 +545,7 @@ export function CustomCalendar({
                 className="flex items-start justify-end pr-2 border-r border-slate-200/60 dark:border-slate-700/60"
                 style={{ height: hourHeight }}
               >
-                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold -mt-1.5">
+                <span className="text-sm text-slate-500 dark:text-slate-400 font-semibold -mt-2">
                   {time}
                 </span>
               </div>
@@ -553,7 +553,7 @@ export function CustomCalendar({
             {/* Current time badge - fixed in time column */}
             {currentTimeTop !== null && (
               <div 
-                className="absolute z-30 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-sm font-semibold shadow-md"
+                className="absolute z-30 bg-red-500 text-white text-xs px-2 py-1 rounded font-semibold shadow-md"
                 style={{ 
                   top: currentTimeTop - 8,
                   left: 2,
@@ -639,23 +639,23 @@ export function CustomCalendar({
                       onMouseDown={(e) => onEventDrop && handleDragStart(e, event, e.currentTarget)}
                       onTouchStart={(e) => onEventDrop && handleDragStart(e, event, e.currentTarget)}
                     >
-                      <div className="p-1.5 pl-2 text-white h-full overflow-hidden relative">
-                        <div className="font-semibold text-[11px] drop-shadow-sm">
+                      <div className="p-2 pl-3 text-white h-full overflow-hidden relative">
+                        <div className="font-semibold text-sm drop-shadow-sm">
                           {formatTime(event.start)} - {formatTime(event.end)}
                         </div>
-                        <div className="font-medium text-xs truncate">{event.clientName}</div>
-                        {height > 50 && (
-                          <div className="opacity-80 text-[10px] truncate">{event.title}</div>
+                        <div className="font-medium text-base truncate">{event.clientName}</div>
+                        {height > 80 && (
+                          <div className="opacity-80 text-sm truncate">{event.title}</div>
                         )}
                         {/* Resize handle at bottom */}
                         {onEventResize && !isDragging && (
                           <div 
-                            className="absolute bottom-0 left-0 right-0 h-3 cursor-s-resize hover:bg-black/20 flex items-center justify-center"
+                            className="absolute bottom-0 left-0 right-0 h-4 cursor-s-resize hover:bg-black/20 flex items-center justify-center"
                             onMouseDown={(e) => handleResizeStart(e, event)}
                             onTouchStart={(e) => handleResizeStart(e, event)}
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <div className="w-8 h-1 rounded bg-white/50" />
+                            <div className="w-12 h-1.5 rounded bg-white/50" />
                           </div>
                         )}
                       </div>
@@ -699,13 +699,13 @@ export function CustomCalendar({
             overflow: 'hidden',
           }}
         >
-          <div style={{ padding: '6px 8px', color: 'white', height: '100%' }}>
-            <div style={{ fontWeight: 600, fontSize: 11 }}>
+          <div style={{ padding: '8px 12px', color: 'white', height: '100%' }}>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>
               {formatTime(dragState.event.start)} - {formatTime(dragState.event.end)}
             </div>
-            <div style={{ fontWeight: 500, fontSize: 12, marginTop: 2 }}>{dragState.event.clientName}</div>
-            {dragState.originalHeight > 50 && (
-              <div style={{ opacity: 0.8, fontSize: 10, marginTop: 2 }}>{dragState.event.title}</div>
+            <div style={{ fontWeight: 500, fontSize: 16, marginTop: 4 }}>{dragState.event.clientName}</div>
+            {dragState.originalHeight > 80 && (
+              <div style={{ opacity: 0.8, fontSize: 14, marginTop: 4 }}>{dragState.event.title}</div>
             )}
           </div>
         </div>,
@@ -724,46 +724,46 @@ export function CustomCalendar({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header with time */}
-          <div className="px-4 py-2 border-b border-zinc-700 flex items-center justify-between">
-            <span className="text-white font-medium">
+          <div className="px-5 py-3 border-b border-zinc-700 flex items-center justify-between">
+            <span className="text-white font-semibold text-lg">
               {formatTime(slotMenu.slotInfo.start)}
             </span>
             <button 
               onClick={() => setSlotMenu(prev => ({ ...prev, isOpen: false }))}
-              className="text-zinc-400 hover:text-white"
+              className="text-zinc-400 hover:text-white text-xl"
             >
               ✕
             </button>
           </div>
           
           {/* Menu items */}
-          <div className="py-1">
+          <div className="py-2">
             <button
-              className="w-full px-4 py-2.5 text-left text-zinc-200 hover:bg-zinc-800 flex items-center gap-3 transition-colors"
+              className="w-full px-5 py-3 text-left text-zinc-200 hover:bg-zinc-800 flex items-center gap-4 transition-colors"
               onClick={() => handleMenuAction('booking')}
             >
-              <span className="text-lg">📅</span>
-              <span>Додати запис</span>
+              <span className="text-xl">📅</span>
+              <span className="text-base">Додати запис</span>
             </button>
             <button
-              className="w-full px-4 py-2.5 text-left text-zinc-200 hover:bg-zinc-800 flex items-center gap-3 transition-colors"
+              className="w-full px-5 py-3 text-left text-zinc-200 hover:bg-zinc-800 flex items-center gap-4 transition-colors"
               onClick={() => handleMenuAction('group-booking')}
             >
-              <span className="text-lg">👥</span>
-              <span>Додати групову запис</span>
+              <span className="text-xl">👥</span>
+              <span className="text-base">Додати групову запис</span>
             </button>
             <button
-              className="w-full px-4 py-2.5 text-left text-zinc-200 hover:bg-zinc-800 flex items-center gap-3 transition-colors"
+              className="w-full px-5 py-3 text-left text-zinc-200 hover:bg-zinc-800 flex items-center gap-4 transition-colors"
               onClick={() => handleMenuAction('block-time')}
             >
-              <span className="text-lg">🚫</span>
-              <span>Заблокувати час</span>
+              <span className="text-xl">🚫</span>
+              <span className="text-base">Заблокувати час</span>
             </button>
           </div>
           
           {/* Footer link */}
-          <div className="px-4 py-2 border-t border-zinc-700">
-            <button className="text-sm text-blue-400 hover:text-blue-300">
+          <div className="px-5 py-3 border-t border-zinc-700">
+            <button className="text-base text-blue-400 hover:text-blue-300">
               Налаштування швидких дій
             </button>
           </div>
