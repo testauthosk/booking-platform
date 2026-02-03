@@ -330,14 +330,16 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Email or Phone - з анімацією */}
-              <div className="relative overflow-hidden">
-                <div className={`transition-all duration-300 ease-out ${
-                  authMethod === 'email' 
-                    ? 'opacity-100 translate-x-0' 
-                    : 'opacity-0 -translate-x-4 absolute inset-0 pointer-events-none'
+              {/* Email or Phone - тільки fade, без руху */}
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  {authMethod === 'email' ? 'Email' : 'Телефон'} *
+                </label>
+                
+                {/* Email input */}
+                <div className={`transition-opacity duration-200 ${
+                  authMethod === 'email' ? 'opacity-100' : 'opacity-0 absolute inset-0 top-6 pointer-events-none'
                 }`}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Email *</label>
                   <input
                     type="email"
                     value={email}
@@ -346,12 +348,11 @@ export default function RegisterPage() {
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-gray-900"
                   />
                 </div>
-                <div className={`transition-all duration-300 ease-out ${
-                  authMethod === 'phone' 
-                    ? 'opacity-100 translate-x-0' 
-                    : 'opacity-0 translate-x-4 absolute inset-0 pointer-events-none'
+                
+                {/* Phone input */}
+                <div className={`transition-opacity duration-200 ${
+                  authMethod === 'phone' ? 'opacity-100' : 'opacity-0 absolute inset-0 top-6 pointer-events-none'
                 }`}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Телефон *</label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">+380</span>
                     <input
