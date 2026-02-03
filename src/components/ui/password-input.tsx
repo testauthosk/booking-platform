@@ -23,7 +23,7 @@ export function PasswordInput({
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <div className="relative">
+    <div className="relative" style={{ transform: 'translateZ(0)' }}>
       <Input
         type={showPassword ? 'text' : 'password'}
         value={value}
@@ -37,7 +37,7 @@ export function PasswordInput({
       <button
         type="button"
         onClick={() => setShowPassword(!showPassword)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-700 transition-colors"
+        className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-zinc-700 transition-colors"
         aria-label={showPassword ? 'Сховати пароль' : 'Показати пароль'}
       >
         <svg 
@@ -49,6 +49,7 @@ export function PasswordInput({
           strokeWidth="2" 
           strokeLinecap="round" 
           strokeLinejoin="round"
+          className="flex-shrink-0"
         >
           {/* Eye shape */}
           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
