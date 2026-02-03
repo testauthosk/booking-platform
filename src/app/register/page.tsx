@@ -327,9 +327,13 @@ export default function RegisterPage() {
                 </button>
               </div>
 
-              {/* Email or Phone */}
-              {authMethod === 'email' ? (
-                <div>
+              {/* Email or Phone - з анімацією */}
+              <div className="relative overflow-hidden">
+                <div className={`transition-all duration-300 ease-out ${
+                  authMethod === 'email' 
+                    ? 'opacity-100 translate-x-0' 
+                    : 'opacity-0 -translate-x-4 absolute inset-0 pointer-events-none'
+                }`}>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Email *</label>
                   <input
                     type="email"
@@ -339,8 +343,11 @@ export default function RegisterPage() {
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-gray-900"
                   />
                 </div>
-              ) : (
-                <div>
+                <div className={`transition-all duration-300 ease-out ${
+                  authMethod === 'phone' 
+                    ? 'opacity-100 translate-x-0' 
+                    : 'opacity-0 translate-x-4 absolute inset-0 pointer-events-none'
+                }`}>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Телефон *</label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">+380</span>
@@ -354,7 +361,7 @@ export default function RegisterPage() {
                     />
                   </div>
                 </div>
-              )}
+              </div>
 
               {/* Password */}
               <div>
@@ -401,16 +408,17 @@ export default function RegisterPage() {
                 )}
               </div>
 
-              {/* Confirm Password */}
+              {/* Confirm Password - без eye icon */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Підтвердіть пароль *</label>
                 <div className="relative">
                   <input
-                    type={showPassword ? 'text' : 'password'}
+                    type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Повторіть пароль"
-                    className={`w-full px-4 py-3 rounded-xl border outline-none transition-all text-gray-900 pr-14 ${
+                    autoComplete="new-password"
+                    className={`w-full px-4 py-3 rounded-xl border outline-none transition-all text-gray-900 pr-12 ${
                       confirmPassword && password !== confirmPassword
                         ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20'
                         : confirmPassword && password === confirmPassword
@@ -419,11 +427,11 @@ export default function RegisterPage() {
                     }`}
                   />
                   {confirmPassword && (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 p-1">
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2">
                       {password === confirmPassword ? (
                         <Check className="w-5 h-5 text-green-500" />
                       ) : (
-                        <span className="text-red-500 font-medium">✕</span>
+                        <span className="text-red-500 text-lg">✕</span>
                       )}
                     </span>
                   )}
