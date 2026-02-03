@@ -299,32 +299,35 @@ export default function RegisterPage() {
             </div>
 
             <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 p-6 space-y-5">
-              {/* Auth Method Toggle */}
-              <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setAuthMethod('email')}
-                  className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                    authMethod === 'email'
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <Mail className="w-4 h-4" />
-                  Email
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAuthMethod('phone')}
-                  className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                    authMethod === 'phone'
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <Phone className="w-4 h-4" />
-                  Телефон
-                </button>
+              {/* Auth Method Toggle - з анімованим слайдером */}
+              <div className="relative p-1 bg-gray-100 rounded-xl">
+                {/* Sliding indicator */}
+                <div 
+                  className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-lg shadow-sm transition-all duration-300 ease-out"
+                  style={{ left: authMethod === 'email' ? '4px' : 'calc(50% + 0px)' }}
+                />
+                <div className="relative grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAuthMethod('email')}
+                    className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                      authMethod === 'email' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <Mail className="w-4 h-4" />
+                    Email
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAuthMethod('phone')}
+                    className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                      authMethod === 'phone' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <Phone className="w-4 h-4" />
+                    Телефон
+                  </button>
+                </div>
               </div>
 
               {/* Email or Phone - з анімацією */}
