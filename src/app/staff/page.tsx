@@ -592,6 +592,7 @@ export default function StaffDashboard() {
           </div>
 
           {/* Colleague booking button */}
+          {/* TODO: Colleague booking button - temporarily disabled 
           <div className="px-4 pt-2">
             <button 
               onClick={() => setColleagueBookingOpen(true)}
@@ -606,6 +607,7 @@ export default function StaffDashboard() {
               </div>
             </button>
           </div>
+          */}
 
           <div className="p-4 border-t border-border">
             <button 
@@ -1131,18 +1133,8 @@ export default function StaffDashboard() {
         </button>
       </div>
 
-      {/* Colleague Booking Modal - temporarily disabled for debugging */}
-      {colleagueBookingOpen && salonId && staffId && (
-        <ColleagueBookingModal
-          isOpen={colleagueBookingOpen}
-          onClose={() => setColleagueBookingOpen(false)}
-          salonId={salonId}
-          currentMasterId={staffId}
-          onSuccess={() => {
-            loadStats();
-          }}
-        />
-      )}
+      {/* Colleague Booking Modal - DISABLED until fix */}
+      {/* TODO: fix crash and re-enable */}
     </div>
   );
 }
