@@ -420,13 +420,13 @@ export function CustomCalendar({
           >
             <div 
               className="flex"
-              style={{ minWidth: resources.length * colMinWidth }}
+              style={{ width: resources.length * colMinWidth }}
             >
               {resources.map((resource, idx) => (
                 <div
                   key={`header-${resource.id}`}
                   className={`flex flex-col items-center justify-center py-2 gap-1 border-r border-slate-200/60 dark:border-slate-700/60`}
-                  style={{ minWidth: colMinWidth, flex: 1, height: headerHeight }}
+                  style={{ width: colMinWidth, height: headerHeight }}
                 >
                   <div 
                     className="w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden shadow-lg ring-2 ring-white/60"
@@ -462,7 +462,7 @@ export function CustomCalendar({
         className="flex-1 overflow-auto overscroll-none"
         onScroll={handleScroll}
       >
-        <div className="flex relative" style={{ minWidth: timeColWidth + resources.length * colMinWidth }}>
+        <div className="flex" style={{ width: timeColWidth + resources.length * colMinWidth }}>
           {/* Time column */}
           <div 
             className="flex-shrink-0 sticky left-0 z-30 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 relative"
@@ -496,12 +496,12 @@ export function CustomCalendar({
           </div>
 
           {/* Resource columns */}
-          <div className="flex-1 flex">
+          <div className="flex" style={{ width: resources.length * colMinWidth }}>
             {resources.map((resource) => (
               <div
                 key={`col-${resource.id}`}
                 className="relative border-r border-slate-200/60 dark:border-slate-700/60"
-                style={{ minWidth: colMinWidth, flex: 1 }}
+                style={{ width: colMinWidth }}
               >
                 {/* Hour lines - two 30-min slots per hour */}
                 {timeSlots.map((time, idx) => {
