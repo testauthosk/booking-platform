@@ -63,6 +63,7 @@ export async function PATCH(request: NextRequest) {
       photos,
       workingHours,
       amenities,
+      bufferTime,
     } = body;
 
     if (!salonId) {
@@ -86,6 +87,7 @@ export async function PATCH(request: NextRequest) {
         ...(photos !== undefined && { photos }),
         ...(workingHours !== undefined && { workingHours }),
         ...(amenities !== undefined && { amenities }),
+        ...(bufferTime !== undefined && { bufferTime }),
       },
     });
 

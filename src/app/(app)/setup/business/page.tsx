@@ -58,6 +58,7 @@ export default function BusinessSettingsPage() {
   const [address, setAddress] = useState('');
   const [shortAddress, setShortAddress] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
+  const [bufferTime, setBufferTime] = useState(0);
 
   useEffect(() => {
     loadSalon();
@@ -78,6 +79,7 @@ export default function BusinessSettingsPage() {
         setAddress(data.address || '');
         setShortAddress(data.shortAddress || '');
         setPhotos(data.photos || []);
+        setBufferTime(data.bufferTime || 0);
       }
     } catch (error) {
       console.error('Load error:', error);
@@ -103,6 +105,7 @@ export default function BusinessSettingsPage() {
           address,
           shortAddress,
           photos,
+          bufferTime,
         }),
       });
 
@@ -326,6 +329,35 @@ export default function BusinessSettingsPage() {
                 onChange={(e) => setShortAddress(e.target.value)}
                 placeholder="Хрещатик, 1"
               />
+            </div>
+          </div>
+        </Card>
+
+        {/* Booking Settings */}
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold mb-4">Налаштування бронювання</h2>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="bufferTime">Авто-буфер між записами (хвилини)</Label>
+              <p className="text-sm text-muted-foreground mb-2">
+                Автоматичний перерва між записами для підготовки
+              </p>
+              <div className="flex items-center gap-3">
+                {[0, 5, 10, 15, 30].map((mins) => (
+                  <button
+                    key={mins}
+                    onClick={() => setBufferTime(mins)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      bufferTime === mins
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted hover:bg-muted/80'
+                    }`}
+                  >
+                    {mins === 0 ? 'Без буфера' : `${mins} хв`}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </Card>

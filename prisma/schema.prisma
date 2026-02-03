@@ -25,6 +25,7 @@ model Salon {
   amenities         String[]          @default([])
   timezone          String            @default("Europe/Kiev")
   currency          String            @default("UAH")
+  bufferTime        Int               @default(0)   // Авто-буфер між записами (хвилини)
   rating            Float             @default(5.0)
   reviewCount       Int               @default(0)
   isActive          Boolean           @default(true)
