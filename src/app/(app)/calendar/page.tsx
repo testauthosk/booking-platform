@@ -7,7 +7,7 @@ import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useSidebar } from '@/components/sidebar-context';
 import { EventModal } from '@/components/calendar/event-modal';
 import { NewBookingModal } from '@/components/calendar/new-booking-modal';
-import { CustomCalendar, type BookingEvent, type Resource, type SlotMenuAction } from '@/components/calendar/custom-calendar';
+import { CustomCalendar, type BookingEvent, type Resource, type SlotMenuAction, type TimeStep } from '@/components/calendar/custom-calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useCalendarSettings } from '@/lib/calendar-settings-context';
@@ -80,6 +80,7 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [salonTimezone, setSalonTimezone] = useState<string>('Europe/Kiev');
+  const [timeStep, setTimeStep] = useState<TimeStep>(30);
 
   // Load masters, salon data, and bookings from API
   useEffect(() => {
@@ -451,7 +452,8 @@ export default function CalendarPage() {
           onEventResize={handleEventResizeAction}
           dayStart={8}
           dayEnd={21}
-          slotDuration={10}
+          timeStep={timeStep}
+          onTimeStepChange={setTimeStep}
           timezone={salonTimezone}
         />
       </div>

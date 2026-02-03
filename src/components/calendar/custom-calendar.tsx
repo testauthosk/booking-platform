@@ -59,6 +59,8 @@ export interface SlotMenuAction {
   resourceId?: string;
 }
 
+export type TimeStep = 5 | 15 | 30;
+
 interface CustomCalendarProps {
   events?: BookingEvent[];
   resources?: Resource[];
@@ -70,7 +72,8 @@ interface CustomCalendarProps {
   onEventResize?: (event: BookingEvent, newEnd: Date) => void;
   dayStart?: number;
   dayEnd?: number;
-  slotDuration?: number;
+  timeStep?: TimeStep;
+  onTimeStepChange?: (step: TimeStep) => void;
   timezone?: string;
 }
 
@@ -134,6 +137,8 @@ export function CustomCalendar({
   onEventResize,
   dayStart = 8,
   dayEnd = 21,
+  timeStep = 30,
+  onTimeStepChange,
   timezone = 'Europe/Kiev',
 }: CustomCalendarProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -141,7 +146,9 @@ export function CustomCalendar({
   const containerRef = useRef<HTMLDivElement>(null);
   
   // Constants (doubled for better readability)
-  const hourHeight = 120; // 120px per hour
+  const slotHeight = timeStep === 5 ? 30 : timeStep === 15 ? 40 : 60; // Height per slot
+  const slotsPerHour = 60 / timeStep;
+  const hourHeight = slotHeight * slotsPerHour; // Total height per hour
   const timeColWidth = 70;
   const colMinWidth = 200; // Minimum column width
   
@@ -262,13 +269,21 @@ export function CustomCalendar({
     }
   };
 
+  // Generate time slots based on timeStep
   const timeSlots = useMemo(() => {
-    const slots: string[] = [];
+    const slots: { time: string; hour: number; minute: number; isHour: boolean }[] = [];
     for (let hour = dayStart; hour < dayEnd; hour++) {
-      slots.push(`${hour.toString().padStart(2, '0')}:00`);
+      for (let minute = 0; minute < 60; minute += timeStep) {
+        slots.push({
+          time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
+          hour,
+          minute,
+          isHour: minute === 0,
+        });
+      }
     }
     return slots;
-  }, [dayStart, dayEnd]);
+  }, [dayStart, dayEnd, timeStep]);
 
   const currentDate = selectedDate || new Date();
   const currentDateStr = currentDate.toISOString().split('T')[0];
@@ -477,11 +492,28 @@ export function CustomCalendar({
       {/* FIXED HEADER */}
       <div className="flex-shrink-0 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-b border-slate-200/60 dark:border-slate-700/60 z-20">
         <div className="flex">
-          {/* Time column header */}
+          {/* Time column header with step selector */}
           <div 
-            className="flex-shrink-0 border-r border-slate-200/60 dark:border-slate-700/60"
+            className="flex-shrink-0 border-r border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center justify-center gap-1"
             style={{ width: timeColWidth, height: headerHeight }}
-          />
+          >
+            <span className="text-[10px] text-slate-400 uppercase tracking-wide">Крок</span>
+            <div className="flex flex-col gap-0.5">
+              {([30, 15, 5] as TimeStep[]).map((step) => (
+                <button
+                  key={step}
+                  onClick={() => onTimeStepChange?.(step)}
+                  className={`px-2 py-0.5 text-xs font-medium rounded transition-colors ${
+                    timeStep === step
+                      ? 'bg-primary text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {step}
+                </button>
+              ))}
+            </div>
+          </div>
           {/* Resources header - scrollable */}
           <div 
             ref={headerScrollRef}
@@ -539,15 +571,23 @@ export function CustomCalendar({
             className="flex-shrink-0 sticky left-0 z-30 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 relative overflow-hidden"
             style={{ width: timeColWidth }}
           >
-            {timeSlots.map((time, idx) => (
+            {timeSlots.map((slot, idx) => (
               <div
-                key={`time-${time}`}
-                className="flex items-start justify-end pr-2 border-r border-slate-200/60 dark:border-slate-700/60"
-                style={{ height: hourHeight }}
+                key={`time-${slot.time}`}
+                className={`flex items-center justify-end pr-2 border-r border-slate-200/60 dark:border-slate-700/60 ${
+                  slot.isHour ? 'border-b border-slate-300/60' : 'border-b border-slate-200/30'
+                }`}
+                style={{ height: slotHeight }}
               >
-                <span className="text-sm text-slate-500 dark:text-slate-400 font-semibold mt-1">
-                  {time}
-                </span>
+                {slot.isHour ? (
+                  <span className="text-sm text-slate-500 dark:text-slate-400 font-semibold">
+                    {slot.time}
+                  </span>
+                ) : (
+                  <span className="text-xs text-slate-400 dark:text-slate-500">
+                    {slot.minute.toString().padStart(2, '0')}
+                  </span>
+                )}
               </div>
             ))}
             {/* Current time badge - fixed in time column */}
@@ -555,7 +595,7 @@ export function CustomCalendar({
               <div 
                 className="absolute z-30 bg-red-500 text-white text-xs px-2 py-1 rounded font-semibold shadow-md"
                 style={{ 
-                  top: currentTimeTop - 8,
+                  top: currentTimeTop - 12,
                   left: 2,
                   right: 2,
                   textAlign: 'center',
@@ -574,35 +614,24 @@ export function CustomCalendar({
                 className="relative border-r border-slate-200/60 dark:border-slate-700/60"
                 style={{ width: colWidth }}
               >
-                {/* Hour lines - two 30-min slots per hour */}
-                {timeSlots.map((time, idx) => {
-                  const hour = dayStart + idx;
-                  const isWorking = isWorkingHour(resource, currentDayName, hour);
+                {/* Time slots based on timeStep */}
+                {timeSlots.map((slot) => {
+                  const isWorking = isWorkingHour(resource, currentDayName, slot.hour);
                   return (
                     <div
-                      key={`cell-${time}-${resource.id}`}
-                      className="relative border-b border-slate-200/50 dark:border-slate-700/50"
-                      style={{ height: hourHeight }}
-                    >
-                      {/* First half hour (XX:00) */}
-                      <div
-                        className={`absolute inset-x-0 top-0 h-1/2 transition-colors ${
-                          isWorking 
-                            ? 'hover:bg-primary/10 cursor-pointer' 
-                            : 'bg-slate-200/60 dark:bg-slate-700/40 cursor-not-allowed'
-                        }`}
-                        onClick={(e) => isWorking && handleSlotClick(e, hour, 0, resource.id)}
-                      />
-                      {/* Second half hour (XX:30) */}
-                      <div
-                        className={`absolute inset-x-0 bottom-0 h-1/2 border-t border-dashed border-slate-200/30 transition-colors ${
-                          isWorking 
-                            ? 'hover:bg-primary/10 cursor-pointer' 
-                            : 'bg-slate-200/60 dark:bg-slate-700/40 cursor-not-allowed'
-                        }`}
-                        onClick={(e) => isWorking && handleSlotClick(e, hour, 30, resource.id)}
-                      />
-                    </div>
+                      key={`cell-${slot.time}-${resource.id}`}
+                      className={`transition-colors ${
+                        slot.isHour 
+                          ? 'border-b border-slate-300/60' 
+                          : 'border-b border-slate-200/30 border-dashed'
+                      } ${
+                        isWorking 
+                          ? 'hover:bg-primary/10 cursor-pointer' 
+                          : 'bg-slate-200/60 dark:bg-slate-700/40 cursor-not-allowed'
+                      }`}
+                      style={{ height: slotHeight }}
+                      onClick={(e) => isWorking && handleSlotClick(e, slot.hour, slot.minute, resource.id)}
+                    />
                   );
                 })}
 
