@@ -649,7 +649,7 @@ export function CustomCalendar({
                     <div
                       key={event.id}
                       className={`absolute left-0 right-0 rounded-[3px] overflow-hidden cursor-grab hover:brightness-105 select-none ${
-                        isDragging ? 'opacity-30 cursor-grabbing' : ''
+                        isDragging ? 'opacity-30 pointer-events-none' : ''
                       } ${isResizing ? 'z-50' : ''}`}
                       style={{
                         top: `${top}px`,
