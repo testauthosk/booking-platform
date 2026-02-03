@@ -107,17 +107,11 @@ export function TimeWheelPicker({
     }
   };
 
-  // Update end time when duration changes
+  // Update end time when duration changes (no auto-scroll to prevent jerky movement)
   useEffect(() => {
     const newEnd = calculateEndTime(selectedStart, duration);
     setSelectedEnd(newEnd);
     onTimeChange(selectedStart, newEnd);
-    
-    // Scroll end wheel to new position
-    const endIdx = endTimeSlots.indexOf(newEnd);
-    if (endIdx >= 0 && endRef.current) {
-      scrollToIndex(endRef.current, endIdx, true);
-    }
   }, [duration]);
 
   // Initialize scroll positions
@@ -153,15 +147,8 @@ export function TimeWheelPicker({
       setSelectedEnd(newEnd);
       onTimeChange(newTime, newEnd);
 
-      // Sync end wheel
-      if (!isSyncing.current) {
-        isSyncing.current = true;
-        const endIdx = endTimeSlots.indexOf(newEnd);
-        if (endIdx >= 0) {
-          scrollToIndex(endRef.current, endIdx, true);
-        }
-        setTimeout(() => { isSyncing.current = false; }, 200);
-      }
+      // Don't auto-scroll end wheel - just update the value
+      // This prevents jerky movement when scrolling start
     } else {
       const newStart = calculateStartTime(newTime, duration);
       if (timeSlots.includes(newStart)) {
@@ -169,15 +156,8 @@ export function TimeWheelPicker({
         setSelectedStart(newStart);
         onTimeChange(newStart, newTime);
 
-        // Sync start wheel
-        if (!isSyncing.current) {
-          isSyncing.current = true;
-          const startIdx = timeSlots.indexOf(newStart);
-          if (startIdx >= 0) {
-            scrollToIndex(startRef.current, startIdx, true);
-          }
-          setTimeout(() => { isSyncing.current = false; }, 200);
-        }
+        // Don't auto-scroll start wheel - just update the value
+        // This prevents jerky movement when scrolling end
       }
     }
   };
