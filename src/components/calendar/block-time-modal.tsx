@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +9,7 @@ import {
   Calendar, User, Repeat, Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { usePreservedModal } from '@/hooks/use-preserved-modal';
 
 interface BlockTimeModalProps {
   isOpen: boolean;
@@ -53,6 +54,15 @@ export function BlockTimeModal({
   const [endTime, setEndTime] = useState('');
   const [isAllDay, setIsAllDay] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  const resetState = useCallback(() => {
+    setSelectedType('BREAK');
+    setTitle('');
+    setIsAllDay(false);
+  }, []);
+
+  // Зберігати стан 3 хв після закриття
+  usePreservedModal(isOpen, resetState);
 
   useEffect(() => {
     if (isOpen) {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { usePreservedModal } from '@/hooks/use-preserved-modal';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -139,16 +140,18 @@ export function ImportModal({ isOpen, onClose, previousPlatform, onImport }: Imp
 
   const instructions = exportInstructions[previousPlatform] || exportInstructions.other;
 
-  const resetState = () => {
+  const resetState = useCallback(() => {
     setStep('instructions');
     setParsedData(null);
     setImportResult(null);
     setError(null);
     setIsProcessing(false);
-  };
+  }, []);
+
+  // Зберігати стан 3 хв після закриття
+  usePreservedModal(isOpen, resetState);
 
   const handleClose = () => {
-    resetState();
     onClose();
   };
 

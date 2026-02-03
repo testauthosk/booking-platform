@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X, User, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { Resource } from './booking-calendar';
+import { usePreservedModal } from '@/hooks/use-preserved-modal';
 
 interface NewBookingModalProps {
   isOpen: boolean;
@@ -45,6 +46,15 @@ export function NewBookingModal({
   const [clientPhone, setClientPhone] = useState('+380 ');
   const [selectedService, setSelectedService] = useState<string>('');
   const [selectedResource, setSelectedResource] = useState<string>('');
+
+  const resetState = useCallback(() => {
+    setClientName('');
+    setClientPhone('+380 ');
+    setSelectedService('');
+  }, []);
+
+  // Зберігати стан 3 хв після закриття
+  usePreservedModal(isOpen, resetState);
 
   useEffect(() => {
     if (isOpen) {

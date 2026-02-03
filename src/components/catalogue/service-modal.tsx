@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { usePreservedModal } from '@/hooks/use-preserved-modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -63,6 +64,18 @@ export function ServiceModal({
 
   const isEdit = !!service;
 
+  const resetState = useCallback(() => {
+    setName('');
+    setDescription('');
+    setCategoryId('');
+    setPrice('');
+    setPriceFrom(false);
+    setDuration('30');
+  }, []);
+
+  // Зберігати стан 3 хв після закриття
+  usePreservedModal(isOpen, resetState);
+
   useEffect(() => {
     if (service) {
       setName(service.name);
@@ -71,15 +84,8 @@ export function ServiceModal({
       setPrice(service.price.toString());
       setPriceFrom(service.priceFrom);
       setDuration(service.duration.toString());
-    } else {
-      setName('');
-      setDescription('');
-      setCategoryId('');
-      setPrice('');
-      setPriceFrom(false);
-      setDuration('30');
     }
-  }, [service, isOpen]);
+  }, [service]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

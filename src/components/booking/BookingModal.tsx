@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { usePreservedModal } from "@/hooks/use-preserved-modal";
 import Image from "next/image";
 import { X, ChevronLeft, ChevronRight, Star, Check, Plus, Calendar, Clock, User, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -316,6 +317,21 @@ export function BookingModal({
   const [loadingSlots, setLoadingSlots] = useState(false);
 
   const steps = ["Послуги", "Фахівець", "Час", "Підтвердження", "Готово"];
+
+  const resetState = useCallback(() => {
+    setCurrentStep(0);
+    setSelectedServices([]);
+    setSelectedSpecialist(null);
+    setSelectedDate(null);
+    setSelectedTimes([]);
+    setCompletedSteps([]);
+    setFirstName("");
+    setLastName("");
+    setPhone("");
+  }, []);
+
+  // Зберігати стан 3 хв після закриття
+  usePreservedModal(isOpen, resetState);
 
   // Smooth close with animation
   const handleSmoothClose = () => {

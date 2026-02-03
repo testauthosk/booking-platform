@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { usePreservedModal } from '@/hooks/use-preserved-modal';
 import {
   Dialog,
   DialogContent,
@@ -36,10 +37,16 @@ export function MovementModal({ open, onClose, product, type, onSave }: Movement
   const [note, setNote] = useState('');
   const [costPrice, setCostPrice] = useState(0);
 
+  const resetState = useCallback(() => {
+    setQuantity(1);
+    setNote('');
+  }, []);
+
+  // Зберігати стан 3 хв після закриття
+  usePreservedModal(open, resetState);
+
   useEffect(() => {
     if (open && product) {
-      setQuantity(1);
-      setNote('');
       setCostPrice(product.costPrice);
     }
   }, [open, product]);

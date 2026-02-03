@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
+import { usePreservedModal } from '@/hooks/use-preserved-modal';
 
 interface Category {
   id: string;
@@ -35,13 +36,18 @@ export function CategoryModal({
 
   const isEdit = !!category;
 
+  const resetState = useCallback(() => {
+    setName('');
+  }, []);
+
+  // Зберігати стан 3 хв після закриття
+  usePreservedModal(isOpen, resetState);
+
   useEffect(() => {
     if (category) {
       setName(category.name);
-    } else {
-      setName('');
     }
-  }, [category, isOpen]);
+  }, [category]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

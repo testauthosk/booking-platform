@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { usePreservedModal } from '@/hooks/use-preserved-modal';
 import {
   Dialog,
   DialogContent,
@@ -62,6 +63,23 @@ export function ProductModal({ open, onClose, product, onSave }: ProductModalPro
     unit: 'шт',
     categoryId: '',
   });
+
+  const resetState = useCallback(() => {
+    setForm({
+      name: '',
+      description: '',
+      sku: '',
+      costPrice: 0,
+      sellPrice: 0,
+      quantity: 0,
+      minQuantity: 5,
+      unit: 'шт',
+      categoryId: '',
+    });
+  }, []);
+
+  // Зберігати стан 3 хв після закриття
+  usePreservedModal(open, resetState);
 
   useEffect(() => {
     if (open) {
