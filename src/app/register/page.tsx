@@ -213,6 +213,45 @@ export default function RegisterPage() {
     }
   };
 
+  // Зберігаємо дані профілю салону
+  const saveOnboardingData = async () => {
+    try {
+      // Мапимо назву софту в slug для системи
+      const softwareToSlug: Record<string, string> = {
+        'Altegio / YCLIENTS': 'altegio',
+        'Booksy': 'booksy',
+        'Fresha': 'fresha',
+        'Calendly': 'calendly',
+        'Square': 'square',
+        'Mindbody': 'mindbody',
+        'Vagaro': 'vagaro',
+        'Setmore': 'setmore',
+        'Timely': 'timely',
+        'Treatwell': 'treatwell',
+        'Salon Iris': 'salonIris',
+        'Інше': 'other',
+        'none': 'none',
+      };
+
+      const previousPlatform = currentSoftware ? softwareToSlug[currentSoftware] || 'other' : null;
+
+      await fetch('/api/salon/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: companyName || undefined,
+          website: website || undefined,
+          type: categories[0] ? BUSINESS_CATEGORIES.find(c => c.id === categories[0])?.name : undefined,
+          previousPlatform,
+          accountType,
+          serviceLocation,
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to save onboarding data:', err);
+    }
+  };
+
   const handleNext = async () => {
     setError('');
 
@@ -225,7 +264,8 @@ export default function RegisterPage() {
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
-      // Finish - go to dashboard
+      // Зберігаємо дані онбордінгу і переходимо в дашборд
+      await saveOnboardingData();
       router.push('/dashboard?welcome=true');
     }
   };
