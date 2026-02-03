@@ -395,7 +395,7 @@ export default function RegisterPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="email@example.com"
                     autoComplete="off"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-colors text-gray-900"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-colors text-gray-900 text-base"
                   />
                 ) : (
                   <div className="relative">
@@ -407,7 +407,7 @@ export default function RegisterPage() {
                       placeholder="XX XXX XX XX"
                       maxLength={12}
                       autoComplete="off"
-                      className="w-full pl-16 pr-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-colors text-gray-900"
+                      className="w-full pl-16 pr-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-colors text-gray-900 text-base"
                     />
                   </div>
                 )}
