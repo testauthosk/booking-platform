@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Menu, TrendingUp, Calendar, Users, DollarSign, Loader2 } from 'lucide-react';
+import { Menu, TrendingUp, Calendar, Users, DollarSign, Loader2, ExternalLink } from 'lucide-react';
 import { useSidebar } from '@/components/sidebar-context';
 import Link from 'next/link';
 
@@ -21,6 +21,7 @@ interface Booking {
 interface DashboardData {
   salon: {
     name: string;
+    slug: string;
   } | null;
   clients: Array<{ id: string }>;
   bookings: Booking[];
@@ -113,8 +114,21 @@ export default function DashboardPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
-        {/* Desktop title */}
-        <h1 className="hidden lg:block text-2xl font-bold">Головна панель</h1>
+        {/* Desktop title + View site button */}
+        <div className="flex items-center justify-between">
+          <h1 className="hidden lg:block text-2xl font-bold">Головна панель</h1>
+          {data?.salon?.slug && (
+            <Link
+              href={`/salon/${data.salon.slug}`}
+              target="_blank"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              <ExternalLink className="h-4 w-4" />
+              <span className="hidden sm:inline">Переглянути сайт</span>
+              <span className="sm:hidden">Сайт</span>
+            </Link>
+          )}
+        </div>
         
         {/* Stats grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
