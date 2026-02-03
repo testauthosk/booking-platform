@@ -1,14 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/prisma';
 
 // GET /api/salon - получить данные салона
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const salonId = searchParams.get('salonId');
+    let salonId = searchParams.get('salonId');
 
+    // Якщо salonId не передано, беремо з сесії поточного користувача
     if (!salonId) {
-      return NextResponse.json({ error: 'salonId required' }, { status: 400 });
+      const session = await getServerSession(authOptions);
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { salonId: true }
+      });
+
+      if (!user?.salonId) {
+        return NextResponse.json({ error: 'No salon' }, { status: 400 });
+      }
+
+      salonId = user.salonId;
     }
 
     const salon = await prisma.salon.findUnique({

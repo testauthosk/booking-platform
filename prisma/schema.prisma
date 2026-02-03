@@ -32,6 +32,8 @@ model Salon {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   paletteId         String            @default("earth-harmony")
+  previousPlatform  String?           // Платформа з якої мігрують (altegio, booksy, fresha...)
+  migrationDismissed Boolean         @default(false) // Чи закрив користувач банер міграції
   bookings          Booking[]
   clients           Client[]
   masters           Master[]
