@@ -45,6 +45,12 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Отримати користувача з роллю
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true, salonId: true }
+    });
+
     const body = await request.json();
     const { serviceId, date, time, duration, extraTime, status } = body;
 
@@ -55,6 +61,14 @@ export async function PATCH(
 
     if (!existing) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    // Перевірка прав: OWNER/ADMIN можуть редагувати будь-яке бронювання свого салону
+    const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN';
+    const isSameSalon = existing.salonId === user?.salonId;
+    
+    if (!isOwnerOrAdmin && !isSameSalon) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Підготувати дані для оновлення
@@ -119,6 +133,30 @@ export async function DELETE(
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Отримати користувача та бронювання для перевірки прав
+    const [user, booking] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { role: true, salonId: true }
+      }),
+      prisma.booking.findUnique({
+        where: { id: params.id },
+        select: { salonId: true }
+      })
+    ]);
+
+    if (!booking) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    // Перевірка прав
+    const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN';
+    const isSameSalon = booking.salonId === user?.salonId;
+    
+    if (!isOwnerOrAdmin && !isSameSalon) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Скасовуємо замість видалення (для історії)
