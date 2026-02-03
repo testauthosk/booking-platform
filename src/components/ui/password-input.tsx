@@ -52,12 +52,12 @@ export function PasswordInput({
           height: 0.75em;
           position: relative;
           display: inline-block;
-          --background: hsl(var(--background));
-          --color: hsl(var(--muted-foreground));
+          --background: #fff;
+          --color: #71717a;
           cursor: pointer;
         }
         .eye:hover {
-          --color: hsl(var(--foreground));
+          --color: #18181b;
         }
         .eye div {
           overflow: hidden;
