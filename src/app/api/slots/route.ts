@@ -13,6 +13,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'salonId and date required' }, { status: 400 });
     }
 
+    // Get salon for bufferTime setting
+    const salon = await prisma.salon.findUnique({
+      where: { id: salonId },
+      select: { bufferTime: true }
+    });
+    const bufferTime = salon?.bufferTime || 0;
+
     // Get existing bookings for this date
     const bookings = await prisma.booking.findMany({
       where: {
@@ -33,11 +40,11 @@ export async function GET(request: NextRequest) {
     bookings.forEach(booking => {
       if (booking.time) {
         blockedTimes.add(booking.time);
-        // Also block duration slots
+        // Block duration slots + buffer time
         if (booking.duration) {
           const [hours, mins] = booking.time.split(':').map(Number);
           let totalMins = hours * 60 + mins;
-          const endMins = totalMins + booking.duration;
+          const endMins = totalMins + booking.duration + bufferTime; // +buffer
           while (totalMins < endMins) {
             const h = Math.floor(totalMins / 60);
             const m = totalMins % 60;

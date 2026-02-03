@@ -39,7 +39,7 @@ interface ColleagueBookingModalProps {
   isOpen: boolean;
   onClose: () => void;
   salonId: string;
-  currentMasterId: string;
+  currentMasterId: string | null;  // null для owner/admin — показати всіх
   onSuccess?: () => void;
 }
 
@@ -112,7 +112,8 @@ export function ColleagueBookingModal({
       if (res.ok) {
         const data = await res.json();
         // Фільтруємо поточного мастера
-        setColleagues(data.filter((m: Master) => m.id !== currentMasterId));
+        // Якщо currentMasterId = null (owner/admin) — показати всіх, інакше фільтрувати себе
+        setColleagues(currentMasterId ? data.filter((m: Master) => m.id !== currentMasterId) : data);
       }
     } catch (error) {
       console.error('Error loading colleagues:', error);

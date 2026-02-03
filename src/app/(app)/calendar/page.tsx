@@ -9,6 +9,7 @@ import { EventModal } from '@/components/calendar/event-modal';
 import { NewBookingModal } from '@/components/calendar/new-booking-modal';
 import { BlockTimeModal } from '@/components/calendar/block-time-modal';
 import { EditBookingModal } from '@/components/calendar/edit-booking-modal';
+import { ColleagueBookingModal } from '@/components/staff/colleague-booking-modal';
 import { CustomCalendar, type BookingEvent, type Resource, type SlotMenuAction, type TimeStep } from '@/components/calendar/custom-calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -258,6 +259,7 @@ export default function CalendarPage() {
   const [isNewBookingModalOpen, setIsNewBookingModalOpen] = useState(false);
   const [isBlockTimeModalOpen, setIsBlockTimeModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isColleagueBookingOpen, setIsColleagueBookingOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date; resourceId?: string } | null>(null);
 
   const handleEventClick = (event: BookingEvent) => {
@@ -432,6 +434,17 @@ export default function CalendarPage() {
         <h1 className="text-base font-semibold">Календар</h1>
 
         <div className="flex items-center gap-1">
+          {/* Кнопка створення запису для owner/admin */}
+          {(user?.role === 'OWNER' || user?.role === 'ADMIN') && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 rounded-xl border border-border"
+              onClick={() => setIsColleagueBookingOpen(true)}
+            >
+              <Plus className="h-5 w-5" />
+            </Button>
+          )}
           <NotificationBell />
           <div className="h-10 w-10 rounded-xl bg-orange-500 flex items-center justify-center text-white text-sm font-medium">
             D
@@ -584,6 +597,17 @@ export default function CalendarPage() {
           await loadBookings();
         }}
       />
+
+      {/* Colleague Booking Modal (for owner/admin) */}
+      {(user?.role === 'OWNER' || user?.role === 'ADMIN') && (
+        <ColleagueBookingModal
+          isOpen={isColleagueBookingOpen}
+          onClose={() => setIsColleagueBookingOpen(false)}
+          salonId={user?.salonId || ''}
+          currentMasterId={null}
+          onSuccess={loadBookings}
+        />
+      )}
     </div>
   );
 }
