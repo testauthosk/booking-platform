@@ -52,6 +52,16 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'ID required' }, { status: 400 });
     }
 
+    // Get existing booking
+    const existingBooking = await prisma.booking.findUnique({
+      where: { id },
+      select: { salonId: true, masterId: true, date: true, time: true, duration: true }
+    });
+
+    if (!existingBooking) {
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    }
+
     // Build update data
     const updateData: Record<string, unknown> = {};
     
@@ -80,6 +90,43 @@ export async function PUT(request: NextRequest) {
         });
         if (master) {
           updateData.masterName = master.name;
+        }
+      }
+    }
+
+    // Check for time conflicts when changing time/date/master
+    const checkDate = date ?? existingBooking.date;
+    const checkTime = time ?? existingBooking.time;
+    const checkMasterId = masterId ?? existingBooking.masterId;
+    const checkDuration = duration ?? existingBooking.duration ?? 60;
+
+    if (checkMasterId && (date !== undefined || time !== undefined || masterId !== undefined)) {
+      const [startHour, startMin] = checkTime.split(':').map(Number);
+      const startMinutes = startHour * 60 + startMin;
+      const endMinutes = startMinutes + checkDuration;
+
+      const conflictingBookings = await prisma.booking.findMany({
+        where: {
+          salonId: existingBooking.salonId,
+          masterId: checkMasterId,
+          date: checkDate,
+          status: { not: 'CANCELLED' },
+          id: { not: id }, // Exclude current booking
+        },
+        select: { id: true, time: true, timeEnd: true, duration: true, clientName: true }
+      });
+
+      for (const existing of conflictingBookings) {
+        const [exStartHour, exStartMin] = existing.time.split(':').map(Number);
+        const exStartMinutes = exStartHour * 60 + exStartMin;
+        const exEndMinutes = existing.timeEnd 
+          ? (() => { const [h, m] = existing.timeEnd.split(':').map(Number); return h * 60 + m; })()
+          : exStartMinutes + (existing.duration || 60);
+
+        if (startMinutes < exEndMinutes && endMinutes > exStartMinutes) {
+          return NextResponse.json({ 
+            error: `Цей час вже зайнятий (${existing.time} - ${existing.clientName})` 
+          }, { status: 409 });
         }
       }
     }
@@ -144,6 +191,41 @@ export async function POST(request: NextRequest) {
 
     if (!salonId || !clientName || !clientPhone || !date || !time) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Check for time conflicts (same master, same date, overlapping time)
+    if (masterId) {
+      // Calculate booking end time
+      const [startHour, startMin] = time.split(':').map(Number);
+      const startMinutes = startHour * 60 + startMin;
+      const endMinutes = startMinutes + (duration || 60);
+      const calculatedTimeEnd = timeEnd || `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
+
+      // Find conflicting bookings
+      const conflictingBookings = await prisma.booking.findMany({
+        where: {
+          salonId,
+          masterId,
+          date,
+          status: { not: 'CANCELLED' },
+        },
+        select: { id: true, time: true, timeEnd: true, duration: true, clientName: true }
+      });
+
+      for (const existing of conflictingBookings) {
+        const [exStartHour, exStartMin] = existing.time.split(':').map(Number);
+        const exStartMinutes = exStartHour * 60 + exStartMin;
+        const exEndMinutes = existing.timeEnd 
+          ? (() => { const [h, m] = existing.timeEnd.split(':').map(Number); return h * 60 + m; })()
+          : exStartMinutes + (existing.duration || 60);
+
+        // Check overlap: new booking starts before existing ends AND new booking ends after existing starts
+        if (startMinutes < exEndMinutes && endMinutes > exStartMinutes) {
+          return NextResponse.json({ 
+            error: `Цей час вже зайнятий (${existing.time} - ${existing.clientName})` 
+          }, { status: 409 });
+        }
+      }
     }
 
     const booking = await prisma.booking.create({
