@@ -14,7 +14,7 @@ interface PasswordInputProps {
 }
 
 // Eye animation - local file
-import eyeAnimationData from '../../../public/animations/eye-password.json';
+import eyeAnimationData from '@/assets/eye-password.json';
 
 export function PasswordInput({
   value,
