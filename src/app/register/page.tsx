@@ -264,7 +264,8 @@ export default function RegisterPage() {
             <div className="w-10" />
           )}
 
-          {step < totalSteps && (
+          {/* Кнопка "Далі" тільки для кроків 2-6 */}
+          {step > 1 && step < totalSteps && (
             <button
               onClick={handleNext}
               disabled={!canProceed() || loading}
@@ -274,14 +275,14 @@ export default function RegisterPage() {
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <>
-                  {step === 1 ? 'Створити' : 'Далі'}
+                  Далі
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
           )}
           
-          {step === totalSteps && <div className="w-20" />}
+          {(step === 1 || step === totalSteps) && <div className="w-20" />}
         </div>
       </header>
 
@@ -337,7 +338,6 @@ export default function RegisterPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="email@example.com"
-                    autoFocus
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-gray-900"
                   />
                 </div>
@@ -352,7 +352,6 @@ export default function RegisterPage() {
                       onChange={(e) => handlePhoneChange(e.target.value)}
                       placeholder="XX XXX XX XX"
                       maxLength={12}
-                      autoFocus
                       className="w-full pl-16 pr-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-gray-900"
                     />
                   </div>
@@ -368,12 +367,12 @@ export default function RegisterPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Мінімум 6 символів"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-gray-900 pr-12"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-gray-900 pr-14"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 rounded"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -413,7 +412,7 @@ export default function RegisterPage() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Повторіть пароль"
-                    className={`w-full px-4 py-3 rounded-xl border outline-none transition-all text-gray-900 pr-12 ${
+                    className={`w-full px-4 py-3 rounded-xl border outline-none transition-all text-gray-900 pr-14 ${
                       confirmPassword && password !== confirmPassword
                         ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20'
                         : confirmPassword && password === confirmPassword
@@ -422,11 +421,11 @@ export default function RegisterPage() {
                     }`}
                   />
                   {confirmPassword && (
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2">
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 p-1">
                       {password === confirmPassword ? (
                         <Check className="w-5 h-5 text-green-500" />
                       ) : (
-                        <span className="text-red-500 text-sm">✕</span>
+                        <span className="text-red-500 font-medium">✕</span>
                       )}
                     </span>
                   )}
@@ -436,6 +435,23 @@ export default function RegisterPage() {
               {error && (
                 <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm">{error}</div>
               )}
+
+              {/* Кнопка Створити внизу */}
+              <button
+                type="button"
+                onClick={handleNext}
+                disabled={!canProceed() || loading}
+                className="w-full flex items-center justify-center gap-2 py-3.5 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-violet-500/25"
+              >
+                {loading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    Створити акаунт
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
+              </button>
             </div>
 
             <p className="text-center text-gray-500 text-sm">
