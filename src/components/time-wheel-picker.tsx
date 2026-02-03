@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface TimeWheelPickerProps {
   startTime: string;
   duration: number; // in minutes
   onTimeChange: (start: string, end: string) => void;
   workingHours?: { start: number; end: number };
-  disabledTimes?: string[]; // times that are already booked
   isToday?: boolean;
 }
 
@@ -16,11 +15,13 @@ export function TimeWheelPicker({
   duration,
   onTimeChange,
   workingHours = { start: 9, end: 20 },
-  disabledTimes = [],
   isToday = false,
 }: TimeWheelPickerProps) {
-  // Generate time slots
-  const generateTimeSlots = () => {
+  const ITEM_HEIGHT = 44;
+  const VISIBLE_ITEMS = 5;
+  
+  // Generate time slots based on working hours
+  const generateTimeSlots = useCallback(() => {
     const slots: string[] = [];
     for (let h = workingHours.start; h <= workingHours.end; h++) {
       slots.push(`${h.toString().padStart(2, '0')}:00`);
@@ -29,215 +30,306 @@ export function TimeWheelPicker({
       }
     }
     return slots;
-  };
+  }, [workingHours]);
 
-  const timeSlots = generateTimeSlots();
-  
-  // Calculate end time from start time + duration
-  const calculateEndTime = (start: string, dur: number): string => {
-    const [h, m] = start.split(':').map(Number);
-    const totalMinutes = h * 60 + m + dur;
-    const endH = Math.floor(totalMinutes / 60);
-    const endM = totalMinutes % 60;
-    return `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
-  };
-
-  // Calculate start time from end time - duration
-  const calculateStartTime = (end: string, dur: number): string => {
-    const [h, m] = end.split(':').map(Number);
-    const totalMinutes = h * 60 + m - dur;
-    const startH = Math.floor(totalMinutes / 60);
-    const startM = totalMinutes % 60;
-    if (startH < workingHours.start) return timeSlots[0];
-    return `${startH.toString().padStart(2, '0')}:${startM.toString().padStart(2, '0')}`;
-  };
-
-  const [selectedStart, setSelectedStart] = useState(startTime);
-  const [selectedEnd, setSelectedEnd] = useState(calculateEndTime(startTime, duration));
-
-  const startRef = useRef<HTMLDivElement>(null);
-  const endRef = useRef<HTMLDivElement>(null);
-
-  // Generate end time slots (can go beyond working hours for last appointment)
-  const generateEndTimeSlots = () => {
+  const generateEndTimeSlots = useCallback(() => {
     const slots: string[] = [];
+    // End times can go 2 hours beyond working hours for last appointments
     for (let h = workingHours.start; h <= workingHours.end + 2; h++) {
       slots.push(`${h.toString().padStart(2, '0')}:00`);
       slots.push(`${h.toString().padStart(2, '0')}:30`);
     }
     return slots;
-  };
+  }, [workingHours]);
 
+  const timeSlots = generateTimeSlots();
   const endTimeSlots = generateEndTimeSlots();
 
-  // Check if time is in past (for today)
-  const isTimePast = (time: string): boolean => {
+  // Calculate times
+  const calculateEndTime = useCallback((start: string, dur: number): string => {
+    const [h, m] = start.split(':').map(Number);
+    const totalMinutes = h * 60 + m + dur;
+    const endH = Math.floor(totalMinutes / 60);
+    const endM = totalMinutes % 60;
+    return `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+  }, []);
+
+  const calculateStartTime = useCallback((end: string, dur: number): string => {
+    const [h, m] = end.split(':').map(Number);
+    const totalMinutes = h * 60 + m - dur;
+    const startH = Math.floor(totalMinutes / 60);
+    const startM = totalMinutes % 60;
+    if (startH < workingHours.start) return timeSlots[0];
+    return `${Math.max(startH, workingHours.start).toString().padStart(2, '0')}:${Math.max(startM, 0).toString().padStart(2, '0')}`;
+  }, [workingHours, timeSlots]);
+
+  // Check if time is in past
+  const isTimePast = useCallback((time: string): boolean => {
     if (!isToday) return false;
     const now = new Date();
     const [h, m] = time.split(':').map(Number);
     return h < now.getHours() || (h === now.getHours() && m <= now.getMinutes());
+  }, [isToday]);
+
+  // State
+  const [selectedStart, setSelectedStart] = useState(startTime);
+  const [selectedEnd, setSelectedEnd] = useState(calculateEndTime(startTime, duration));
+  
+  // Refs for wheels
+  const startWheelRef = useRef<HTMLDivElement>(null);
+  const endWheelRef = useRef<HTMLDivElement>(null);
+  const isSyncing = useRef(false);
+
+  // Smooth scroll to index
+  const smoothScrollTo = (element: HTMLDivElement | null, index: number) => {
+    if (!element) return;
+    const targetScroll = index * ITEM_HEIGHT;
+    element.scrollTo({
+      top: targetScroll,
+      behavior: 'smooth'
+    });
   };
 
-  // Scroll to selected time on mount
+  // Initialize scroll positions
   useEffect(() => {
-    scrollToTime(startRef.current, selectedStart, timeSlots);
-    scrollToTime(endRef.current, selectedEnd, endTimeSlots);
+    const startIndex = timeSlots.indexOf(startTime);
+    const endIndex = endTimeSlots.indexOf(calculateEndTime(startTime, duration));
+    
+    if (startWheelRef.current && startIndex >= 0) {
+      startWheelRef.current.scrollTop = startIndex * ITEM_HEIGHT;
+    }
+    if (endWheelRef.current && endIndex >= 0) {
+      endWheelRef.current.scrollTop = endIndex * ITEM_HEIGHT;
+    }
   }, []);
 
-  const scrollToTime = (container: HTMLDivElement | null, time: string, slots: string[]) => {
-    if (!container) return;
-    const index = slots.indexOf(time);
-    if (index >= 0) {
-      const itemHeight = 44;
-      container.scrollTop = index * itemHeight;
-    }
-  };
-
-  // Track if we're programmatically scrolling to prevent loops
-  const isScrollingEnd = useRef(false);
-  const isScrollingStart = useRef(false);
-
-  const handleStartScroll = () => {
-    if (!startRef.current || isScrollingStart.current) return;
+  // Handle start wheel scroll
+  const handleStartScroll = useCallback(() => {
+    if (!startWheelRef.current || isSyncing.current) return;
     
-    const itemHeight = 44;
-    const scrollTop = startRef.current.scrollTop;
-    const index = Math.round(scrollTop / itemHeight);
-    const newStart = timeSlots[Math.min(index, timeSlots.length - 1)];
+    const scrollTop = startWheelRef.current.scrollTop;
+    const index = Math.round(scrollTop / ITEM_HEIGHT);
+    const clampedIndex = Math.max(0, Math.min(index, timeSlots.length - 1));
+    const newStart = timeSlots[clampedIndex];
     
     if (newStart && !isTimePast(newStart)) {
-      setSelectedStart(newStart);
       const newEnd = calculateEndTime(newStart, duration);
+      
+      setSelectedStart(newStart);
       setSelectedEnd(newEnd);
       onTimeChange(newStart, newEnd);
       
-      // Sync end wheel immediately
-      if (endRef.current && !isScrollingEnd.current) {
-        isScrollingEnd.current = true;
-        const endIndex = endTimeSlots.indexOf(newEnd);
-        if (endIndex >= 0) {
-          endRef.current.scrollTop = endIndex * itemHeight;
-        }
-        requestAnimationFrame(() => {
-          isScrollingEnd.current = false;
-        });
+      // Sync end wheel with smooth animation
+      const endIndex = endTimeSlots.indexOf(newEnd);
+      if (endIndex >= 0 && endWheelRef.current) {
+        isSyncing.current = true;
+        smoothScrollTo(endWheelRef.current, endIndex);
+        setTimeout(() => { isSyncing.current = false; }, 300);
       }
     }
-  };
+  }, [timeSlots, endTimeSlots, duration, calculateEndTime, isTimePast, onTimeChange]);
 
-  const handleEndScroll = () => {
-    if (!endRef.current || isScrollingEnd.current) return;
+  // Handle end wheel scroll
+  const handleEndScroll = useCallback(() => {
+    if (!endWheelRef.current || isSyncing.current) return;
     
-    const itemHeight = 44;
-    const scrollTop = endRef.current.scrollTop;
-    const index = Math.round(scrollTop / itemHeight);
-    const newEnd = endTimeSlots[Math.min(index, endTimeSlots.length - 1)];
+    const scrollTop = endWheelRef.current.scrollTop;
+    const index = Math.round(scrollTop / ITEM_HEIGHT);
+    const clampedIndex = Math.max(0, Math.min(index, endTimeSlots.length - 1));
+    const newEnd = endTimeSlots[clampedIndex];
     
     if (newEnd) {
       const newStart = calculateStartTime(newEnd, duration);
+      
       if (!isTimePast(newStart) && timeSlots.includes(newStart)) {
         setSelectedEnd(newEnd);
         setSelectedStart(newStart);
         onTimeChange(newStart, newEnd);
         
-        // Sync start wheel immediately
-        if (startRef.current && !isScrollingStart.current) {
-          isScrollingStart.current = true;
-          const startIndex = timeSlots.indexOf(newStart);
-          if (startIndex >= 0) {
-            startRef.current.scrollTop = startIndex * itemHeight;
-          }
-          requestAnimationFrame(() => {
-            isScrollingStart.current = false;
-          });
+        // Sync start wheel with smooth animation
+        const startIndex = timeSlots.indexOf(newStart);
+        if (startIndex >= 0 && startWheelRef.current) {
+          isSyncing.current = true;
+          smoothScrollTo(startWheelRef.current, startIndex);
+          setTimeout(() => { isSyncing.current = false; }, 300);
         }
       }
     }
+  }, [timeSlots, endTimeSlots, duration, calculateStartTime, isTimePast, onTimeChange]);
+
+  // Debounce scroll handlers for snapping
+  const scrollEndTimeout = useRef<NodeJS.Timeout>();
+  
+  const onStartScrollEnd = useCallback(() => {
+    if (scrollEndTimeout.current) clearTimeout(scrollEndTimeout.current);
+    scrollEndTimeout.current = setTimeout(() => {
+      handleStartScroll();
+      // Snap to nearest item
+      if (startWheelRef.current) {
+        const scrollTop = startWheelRef.current.scrollTop;
+        const index = Math.round(scrollTop / ITEM_HEIGHT);
+        smoothScrollTo(startWheelRef.current, index);
+      }
+    }, 50);
+  }, [handleStartScroll]);
+
+  const onEndScrollEnd = useCallback(() => {
+    if (scrollEndTimeout.current) clearTimeout(scrollEndTimeout.current);
+    scrollEndTimeout.current = setTimeout(() => {
+      handleEndScroll();
+      // Snap to nearest item
+      if (endWheelRef.current) {
+        const scrollTop = endWheelRef.current.scrollTop;
+        const index = Math.round(scrollTop / ITEM_HEIGHT);
+        smoothScrollTo(endWheelRef.current, index);
+      }
+    }, 50);
+  }, [handleEndScroll]);
+
+  // Click to select time directly
+  const handleStartClick = (time: string, index: number) => {
+    if (isTimePast(time)) return;
+    
+    setSelectedStart(time);
+    const newEnd = calculateEndTime(time, duration);
+    setSelectedEnd(newEnd);
+    onTimeChange(time, newEnd);
+    
+    smoothScrollTo(startWheelRef.current, index);
+    const endIndex = endTimeSlots.indexOf(newEnd);
+    if (endIndex >= 0) {
+      smoothScrollTo(endWheelRef.current, endIndex);
+    }
   };
 
-  const onStartScroll = handleStartScroll;
-  const onEndScroll = handleEndScroll;
+  const handleEndClick = (time: string, index: number) => {
+    const newStart = calculateStartTime(time, duration);
+    if (isTimePast(newStart)) return;
+    
+    setSelectedEnd(time);
+    setSelectedStart(newStart);
+    onTimeChange(newStart, time);
+    
+    smoothScrollTo(endWheelRef.current, index);
+    const startIndex = timeSlots.indexOf(newStart);
+    if (startIndex >= 0) {
+      smoothScrollTo(startWheelRef.current, startIndex);
+    }
+  };
+
+  const paddingItems = Math.floor(VISIBLE_ITEMS / 2);
 
   return (
-    <div className="flex gap-4">
+    <div className="flex items-center gap-2">
       {/* Start time wheel */}
       <div className="flex-1">
-        <p className="text-xs text-zinc-400 text-center mb-2">Початок</p>
-        <div className="relative h-[220px] overflow-hidden">
-          {/* Gradient overlays */}
-          <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-zinc-800 to-transparent z-10 pointer-events-none" />
-          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-zinc-800 to-transparent z-10 pointer-events-none" />
+        <p className="text-xs text-zinc-400 text-center mb-2 font-medium">Початок</p>
+        <div className="relative h-[220px] overflow-hidden rounded-xl bg-zinc-900/50">
+          {/* Gradient overlays for fade effect */}
+          <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-zinc-800 via-zinc-800/80 to-transparent z-10 pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-zinc-800 via-zinc-800/80 to-transparent z-10 pointer-events-none" />
           
           {/* Selection highlight */}
-          <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 h-11 bg-zinc-700/50 rounded-xl z-0" />
+          <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 h-11 bg-primary/20 border border-primary/30 rounded-xl z-0" />
           
-          {/* Scrollable times */}
+          {/* Scrollable wheel */}
           <div
-            ref={startRef}
-            onScroll={onStartScroll}
-            className="h-full overflow-y-auto scrollbar-hide snap-y snap-mandatory"
-            style={{ paddingTop: '88px', paddingBottom: '88px' }}
+            ref={startWheelRef}
+            onScroll={onStartScrollEnd}
+            className="h-full overflow-y-auto scrollbar-hide scroll-smooth"
+            style={{ 
+              scrollSnapType: 'y mandatory',
+              WebkitOverflowScrolling: 'touch'
+            }}
           >
-            {timeSlots.map((time) => {
+            {/* Top padding */}
+            {Array.from({ length: paddingItems }).map((_, i) => (
+              <div key={`pad-top-${i}`} className="h-11" />
+            ))}
+            
+            {timeSlots.map((time, index) => {
               const isPast = isTimePast(time);
               const isSelected = time === selectedStart;
               return (
                 <div
                   key={time}
-                  className={`h-11 flex items-center justify-center snap-center transition-all ${
+                  onClick={() => handleStartClick(time, index)}
+                  className={`h-11 flex items-center justify-center cursor-pointer transition-all duration-150 ${
                     isPast
-                      ? 'text-zinc-600 line-through'
+                      ? 'text-zinc-600 line-through cursor-not-allowed'
                       : isSelected
-                      ? 'text-white text-lg font-semibold'
-                      : 'text-zinc-400'
+                      ? 'text-white text-xl font-bold scale-110'
+                      : 'text-zinc-400 hover:text-zinc-200'
                   }`}
+                  style={{ scrollSnapAlign: 'center' }}
                 >
                   {time}
                 </div>
               );
             })}
+            
+            {/* Bottom padding */}
+            {Array.from({ length: paddingItems }).map((_, i) => (
+              <div key={`pad-bot-${i}`} className="h-11" />
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Separator */}
-      <div className="flex items-center text-zinc-500 text-2xl font-light">
-        →
+      {/* Arrow separator */}
+      <div className="flex flex-col items-center justify-center pt-6 text-zinc-500">
+        <span className="text-2xl">→</span>
+        <span className="text-xs mt-1">{duration} хв</span>
       </div>
 
       {/* End time wheel */}
       <div className="flex-1">
-        <p className="text-xs text-zinc-400 text-center mb-2">Кінець</p>
-        <div className="relative h-[220px] overflow-hidden">
+        <p className="text-xs text-zinc-400 text-center mb-2 font-medium">Кінець</p>
+        <div className="relative h-[220px] overflow-hidden rounded-xl bg-zinc-900/50">
           {/* Gradient overlays */}
-          <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-zinc-800 to-transparent z-10 pointer-events-none" />
-          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-zinc-800 to-transparent z-10 pointer-events-none" />
+          <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-zinc-800 via-zinc-800/80 to-transparent z-10 pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-zinc-800 via-zinc-800/80 to-transparent z-10 pointer-events-none" />
           
           {/* Selection highlight */}
-          <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 h-11 bg-zinc-700/50 rounded-xl z-0" />
+          <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 h-11 bg-primary/20 border border-primary/30 rounded-xl z-0" />
           
-          {/* Scrollable times */}
+          {/* Scrollable wheel */}
           <div
-            ref={endRef}
-            onScroll={onEndScroll}
-            className="h-full overflow-y-auto scrollbar-hide snap-y snap-mandatory"
-            style={{ paddingTop: '88px', paddingBottom: '88px' }}
+            ref={endWheelRef}
+            onScroll={onEndScrollEnd}
+            className="h-full overflow-y-auto scrollbar-hide scroll-smooth"
+            style={{ 
+              scrollSnapType: 'y mandatory',
+              WebkitOverflowScrolling: 'touch'
+            }}
           >
-            {endTimeSlots.map((time) => {
+            {/* Top padding */}
+            {Array.from({ length: paddingItems }).map((_, i) => (
+              <div key={`pad-top-${i}`} className="h-11" />
+            ))}
+            
+            {endTimeSlots.map((time, index) => {
               const isSelected = time === selectedEnd;
               return (
                 <div
                   key={time}
-                  className={`h-11 flex items-center justify-center snap-center transition-all ${
+                  onClick={() => handleEndClick(time, index)}
+                  className={`h-11 flex items-center justify-center cursor-pointer transition-all duration-150 ${
                     isSelected
-                      ? 'text-white text-lg font-semibold'
-                      : 'text-zinc-400'
+                      ? 'text-white text-xl font-bold scale-110'
+                      : 'text-zinc-400 hover:text-zinc-200'
                   }`}
+                  style={{ scrollSnapAlign: 'center' }}
                 >
                   {time}
                 </div>
               );
             })}
+            
+            {/* Bottom padding */}
+            {Array.from({ length: paddingItems }).map((_, i) => (
+              <div key={`pad-bot-${i}`} className="h-11" />
+            ))}
           </div>
         </div>
       </div>

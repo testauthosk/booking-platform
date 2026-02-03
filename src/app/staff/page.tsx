@@ -39,6 +39,7 @@ export default function StaffDashboard() {
   const [loading, setLoading] = useState(true);
   const [staffName, setStaffName] = useState('');
   const [staffAvatar, setStaffAvatar] = useState('');
+  const [staffWorkingHours, setStaffWorkingHours] = useState({ start: 9, end: 20 });
   const [staffId, setStaffId] = useState('');
   const [salonId, setSalonId] = useState('');
   const [stats, setStats] = useState<StaffStats | null>(null);
@@ -121,6 +122,18 @@ export default function StaffDashboard() {
         const data = await res.json();
         if (data.avatar) setStaffAvatar(data.avatar);
         if (data.name) setStaffName(data.name);
+        // Parse working hours from profile
+        if (data.workingHours && Array.isArray(data.workingHours) && data.workingHours.length > 0) {
+          // workingHours is array like [{day: 0, start: "09:00", end: "18:00"}, ...]
+          // Get today's working hours or default
+          const today = new Date().getDay();
+          const todayHours = data.workingHours.find((wh: { day: number }) => wh.day === today);
+          if (todayHours && todayHours.start && todayHours.end) {
+            const startHour = parseInt(todayHours.start.split(':')[0]);
+            const endHour = parseInt(todayHours.end.split(':')[0]);
+            setStaffWorkingHours({ start: startHour, end: endHour });
+          }
+        }
       }
     } catch (error) {
       console.error('Load profile error:', error);
@@ -861,6 +874,7 @@ export default function StaffDashboard() {
               setBookingTime(start);
               setBookingEndTime(end);
             }}
+            workingHours={staffWorkingHours}
             isToday={bookingDate.toDateString() === new Date().toDateString()}
           />
           
