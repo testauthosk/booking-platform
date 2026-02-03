@@ -237,57 +237,55 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 to-pink-50">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-100">
-        {/* Progress Bar */}
-        <div className="flex gap-1.5 px-6 pt-4">
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <div
-              key={i}
-              className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
-                i < step ? 'bg-violet-500' : 'bg-gray-200'
-              }`}
-            />
-          ))}
-        </div>
+      {/* Header - тільки для кроків 2+ */}
+      {step > 1 && (
+        <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-100">
+          {/* Progress Bar (6 кроків після реєстрації) */}
+          <div className="flex gap-1.5 px-6 pt-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                  i < step - 1 ? 'bg-violet-500' : 'bg-gray-200'
+                }`}
+              />
+            ))}
+          </div>
 
-        {/* Navigation */}
-        <div className="flex items-center justify-between px-6 py-4">
-          {step > 1 ? (
+          {/* Navigation */}
+          <div className="flex items-center justify-between px-6 py-4">
             <button
               onClick={handleBack}
               className="w-10 h-10 rounded-full border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
             >
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </button>
-          ) : (
-            <div className="w-10" />
-          )}
 
-          {/* Кнопка "Далі" тільки для кроків 2-6 */}
-          {step > 1 && step < totalSteps && (
-            <button
-              onClick={handleNext}
-              disabled={!canProceed() || loading}
-              className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 text-white rounded-full font-medium hover:bg-violet-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-violet-500/25"
-            >
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  Далі
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
-          )}
-          
-          {(step === 1 || step === totalSteps) && <div className="w-20" />}
-        </div>
-      </header>
+            {/* Кнопка "Далі" тільки для кроків 2-6 */}
+            {step < totalSteps && (
+              <button
+                onClick={handleNext}
+                disabled={!canProceed() || loading}
+                className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 text-white rounded-full font-medium hover:bg-violet-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-violet-500/25"
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    Далі
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            )}
+            
+            {step === totalSteps && <div className="w-20" />}
+          </div>
+        </header>
+      )}
 
       {/* Content */}
-      <main className="pt-32 pb-12 px-6 max-w-2xl mx-auto">
+      <main className={`pb-12 px-6 max-w-2xl mx-auto ${step === 1 ? 'pt-12' : 'pt-32'}`}>
         
         {/* ===== STEP 1: Auth ===== */}
         {step === 1 && (
