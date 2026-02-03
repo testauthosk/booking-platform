@@ -10,6 +10,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Check if booking is in the past
+    const bookingDateTime = new Date(`${date}T${time}:00`);
+    const now = new Date();
+    if (bookingDateTime < now) {
+      return NextResponse.json({ 
+        error: 'Неможливо створити запис на минулий час' 
+      }, { status: 400 });
+    }
+
     // Calculate timeEnd
     const [hours, minutes] = time.split(':').map(Number);
     const startMinutes = hours * 60 + minutes;

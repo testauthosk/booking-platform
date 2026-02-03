@@ -193,6 +193,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Check if booking is in the past
+    const bookingDateTime = new Date(`${date}T${time}:00`);
+    const now = new Date();
+    if (bookingDateTime < now) {
+      return NextResponse.json({ 
+        error: 'Неможливо створити запис на минулий час' 
+      }, { status: 400 });
+    }
+
     // Check for time conflicts (same master, same date, overlapping time)
     if (masterId) {
       // Calculate booking end time

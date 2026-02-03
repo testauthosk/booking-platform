@@ -1162,21 +1162,37 @@ export default function StaffCalendar() {
         }`}
       >
         <div className="p-2 max-h-[50vh] overflow-y-auto">
-          {timeOptions.map((time) => (
-            <button
-              key={time}
-              onClick={() => {
-                setNewTime(time);
-                setTimePickerOpen(false);
-              }}
-              className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
-                newTime === time ? 'text-white' : 'text-zinc-300'
-              }`}
-            >
-              {newTime === time && <Check className="h-5 w-5" />}
-              <span className={newTime === time ? '' : 'ml-8'}>{time}</span>
-            </button>
-          ))}
+          {timeOptions.map((time) => {
+            // Check if this time is in the past for today
+            const isToday = selectedDate.toDateString() === new Date().toDateString();
+            const now = new Date();
+            const [h, m] = time.split(':').map(Number);
+            const isPast = isToday && (h < now.getHours() || (h === now.getHours() && m <= now.getMinutes()));
+            
+            return (
+              <button
+                key={time}
+                onClick={() => {
+                  if (!isPast) {
+                    setNewTime(time);
+                    setTimePickerOpen(false);
+                  }
+                }}
+                disabled={isPast}
+                className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
+                  isPast 
+                    ? 'text-zinc-600 line-through cursor-not-allowed' 
+                    : newTime === time 
+                    ? 'text-white' 
+                    : 'text-zinc-300'
+                }`}
+              >
+                {newTime === time && !isPast && <Check className="h-5 w-5" />}
+                <span className={newTime === time && !isPast ? '' : 'ml-8'}>{time}</span>
+                {isPast && <span className="text-xs text-zinc-500 ml-auto">минуло</span>}
+              </button>
+            );
+          })}
         </div>
         <button
           onClick={() => setTimePickerOpen(false)}
