@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import {
   Users,
   Search,
@@ -492,10 +493,9 @@ export default function UsersPage() {
               <Label className="text-gray-400">
                 Пароль {editingUser && '(залиште порожнім щоб не змінювати)'}
               </Label>
-              <Input
-                type="password"
+              <PasswordInput
                 value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                onChange={(val) => setFormData({ ...formData, password: val })}
                 className="bg-white/5 border-white/10 text-white"
                 placeholder="••••••••"
               />
