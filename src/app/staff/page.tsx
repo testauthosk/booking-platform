@@ -655,6 +655,34 @@ export default function StaffDashboard() {
         {/* Step 2: Client details */}
         {bookingStep === 'details' && bookingService && (
           <div className="p-4 overflow-y-auto flex-1 space-y-4">
+            {/* Busy slots timeline */}
+            {stats?.todayBookings && stats.todayBookings.length > 0 && bookingDate.toDateString() === new Date().toDateString() && (
+              <div className="pb-2">
+                <p className="text-xs text-muted-foreground mb-2">Зайнято сьогодні:</p>
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                  {stats.todayBookings
+                    .filter((b: Booking) => b.status !== 'CANCELLED')
+                    .sort((a: Booking, b: Booking) => a.time.localeCompare(b.time))
+                    .map((booking: Booking) => {
+                      const [h, m] = booking.time.split(':').map(Number);
+                      const endMins = h * 60 + m + booking.duration;
+                      const endH = Math.floor(endMins / 60);
+                      const endM = endMins % 60;
+                      const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+                      return (
+                        <div
+                          key={booking.id}
+                          className="shrink-0 px-3 py-1.5 rounded-full bg-red-50 border border-red-200 text-xs"
+                        >
+                          <span className="font-medium text-red-700">{booking.time}-{endTime}</span>
+                          <span className="text-red-500 ml-1">{booking.clientName}</span>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+
             {/* Selected service summary */}
             <div className="p-3 rounded-xl bg-muted/50 flex items-center justify-between">
               <div>
@@ -807,21 +835,37 @@ export default function StaffDashboard() {
         }`}
       >
         <div className="p-2 max-h-[50vh] overflow-y-auto">
-          {timeOptions.map((time) => (
-            <button
-              key={time}
-              onClick={() => {
-                setBookingTime(time);
-                setTimePickerOpen(false);
-              }}
-              className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
-                bookingTime === time ? 'text-white' : 'text-zinc-300'
-              }`}
-            >
-              {bookingTime === time && <Check className="h-5 w-5" />}
-              <span className={bookingTime === time ? '' : 'ml-8'}>{time}</span>
-            </button>
-          ))}
+          {timeOptions.map((time) => {
+            // Check if time is in the past for today
+            const isToday = bookingDate.toDateString() === new Date().toDateString();
+            const now = new Date();
+            const [h, m] = time.split(':').map(Number);
+            const isPast = isToday && (h < now.getHours() || (h === now.getHours() && m <= now.getMinutes()));
+            
+            return (
+              <button
+                key={time}
+                onClick={() => {
+                  if (!isPast) {
+                    setBookingTime(time);
+                    setTimePickerOpen(false);
+                  }
+                }}
+                disabled={isPast}
+                className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
+                  isPast 
+                    ? 'text-zinc-600 line-through cursor-not-allowed' 
+                    : bookingTime === time 
+                    ? 'text-white' 
+                    : 'text-zinc-300'
+                }`}
+              >
+                {bookingTime === time && !isPast && <Check className="h-5 w-5" />}
+                <span className={bookingTime === time && !isPast ? '' : 'ml-8'}>{time}</span>
+                {isPast && <span className="text-xs text-zinc-500 ml-auto">минуло</span>}
+              </button>
+            );
+          })}
         </div>
         <button
           onClick={() => setTimePickerOpen(false)}
