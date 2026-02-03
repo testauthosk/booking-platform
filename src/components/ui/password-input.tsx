@@ -29,22 +29,17 @@ export function PasswordInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`pr-12 ${className || ''} [&::-ms-reveal]:hidden [&::-webkit-credentials-auto-fill-button]:hidden`}
+        className={`pr-12 ${className || ''}`}
         id={id}
         name={name}
-        style={{ 
-          // Hide Safari's built-in password toggle
-          WebkitTextSecurity: showPassword ? 'none' : undefined 
-        }}
-        autoComplete="off"
+        autoComplete="new-password"
       />
       <button
         type="button"
         onClick={() => setShowPassword(!showPassword)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-zinc-800 transition-colors"
+        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-700 transition-colors"
         aria-label={showPassword ? 'Сховати пароль' : 'Показати пароль'}
       >
-        {/* SVG Eye with animated slash */}
         <svg 
           width="20" 
           height="20" 
@@ -59,24 +54,33 @@ export function PasswordInput({
           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
           {/* Pupil */}
           <circle cx="12" cy="12" r="3" />
-          {/* Animated slash line */}
+          {/* Animated slash - draws diagonally */}
           <line 
-            x1="1" 
-            y1="1" 
-            x2="23" 
-            y2="23"
-            className={`transition-all duration-200 origin-center ${
-              showPassword 
-                ? 'opacity-0 scale-0' 
-                : 'opacity-100 scale-100'
-            }`}
+            x1="2" 
+            y1="2" 
+            x2="22" 
+            y2="22"
+            strokeDasharray="30"
+            strokeDashoffset={showPassword ? 30 : 0}
             style={{
-              transformOrigin: 'center',
-              transition: 'opacity 0.2s ease, transform 0.2s ease'
+              transition: 'stroke-dashoffset 0.3s ease-in-out'
             }}
           />
         </svg>
       </button>
+
+      <style jsx global>{`
+        /* Hide browser's built-in password toggle */
+        input::-ms-reveal,
+        input::-ms-clear,
+        input::-webkit-contacts-auto-fill-button,
+        input::-webkit-credentials-auto-fill-button {
+          display: none !important;
+        }
+        input[type="password"]::-webkit-textfield-decoration-container {
+          display: none !important;
+        }
+      `}</style>
     </div>
   );
 }
