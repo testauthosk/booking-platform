@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, User, Calendar, FileText, Users, Clock } from 'lucide-react';
 import Link from 'next/link';
 
-const DEMO_SALON_ID = 'demo-salon-id';
+const DEFAULT_SALON_ID = '93b6801f-0193-4706-896b-3de71f3799e1';
 
 interface AuditLogEntry {
   id: string;
@@ -86,7 +86,7 @@ export default function HistoryPage() {
   const loadLogs = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/audit-log?salonId=${DEMO_SALON_ID}&limit=${limit}&offset=${offset}`);
+      const res = await fetch(`/api/audit-log?salonId=${salonId}&limit=${limit}&offset=${offset}`);
       if (res.ok) {
         const data = await res.json();
         setLogs(data.logs);

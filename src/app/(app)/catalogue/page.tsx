@@ -40,7 +40,7 @@ import { ServiceModal } from '@/components/catalogue/service-modal';
 import { CategoryModal } from '@/components/catalogue/category-modal';
 
 // TODO: Получать из контекста авторизации
-const DEMO_SALON_ID = 'demo-salon-id';
+const DEFAULT_SALON_ID = '93b6801f-0193-4706-896b-3de71f3799e1';
 
 interface Service {
   id: string;
@@ -104,7 +104,7 @@ export default function CataloguePage() {
     }
     try {
       // Один запрос вместо двух
-      const res = await fetch(`/api/catalogue?salonId=${DEMO_SALON_ID}`);
+      const res = await fetch(`/api/catalogue?salonId=${salonId}`);
       
       if (res.ok) {
         const data = await res.json();
@@ -149,7 +149,7 @@ export default function CataloguePage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ...data,
-        salonId: DEMO_SALON_ID,
+        salonId: salonId,
       }),
     });
 
@@ -179,7 +179,7 @@ export default function CataloguePage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ...data,
-        salonId: DEMO_SALON_ID,
+        salonId: salonId,
       }),
     });
 

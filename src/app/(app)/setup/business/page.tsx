@@ -19,7 +19,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 // TODO: Получать из контекста авторизации
-const DEMO_SALON_ID = 'demo-salon-id';
+const DEFAULT_SALON_ID = '93b6801f-0193-4706-896b-3de71f3799e1';
 
 interface Salon {
   id: string;
@@ -65,7 +65,7 @@ export default function BusinessSettingsPage() {
 
   const loadSalon = async () => {
     try {
-      const res = await fetch(`/api/salon?salonId=${DEMO_SALON_ID}`);
+      const res = await fetch(`/api/salon?salonId=${salonId}`);
       if (res.ok) {
         const data = await res.json();
         setSalon(data);
@@ -93,7 +93,7 @@ export default function BusinessSettingsPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          salonId: DEMO_SALON_ID,
+          salonId: salonId,
           name,
           slug,
           type,
@@ -126,7 +126,7 @@ export default function BusinessSettingsPage() {
       const uploadPromises = Array.from(files).map(async (file) => {
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('folder', `salons/${DEMO_SALON_ID}`);
+        formData.append('folder', `salons/${salonId}`);
 
         const res = await fetch('/api/upload', {
           method: 'POST',
