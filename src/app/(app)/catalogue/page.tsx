@@ -38,9 +38,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ServiceModal } from '@/components/catalogue/service-modal';
 import { CategoryModal } from '@/components/catalogue/category-modal';
-
-// TODO: Получать из контекста авторизации
-const DEFAULT_SALON_ID = '93b6801f-0193-4706-896b-3de71f3799e1';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Service {
   id: string;
@@ -69,6 +67,8 @@ function formatDuration(minutes: number): string {
 
 export default function CataloguePage() {
   const { open: openSidebar } = useSidebar();
+  const { user } = useAuth();
+  const salonId = user?.salonId;
   
   // Data
   const [categories, setCategories] = useState<Category[]>([]);
@@ -94,10 +94,14 @@ export default function CataloguePage() {
 
   // Load data
   useEffect(() => {
-    loadData();
-  }, []);
+    if (salonId) {
+      loadData();
+    }
+  }, [salonId]);
 
   const loadData = async () => {
+    if (!salonId) return;
+    
     // Only show loading on initial load
     if (services.length === 0) {
       setLoading(true);
