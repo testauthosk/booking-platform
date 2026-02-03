@@ -17,11 +17,11 @@ export function TimeWheelPicker({
   workingHours = { start: 9, end: 20 },
   isToday = false,
 }: TimeWheelPickerProps) {
-  const ITEM_HEIGHT = 40;
+  const ITEM_HEIGHT = 36;
   const VISIBLE_COUNT = 5;
   const WHEEL_HEIGHT = ITEM_HEIGHT * VISIBLE_COUNT;
 
-  // Generate time slots (filter out past times if today)
+  // Generate time slots with 5-minute step (filter out past times if today)
   const generateTimeSlots = useCallback(() => {
     const slots: string[] = [];
     const now = new Date();
@@ -29,15 +29,16 @@ export function TimeWheelPicker({
     const currentMin = now.getMinutes();
     
     for (let h = workingHours.start; h <= workingHours.end; h++) {
-      // Check :00
-      if (!isToday || h > currentHour || (h === currentHour && 0 > currentMin)) {
-        slots.push(`${h.toString().padStart(2, '0')}:00`);
-      }
-      // Check :30
-      if (h < workingHours.end) {
-        if (!isToday || h > currentHour || (h === currentHour && 30 > currentMin)) {
-          slots.push(`${h.toString().padStart(2, '0')}:30`);
+      for (let m = 0; m < 60; m += 5) {
+        // Skip last hour's minutes except :00
+        if (h === workingHours.end && m > 0) continue;
+        
+        // Skip past times for today
+        if (isToday && (h < currentHour || (h === currentHour && m <= currentMin))) {
+          continue;
         }
+        
+        slots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
       }
     }
     return slots;
@@ -50,19 +51,15 @@ export function TimeWheelPicker({
     const currentMin = now.getMinutes();
     
     // End time = start time + duration, so filter accordingly
-    const minEndHour = isToday ? currentHour : workingHours.start;
-    const minEndMin = isToday ? currentMin + duration : 0;
+    const minEndTotal = isToday ? (currentHour * 60 + currentMin + duration) : (workingHours.start * 60 + duration);
     
     for (let h = workingHours.start; h <= workingHours.end + 2; h++) {
-      const totalMin0 = h * 60;
-      const totalMin30 = h * 60 + 30;
-      const minTotal = minEndHour * 60 + minEndMin;
-      
-      if (totalMin0 >= minTotal) {
-        slots.push(`${h.toString().padStart(2, '0')}:00`);
-      }
-      if (totalMin30 >= minTotal) {
-        slots.push(`${h.toString().padStart(2, '0')}:30`);
+      for (let m = 0; m < 60; m += 5) {
+        const totalMin = h * 60 + m;
+        
+        if (totalMin >= minEndTotal) {
+          slots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+        }
       }
     }
     return slots;
