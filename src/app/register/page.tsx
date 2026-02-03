@@ -236,8 +236,24 @@ export default function RegisterPage() {
     }
   };
 
+  // CSS для скрытия иконок паролей браузера
+  const hidePasswordIconsCSS = `
+    input::-webkit-credentials-auto-fill-button,
+    input::-webkit-contacts-auto-fill-button,
+    input::-webkit-credit-card-auto-fill-button,
+    input::-ms-reveal,
+    input::-ms-clear {
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+  `;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 to-pink-50">
+      <style>{hidePasswordIconsCSS}</style>
       {/* Header - тільки для кроків 2+ */}
       {step > 1 && (
         <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-100">
@@ -311,7 +327,7 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={() => setAuthMethod('email')}
-                    className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-[14px] font-medium transition-colors duration-200 ${
+                    className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-base font-medium transition-colors duration-200 ${
                       authMethod === 'email' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
                     }`}
                   >
@@ -321,7 +337,7 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={() => setAuthMethod('phone')}
-                    className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-[14px] font-medium transition-colors duration-200 ${
+                    className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-base font-medium transition-colors duration-200 ${
                       authMethod === 'phone' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
                     }`}
                   >
@@ -333,7 +349,7 @@ export default function RegisterPage() {
 
               {/* Email or Phone */}
               <div>
-                <label className="block text-[14px] font-medium text-gray-700 mb-1.5">
+                <label className="block text-base font-medium text-gray-700 mb-1.5">
                   {authMethod === 'email' ? 'Email' : 'Телефон'} *
                 </label>
                 
@@ -348,7 +364,7 @@ export default function RegisterPage() {
                   />
                 ) : (
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium text-[14px]">+380</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium text-base">+380</span>
                     <input
                       type="tel"
                       value={phone}
@@ -364,7 +380,7 @@ export default function RegisterPage() {
 
               {/* Password */}
               <div>
-                <label className="block text-[14px] font-medium text-gray-700 mb-1.5">Пароль *</label>
+                <label className="block text-base font-medium text-gray-700 mb-1.5">Пароль *</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
@@ -416,7 +432,7 @@ export default function RegisterPage() {
 
               {/* Confirm Password */}
               <div>
-                <label className="block text-[14px] font-medium text-gray-700 mb-1.5">Підтвердіть пароль *</label>
+                <label className="block text-base font-medium text-gray-700 mb-1.5">Підтвердіть пароль *</label>
                 <div className="relative">
                   <input
                     type={showConfirmPassword ? 'text' : 'password'}
