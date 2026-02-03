@@ -615,12 +615,12 @@ export default function CalendarPage() {
         }}
       />
 
-      {/* Colleague Booking Modal (for owner/admin) */}
-      {(user?.role === 'OWNER' || user?.role === 'ADMIN') && (
+      {/* Colleague Booking Modal (for owner/admin) — завжди рендерити */}
+      {(user?.role === 'OWNER' || user?.role === 'ADMIN') && user?.salonId && (
         <ColleagueBookingModal
           isOpen={isColleagueBookingOpen}
           onClose={() => setIsColleagueBookingOpen(false)}
-          salonId={user?.salonId || ''}
+          salonId={user.salonId}
           currentMasterId={null}
           onSuccess={loadBookings}
         />

@@ -1131,8 +1131,8 @@ export default function StaffDashboard() {
         </button>
       </div>
 
-      {/* Colleague Booking Modal */}
-      {colleagueBookingOpen && salonId && staffId && (
+      {/* Colleague Booking Modal — завжди рендерити для збереження стану */}
+      {salonId && staffId && (
         <ColleagueBookingModal
           isOpen={colleagueBookingOpen}
           onClose={() => setColleagueBookingOpen(false)}
