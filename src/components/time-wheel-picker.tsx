@@ -167,11 +167,16 @@ export function TimeWheelPicker({
           </Picker.Column>
         </Picker>
         
-        {/* Duration indicator overlay */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="flex flex-col items-center text-zinc-500 -mt-4">
-            <span className="text-xl">→</span>
-            <span className="text-[10px] -mt-1">{duration}хв</span>
+        {/* Selection highlight lines */}
+        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 pointer-events-none">
+          <div className="h-[36px] border-t border-b border-zinc-600" />
+        </div>
+        
+        {/* Duration indicator overlay - centered in selection area */}
+        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[36px] flex items-center justify-center pointer-events-none">
+          <div className="flex flex-col items-center text-zinc-400">
+            <span className="text-lg leading-none">→</span>
+            <span className="text-xs font-medium -mt-0.5">{duration}хв</span>
           </div>
         </div>
       </div>
