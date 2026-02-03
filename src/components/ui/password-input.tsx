@@ -1,14 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
-import dynamic from 'next/dynamic';
-
-// Use @lottiefiles/react-lottie-player - more reliable with Next.js
-const Player = dynamic(
-  () => import('@lottiefiles/react-lottie-player').then((mod) => mod.Player),
-  { ssr: false }
-);
+import { Eye, EyeOff } from 'lucide-react';
 
 interface PasswordInputProps {
   value: string;
@@ -28,15 +22,6 @@ export function PasswordInput({
   name,
 }: PasswordInputProps) {
   const [showPassword, setShowPassword] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const togglePassword = () => {
-    setShowPassword(!showPassword);
-  };
 
   return (
     <div className="relative">
@@ -51,24 +36,14 @@ export function PasswordInput({
       />
       <button
         type="button"
-        onClick={togglePassword}
-        className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center hover:bg-muted rounded-md transition-colors"
+        onClick={() => setShowPassword(!showPassword)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
         aria-label={showPassword ? 'Сховати пароль' : 'Показати пароль'}
       >
-        {mounted ? (
-          <div style={{ filter: 'invert(0.4)' }}>
-            <Player
-              key={showPassword ? 'visible' : 'hidden'}
-              src="/animations/eye-password.json"
-              background="transparent"
-              speed={1.5}
-              loop={false}
-              autoplay={true}
-              style={{ width: 28, height: 28, display: 'block' }}
-            />
-          </div>
+        {showPassword ? (
+          <EyeOff className="h-5 w-5" />
         ) : (
-          <div className="w-6 h-6 bg-muted rounded-full animate-pulse" />
+          <Eye className="h-5 w-5" />
         )}
       </button>
     </div>
