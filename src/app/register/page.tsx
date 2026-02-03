@@ -355,7 +355,7 @@ export default function RegisterPage() {
 
               {/* Email or Phone */}
               <div>
-                <label className="block text-base font-medium text-gray-700 mb-1.5">
+                <label className="block font-medium text-gray-700 mb-1.5" style={{ fontSize: '16px' }}>
                   {authMethod === 'email' ? 'Email' : 'Телефон'} *
                 </label>
                 
@@ -366,12 +366,17 @@ export default function RegisterPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="email@example.com"
                     autoComplete="off"
-                    style={{ fontSize: '16px' }}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-colors text-gray-900"
+                    style={{ fontSize: '16px', height: '50px' }}
+                    className="w-full px-4 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none text-gray-900"
                   />
                 ) : (
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium" style={{ fontSize: '16px' }}>+380</span>
+                    <span 
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium"
+                      style={{ fontSize: '16px' }}
+                    >
+                      +380
+                    </span>
                     <input
                       type="tel"
                       value={phone}
@@ -379,8 +384,8 @@ export default function RegisterPage() {
                       placeholder="XX XXX XX XX"
                       maxLength={12}
                       autoComplete="off"
-                      style={{ fontSize: '16px' }}
-                      className="w-full pl-16 pr-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-colors text-gray-900"
+                      style={{ fontSize: '16px', height: '50px' }}
+                      className="w-full pl-16 pr-4 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none text-gray-900"
                     />
                   </div>
                 )}
@@ -388,23 +393,21 @@ export default function RegisterPage() {
 
               {/* Password */}
               <div>
-                <label className="block text-base font-medium text-gray-700 mb-1.5">Пароль *</label>
+                <label className="block font-medium text-gray-700 mb-1.5" style={{ fontSize: '16px' }}>Пароль *</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Мінімум 6 символів"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-colors text-gray-900 pr-12"
+                    autoComplete="new-password"
+                    style={{ fontSize: '16px', height: '50px' }}
+                    className="w-full px-4 pr-12 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none text-gray-900"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -423,32 +426,28 @@ export default function RegisterPage() {
                         />
                       ))}
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className={`text-xs font-medium ${
-                        passwordStrength.score <= 1 ? 'text-red-500' :
-                        passwordStrength.score === 2 ? 'text-yellow-600' : 'text-green-600'
-                      }`}>
-                        {passwordStrength.label}
-                      </span>
-                    </div>
+                    <span className={`text-xs font-medium ${
+                      passwordStrength.score <= 1 ? 'text-red-500' :
+                      passwordStrength.score === 2 ? 'text-yellow-600' : 'text-green-600'
+                    }`}>
+                      {passwordStrength.label}
+                    </span>
                   </div>
                 )}
               </div>
 
               {/* Confirm Password */}
               <div>
-                <label className="block text-base font-medium text-gray-700 mb-1.5">Підтвердіть пароль *</label>
+                <label className="block font-medium text-gray-700 mb-1.5" style={{ fontSize: '16px' }}>Підтвердіть пароль *</label>
                 <div className="relative">
                   <input
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Повторіть пароль"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                    className={`w-full px-4 py-3 rounded-xl border outline-none transition-colors text-gray-900 pr-20 ${
+                    autoComplete="new-password"
+                    style={{ fontSize: '16px', height: '50px' }}
+                    className={`w-full px-4 pr-20 rounded-xl border outline-none text-gray-900 ${
                       confirmPassword && password !== confirmPassword
                         ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20'
                         : confirmPassword && password === confirmPassword
@@ -458,18 +457,16 @@ export default function RegisterPage() {
                   />
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                     {confirmPassword && (
-                      <span className="transition-all duration-200">
-                        {password === confirmPassword ? (
-                          <Check className="w-5 h-5 text-green-500" />
-                        ) : (
-                          <span className="text-red-500 text-lg">✕</span>
-                        )}
-                      </span>
+                      password === confirmPassword ? (
+                        <Check className="w-5 h-5 text-green-500" />
+                      ) : (
+                        <span className="text-red-500 text-lg">✕</span>
+                      )
                     )}
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                      className="p-1 text-gray-400 hover:text-gray-600"
                     >
                       {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
