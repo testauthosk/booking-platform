@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Calendar, Clock, LogOut, Settings, Loader2, Plus, ChevronRight, X, Tag, User, Phone, Check } from 'lucide-react';
+import { Calendar, Clock, LogOut, Settings, Loader2, Plus, ChevronRight, X, Tag, User, Phone, Check, Users } from 'lucide-react';
 import { TimeWheelPicker } from '@/components/time-wheel-picker';
+import { ColleagueBookingModal } from '@/components/staff/colleague-booking-modal';
 
 interface Booking {
   id: string;
@@ -66,6 +67,7 @@ export default function StaffDashboard() {
   
   // Block time (вільний запис)
   const [blockTimeOpen, setBlockTimeOpen] = useState(false);
+  const [colleagueBookingOpen, setColleagueBookingOpen] = useState(false);
   const [blockDate, setBlockDate] = useState(new Date());
   const [blockTimeStart, setBlockTimeStart] = useState('10:00');
   const [blockTimeEnd, setBlockTimeEnd] = useState('11:00');
@@ -585,6 +587,22 @@ export default function StaffDashboard() {
               <div>
                 <p className="font-medium">Графік роботи</p>
                 <p className="text-xs text-muted-foreground">Робочі години</p>
+              </div>
+            </button>
+          </div>
+
+          {/* Colleague booking button */}
+          <div className="px-4 pt-2">
+            <button 
+              onClick={() => setColleagueBookingOpen(true)}
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-gradient-to-r from-violet-50 to-purple-50 hover:from-violet-100 hover:to-purple-100 border border-violet-200 transition-colors text-left"
+            >
+              <div className="h-10 w-10 rounded-xl bg-violet-500 flex items-center justify-center">
+                <Users className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <p className="font-medium text-violet-900">Запис для колеги</p>
+                <p className="text-xs text-violet-600">Створити запис напарнику</p>
               </div>
             </button>
           </div>
@@ -1112,6 +1130,19 @@ export default function StaffDashboard() {
           <X className="h-5 w-5 mx-auto" />
         </button>
       </div>
+
+      {/* Colleague Booking Modal */}
+      <ColleagueBookingModal
+        isOpen={colleagueBookingOpen}
+        onClose={() => setColleagueBookingOpen(false)}
+        salonId={salonId}
+        currentMasterId={staffId}
+        onSuccess={() => {
+          // Оновити дані після створення
+          loadTodayBookings();
+          loadStats();
+        }}
+      />
     </div>
   );
 }

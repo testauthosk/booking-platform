@@ -1,0 +1,653 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { 
+  X, ChevronRight, ChevronLeft, Check, Clock, User, Phone,
+  Search, Plus, Calendar, Loader2, Users
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface Master {
+  id: string;
+  name: string;
+  avatar?: string;
+  role?: string;
+}
+
+interface Service {
+  id: string;
+  name: string;
+  price: number;
+  duration: number;
+  customPrice?: number;
+  customDuration?: number;
+}
+
+interface Client {
+  id: string;
+  name: string;
+  phone: string;
+}
+
+interface SelectedService extends Service {
+  quantity: number;
+}
+
+interface ColleagueBookingModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  salonId: string;
+  currentMasterId: string;
+  onSuccess?: () => void;
+}
+
+type Step = 'colleague' | 'services' | 'datetime' | 'client' | 'confirm';
+
+export function ColleagueBookingModal({
+  isOpen,
+  onClose,
+  salonId,
+  currentMasterId,
+  onSuccess,
+}: ColleagueBookingModalProps) {
+  const [step, setStep] = useState<Step>('colleague');
+  const [colleagues, setColleagues] = useState<Master[]>([]);
+  const [selectedColleague, setSelectedColleague] = useState<Master | null>(null);
+  const [services, setServices] = useState<Service[]>([]);
+  const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedTime, setSelectedTime] = useState<string>('');
+  const [clients, setClients] = useState<Client[]>([]);
+  const [clientSearch, setClientSearch] = useState('');
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [isNewClient, setIsNewClient] = useState(false);
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientPhone, setNewClientPhone] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Завантажити колег при відкритті
+  useEffect(() => {
+    if (isOpen) {
+      loadColleagues();
+      loadClients();
+      resetState();
+    }
+  }, [isOpen]);
+
+  // Завантажити послуги при виборі колеги
+  useEffect(() => {
+    if (selectedColleague) {
+      loadServices(selectedColleague.id);
+    }
+  }, [selectedColleague]);
+
+  const resetState = () => {
+    setStep('colleague');
+    setSelectedColleague(null);
+    setSelectedServices([]);
+    setSelectedDate(new Date());
+    setSelectedTime('');
+    setSelectedClient(null);
+    setIsNewClient(false);
+    setNewClientName('');
+    setNewClientPhone('');
+    setClientSearch('');
+  };
+
+  const loadColleagues = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/masters?salonId=${salonId}`);
+      if (res.ok) {
+        const data = await res.json();
+        // Фільтруємо поточного мастера
+        setColleagues(data.filter((m: Master) => m.id !== currentMasterId));
+      }
+    } catch (error) {
+      console.error('Error loading colleagues:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadServices = async (masterId: string) => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/staff/services?masterId=${masterId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setServices(data);
+      }
+    } catch (error) {
+      console.error('Error loading services:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadClients = async () => {
+    try {
+      const res = await fetch('/api/clients');
+      if (res.ok) {
+        const data = await res.json();
+        setClients(data);
+      }
+    } catch (error) {
+      console.error('Error loading clients:', error);
+    }
+  };
+
+  const toggleService = (service: Service) => {
+    setSelectedServices(prev => {
+      const existing = prev.find(s => s.id === service.id);
+      if (existing) {
+        return prev.filter(s => s.id !== service.id);
+      }
+      return [...prev, { ...service, quantity: 1 }];
+    });
+  };
+
+  const getTotalDuration = () => {
+    return selectedServices.reduce((sum, s) => sum + (s.customDuration || s.duration), 0);
+  };
+
+  const getTotalPrice = () => {
+    return selectedServices.reduce((sum, s) => sum + (s.customPrice || s.price), 0);
+  };
+
+  const filteredClients = clients.filter(c => 
+    c.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
+    c.phone.includes(clientSearch)
+  );
+
+  const generateTimeSlots = () => {
+    const slots: string[] = [];
+    for (let h = 9; h <= 20; h++) {
+      for (let m = 0; m < 60; m += 30) {
+        if (h === 20 && m > 0) continue;
+        slots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+      }
+    }
+    return slots;
+  };
+
+  const handleSave = async () => {
+    if (!selectedColleague || selectedServices.length === 0 || !selectedTime) return;
+    if (!selectedClient && !isNewClient) return;
+    if (isNewClient && (!newClientName || !newClientPhone)) return;
+
+    setIsSaving(true);
+    try {
+      // Якщо новий клієнт — спочатку створюємо
+      let clientId = selectedClient?.id;
+      let clientName = selectedClient?.name || newClientName;
+      let clientPhone = selectedClient?.phone || newClientPhone;
+
+      if (isNewClient) {
+        const clientRes = await fetch('/api/clients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newClientName, phone: newClientPhone }),
+        });
+        if (clientRes.ok) {
+          const newClient = await clientRes.json();
+          clientId = newClient.id;
+        }
+      }
+
+      // Створюємо запис
+      const totalDuration = getTotalDuration();
+      const [h, m] = selectedTime.split(':').map(Number);
+      const endMinutes = h * 60 + m + totalDuration;
+      const endTime = `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
+
+      const bookingRes = await fetch('/api/booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          salonId,
+          masterId: selectedColleague.id,
+          clientId,
+          clientName,
+          clientPhone,
+          serviceName: selectedServices.map(s => s.name).join(', '),
+          masterName: selectedColleague.name,
+          date: selectedDate.toISOString().split('T')[0],
+          time: selectedTime,
+          timeEnd: endTime,
+          duration: totalDuration,
+          price: getTotalPrice(),
+          status: 'CONFIRMED',
+        }),
+      });
+
+      if (bookingRes.ok) {
+        onSuccess?.();
+        onClose();
+      }
+    } catch (error) {
+      console.error('Error creating booking:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const canGoNext = () => {
+    switch (step) {
+      case 'colleague': return !!selectedColleague;
+      case 'services': return selectedServices.length > 0;
+      case 'datetime': return !!selectedTime;
+      case 'client': return !!selectedClient || (isNewClient && newClientName && newClientPhone);
+      default: return true;
+    }
+  };
+
+  const goNext = () => {
+    const steps: Step[] = ['colleague', 'services', 'datetime', 'client', 'confirm'];
+    const currentIndex = steps.indexOf(step);
+    if (currentIndex < steps.length - 1) {
+      setStep(steps[currentIndex + 1]);
+    }
+  };
+
+  const goBack = () => {
+    const steps: Step[] = ['colleague', 'services', 'datetime', 'client', 'confirm'];
+    const currentIndex = steps.indexOf(step);
+    if (currentIndex > 0) {
+      setStep(steps[currentIndex - 1]);
+    }
+  };
+
+  const getStepTitle = () => {
+    switch (step) {
+      case 'colleague': return 'Оберіть колегу';
+      case 'services': return `Послуги ${selectedColleague?.name}`;
+      case 'datetime': return 'Дата та час';
+      case 'client': return 'Клієнт';
+      case 'confirm': return 'Підтвердження';
+    }
+  };
+
+  const formatDate = (d: Date) => {
+    return d.toLocaleDateString('uk-UA', { weekday: 'short', day: 'numeric', month: 'short' });
+  };
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div 
+        className={cn(
+          "fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300",
+          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        )}
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div 
+        className={cn(
+          "fixed inset-x-0 bottom-0 max-h-[90vh] bg-card rounded-t-3xl shadow-xl z-50",
+          "transform transition-all duration-300 ease-out overflow-hidden flex flex-col",
+          isOpen ? "translate-y-0" : "translate-y-full"
+        )}
+      >
+        {/* Header */}
+        <div className="p-4 border-b flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
+            {step !== 'colleague' && (
+              <button 
+                onClick={goBack}
+                className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+            )}
+            <h2 className="font-semibold">{getStepTitle()}</h2>
+          </div>
+          <button 
+            onClick={onClose}
+            className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {/* Step 1: Colleague */}
+          {step === 'colleague' && (
+            <div className="space-y-2">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : colleagues.length > 0 ? (
+                colleagues.map((colleague) => (
+                  <button
+                    key={colleague.id}
+                    onClick={() => setSelectedColleague(colleague)}
+                    className={cn(
+                      "w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left",
+                      selectedColleague?.id === colleague.id
+                        ? "bg-primary/10 border-2 border-primary"
+                        : "bg-muted/50 hover:bg-muted border-2 border-transparent"
+                    )}
+                  >
+                    <div className="h-12 w-12 rounded-full bg-violet-500 flex items-center justify-center text-white font-medium">
+                      {colleague.avatar ? (
+                        <img src={colleague.avatar} alt="" className="h-12 w-12 rounded-full object-cover" />
+                      ) : (
+                        colleague.name.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium">{colleague.name}</p>
+                      {colleague.role && (
+                        <p className="text-sm text-muted-foreground">{colleague.role}</p>
+                      )}
+                    </div>
+                    {selectedColleague?.id === colleague.id && (
+                      <Check className="h-5 w-5 text-primary ml-auto" />
+                    )}
+                  </button>
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>Немає колег для вибору</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 2: Services */}
+          {step === 'services' && (
+            <div className="space-y-2">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : services.length > 0 ? (
+                services.map((service) => {
+                  const isSelected = selectedServices.some(s => s.id === service.id);
+                  const price = service.customPrice || service.price;
+                  const duration = service.customDuration || service.duration;
+                  return (
+                    <button
+                      key={service.id}
+                      onClick={() => toggleService(service)}
+                      className={cn(
+                        "w-full flex items-center justify-between p-3 rounded-xl transition-all text-left",
+                        isSelected
+                          ? "bg-primary/10 border-2 border-primary"
+                          : "bg-muted/50 hover:bg-muted border-2 border-transparent"
+                      )}
+                    >
+                      <div>
+                        <p className="font-medium">{service.name}</p>
+                        <p className="text-sm text-muted-foreground">{duration} хв</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{price} ₴</span>
+                        {isSelected && <Check className="h-5 w-5 text-primary" />}
+                      </div>
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Немає послуг</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 3: DateTime */}
+          {step === 'datetime' && (
+            <div className="space-y-4">
+              {/* Date - простий вибір */}
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Дата</p>
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {Array.from({ length: 7 }).map((_, i) => {
+                    const date = new Date();
+                    date.setDate(date.getDate() + i);
+                    const isSelected = selectedDate.toDateString() === date.toDateString();
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => setSelectedDate(new Date(date))}
+                        className={cn(
+                          "flex flex-col items-center px-3 py-2 rounded-xl shrink-0 transition-all",
+                          isSelected 
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted/50 hover:bg-muted"
+                        )}
+                      >
+                        <span className="text-xs">{date.toLocaleDateString('uk-UA', { weekday: 'short' })}</span>
+                        <span className="text-lg font-bold">{date.getDate()}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Time */}
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Час</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {generateTimeSlots().map((time) => (
+                    <button
+                      key={time}
+                      onClick={() => setSelectedTime(time)}
+                      className={cn(
+                        "py-2 rounded-xl text-sm font-medium transition-all",
+                        selectedTime === time
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted/50 hover:bg-muted"
+                      )}
+                    >
+                      {time}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Client */}
+          {step === 'client' && (
+            <div className="space-y-4">
+              {!isNewClient ? (
+                <>
+                  {/* Search */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      placeholder="Пошук клієнта..."
+                      value={clientSearch}
+                      onChange={(e) => setClientSearch(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-muted/50 border-none outline-none"
+                    />
+                  </div>
+
+                  {/* Clients list */}
+                  <div className="space-y-2 max-h-[40vh] overflow-y-auto">
+                    {filteredClients.map((client) => (
+                      <button
+                        key={client.id}
+                        onClick={() => setSelectedClient(client)}
+                        className={cn(
+                          "w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left",
+                          selectedClient?.id === client.id
+                            ? "bg-primary/10 border-2 border-primary"
+                            : "bg-muted/50 hover:bg-muted border-2 border-transparent"
+                        )}
+                      >
+                        <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">
+                          {client.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-medium">{client.name}</p>
+                          <p className="text-sm text-muted-foreground">{client.phone}</p>
+                        </div>
+                        {selectedClient?.id === client.id && (
+                          <Check className="h-5 w-5 text-primary ml-auto" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Add new client button */}
+                  <button
+                    onClick={() => setIsNewClient(true)}
+                    className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-dashed border-muted-foreground/30 hover:border-primary hover:bg-primary/5 transition-colors"
+                  >
+                    <Plus className="h-5 w-5" />
+                    <span className="font-medium">Додати нового клієнта</span>
+                  </button>
+                </>
+              ) : (
+                /* New client form */
+                <div className="space-y-4">
+                  <button
+                    onClick={() => setIsNewClient(false)}
+                    className="text-sm text-primary flex items-center gap-1"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Обрати існуючого
+                  </button>
+
+                  <div>
+                    <label className="text-sm text-muted-foreground">Ім'я *</label>
+                    <input
+                      type="text"
+                      value={newClientName}
+                      onChange={(e) => setNewClientName(e.target.value)}
+                      placeholder="Ім'я клієнта"
+                      className="w-full mt-1 px-4 py-3 rounded-xl bg-muted/50 border-none outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-muted-foreground">Телефон *</label>
+                    <div className="flex mt-1">
+                      <span className="px-3 py-3 bg-muted rounded-l-xl text-muted-foreground">+380</span>
+                      <input
+                        type="tel"
+                        value={newClientPhone}
+                        onChange={(e) => setNewClientPhone(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                        placeholder="XX XXX XX XX"
+                        className="flex-1 px-4 py-3 rounded-r-xl bg-muted/50 border-none outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 5: Confirm */}
+          {step === 'confirm' && (
+            <div className="space-y-4">
+              <div className="bg-muted/50 rounded-xl p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-violet-500 flex items-center justify-center text-white">
+                    <User className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Майстер</p>
+                    <p className="font-medium">{selectedColleague?.name}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                    <User className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Клієнт</p>
+                    <p className="font-medium">
+                      {selectedClient?.name || newClientName}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedClient?.phone || `+380${newClientPhone}`}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-green-500 flex items-center justify-center text-white">
+                    <Calendar className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Дата та час</p>
+                    <p className="font-medium">{formatDate(selectedDate)}, {selectedTime}</p>
+                  </div>
+                </div>
+
+                <div className="border-t border-border pt-3">
+                  <p className="text-sm text-muted-foreground mb-2">Послуги</p>
+                  {selectedServices.map((s) => (
+                    <div key={s.id} className="flex justify-between text-sm py-1">
+                      <span>{s.name}</span>
+                      <span>{s.customPrice || s.price} ₴</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between font-medium pt-2 border-t mt-2">
+                    <span>Всього ({getTotalDuration()} хв)</span>
+                    <span>{getTotalPrice()} ₴</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t shrink-0">
+          {step === 'confirm' ? (
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isSaving ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  <Check className="h-5 w-5" />
+                  Створити запис
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={goNext}
+              disabled={!canGoNext()}
+              className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              Далі
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+
+        {/* Progress dots */}
+        <div className="flex justify-center gap-1.5 pb-4">
+          {['colleague', 'services', 'datetime', 'client', 'confirm'].map((s, i) => (
+            <div
+              key={s}
+              className={cn(
+                "h-1.5 rounded-full transition-all",
+                step === s ? "w-6 bg-primary" : "w-1.5 bg-muted"
+              )}
+            />
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
