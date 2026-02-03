@@ -466,8 +466,8 @@ export default function StaffDashboard() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : stats?.todayBookings && stats.todayBookings.length > 0 ? (
-            <div className="overflow-x-auto -mx-4 px-4 scrollbar-hide">
-              <div className="flex gap-3 pb-2" style={{ minWidth: 'min-content' }}>
+            <div className="overflow-x-auto -mx-4 scrollbar-hide">
+              <div className="flex gap-3 pb-2 px-4 pr-8">
                 {stats.todayBookings.map((booking) => {
                   const isPast = (() => {
                     const [h, m] = booking.time.split(':').map(Number);
@@ -478,15 +478,15 @@ export default function StaffDashboard() {
                   return (
                     <Card 
                       key={booking.id}
-                      className={`p-3 min-w-[140px] max-w-[160px] shrink-0 transition-all ${isPast ? 'opacity-50' : ''} ${
+                      className={`p-3 w-[160px] shrink-0 transition-all ${isPast ? 'opacity-50' : ''} ${
                         booking.status === 'COMPLETED' ? 'border-green-300 bg-green-50' : ''
                       }`}
                     >
                       {/* Time badge */}
-                      <div className={`inline-flex items-center px-2 py-1 rounded-lg text-sm font-bold mb-2 ${
+                      <div className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-bold mb-2 ${
                         isPast ? 'bg-muted text-muted-foreground' : 
                         booking.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : 
-                        'bg-primary/10 text-primary'
+                        'bg-zinc-100 text-zinc-900'
                       }`}>
                         {booking.time}
                       </div>
@@ -506,13 +506,13 @@ export default function StaffDashboard() {
                   );
                 })}
                 
-                {/* Add button at the end */}
+                {/* Add button - same style as booking card */}
                 <Card 
-                  className="p-3 min-w-[100px] shrink-0 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors border-dashed"
+                  className="p-3 w-[160px] shrink-0 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors border-dashed border-2"
                   onClick={() => openNewBooking()}
                 >
-                  <Plus className="h-6 w-6 text-muted-foreground mb-1" />
-                  <span className="text-xs text-muted-foreground">Додати</span>
+                  <Plus className="h-8 w-8 text-muted-foreground mb-2" />
+                  <span className="text-sm font-medium text-muted-foreground">Додати</span>
                 </Card>
               </div>
             </div>
