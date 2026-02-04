@@ -150,7 +150,7 @@ export default function StaffClientsPage() {
       setIsPanelVisible(false);
       setSelectedClient(null);
       setIsEditing(false);
-    }, 350);
+    }, 560);
   };
 
   const handleSaveClient = async () => {
@@ -281,7 +281,7 @@ export default function StaffClientsPage() {
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
             style={{
               opacity: isPanelAnimating ? 1 : 0,
-              transition: 'opacity 300ms ease-out',
+              transition: 'opacity 560ms ease-out',
             }}
             onClick={closeClientCard}
           />
@@ -291,14 +291,14 @@ export default function StaffClientsPage() {
             className="fixed inset-y-0 right-0 w-full sm:w-[400px] bg-background shadow-2xl z-50 flex flex-col overflow-hidden"
             style={{
               transform: isPanelAnimating ? 'translateX(0)' : 'translateX(100%)',
-              transition: 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)',
+              transition: 'transform 560ms ease-out',
             }}
           >
             {/* Header */}
             <div className="relative bg-gradient-to-br from-primary/10 to-primary/5 p-6 pb-4">
               <button
                 onClick={closeClientCard}
-                className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/80 hover:bg-white shadow-md border border-gray-200 flex items-center justify-center"
+                className="absolute top-4 right-4 h-8 w-8 rounded-xl bg-white/80 hover:bg-white shadow-md border border-gray-200 flex items-center justify-center transition-colors"
               >
                 <X className="h-4 w-4 text-gray-700" />
               </button>
@@ -312,15 +312,45 @@ export default function StaffClientsPage() {
                 </div>
                 
                 <div className="flex-1">
-                  {isEditing ? (
-                    <Input
-                      value={editForm.name}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                      className="text-xl font-bold h-auto py-1 px-2"
-                    />
-                  ) : (
-                    <h2 className="text-xl font-bold">{selectedClient.name}</h2>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {/* Name with smooth edit transition */}
+                    <div className="relative flex-1">
+                      <div 
+                        className="overflow-hidden transition-all duration-300 ease-out"
+                        style={{
+                          maxHeight: isEditing ? '0px' : '40px',
+                          opacity: isEditing ? 0 : 1,
+                        }}
+                      >
+                        <h2 className="text-xl font-bold">{selectedClient.name}</h2>
+                      </div>
+                      <div 
+                        className="overflow-hidden transition-all duration-300 ease-out"
+                        style={{
+                          maxHeight: isEditing ? '40px' : '0px',
+                          opacity: isEditing ? 1 : 0,
+                        }}
+                      >
+                        <Input
+                          value={editForm.name}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                          className="text-xl font-bold h-auto py-1 px-2"
+                        />
+                      </div>
+                    </div>
+                    {/* Edit pencil button */}
+                    <button
+                      onClick={() => setIsEditing(!isEditing)}
+                      className={cn(
+                        "h-7 w-7 rounded-lg flex items-center justify-center transition-all duration-200",
+                        isEditing 
+                          ? "bg-primary text-white" 
+                          : "bg-white/60 hover:bg-white/80 text-muted-foreground"
+                      )}
+                    >
+                      <Edit2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                   
                   {/* Tags */}
                   <div className="flex flex-wrap gap-1.5 mt-2">
@@ -384,7 +414,7 @@ export default function StaffClientsPage() {
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {/* Contact info */}
-              <Card className="p-4 space-y-3">
+              <Card className="p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <h3 className="font-medium text-sm text-muted-foreground">Контакти</h3>
                   <button
@@ -395,7 +425,7 @@ export default function StaffClientsPage() {
                     {isEditing ? 'Скасувати' : 'Редагувати'}
                   </button>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <div className="flex items-center gap-3">
                     <Phone className="h-4 w-4 text-muted-foreground" />
                     {isEditing ? (
