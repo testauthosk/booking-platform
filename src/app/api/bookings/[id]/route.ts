@@ -52,7 +52,7 @@ export async function PATCH(
     });
 
     const body = await request.json();
-    const { serviceId, date, time, duration, extraTime, status } = body;
+    const { clientId, clientName, clientPhone, serviceId, date, time, duration, extraTime, status } = body;
 
     // Отримати поточне бронювання
     const existing = await prisma.booking.findUnique({
@@ -71,6 +71,26 @@ export async function PATCH(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    // Перевірка: чи запис вже почався (не можна міняти клієнта/послугу після початку)
+    const [bookingHour, bookingMin] = existing.time.split(':').map(Number);
+    const [bookingYear, bookingMonth, bookingDay] = existing.date.split('-').map(Number);
+    const bookingStart = new Date(bookingYear, bookingMonth - 1, bookingDay, bookingHour, bookingMin);
+    const hasStarted = new Date() >= bookingStart;
+
+    // Блокувати зміну клієнта/послуги після початку
+    if (hasStarted) {
+      if (clientId !== undefined && clientId !== existing.clientId) {
+        return NextResponse.json({ 
+          error: 'Неможливо змінити клієнта — запис вже почався' 
+        }, { status: 400 });
+      }
+      if (serviceId !== undefined && serviceId !== existing.serviceId) {
+        return NextResponse.json({ 
+          error: 'Неможливо змінити послугу — запис вже почався' 
+        }, { status: 400 });
+      }
+    }
+
     // Підготувати дані для оновлення
     const updateData: any = {};
 
@@ -79,6 +99,25 @@ export async function PATCH(
     if (duration !== undefined) updateData.duration = duration;
     if (extraTime !== undefined) updateData.extraTime = extraTime;
     if (status !== undefined) updateData.status = status;
+
+    // Якщо змінився клієнт
+    if (clientId !== undefined && clientId !== existing.clientId) {
+      if (clientId) {
+        const client = await prisma.client.findUnique({
+          where: { id: clientId }
+        });
+        if (client) {
+          updateData.clientId = clientId;
+          updateData.clientName = client.name;
+          updateData.clientPhone = client.phone;
+        }
+      } else {
+        // Якщо clientId = null/undefined але є clientName/clientPhone — використати їх
+        if (clientName) updateData.clientName = clientName;
+        if (clientPhone) updateData.clientPhone = clientPhone;
+        updateData.clientId = null;
+      }
+    }
 
     // Якщо змінилась послуга — оновити назву і ціну
     if (serviceId && serviceId !== existing.serviceId) {

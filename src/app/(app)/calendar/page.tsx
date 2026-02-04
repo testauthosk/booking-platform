@@ -50,6 +50,8 @@ interface SalonData {
 interface BookingFromAPI {
   id: string;
   masterId: string | null;
+  clientId: string | null;
+  serviceId: string | null;
   clientName: string;
   clientPhone: string;
   serviceName: string | null;
@@ -170,8 +172,10 @@ export default function CalendarPage() {
             start,
             end,
             resourceId: b.masterId || undefined,
+            clientId: b.clientId || undefined,
             clientName: b.clientName,
             clientPhone: b.clientPhone,
+            serviceId: b.serviceId || undefined,
             serviceName: b.serviceName || undefined,
             masterName: b.masterName || undefined,
             status: b.status.toLowerCase(),
@@ -595,6 +599,9 @@ export default function CalendarPage() {
         onClose={() => setIsEditModalOpen(false)}
         booking={selectedEvent ? {
           id: selectedEvent.id,
+          clientId: selectedEvent.clientId,
+          clientName: selectedEvent.clientName,
+          clientPhone: selectedEvent.clientPhone,
           serviceId: selectedEvent.serviceId,
           serviceName: selectedEvent.serviceName,
           date: selectedEvent.start.toISOString().split('T')[0],
@@ -604,6 +611,7 @@ export default function CalendarPage() {
           masterId: selectedEvent.resourceId,
         } : null}
         services={services}
+        salonId={user?.salonId || ''}
         onSave={async (data) => {
           const res = await fetch(`/api/bookings/${data.id}`, {
             method: 'PATCH',

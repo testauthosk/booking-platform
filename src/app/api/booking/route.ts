@@ -30,7 +30,14 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    return NextResponse.json(bookings);
+    // Return with explicit serviceId and clientId
+    const result = bookings.map(b => ({
+      ...b,
+      serviceId: b.serviceId,
+      clientId: b.clientId,
+    }));
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Bookings GET error:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
