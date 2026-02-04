@@ -607,7 +607,7 @@ export default function StaffDashboard() {
         <div className="grid grid-cols-3 gap-3">
           <Card className="relative aspect-square">
             <div className="absolute inset-0 flex items-center justify-center">
-              <p className="text-[2.5rem] font-bold leading-none" style={{ color: isLightColor(accentColor) ? darkenColor(accentColor, 25) : accentColor }}>
+              <p className="text-[3.25rem] font-bold leading-none" style={{ color: isLightColor(accentColor) ? darkenColor(accentColor, 25) : accentColor }}>
                 {loadingStats ? '...' : stats?.todayCount ?? 0}
               </p>
             </div>
@@ -615,7 +615,7 @@ export default function StaffDashboard() {
           </Card>
           <Card className="relative aspect-square">
             <div className="absolute inset-0 flex items-center justify-center">
-              <p className="text-[2.5rem] font-bold text-foreground leading-none">
+              <p className="text-[3.25rem] font-bold text-foreground leading-none">
                 {loadingStats ? '...' : stats?.tomorrowCount ?? 0}
               </p>
             </div>
@@ -623,7 +623,7 @@ export default function StaffDashboard() {
           </Card>
           <Card className="relative aspect-square">
             <div className="absolute inset-0 flex items-center justify-center">
-              <p className="text-[2.5rem] font-bold text-foreground leading-none">
+              <p className="text-[3.25rem] font-bold text-foreground leading-none">
                 {loadingStats ? '...' : stats?.weekCount ?? 0}
               </p>
             </div>
