@@ -926,7 +926,7 @@ export default function StaffDashboard() {
               {/* Обід */}
               <button
                 type="button"
-                onClick={setLunchBreak}
+                onClick={(e) => { e.stopPropagation(); setLunchBreak(); }}
                 className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 active:opacity-80"
                 style={{ 
                   backgroundColor: `${accentColor}20`,
@@ -941,7 +941,7 @@ export default function StaffDashboard() {
               {/* 1 година */}
               <button
                 type="button"
-                onClick={() => setQuickBreak(1)}
+                onClick={(e) => { e.stopPropagation(); setQuickBreak(1); }}
                 className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 active:opacity-80"
                 style={{ 
                   backgroundColor: `${accentColor}20`,
@@ -956,7 +956,7 @@ export default function StaffDashboard() {
               {/* 2 години */}
               <button
                 type="button"
-                onClick={() => setQuickBreak(2)}
+                onClick={(e) => { e.stopPropagation(); setQuickBreak(2); }}
                 className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 active:opacity-80"
                 style={{ 
                   backgroundColor: `${accentColor}20`,
@@ -971,7 +971,7 @@ export default function StaffDashboard() {
               {/* Весь день */}
               <button
                 type="button"
-                onClick={setFullDay}
+                onClick={(e) => { e.stopPropagation(); setFullDay(); }}
                 className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 active:opacity-80"
                 style={{ 
                   backgroundColor: `${accentColor}20`,
@@ -987,7 +987,7 @@ export default function StaffDashboard() {
             {/* До кінця дня — окрема велика кнопка */}
             <button
               type="button"
-              onClick={setToEndOfDay}
+              onClick={(e) => { e.stopPropagation(); setToEndOfDay(); }}
               className="w-full py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 active:opacity-80"
               style={{ 
                 backgroundColor: `${accentColor}20`,
