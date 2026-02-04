@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ChevronLeft, Plus, Loader2, Clock, User, X, Check, Pencil, Phone, Minus } from 'lucide-react';
 import { TimeWheelPicker } from '@/components/time-wheel-picker';
+import { StaffBookingModal } from '@/components/staff/staff-booking-modal';
 
 interface Booking {
   id: string;
@@ -219,6 +220,7 @@ function StaffCalendarContent() {
   const [loading, setLoading] = useState(true);
   const [focusBookingId, setFocusBookingId] = useState<string | null>(null);
   const [staffId, setStaffId] = useState('');
+  const [staffName, setStaffName] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
@@ -230,18 +232,6 @@ function StaffCalendarContent() {
   // Add booking modal
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
-  const [newClientName, setNewClientName] = useState('');
-  const [newClientPhone, setNewClientPhone] = useState('');
-  const [newServiceId, setNewServiceId] = useState('');
-  const [newTime, setNewTime] = useState('10:00');
-  const [newDuration, setNewDuration] = useState('60');
-  const [newPrice, setNewPrice] = useState('');
-  const [creating, setCreating] = useState(false);
-  
-  // Pickers
-  const [servicePickerOpen, setServicePickerOpen] = useState(false);
-  const [timePickerOpen, setTimePickerOpen] = useState(false);
-  const [durationPickerOpen, setDurationPickerOpen] = useState(false);
   
   // Edit booking modal
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -321,6 +311,7 @@ function StaffCalendarContent() {
   useEffect(() => {
     const token = localStorage.getItem('staffToken');
     const id = localStorage.getItem('staffId');
+    const name = localStorage.getItem('staffName');
     const salon = localStorage.getItem('staffSalonId');
     
     if (!token) {
@@ -329,6 +320,7 @@ function StaffCalendarContent() {
     }
     
     setStaffId(id || '');
+    setStaffName(name || '');
     setSalonId(salon || '');
     setLoading(false);
   }, [router]);
@@ -991,297 +983,17 @@ function StaffCalendarContent() {
       </div>
       
       {/* Add Booking Modal */}
-      <div 
-        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-all duration-700 ease-in-out ${
-          addModalOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-        onClick={() => setAddModalOpen(false)}
-      />
-      <div 
-        className={`fixed inset-x-0 bottom-0 max-h-[85vh] bg-card rounded-t-3xl shadow-xl z-50 transform transition-all duration-700 ease-in-out overflow-hidden flex flex-col ${
-          addModalOpen ? 'translate-y-0' : 'translate-y-full'
-        }`}
-      >
-        <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
-          <h2 className="font-semibold">Новий запис</h2>
-          <button 
-            onClick={() => setAddModalOpen(false)}
-            className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {/* Busy slots timeline */}
-          {bookings.length > 0 && (
-            <div className="pb-2">
-              <p className="text-xs text-muted-foreground mb-2">Зайнято сьогодні:</p>
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                {bookings
-                  .filter(b => b.status !== 'CANCELLED')
-                  .sort((a, b) => a.time.localeCompare(b.time))
-                  .map((booking) => {
-                    const [h, m] = booking.time.split(':').map(Number);
-                    const endMins = h * 60 + m + booking.duration;
-                    const endH = Math.floor(endMins / 60);
-                    const endM = endMins % 60;
-                    const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
-                    return (
-                      <div
-                        key={booking.id}
-                        className="shrink-0 px-3 py-1.5 rounded-full bg-red-50 border border-red-200 text-xs"
-                      >
-                        <span className="font-medium text-red-700">{booking.time}-{endTime}</span>
-                        <span className="text-red-500 ml-1">{booking.clientName}</span>
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-          )}
-
-          {/* Client Name */}
-          <div>
-            <label className="text-sm font-medium mb-1.5 block">Імя клієнта *</label>
-            <Input
-              value={newClientName}
-              onChange={(e) => setNewClientName(e.target.value)}
-              placeholder="Наприклад: Олена"
-            />
-          </div>
-
-          {/* Client Phone */}
-          <div>
-            <label className="text-sm font-medium mb-1.5 block">Телефон *</label>
-            <div className="relative flex items-center">
-              <span className="absolute left-4 text-base font-medium text-muted-foreground">+380</span>
-              <Input
-                value={newClientPhone}
-                onChange={handlePhoneChange}
-                placeholder="XX XXX XX XX"
-                className="pl-16 text-base"
-                maxLength={12}
-              />
-            </div>
-          </div>
-
-          {/* Service */}
-          <div>
-            <label className="text-sm font-medium mb-1.5 block">Послуга</label>
-            <button
-              type="button"
-              onClick={() => setServicePickerOpen(true)}
-              className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
-            >
-              <span className={newServiceId ? '' : 'text-muted-foreground'}>
-                {newServiceId 
-                  ? services.find(s => s.id === newServiceId)?.name || 'Оберіть послугу'
-                  : 'Оберіть послугу'}
-              </span>
-              <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Time */}
-          <div>
-            <label className="text-sm font-medium mb-1.5 block">Час *</label>
-            <button
-              type="button"
-              onClick={() => setTimePickerOpen(true)}
-              className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
-            >
-              <span>{newTime}</span>
-              <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Duration */}
-          <div>
-            <label className="text-sm font-medium mb-1.5 block">Тривалість</label>
-            <button
-              type="button"
-              onClick={() => setDurationPickerOpen(true)}
-              className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
-            >
-              <span>{durationOptions.find(d => d.value === newDuration)?.label || '1 год'}</span>
-              <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Price */}
-          <div>
-            <label className="text-sm font-medium mb-1.5 block">Ціна (₴)</label>
-            <Input
-              type="number"
-              value={newPrice}
-              onChange={(e) => setNewPrice(e.target.value)}
-              placeholder="500"
-            />
-          </div>
-        </div>
-
-        <div className="p-4 pb-8 border-t border-border shrink-0">
-          <button
-            onClick={createBooking}
-            disabled={creating || !newClientName || !newClientPhone}
-            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {creating ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <>
-                <Check className="h-5 w-5" />
-                Створити запис
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Service Picker */}
-      {servicePickerOpen && (
-        <div 
-          className="fixed inset-0 bg-black/40 z-[60]"
-          onClick={() => setServicePickerOpen(false)}
+      {salonId && staffId && (
+        <StaffBookingModal
+          isOpen={addModalOpen}
+          onClose={() => setAddModalOpen(false)}
+          salonId={salonId}
+          masterId={staffId}
+          masterName={staffName}
+          services={services}
+          onSuccess={loadBookings}
         />
       )}
-      <div 
-        className={`fixed inset-x-0 bottom-0 bg-zinc-800 rounded-t-2xl z-[70] transform transition-transform duration-300 ${
-          servicePickerOpen ? 'translate-y-0' : 'translate-y-full'
-        }`}
-      >
-        <div className="p-2 max-h-[50vh] overflow-y-auto">
-          <button
-            onClick={() => {
-              setNewServiceId('');
-              setServicePickerOpen(false);
-            }}
-            className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
-              !newServiceId ? 'text-white' : 'text-zinc-300'
-            }`}
-          >
-            {!newServiceId && <Check className="h-5 w-5" />}
-            <span className={!newServiceId ? '' : 'ml-8'}>Без послуги</span>
-          </button>
-          {services.map((service) => (
-            <button
-              key={service.id}
-              onClick={() => handleServiceSelect(service.id)}
-              className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
-                newServiceId === service.id ? 'text-white' : 'text-zinc-300'
-              }`}
-            >
-              {newServiceId === service.id && <Check className="h-5 w-5" />}
-              <span className={newServiceId === service.id ? '' : 'ml-8'}>
-                {service.name} — {service.price}₴
-              </span>
-            </button>
-          ))}
-        </div>
-        <button
-          onClick={() => setServicePickerOpen(false)}
-          className="w-full py-4 text-center text-zinc-400 border-t border-zinc-700"
-        >
-          <X className="h-5 w-5 mx-auto" />
-        </button>
-      </div>
-
-      {/* Time Picker */}
-      {timePickerOpen && (
-        <div 
-          className="fixed inset-0 bg-black/40 z-[60]"
-          onClick={() => setTimePickerOpen(false)}
-        />
-      )}
-      <div 
-        className={`fixed inset-x-0 bottom-0 bg-zinc-800 rounded-t-2xl z-[70] transform transition-transform duration-300 ${
-          timePickerOpen ? 'translate-y-0' : 'translate-y-full'
-        }`}
-      >
-        <div className="p-2 max-h-[50vh] overflow-y-auto">
-          {timeOptions.map((time) => {
-            // Check if this time is in the past for today
-            const isToday = selectedDate.toDateString() === new Date().toDateString();
-            const now = new Date();
-            const [h, m] = time.split(':').map(Number);
-            const isPast = isToday && (h < now.getHours() || (h === now.getHours() && m <= now.getMinutes()));
-            
-            return (
-              <button
-                key={time}
-                onClick={() => {
-                  if (!isPast) {
-                    setNewTime(time);
-                    setTimePickerOpen(false);
-                  }
-                }}
-                disabled={isPast}
-                className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
-                  isPast 
-                    ? 'text-zinc-600 line-through cursor-not-allowed' 
-                    : newTime === time 
-                    ? 'text-white' 
-                    : 'text-zinc-300'
-                }`}
-              >
-                {newTime === time && !isPast && <Check className="h-5 w-5" />}
-                <span className={newTime === time && !isPast ? '' : 'ml-8'}>{time}</span>
-                {isPast && <span className="text-xs text-zinc-500 ml-auto">минуло</span>}
-              </button>
-            );
-          })}
-        </div>
-        <button
-          onClick={() => setTimePickerOpen(false)}
-          className="w-full py-4 text-center text-zinc-400 border-t border-zinc-700"
-        >
-          <X className="h-5 w-5 mx-auto" />
-        </button>
-      </div>
-
-      {/* Duration Picker */}
-      {durationPickerOpen && (
-        <div 
-          className="fixed inset-0 bg-black/40 z-[60]"
-          onClick={() => setDurationPickerOpen(false)}
-        />
-      )}
-      <div 
-        className={`fixed inset-x-0 bottom-0 bg-zinc-800 rounded-t-2xl z-[70] transform transition-transform duration-300 ${
-          durationPickerOpen ? 'translate-y-0' : 'translate-y-full'
-        }`}
-      >
-        <div className="p-2">
-          {durationOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => {
-                setNewDuration(opt.value);
-                setDurationPickerOpen(false);
-              }}
-              className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
-                newDuration === opt.value ? 'text-white' : 'text-zinc-300'
-              }`}
-            >
-              {newDuration === opt.value && <Check className="h-5 w-5" />}
-              <span className={newDuration === opt.value ? '' : 'ml-8'}>{opt.label}</span>
-            </button>
-          ))}
-        </div>
-        <button
-          onClick={() => setDurationPickerOpen(false)}
-          className="w-full py-4 text-center text-zinc-400 border-t border-zinc-700"
-        >
-          <X className="h-5 w-5 mx-auto" />
-        </button>
-      </div>
 
       {/* Edit Booking Modal */}
       <div 
