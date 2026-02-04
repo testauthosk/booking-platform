@@ -736,6 +736,32 @@ export function StaffBookingModal({
                 </div>
               </div>
 
+              {/* Existing bookings strip */}
+              {masterBookings.filter(b => b.status !== 'CANCELLED').length > 0 && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Записи на цей день</p>
+                  <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                    {masterBookings
+                      .filter(b => b.status !== 'CANCELLED')
+                      .sort((a, b) => a.time.localeCompare(b.time))
+                      .map((booking) => {
+                        const [h, m] = booking.time.split(':').map(Number);
+                        const endMin = h * 60 + m + (booking.duration || 60);
+                        const endTime = `${Math.floor(endMin / 60).toString().padStart(2, '0')}:${(endMin % 60).toString().padStart(2, '0')}`;
+                        return (
+                          <div
+                            key={booking.id}
+                            className="shrink-0 px-3 py-1.5 rounded-full bg-red-50 border border-red-200 text-xs whitespace-nowrap"
+                          >
+                            <span className="font-semibold text-red-700">{booking.time}–{booking.timeEnd || endTime}</span>
+                            <span className="text-red-500 ml-1.5">{booking.clientName?.split(' ')[0]}</span>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+
               {/* Time picker - wheel */}
               <div className="bg-zinc-900 rounded-2xl p-4">
                 <TimeWheelPicker
