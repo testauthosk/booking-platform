@@ -376,28 +376,29 @@ export default function StaffClientsPage() {
           >
             {/* Header */}
             <div className="relative bg-gradient-to-br from-primary/10 to-primary/5 p-6 pb-4">
+              {/* Close button - aligned with top of avatar and right edge of Telegram button */}
               <button
                 onClick={closeClientCard}
-                className="absolute top-4 right-4 h-8 w-8 rounded-xl bg-white/80 hover:bg-white shadow-md border border-gray-200 flex items-center justify-center transition-colors"
+                className="absolute top-6 right-6 h-8 w-8 rounded-xl bg-white/80 hover:bg-white shadow-md border border-gray-200 flex items-center justify-center transition-colors"
               >
                 <X className="h-4 w-4 text-gray-700" />
               </button>
 
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-4 pr-12">
                 <div className={cn(
-                  "h-16 w-16 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg",
+                  "h-16 w-16 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg shrink-0",
                   getAvatarColor(selectedClient.name)
                 )}>
                   {getInitials(selectedClient.name)}
                 </div>
                 
-                <div className="flex-1">
-                  {/* Name + pencil */}
-                  <div className="flex items-center gap-1.5">
-                    <h2 className="text-xl font-bold">{selectedClient.name}</h2>
+                <div className="flex-1 min-w-0">
+                  {/* Name + pencil in border */}
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-bold truncate">{selectedClient.name}</h2>
                     <button
                       onClick={() => setIsEditing(!isEditing)}
-                      className="h-5 w-5 rounded flex items-center justify-center text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                      className="h-6 w-6 rounded-lg border border-gray-300 bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 transition-colors shrink-0"
                     >
                       <Edit2 className="h-3 w-3" />
                     </button>
@@ -464,8 +465,8 @@ export default function StaffClientsPage() {
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {/* Contact info */}
-              <Card className="p-4">
-                <div className="flex items-center justify-between mb-1">
+              <Card className="p-3">
+                <div className="flex items-center justify-between">
                   <h3 className="font-medium text-sm text-muted-foreground">Контакти</h3>
                   <button
                     onClick={() => setIsEditing(!isEditing)}
@@ -475,7 +476,7 @@ export default function StaffClientsPage() {
                     {isEditing ? 'Скасувати' : 'Редагувати'}
                   </button>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 mt-1">
                   <div className="flex items-center gap-3">
                     <Phone className="h-4 w-4 text-muted-foreground" />
                     {isEditing ? (
