@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         clientName: true,
+        clientPhone: true,
         serviceName: true,
         time: true,
         timeEnd: true,

@@ -8,11 +8,13 @@ import { Calendar, Clock, LogOut, Settings, Loader2, Plus, ChevronRight, X, Tag,
 import { TimeWheelPicker } from '@/components/time-wheel-picker';
 import { ColleagueBookingModal } from '@/components/staff/colleague-booking-modal';
 import { StaffBookingModal } from '@/components/staff/staff-booking-modal';
+import { BookingDetailsModal } from '@/components/staff/booking-details-modal';
 import { getPaletteById } from '@/lib/color-palettes';
 
 interface Booking {
   id: string;
   clientName: string;
+  clientPhone?: string;
   serviceName: string;
   time: string;
   timeEnd?: string;
@@ -75,10 +77,6 @@ export default function StaffDashboard() {
   // Booking details modal
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [bookingDetailsOpen, setBookingDetailsOpen] = useState(false);
-  const [transferModalOpen, setTransferModalOpen] = useState(false);
-  const [colleagues, setColleagues] = useState<{id: string; name: string; avatar?: string}[]>([]);
-  const [selectedColleague, setSelectedColleague] = useState<string | null>(null);
-  const [transferring, setTransferring] = useState(false);
   const [blockDate, setBlockDate] = useState(new Date());
   const [blockTimeStart, setBlockTimeStart] = useState('10:00');
   const [blockTimeEnd, setBlockTimeEnd] = useState('11:00');
@@ -927,266 +925,15 @@ export default function StaffDashboard() {
       )}
 
       {/* Booking Details Modal */}
-      {bookingDetailsOpen && selectedBooking && (
-        <>
-          <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
-            style={{
-              opacity: bookingDetailsOpen ? 1 : 0,
-              transition: 'opacity 350ms ease-out',
-            }}
-            onClick={() => setBookingDetailsOpen(false)}
-          />
-          <div 
-            className="fixed inset-x-0 bottom-0 bg-card rounded-t-3xl shadow-xl z-[110] max-h-[85vh] overflow-hidden flex flex-col"
-            style={{
-              transform: bookingDetailsOpen ? 'translateY(0)' : 'translateY(100%)',
-              transition: 'transform 350ms cubic-bezier(0.4, 0, 0.2, 1)',
-            }}
-          >
-            {/* Header */}
-            <div className="p-4 border-b flex items-center justify-between shrink-0">
-              <h2 className="font-semibold text-lg">Деталі запису</h2>
-              <button 
-                onClick={() => setBookingDetailsOpen(false)}
-                className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {/* Time & Status */}
-              <div className="flex items-center justify-between">
-                <div 
-                  className="px-4 py-2 rounded-xl text-lg font-bold"
-                  style={{ backgroundColor: `${accentColor}15`, color: accentColor }}
-                >
-                  {selectedBooking.time} — {selectedBooking.timeEnd || (() => {
-                    const [h, m] = selectedBooking.time.split(':').map(Number);
-                    const endMin = h * 60 + m + selectedBooking.duration;
-                    return `${Math.floor(endMin / 60).toString().padStart(2, '0')}:${(endMin % 60).toString().padStart(2, '0')}`;
-                  })()}
-                </div>
-                <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${
-                  selectedBooking.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
-                  selectedBooking.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
-                  'bg-yellow-100 text-yellow-700'
-                }`}>
-                  {selectedBooking.status === 'COMPLETED' ? 'Виконано' :
-                   selectedBooking.status === 'CANCELLED' ? 'Скасовано' : 'Очікує'}
-                </span>
-              </div>
-
-              {/* Client */}
-              <div className="p-4 rounded-xl bg-muted/50">
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="h-12 w-12 rounded-full flex items-center justify-center text-white font-bold text-lg"
-                    style={{ backgroundColor: accentColor }}
-                  >
-                    {selectedBooking.clientName.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-lg">{selectedBooking.clientName}</p>
-                    <p className="text-sm text-muted-foreground">{selectedBooking.serviceName}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Details */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-xl bg-muted/30">
-                  <p className="text-xs text-muted-foreground mb-1">Тривалість</p>
-                  <p className="font-semibold">{selectedBooking.duration} хв</p>
-                </div>
-                <div className="p-3 rounded-xl bg-muted/30">
-                  <p className="text-xs text-muted-foreground mb-1">Вартість</p>
-                  <p className="font-semibold">{selectedBooking.price || 0} ₴</p>
-                </div>
-              </div>
-
-              {/* Quick Actions */}
-              {selectedBooking.status !== 'COMPLETED' && selectedBooking.status !== 'CANCELLED' && (
-                <div className="space-y-2">
-                  <button
-                    onClick={() => {
-                      // Передаємо ID запису щоб календар міг сфокусуватись на ньому
-                      router.push(`/staff/calendar?bookingId=${selectedBooking.id}&time=${selectedBooking.time}`);
-                    }}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:bg-muted/50 transition-colors"
-                  >
-                    <Calendar className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-medium">Відкрити в календарі</span>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground ml-auto" />
-                  </button>
-                  
-                  <button
-                    onClick={async () => {
-                      // Load colleagues
-                      try {
-                        const res = await fetch(`/api/masters?salonId=${salonId}`);
-                        if (res.ok) {
-                          const data = await res.json();
-                          setColleagues(data.filter((m: any) => m.id !== staffId));
-                        }
-                      } catch (e) {}
-                      setTransferModalOpen(true);
-                    }}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:bg-muted/50 transition-colors"
-                  >
-                    <Users className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-medium">Передати колезі</span>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground ml-auto" />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Actions */}
-            {selectedBooking.status !== 'COMPLETED' && selectedBooking.status !== 'CANCELLED' && (
-              <div className="p-4 border-t flex gap-2 shrink-0">
-                <button
-                  onClick={async () => {
-                    if (!confirm('Скасувати цей запис?')) return;
-                    try {
-                      const res = await fetch('/api/staff/bookings', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ bookingId: selectedBooking.id, status: 'CANCELLED' }),
-                      });
-                      if (res.ok) {
-                        setBookingDetailsOpen(false);
-                        loadStats();
-                      }
-                    } catch (e) {}
-                  }}
-                  className="flex-1 py-3 rounded-xl bg-red-50 text-red-600 font-medium hover:bg-red-100 transition-colors"
-                >
-                  Скасувати
-                </button>
-                <button
-                  onClick={async () => {
-                    try {
-                      const res = await fetch('/api/staff/bookings', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ bookingId: selectedBooking.id, status: 'COMPLETED' }),
-                      });
-                      if (res.ok) {
-                        setBookingDetailsOpen(false);
-                        loadStats();
-                      }
-                    } catch (e) {}
-                  }}
-                  className="flex-1 py-3 rounded-xl font-medium transition-colors text-white"
-                  style={{ backgroundColor: accentColor }}
-                >
-                  Виконано ✓
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Transfer Modal - Bottom Sheet */}
-          <div 
-            className="fixed inset-0 bg-black/40 z-[120]"
-            style={{
-              opacity: transferModalOpen ? 1 : 0,
-              pointerEvents: transferModalOpen ? 'auto' : 'none',
-              transition: 'opacity 300ms ease-out',
-            }}
-            onClick={() => setTransferModalOpen(false)}
-          />
-          <div 
-            className="fixed inset-x-0 bottom-0 bg-card rounded-t-3xl shadow-xl z-[130] max-h-[70vh] overflow-hidden flex flex-col"
-            style={{
-              transform: transferModalOpen ? 'translateY(0)' : 'translateY(100%)',
-              transition: 'transform 350ms cubic-bezier(0.4, 0, 0.2, 1)',
-            }}
-          >
-            <div className="p-4 border-b flex items-center justify-between shrink-0">
-              <div>
-                <h3 className="font-semibold">Передати запис</h3>
-                <p className="text-sm text-muted-foreground">Оберіть колегу</p>
-              </div>
-              <button 
-                onClick={() => setTransferModalOpen(false)}
-                className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-2">
-              {colleagues.length > 0 ? colleagues.map((colleague) => (
-                <button
-                  key={colleague.id}
-                  onClick={() => setSelectedColleague(colleague.id)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors ${
-                    selectedColleague === colleague.id ? 'bg-primary/10' : 'hover:bg-muted'
-                  }`}
-                >
-                  <div 
-                    className="h-12 w-12 rounded-full flex items-center justify-center text-white font-medium text-lg"
-                    style={{ backgroundColor: accentColor }}
-                  >
-                    {colleague.avatar ? (
-                      <img src={colleague.avatar} alt="" className="h-12 w-12 rounded-full object-cover" />
-                    ) : (
-                      colleague.name.charAt(0).toUpperCase()
-                    )}
-                  </div>
-                  <span className="font-medium text-lg">{colleague.name}</span>
-                  {selectedColleague === colleague.id && (
-                    <Check className="h-6 w-6 ml-auto" style={{ color: accentColor }} />
-                  )}
-                </button>
-              )) : (
-                <p className="text-center py-8 text-muted-foreground">Немає колег</p>
-              )}
-            </div>
-            <div className="p-4 border-t flex gap-2 shrink-0">
-              <button
-                onClick={() => setTransferModalOpen(false)}
-                className="flex-1 py-3 rounded-xl bg-muted hover:bg-muted/80 font-medium"
-              >
-                Скасувати
-              </button>
-              <button
-                onClick={async () => {
-                  if (!selectedColleague || !selectedBooking) return;
-                  setTransferring(true);
-                  try {
-                    const colleague = colleagues.find(c => c.id === selectedColleague);
-                    const res = await fetch('/api/staff/bookings', {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ 
-                        bookingId: selectedBooking.id, 
-                        masterId: selectedColleague,
-                        masterName: colleague?.name,
-                      }),
-                    });
-                    if (res.ok) {
-                      setTransferModalOpen(false);
-                      setBookingDetailsOpen(false);
-                      setSelectedColleague(null);
-                      loadStats();
-                    }
-                  } catch (e) {}
-                  setTransferring(false);
-                }}
-                disabled={!selectedColleague || transferring}
-                className="flex-1 py-3 rounded-xl text-white font-medium disabled:opacity-50"
-                style={{ backgroundColor: accentColor }}
-              >
-                {transferring ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : 'Передати'}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      <BookingDetailsModal
+        isOpen={bookingDetailsOpen}
+        onClose={() => setBookingDetailsOpen(false)}
+        booking={selectedBooking}
+        accentColor={accentColor}
+        salonId={salonId}
+        staffId={staffId}
+        onStatusChange={loadStats}
+      />
     </div>
   );
 }
