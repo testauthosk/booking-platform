@@ -251,8 +251,11 @@ function StaffCalendarContent() {
   }>({ open: false, type: null, booking: null });
   const [confirmLoading, setConfirmLoading] = useState(false);
   
-  // Calendar picker modal
+  // Calendar picker modal (full screen archive)
   const [calendarPickerOpen, setCalendarPickerOpen] = useState(false);
+  const [pickerViewDate, setPickerViewDate] = useState(new Date());
+  const [pickerBookings, setPickerBookings] = useState<Booking[]>([]);
+  const [pickerBookingsLoading, setPickerBookingsLoading] = useState(false);
   
   // Client card panel
   const [clientCardOpen, setClientCardOpen] = useState(false);
@@ -306,6 +309,29 @@ function StaffCalendarContent() {
       alert('Помилка при завершенні');
     }
   };
+
+  const loadPickerBookings = async (date: Date) => {
+    setPickerBookingsLoading(true);
+    try {
+      const dateStr = date.toISOString().split('T')[0];
+      const res = await fetch(`/api/staff/dashboard?masterId=${staffId}&date=${dateStr}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPickerBookings(data.todayBookings || []);
+      }
+    } catch (error) {
+      console.error('Load picker bookings error:', error);
+    } finally {
+      setPickerBookingsLoading(false);
+    }
+  };
+
+  // Load bookings when calendar picker opens
+  useEffect(() => {
+    if (calendarPickerOpen && staffId) {
+      loadPickerBookings(pickerViewDate);
+    }
+  }, [calendarPickerOpen]);
   
   // Time options will be generated based on working hours
   const getTimeOptions = () => {
@@ -614,6 +640,15 @@ function StaffCalendarContent() {
             </button>
           </div>
           <div className="flex items-center gap-2">
+            {/* Today button */}
+            {!isToday(selectedDate) && (
+              <button
+                onClick={() => setSelectedDate(new Date())}
+                className="h-10 px-3 rounded-xl bg-primary/10 text-primary text-sm font-medium"
+              >
+                Сьогодні
+              </button>
+            )}
             <button
               onClick={() => setShowOnlyBookings(!showOnlyBookings)}
               className={`h-10 px-3 rounded-xl text-sm font-medium transition-colors ${
@@ -1361,64 +1396,74 @@ function StaffCalendarContent() {
       </div>
     </div>
 
-    {/* Calendar Picker Modal */}
+    {/* Calendar Picker Modal - Full Screen */}
     <div 
-      className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-50 transition-opacity duration-300 ${
-        calendarPickerOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-      }`}
-      onClick={() => setCalendarPickerOpen(false)}
-    />
-    <div 
-      className={`fixed inset-x-0 bottom-0 bg-card rounded-t-3xl shadow-xl z-50 transform transition-transform duration-500 ease-out max-h-[80vh] overflow-hidden flex flex-col ${
+      className={`fixed inset-0 bg-background z-50 flex flex-col transition-transform duration-500 ease-out ${
         calendarPickerOpen ? 'translate-y-0' : 'translate-y-full'
       }`}
     >
-      <div className="p-4 border-b flex items-center justify-between shrink-0">
-        <h2 className="font-semibold text-lg">Оберіть дату</h2>
-        <button 
-          onClick={() => setCalendarPickerOpen(false)}
-          className="h-8 w-8 rounded-xl bg-white/80 hover:bg-white shadow-md border border-gray-200 flex items-center justify-center"
-        >
-          <X className="h-4 w-4 text-gray-700" />
-        </button>
-      </div>
-      
-      <div className="p-4 overflow-y-auto">
-        {/* Month navigation */}
-        <div className="flex items-center justify-between mb-4">
+      {/* Header */}
+      <div className="p-4 border-b flex items-center justify-between shrink-0 bg-card">
+        <div className="flex items-center gap-3">
           <button 
-            onClick={() => {
-              const newDate = new Date(selectedDate);
-              newDate.setMonth(newDate.getMonth() - 1);
-              setSelectedDate(newDate);
-            }}
-            className="h-10 w-10 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center justify-center"
+            onClick={() => setCalendarPickerOpen(false)}
+            className="h-10 w-10 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center justify-center shadow-sm"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <div className="text-center">
-            <p className="font-semibold text-lg">
-              {selectedDate.toLocaleDateString('uk-UA', { month: 'long', year: 'numeric' })}
+          <div>
+            <h2 className="font-semibold text-lg">Архів записів</h2>
+            <p className="text-sm text-muted-foreground">
+              {pickerViewDate.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           </div>
+        </div>
+        <button 
+          onClick={() => {
+            setPickerViewDate(new Date());
+            loadPickerBookings(new Date());
+          }}
+          className="h-10 px-4 rounded-xl bg-primary/10 text-primary font-medium text-sm"
+        >
+          Сьогодні
+        </button>
+      </div>
+      
+      {/* Calendar */}
+      <div className="p-4 bg-card border-b shrink-0">
+        {/* Month navigation */}
+        <div className="flex items-center justify-between mb-3">
           <button 
             onClick={() => {
-              const newDate = new Date(selectedDate);
-              newDate.setMonth(newDate.getMonth() + 1);
-              setSelectedDate(newDate);
+              const newDate = new Date(pickerViewDate);
+              newDate.setMonth(newDate.getMonth() - 1);
+              setPickerViewDate(newDate);
             }}
-            className="h-10 w-10 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center justify-center"
+            className="h-9 w-9 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center justify-center"
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <p className="font-semibold">
+            {pickerViewDate.toLocaleDateString('uk-UA', { month: 'long', year: 'numeric' })}
+          </p>
+          <button 
+            onClick={() => {
+              const newDate = new Date(pickerViewDate);
+              newDate.setMonth(newDate.getMonth() + 1);
+              setPickerViewDate(newDate);
+            }}
+            className="h-9 w-9 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center justify-center"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
         </div>
         
-        {/* Days of week header */}
-        <div className="grid grid-cols-7 gap-1 mb-2">
+        {/* Days of week */}
+        <div className="grid grid-cols-7 gap-1 mb-1">
           {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'].map(day => (
-            <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">
+            <div key={day} className="text-center text-xs font-medium text-muted-foreground py-1">
               {day}
             </div>
           ))}
@@ -1427,38 +1472,36 @@ function StaffCalendarContent() {
         {/* Calendar grid */}
         <div className="grid grid-cols-7 gap-1">
           {(() => {
-            const year = selectedDate.getFullYear();
-            const month = selectedDate.getMonth();
+            const year = pickerViewDate.getFullYear();
+            const month = pickerViewDate.getMonth();
             const firstDay = new Date(year, month, 1);
             const lastDay = new Date(year, month + 1, 0);
-            const startPadding = (firstDay.getDay() + 6) % 7; // Monday = 0
+            const startPadding = (firstDay.getDay() + 6) % 7;
             const daysInMonth = lastDay.getDate();
             const today = new Date();
             
             const cells = [];
             
-            // Empty cells for padding
             for (let i = 0; i < startPadding; i++) {
-              cells.push(<div key={`pad-${i}`} className="h-10" />);
+              cells.push(<div key={`pad-${i}`} className="h-9" />);
             }
             
-            // Day cells
             for (let day = 1; day <= daysInMonth; day++) {
               const date = new Date(year, month, day);
-              const isToday = date.toDateString() === today.toDateString();
-              const isSelected = date.toDateString() === selectedDate.toDateString();
+              const isTodayDate = date.toDateString() === today.toDateString();
+              const isSelectedDate = date.toDateString() === pickerViewDate.toDateString();
               
               cells.push(
                 <button
                   key={day}
                   onClick={() => {
-                    setSelectedDate(date);
-                    setCalendarPickerOpen(false);
+                    setPickerViewDate(date);
+                    loadPickerBookings(date);
                   }}
-                  className={`h-10 w-full rounded-xl text-sm font-medium transition-all ${
-                    isSelected 
+                  className={`h-9 w-full rounded-lg text-sm font-medium transition-all ${
+                    isSelectedDate 
                       ? 'bg-primary text-primary-foreground shadow-md' 
-                      : isToday
+                      : isTodayDate
                       ? 'bg-primary/10 text-primary font-bold'
                       : 'hover:bg-muted'
                   }`}
@@ -1471,30 +1514,91 @@ function StaffCalendarContent() {
             return cells;
           })()}
         </div>
-        
-        {/* Quick actions */}
-        <div className="flex gap-2 mt-4 pt-4 border-t">
-          <button
-            onClick={() => {
-              setSelectedDate(new Date());
-              setCalendarPickerOpen(false);
-            }}
-            className="flex-1 py-2.5 rounded-xl bg-primary/10 text-primary font-medium text-sm"
-          >
-            Сьогодні
-          </button>
-          <button
-            onClick={() => {
-              const yesterday = new Date();
-              yesterday.setDate(yesterday.getDate() - 1);
-              setSelectedDate(yesterday);
-              setCalendarPickerOpen(false);
-            }}
-            className="flex-1 py-2.5 rounded-xl bg-muted text-muted-foreground font-medium text-sm"
-          >
-            Вчора
-          </button>
-        </div>
+      </div>
+      
+      {/* Bookings list */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {pickerBookingsLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : pickerBookings.length > 0 ? (
+          pickerBookings.map((booking) => {
+            const [h, m] = booking.time.split(':').map(Number);
+            const endMins = h * 60 + m + booking.duration;
+            const endH = Math.floor(endMins / 60);
+            const endM = endMins % 60;
+            const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+            const colors = getColorVariants(masterColor);
+            const isBlocked = booking.clientName === 'Зайнято';
+            
+            return (
+              <div 
+                key={booking.id}
+                className={`rounded-xl overflow-hidden ${
+                  booking.status === 'COMPLETED' ? 'bg-green-50' : 
+                  isBlocked ? 'bg-zinc-100' : ''
+                }`}
+                style={{ 
+                  backgroundColor: booking.status === 'COMPLETED' ? undefined : isBlocked ? undefined : colors.bg,
+                  borderLeft: `4px solid ${colors.stripe}`
+                }}
+              >
+                <div className="p-3 flex justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-bold">{booking.time}</span>
+                      <span className="text-sm text-muted-foreground">—</span>
+                      <span className="text-sm text-muted-foreground">{endTime}</span>
+                    </div>
+                    
+                    <button 
+                      onClick={() => {
+                        if (!isBlocked && booking.clientPhone) {
+                          setSelectedClientForCard({ name: booking.clientName, phone: booking.clientPhone });
+                          setClientCardOpen(true);
+                        }
+                      }}
+                      className={`font-semibold truncate text-left ${!isBlocked ? 'hover:text-primary hover:underline' : ''}`}
+                    >
+                      {booking.clientName}
+                    </button>
+                    <p className="text-sm text-muted-foreground truncate">{booking.serviceName}</p>
+                    
+                    {!isBlocked && (
+                      <div className="flex items-baseline gap-3 mt-1">
+                        <span className="text-sm text-muted-foreground">{booking.duration} хв</span>
+                        {booking.price !== undefined && booking.price > 0 && (
+                          <span className="text-base font-bold">{booking.price} ₴</span>
+                        )}
+                      </div>
+                    )}
+                    
+                    {booking.status === 'COMPLETED' && (
+                      <span className="inline-block mt-2 text-xs bg-green-200 text-green-700 px-2 py-0.5 rounded">✓ Завершено</span>
+                    )}
+                  </div>
+                  
+                  {/* Call button */}
+                  {!isBlocked && booking.clientPhone && (
+                    <div className="shrink-0">
+                      <a 
+                        href={`tel:${booking.clientPhone}`}
+                        className="h-9 px-3 rounded-lg bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-600 transition-colors flex items-center justify-center gap-1 shadow-sm whitespace-nowrap"
+                      >
+                        <Phone className="h-3.5 w-3.5" /> Зателефонувати
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Немає записів на цей день</p>
+          </div>
+        )}
       </div>
     </div>
 
