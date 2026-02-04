@@ -249,6 +249,9 @@ function StaffCalendarContent() {
     booking: Booking | null;
   }>({ open: false, type: null, booking: null });
   const [confirmLoading, setConfirmLoading] = useState(false);
+  
+  // Calendar picker modal
+  const [calendarPickerOpen, setCalendarPickerOpen] = useState(false);
 
   // Close confirm modal with delay to keep content during animation
   const closeConfirmModal = () => {
@@ -594,6 +597,15 @@ function StaffCalendarContent() {
               <h1 className="font-semibold text-lg">Мій календар</h1>
               <p className="text-sm text-muted-foreground">{formatDateHeader(selectedDate)}</p>
             </div>
+            {/* Calendar picker button */}
+            <button 
+              onClick={() => setCalendarPickerOpen(true)}
+              className="h-10 w-10 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center justify-center transition-colors shadow-sm ml-1"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </button>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -1328,6 +1340,143 @@ function StaffCalendarContent() {
                 {confirmModal.type === 'cancel' ? 'Скасувати' : 'Не прийшов'}
               </>
             )}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    {/* Calendar Picker Modal */}
+    <div 
+      className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-50 transition-opacity duration-300 ${
+        calendarPickerOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+      }`}
+      onClick={() => setCalendarPickerOpen(false)}
+    />
+    <div 
+      className={`fixed inset-x-0 bottom-0 bg-card rounded-t-3xl shadow-xl z-50 transform transition-transform duration-500 ease-out max-h-[80vh] overflow-hidden flex flex-col ${
+        calendarPickerOpen ? 'translate-y-0' : 'translate-y-full'
+      }`}
+    >
+      <div className="p-4 border-b flex items-center justify-between shrink-0">
+        <h2 className="font-semibold text-lg">Оберіть дату</h2>
+        <button 
+          onClick={() => setCalendarPickerOpen(false)}
+          className="h-8 w-8 rounded-xl bg-white/80 hover:bg-white shadow-md border border-gray-200 flex items-center justify-center"
+        >
+          <X className="h-4 w-4 text-gray-700" />
+        </button>
+      </div>
+      
+      <div className="p-4 overflow-y-auto">
+        {/* Month navigation */}
+        <div className="flex items-center justify-between mb-4">
+          <button 
+            onClick={() => {
+              const newDate = new Date(selectedDate);
+              newDate.setMonth(newDate.getMonth() - 1);
+              setSelectedDate(newDate);
+            }}
+            className="h-10 w-10 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center justify-center"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <div className="text-center">
+            <p className="font-semibold text-lg">
+              {selectedDate.toLocaleDateString('uk-UA', { month: 'long', year: 'numeric' })}
+            </p>
+          </div>
+          <button 
+            onClick={() => {
+              const newDate = new Date(selectedDate);
+              newDate.setMonth(newDate.getMonth() + 1);
+              setSelectedDate(newDate);
+            }}
+            className="h-10 w-10 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center justify-center"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+        
+        {/* Days of week header */}
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'].map(day => (
+            <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">
+              {day}
+            </div>
+          ))}
+        </div>
+        
+        {/* Calendar grid */}
+        <div className="grid grid-cols-7 gap-1">
+          {(() => {
+            const year = selectedDate.getFullYear();
+            const month = selectedDate.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startPadding = (firstDay.getDay() + 6) % 7; // Monday = 0
+            const daysInMonth = lastDay.getDate();
+            const today = new Date();
+            
+            const cells = [];
+            
+            // Empty cells for padding
+            for (let i = 0; i < startPadding; i++) {
+              cells.push(<div key={`pad-${i}`} className="h-10" />);
+            }
+            
+            // Day cells
+            for (let day = 1; day <= daysInMonth; day++) {
+              const date = new Date(year, month, day);
+              const isToday = date.toDateString() === today.toDateString();
+              const isSelected = date.toDateString() === selectedDate.toDateString();
+              
+              cells.push(
+                <button
+                  key={day}
+                  onClick={() => {
+                    setSelectedDate(date);
+                    setCalendarPickerOpen(false);
+                  }}
+                  className={`h-10 w-full rounded-xl text-sm font-medium transition-all ${
+                    isSelected 
+                      ? 'bg-primary text-primary-foreground shadow-md' 
+                      : isToday
+                      ? 'bg-primary/10 text-primary font-bold'
+                      : 'hover:bg-muted'
+                  }`}
+                >
+                  {day}
+                </button>
+              );
+            }
+            
+            return cells;
+          })()}
+        </div>
+        
+        {/* Quick actions */}
+        <div className="flex gap-2 mt-4 pt-4 border-t">
+          <button
+            onClick={() => {
+              setSelectedDate(new Date());
+              setCalendarPickerOpen(false);
+            }}
+            className="flex-1 py-2.5 rounded-xl bg-primary/10 text-primary font-medium text-sm"
+          >
+            Сьогодні
+          </button>
+          <button
+            onClick={() => {
+              const yesterday = new Date();
+              yesterday.setDate(yesterday.getDate() - 1);
+              setSelectedDate(yesterday);
+              setCalendarPickerOpen(false);
+            }}
+            className="flex-1 py-2.5 rounded-xl bg-muted text-muted-foreground font-medium text-sm"
+          >
+            Вчора
           </button>
         </div>
       </div>
