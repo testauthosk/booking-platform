@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -9,6 +10,7 @@ import { useSidebar } from '@/components/sidebar-context';
 import { MigrationBanner } from '@/components/migration/migration-banner';
 import { ImportModal } from '@/components/migration/import-modal';
 import { ClientCard } from '@/components/clients/client-card';
+import { RepeatBookingModal } from '@/components/clients/repeat-booking-modal';
 
 interface Client {
   id: string;
@@ -24,19 +26,31 @@ interface Client {
   createdAt: string;
 }
 
+interface BookingClient {
+  id: string;
+  name: string;
+  phone: string;
+}
+
 interface SalonInfo {
   previousPlatform?: string;
   migrationDismissed: boolean;
 }
 
+const DEFAULT_SALON_ID = '93b6801f-0193-4706-896b-3de71f3799e1';
+
 export default function ClientsPage() {
+  const { data: session } = useSession();
   const { open: openSidebar } = useSidebar();
   const [search, setSearch] = useState('');
+  const salonId = session?.user?.salonId || DEFAULT_SALON_ID;
   const [clients, setClients] = useState<Client[]>([]);
   const [salonInfo, setSalonInfo] = useState<SalonInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [bookingClient, setBookingClient] = useState<BookingClient | null>(null);
+  const [bookingPrefillService, setBookingPrefillService] = useState<{ id: string; name: string } | undefined>();
 
   // Завантаження клієнтів та інфо про салон
   useEffect(() => {
@@ -304,16 +318,30 @@ export default function ClientsPage() {
           onEdit={handleEditClient}
           onDelete={handleDeleteClient}
           onBook={(client, prefillService) => {
-            // Зберігаємо дані клієнта для бронювання
-            localStorage.setItem('bookingClient', JSON.stringify({
+            // Відкриваємо модалку повторного запису
+            setBookingClient({
               id: client.id,
               name: client.name,
               phone: client.phone,
-              serviceId: prefillService?.id,
-              serviceName: prefillService?.name,
-            }));
-            // Переходимо на календар
-            window.location.href = '/calendar';
+            });
+            setBookingPrefillService(prefillService);
+          }}
+        />
+      )}
+
+      {/* Repeat Booking Modal */}
+      {bookingClient && (
+        <RepeatBookingModal
+          isOpen={!!bookingClient}
+          onClose={() => {
+            setBookingClient(null);
+            setBookingPrefillService(undefined);
+          }}
+          client={bookingClient}
+          prefillService={bookingPrefillService}
+          salonId={salonId}
+          onSuccess={() => {
+            // Можна оновити список або показати повідомлення
           }}
         />
       )}

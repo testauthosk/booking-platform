@@ -220,6 +220,15 @@ export function ClientCard({ client, isOpen, onClose, onEdit, onDelete, onBook }
               </Button>
             )}
           </div>
+
+          {/* Repeat booking button */}
+          <Button 
+            className="w-full mt-3 gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25"
+            onClick={() => onBook?.(client)}
+          >
+            <Calendar className="h-4 w-4" />
+            Повторний запис
+          </Button>
         </div>
 
         {/* Stats */}
@@ -309,14 +318,7 @@ export function ClientCard({ client, isOpen, onClose, onEdit, onDelete, onBook }
                 </Card>
               )}
 
-              {/* Quick book button */}
-              <Button 
-                className="w-full gap-2"
-                onClick={() => onBook?.(client)}
-              >
-                <Calendar className="h-4 w-4" />
-                Записати клієнта
-              </Button>
+              {/* Quick book button removed - now in header */}
             </TabsContent>
 
             {/* History Tab */}
