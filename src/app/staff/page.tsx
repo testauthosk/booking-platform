@@ -709,7 +709,7 @@ export default function StaffDashboard() {
                         setSelectedBooking(booking);
                         setBookingDetailsOpen(true);
                       }}
-                      className={`p-3 w-[160px] shrink-0 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${isPast ? 'opacity-50' : ''} ${
+                      className={`p-3 w-[160px] min-h-[140px] shrink-0 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${isPast ? 'opacity-50' : ''} ${
                         booking.status === 'COMPLETED' ? 'border-green-300 bg-green-50' : ''
                       }`}
                       style={{
@@ -743,7 +743,7 @@ export default function StaffDashboard() {
                 
                 {/* Add button - same height as booking card */}
                 <Card 
-                  className="p-3 w-[160px] h-[152px] shrink-0 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors border-dashed border-2"
+                  className="p-3 w-[160px] min-h-[140px] shrink-0 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors border-dashed border-2"
                   onClick={() => openNewBooking()}
                 >
                   <Plus className="h-8 w-8 text-muted-foreground mb-2" />
