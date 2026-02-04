@@ -743,7 +743,7 @@ export default function StaffDashboard() {
                 
                 {/* Add button - same height as booking card */}
                 <Card 
-                  className="p-3 w-[160px] min-h-[160px] shrink-0 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors border-dashed border-2"
+                  className="p-3 w-[160px] h-[160px] shrink-0 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors border-dashed border-2"
                   onClick={() => openNewBooking()}
                 >
                   <Plus className="h-8 w-8 text-muted-foreground mb-2" />
