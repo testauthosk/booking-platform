@@ -258,6 +258,7 @@ function StaffCalendarContent() {
   const [pickerBookingsLoading, setPickerBookingsLoading] = useState(false);
   const [calendarCollapsed, setCalendarCollapsed] = useState(false);
   const bookingsListRef = useRef<HTMLDivElement>(null);
+  const lastCollapseToggle = useRef<number>(0);
   
   // Client card panel
   const [clientCardOpen, setClientCardOpen] = useState(false);
@@ -1374,7 +1375,7 @@ function StaffCalendarContent() {
       
       {/* Calendar - collapsible */}
       <div 
-        className={`bg-card border-b shrink-0 transition-all duration-300 ease-out overflow-hidden ${
+        className={`bg-card border-b shrink-0 transition-all duration-500 ease-out overflow-hidden ${
           calendarCollapsed ? 'max-h-[60px]' : 'max-h-[400px]'
         }`}
         onClick={() => calendarCollapsed && setCalendarCollapsed(false)}
@@ -1479,10 +1480,17 @@ function StaffCalendarContent() {
         className="flex-1 overflow-y-auto p-4 space-y-3"
         onScroll={(e) => {
           const target = e.target as HTMLDivElement;
-          if (target.scrollTop > 30 && !calendarCollapsed) {
+          const now = Date.now();
+          // Throttle: ignore if less than 300ms since last toggle
+          if (now - lastCollapseToggle.current < 300) return;
+          
+          // Hysteresis: collapse at 60px, expand only at 5px
+          if (target.scrollTop > 60 && !calendarCollapsed) {
             setCalendarCollapsed(true);
-          } else if (target.scrollTop === 0 && calendarCollapsed) {
+            lastCollapseToggle.current = now;
+          } else if (target.scrollTop < 5 && calendarCollapsed) {
             setCalendarCollapsed(false);
+            lastCollapseToggle.current = now;
           }
         }}
       >
