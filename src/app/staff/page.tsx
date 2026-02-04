@@ -1017,38 +1017,39 @@ export default function StaffDashboard() {
           </div>
 
           {/* Time range або повідомлення про кінець робочого дня */}
-          <div className="relative overflow-hidden">
+          {/* Фіксована висота контейнера для плавної анімації */}
+          <div className="relative h-[72px] overflow-hidden">
             {/* Повідомлення "Робота закінчена" */}
             <div 
-              className={`transition-all duration-300 ease-out ${
+              className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
                 isWorkDayEnded() 
-                  ? 'opacity-100 translate-y-0 h-auto' 
-                  : 'opacity-0 -translate-y-4 h-0 overflow-hidden'
+                  ? 'opacity-100 scale-100' 
+                  : 'opacity-0 scale-95 pointer-events-none'
               }`}
             >
               <div 
-                className="py-6 px-4 rounded-xl text-center"
+                className="w-full py-4 px-4 rounded-xl text-center"
                 style={{ 
                   backgroundColor: `${accentColor}15`,
                   borderWidth: 1,
                   borderColor: darkenColor(accentColor, 10)
                 }}
               >
-                <p className="text-lg font-medium" style={{ color: darkenColor(accentColor, 25) }}>
+                <p className="text-base font-medium leading-tight" style={{ color: darkenColor(accentColor, 25) }}>
                   Робота закінчена, час додому ❤️
                 </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Оберіть інший день для блокування часу
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Оберіть інший день
                 </p>
               </div>
             </div>
             
             {/* Поля вибору часу */}
             <div 
-              className={`grid grid-cols-2 gap-3 transition-all duration-300 ease-out ${
+              className={`absolute inset-0 grid grid-cols-2 gap-3 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
                 isWorkDayEnded() 
-                  ? 'opacity-0 translate-y-4 h-0 overflow-hidden' 
-                  : 'opacity-100 translate-y-0 h-auto'
+                  ? 'opacity-0 scale-95 pointer-events-none' 
+                  : 'opacity-100 scale-100'
               }`}
             >
               <div>
