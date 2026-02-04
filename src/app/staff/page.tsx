@@ -551,7 +551,9 @@ export default function StaffDashboard() {
           <h1 className="text-2xl font-bold">{greeting}!</h1>
           <p className="text-muted-foreground">
             {stats?.todayCount 
-              ? `У вас ${stats.todayCount} ${stats.todayCount === 1 ? 'запис' : stats.todayCount < 5 ? 'записи' : 'записів'} сьогодні`
+              ? isWorkDayEnded()
+                ? `У вас було сьогодні ${stats.todayCount} ${stats.todayCount === 1 ? 'запис' : stats.todayCount < 5 ? 'записи' : 'записів'}`
+                : `У вас ${stats.todayCount} ${stats.todayCount === 1 ? 'запис' : stats.todayCount < 5 ? 'записи' : 'записів'} сьогодні`
               : 'Сьогодні вільний день'}
           </p>
         </div>
@@ -587,19 +589,16 @@ export default function StaffDashboard() {
           ) : (
             <>
               <div 
-                className="h-9 w-14 rounded-lg flex items-center justify-center shrink-0 relative overflow-hidden"
+                className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0"
                 style={{ 
-                  background: `linear-gradient(135deg, ${accentColor}40 0%, ${accentColor}20 100%)`,
+                  background: `linear-gradient(135deg, ${accentColor}35 0%, ${accentColor}15 100%)`,
                 }}
               >
-                <span className="text-lg animate-pulse">✂️</span>
+                <span className="text-base">☕</span>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium" style={{ color: darkenColor(accentColor, 20) }}>
-                  Вікно вільне — час на каву
-                </p>
-                <p className="text-xs text-muted-foreground">Або приймайте walk-in клієнтів</p>
-              </div>
+              <p className="text-sm" style={{ color: darkenColor(accentColor, 15) }}>
+                Наразі вільно
+              </p>
             </>
           )}
         </div>
