@@ -1003,7 +1003,7 @@ function StaffCalendarContent() {
         onClick={() => setEditModalOpen(false)}
       />
       <div 
-        className={`fixed inset-x-0 bottom-0 max-h-[70vh] bg-card rounded-t-3xl shadow-xl z-50 transform transition-all duration-700 ease-in-out overflow-hidden flex flex-col ${
+        className={`fixed inset-x-0 bottom-0 max-h-[90vh] bg-card rounded-t-3xl shadow-xl z-50 transform transition-all duration-700 ease-in-out overflow-hidden flex flex-col ${
           editModalOpen ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
@@ -1019,6 +1019,34 @@ function StaffCalendarContent() {
 
         {editBooking && (
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Busy slots strip */}
+            {bookings.filter(b => b.status !== 'CANCELLED' && b.id !== editBooking.id).length > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-2">Зайнято сьогодні:</p>
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                  {bookings
+                    .filter(b => b.status !== 'CANCELLED' && b.id !== editBooking.id)
+                    .sort((a, b) => a.time.localeCompare(b.time))
+                    .map((booking) => {
+                      const [h, m] = booking.time.split(':').map(Number);
+                      const endMins = h * 60 + m + booking.duration;
+                      const endH = Math.floor(endMins / 60);
+                      const endM = endMins % 60;
+                      const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+                      return (
+                        <div
+                          key={booking.id}
+                          className="shrink-0 px-3 py-1.5 rounded-full bg-red-50 border border-red-200 text-xs"
+                        >
+                          <span className="font-semibold text-red-700">{booking.time}–{endTime}</span>
+                          <span className="text-red-500 ml-1.5">{booking.clientName.split(' ')[0]}</span>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+            
             {/* Client info (readonly) */}
             <div className="p-3 bg-muted rounded-xl">
               <p className="font-semibold">{editBooking.clientName}</p>
