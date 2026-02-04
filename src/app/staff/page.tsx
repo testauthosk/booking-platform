@@ -692,10 +692,10 @@ export default function StaffDashboard() {
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          ) : stats?.todayBookings && stats.todayBookings.length > 0 ? (
+          ) : (
             <div className="overflow-x-auto -mx-4 scrollbar-hide">
               <div className="flex gap-3 pb-2 px-4">
-                {stats.todayBookings.map((booking) => {
+                {stats?.todayBookings?.map((booking) => {
                   const isPast = (() => {
                     const [h, m] = booking.time.split(':').map(Number);
                     const now = new Date();
@@ -754,22 +754,6 @@ export default function StaffDashboard() {
                 <div className="w-4 shrink-0" aria-hidden="true" />
               </div>
             </div>
-          ) : (
-            <Card className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-muted/50 flex items-center justify-center shrink-0">
-                <Calendar className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-sm">Вільний день</p>
-                <p className="text-xs text-muted-foreground">Записів немає</p>
-              </div>
-              <button 
-                onClick={() => openNewBooking()}
-                className="h-9 w-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors shrink-0"
-              >
-                <Plus className="h-5 w-5" />
-              </button>
-            </Card>
           )}
         </div>
       </div>
