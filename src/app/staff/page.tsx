@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useTransitionRouter } from 'next-view-transitions';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Calendar, Clock, LogOut, Settings, Loader2, Plus, ChevronRight, X, Tag, User, Phone, Check, Users } from 'lucide-react';
@@ -40,7 +40,7 @@ interface ServiceOption {
 }
 
 export default function StaffDashboard() {
-  const router = useRouter();
+  const router = useTransitionRouter();
   const [loading, setLoading] = useState(true);
   const [staffName, setStaffName] = useState('');
   const [staffAvatar, setStaffAvatar] = useState('');

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useTransitionRouter } from 'next-view-transitions';
 import { 
   ArrowLeft, Search, Phone, User, Loader2, ChevronRight, 
   X, Mail, MessageCircle, Calendar, Heart, Star, Award,
@@ -30,7 +30,7 @@ interface Client {
 }
 
 export default function StaffClientsPage() {
-  const router = useRouter();
+  const router = useTransitionRouter();
   const [loading, setLoading] = useState(true);
   const [clients, setClients] = useState<Client[]>([]);
   const [search, setSearch] = useState('');
