@@ -303,6 +303,18 @@ export default function ClientsPage() {
           onClose={() => setSelectedClient(null)}
           onEdit={handleEditClient}
           onDelete={handleDeleteClient}
+          onBook={(client, prefillService) => {
+            // Зберігаємо дані клієнта для бронювання
+            localStorage.setItem('bookingClient', JSON.stringify({
+              id: client.id,
+              name: client.name,
+              phone: client.phone,
+              serviceId: prefillService?.id,
+              serviceName: prefillService?.name,
+            }));
+            // Переходимо на календар
+            window.location.href = '/calendar';
+          }}
         />
       )}
     </div>

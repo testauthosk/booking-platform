@@ -16,7 +16,9 @@ interface Booking {
   id: string;
   date: string;
   time: string;
+  serviceId?: string;
   serviceName: string;
+  masterId?: string;
   masterName: string;
   price: number;
   status: string;
@@ -42,9 +44,10 @@ interface ClientCardProps {
   onClose: () => void;
   onEdit: (client: Client) => void;
   onDelete: (clientId: string) => void;
+  onBook?: (client: Client, prefillService?: { id: string; name: string }) => void;
 }
 
-export function ClientCard({ client, isOpen, onClose, onEdit, onDelete }: ClientCardProps) {
+export function ClientCard({ client, isOpen, onClose, onEdit, onDelete, onBook }: ClientCardProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
@@ -307,9 +310,12 @@ export function ClientCard({ client, isOpen, onClose, onEdit, onDelete }: Client
               )}
 
               {/* Quick book button */}
-              <Button className="w-full gap-2">
+              <Button 
+                className="w-full gap-2"
+                onClick={() => onBook?.(client)}
+              >
                 <Calendar className="h-4 w-4" />
-                Створити запис
+                Записати клієнта
               </Button>
             </TabsContent>
 
@@ -324,22 +330,32 @@ export function ClientCard({ client, isOpen, onClose, onEdit, onDelete }: Client
                   {bookings.map((booking) => (
                     <Card key={booking.id} className="p-3">
                       <div className="flex items-start justify-between">
-                        <div>
+                        <div className="flex-1">
                           <p className="font-medium text-sm">{booking.serviceName}</p>
                           <p className="text-xs text-muted-foreground">
                             {booking.masterName} • {formatDate(booking.date)} о {booking.time}
                           </p>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right flex flex-col items-end gap-1">
                           <p className="font-medium text-sm">{booking.price} ₴</p>
-                          <Badge 
-                            variant={booking.status === 'COMPLETED' ? 'default' : 'secondary'}
-                            className="text-xs"
-                          >
-                            {booking.status === 'COMPLETED' ? 'Виконано' : 
-                             booking.status === 'CANCELLED' ? 'Скасовано' : 
-                             booking.status === 'NO_SHOW' ? 'Не прийшов' : 'Очікує'}
-                          </Badge>
+                          <div className="flex items-center gap-1">
+                            <Badge 
+                              variant={booking.status === 'COMPLETED' ? 'default' : 'secondary'}
+                              className="text-xs"
+                            >
+                              {booking.status === 'COMPLETED' ? '✓' : 
+                               booking.status === 'CANCELLED' ? '✗' : 
+                               booking.status === 'NO_SHOW' ? '?' : '○'}
+                            </Badge>
+                            {booking.status === 'COMPLETED' && booking.serviceId && (
+                              <button
+                                onClick={() => onBook?.(client, { id: booking.serviceId!, name: booking.serviceName })}
+                                className="text-xs text-primary hover:underline"
+                              >
+                                Повторити
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </Card>
