@@ -1373,11 +1373,15 @@ function StaffCalendarContent() {
         </button>
       </div>
       
-      {/* Calendar - collapsible */}
+      {/* Calendar - collapsible, sticky when collapsed */}
       <div 
-        className={`bg-card border-b shrink-0 transition-all duration-500 ease-out overflow-hidden ${
+        className={`bg-card border-b shrink-0 overflow-hidden z-10 relative shadow-sm ${
           calendarCollapsed ? 'max-h-[60px]' : 'max-h-[400px]'
         }`}
+        style={{
+          transition: 'max-height 560ms cubic-bezier(0.32, 0.72, 0, 1), box-shadow 300ms ease-out',
+          boxShadow: calendarCollapsed ? '0 4px 12px rgba(0,0,0,0.08)' : 'none',
+        }}
         onClick={() => calendarCollapsed && setCalendarCollapsed(false)}
       >
         <div className="p-4">
@@ -1390,17 +1394,30 @@ function StaffCalendarContent() {
                 newDate.setMonth(newDate.getMonth() - 1);
                 setPickerViewDate(newDate);
               }}
-              className={`h-9 w-9 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center justify-center transition-opacity ${calendarCollapsed ? 'opacity-0' : 'opacity-100'}`}
+              className="h-9 w-9 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center justify-center"
+              style={{
+                opacity: calendarCollapsed ? 0 : 1,
+                transition: 'opacity 400ms ease-out',
+                pointerEvents: calendarCollapsed ? 'none' : 'auto'
+              }}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <div className="text-center">
-              <p className="font-semibold capitalize">
+              <p className="font-semibold capitalize" style={{ transition: 'opacity 300ms ease-out' }}>
                 {pickerViewDate.toLocaleDateString('uk-UA', { month: 'long', year: 'numeric' })}
               </p>
-              {calendarCollapsed && (
-                <p className="text-xs text-muted-foreground">Натисніть щоб розгорнути</p>
-              )}
+              <p 
+                className="text-xs text-muted-foreground"
+                style={{
+                  opacity: calendarCollapsed ? 1 : 0,
+                  maxHeight: calendarCollapsed ? '20px' : '0px',
+                  transition: 'opacity 300ms ease-out, max-height 300ms ease-out',
+                  overflow: 'hidden'
+                }}
+              >
+                Натисніть щоб розгорнути
+              </p>
             </div>
             <button 
               onClick={(e) => {
@@ -1409,7 +1426,12 @@ function StaffCalendarContent() {
                 newDate.setMonth(newDate.getMonth() + 1);
                 setPickerViewDate(newDate);
               }}
-              className={`h-9 w-9 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center justify-center transition-opacity ${calendarCollapsed ? 'opacity-0' : 'opacity-100'}`}
+              className="h-9 w-9 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center justify-center"
+              style={{
+                opacity: calendarCollapsed ? 0 : 1,
+                transition: 'opacity 400ms ease-out',
+                pointerEvents: calendarCollapsed ? 'none' : 'auto'
+              }}
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -1418,7 +1440,13 @@ function StaffCalendarContent() {
         </div>
         
         {/* Days of week */}
-        <div className="grid grid-cols-7 gap-1 mb-1">
+        <div 
+          className="grid grid-cols-7 gap-1 mb-1"
+          style={{
+            opacity: calendarCollapsed ? 0 : 1,
+            transition: 'opacity 300ms ease-out'
+          }}
+        >
           {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'].map(day => (
             <div key={day} className="text-center text-xs font-medium text-muted-foreground py-1">
               {day}
@@ -1427,7 +1455,13 @@ function StaffCalendarContent() {
         </div>
         
         {/* Calendar grid */}
-        <div className="grid grid-cols-7 gap-1">
+        <div 
+          className="grid grid-cols-7 gap-1"
+          style={{
+            opacity: calendarCollapsed ? 0 : 1,
+            transition: 'opacity 300ms ease-out'
+          }}
+        >
           {(() => {
             const year = pickerViewDate.getFullYear();
             const month = pickerViewDate.getMonth();
@@ -1491,6 +1525,8 @@ function StaffCalendarContent() {
           } else if (target.scrollTop < 5 && calendarCollapsed) {
             setCalendarCollapsed(false);
             lastCollapseToggle.current = now;
+            // Smooth scroll to top when expanding
+            target.scrollTo({ top: 0, behavior: 'smooth' });
           }
         }}
       >
