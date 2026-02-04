@@ -635,10 +635,18 @@ export function StaffBookingModal({
                   </div>
                 </div>
 
-                {/* Client list - hidden when new client form is open */}
-                <div className={`transition-all duration-500 ease-out ${
-                  isNewClient ? 'max-h-0 opacity-0 overflow-hidden' : 'max-h-[500px] opacity-100'
-                }`}>
+                {/* Client list - hidden immediately when new client form opens */}
+                <div 
+                  className="overflow-hidden"
+                  style={{
+                    maxHeight: isNewClient ? '0px' : '500px',
+                    opacity: isNewClient ? 0 : 1,
+                    visibility: isNewClient ? 'hidden' : 'visible',
+                    transition: isNewClient 
+                      ? 'max-height 100ms ease-out, opacity 100ms ease-out, visibility 0ms 100ms' 
+                      : 'max-height 500ms ease-out, opacity 400ms ease-out 100ms, visibility 0ms'
+                  }}
+                >
                   {(
                 <>
                   {/* Add new client button */}
