@@ -582,8 +582,8 @@ export default function StaffDashboard() {
               onClick={() => { setSettingsOpen(false); router.push('/staff/profile'); }}
               className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted transition-colors text-left"
             >
-              <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                <Settings className="h-5 w-5 text-blue-600" />
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Settings className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="font-medium">Мій профіль</p>
@@ -595,8 +595,8 @@ export default function StaffDashboard() {
               onClick={() => { setSettingsOpen(false); router.push('/staff/schedule'); }}
               className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted transition-colors text-left"
             >
-              <div className="h-10 w-10 rounded-xl bg-purple-100 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-purple-600" />
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="font-medium">Графік роботи</p>
@@ -610,29 +610,29 @@ export default function StaffDashboard() {
             {/* My clients button */}
             <button 
               onClick={() => router.push('/staff/clients')}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200 transition-colors text-left"
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-primary/5 hover:bg-primary/10 border border-primary/20 transition-colors text-left"
             >
-              <div className="h-10 w-10 rounded-xl bg-emerald-500 flex items-center justify-center">
-                <User className="h-5 w-5 text-white" />
+              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
+                <User className="h-5 w-5 text-primary-foreground" />
               </div>
               <div className="flex-1">
-                <p className="font-medium text-emerald-900">Мої клієнти</p>
-                <p className="text-xs text-emerald-600">Клієнти що були у вас</p>
+                <p className="font-medium">Мої клієнти</p>
+                <p className="text-xs text-muted-foreground">Клієнти що були у вас</p>
               </div>
-              <ChevronRight className="h-5 w-5 text-emerald-400" />
+              <ChevronRight className="h-5 w-5 text-primary/50" />
             </button>
 
             {/* Colleague booking button */}
             <button 
               onClick={() => setColleagueBookingOpen(true)}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-gradient-to-r from-violet-50 to-purple-50 hover:from-violet-100 hover:to-purple-100 border border-violet-200 transition-colors text-left"
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-primary/5 hover:bg-primary/10 border border-primary/20 transition-colors text-left"
             >
-              <div className="h-10 w-10 rounded-xl bg-violet-500 flex items-center justify-center">
-                <Users className="h-5 w-5 text-white" />
+              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
+                <Users className="h-5 w-5 text-primary-foreground" />
               </div>
               <div>
-                <p className="font-medium text-violet-900">Запис для колеги</p>
-                <p className="text-xs text-violet-600">Створити запис напарнику</p>
+                <p className="font-medium">Запис для колеги</p>
+                <p className="text-xs text-muted-foreground">Створити запис напарнику</p>
               </div>
             </button>
           </div>
