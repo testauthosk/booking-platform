@@ -606,23 +606,23 @@ export default function StaffDashboard() {
 
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-3">
-          <Card className="py-3 px-2 text-center">
-            <p className="text-3xl font-bold mb-1" style={{ color: isLightColor(accentColor) ? darkenColor(accentColor, 25) : accentColor }}>
+          <Card className="p-2 text-center flex flex-col items-center justify-center aspect-square">
+            <p className="text-[2.5rem] font-bold leading-none" style={{ color: isLightColor(accentColor) ? darkenColor(accentColor, 25) : accentColor }}>
               {loadingStats ? '...' : stats?.todayCount ?? 0}
             </p>
-            <p className="text-xs text-muted-foreground">Сьогодні</p>
+            <p className="text-xs text-muted-foreground mt-2">Сьогодні</p>
           </Card>
-          <Card className="py-3 px-2 text-center">
-            <p className="text-3xl font-bold text-foreground mb-1">
+          <Card className="p-2 text-center flex flex-col items-center justify-center aspect-square">
+            <p className="text-[2.5rem] font-bold text-foreground leading-none">
               {loadingStats ? '...' : stats?.tomorrowCount ?? 0}
             </p>
-            <p className="text-xs text-muted-foreground">Завтра</p>
+            <p className="text-xs text-muted-foreground mt-2">Завтра</p>
           </Card>
-          <Card className="py-3 px-2 text-center">
-            <p className="text-3xl font-bold text-foreground mb-1">
+          <Card className="p-2 text-center flex flex-col items-center justify-center aspect-square">
+            <p className="text-[2.5rem] font-bold text-foreground leading-none">
               {loadingStats ? '...' : stats?.weekCount ?? 0}
             </p>
-            <p className="text-xs text-muted-foreground">За тиждень</p>
+            <p className="text-xs text-muted-foreground mt-2">За тиждень</p>
           </Card>
         </div>
 
