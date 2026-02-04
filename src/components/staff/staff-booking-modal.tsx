@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import {
   X, ChevronRight, ChevronLeft, Check, Clock, User, Phone,
   Search, Plus, Calendar, Loader2, AlertCircle
@@ -55,6 +55,8 @@ export function StaffBookingModal({
   const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('left');
   const [isAnimating, setIsAnimating] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [contentHeight, setContentHeight] = useState<number | 'auto'>('auto');
+  const contentRef = useRef<HTMLDivElement>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [extraTime, setExtraTime] = useState(0); // Додатковий час в хвилинах
   
@@ -325,37 +327,54 @@ export function StaffBookingModal({
     }
   };
 
+  // Вимірюємо висоту контенту після рендеру
+  useLayoutEffect(() => {
+    if (contentRef.current && !isAnimating) {
+      const height = contentRef.current.scrollHeight;
+      setContentHeight(height);
+    }
+  }, [step, isAnimating, selectedService, selectedClient, isNewClient, clients]);
+
+  const animateToNextStep = (nextStepId: Step, direction: 'left' | 'right') => {
+    if (isAnimating) return;
+    
+    // 1. Зафіксувати поточну висоту
+    if (contentRef.current) {
+      setContentHeight(contentRef.current.scrollHeight);
+    }
+    
+    // 2. Почати fade out
+    setIsAnimating(true);
+    setSlideDirection(direction);
+    
+    // 3. Після fade out — змінити крок
+    setTimeout(() => {
+      setStep(nextStepId);
+      
+      // 4. Дати React оновити DOM, потім виміряти нову висоту і fade in
+      requestAnimationFrame(() => {
+        if (contentRef.current) {
+          const newHeight = contentRef.current.scrollHeight;
+          setContentHeight(newHeight);
+        }
+        requestAnimationFrame(() => {
+          setIsAnimating(false);
+        });
+      });
+    }, 200);
+  };
+
   const nextStep = () => {
     const idx = currentStepIndex;
-    if (idx < STEPS.length - 1 && !isAnimating) {
-      setIsAnimating(true);
-      setSlideDirection('left');
-      // Fade out, потім змінюємо крок, потім fade in
-      setTimeout(() => {
-        setStep(STEPS[idx + 1].id);
-        // Невелика затримка перед fade in
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            setIsAnimating(false);
-          });
-        });
-      }, 250);
+    if (idx < STEPS.length - 1) {
+      animateToNextStep(STEPS[idx + 1].id, 'left');
     }
   };
 
   const prevStep = () => {
     const idx = currentStepIndex;
-    if (idx > 0 && !isAnimating) {
-      setIsAnimating(true);
-      setSlideDirection('right');
-      setTimeout(() => {
-        setStep(STEPS[idx - 1].id);
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            setIsAnimating(false);
-          });
-        });
-      }, 250);
+    if (idx > 0) {
+      animateToNextStep(STEPS[idx - 1].id, 'right');
     }
   };
 
@@ -469,18 +488,28 @@ export function StaffBookingModal({
           )}
         </div>
 
-        {/* Content */}
+        {/* Content wrapper - анімує висоту */}
         <div 
           style={{
-            opacity: isAnimating ? 0 : 1,
-            transform: isAnimating 
-              ? `translateX(${slideDirection === 'left' ? '-20px' : '20px'})` 
-              : 'translateX(0)',
-            transition: 'opacity 250ms ease-out, transform 250ms ease-out',
-            minHeight: '350px', // Стабільна висота щоб модалка не стрибала
+            height: typeof contentHeight === 'number' ? `${contentHeight}px` : 'auto',
+            minHeight: '200px',
+            maxHeight: '60vh',
+            transition: 'height 300ms ease-out',
+            overflow: 'hidden',
           }}
-          className="flex-1 overflow-y-auto p-4"
         >
+          {/* Content inner - анімує fade/slide */}
+          <div 
+            ref={contentRef}
+            style={{
+              opacity: isAnimating ? 0 : 1,
+              transform: isAnimating 
+                ? `translateX(${slideDirection === 'left' ? '-20px' : '20px'})` 
+                : 'translateX(0)',
+              transition: 'opacity 200ms ease-out, transform 200ms ease-out',
+            }}
+            className="p-4"
+          >
           {/* Service Step */}
           {step === 'service' && (
             <div className="space-y-2">
@@ -770,6 +799,7 @@ export function StaffBookingModal({
               </div>
             </div>
           )}
+          </div>
         </div>
 
         {/* Error */}
