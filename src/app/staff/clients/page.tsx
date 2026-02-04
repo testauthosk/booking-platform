@@ -146,15 +146,19 @@ export default function StaffClientsPage() {
         : newClientName;
       const phone = '+380' + newClientPhone.replace(/\D/g, '');
       
-      const res = await fetch('/api/clients', {
+      // Use staff API endpoint
+      const res = await fetch('/api/staff/clients/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: fullName, phone, salonId }),
+        body: JSON.stringify({ name: fullName, phone, salonId, masterId }),
       });
       
       if (res.ok) {
         closeAddModal();
         loadClients();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Помилка створення');
       }
     } catch (error) {
       console.error('Error adding client:', error);
