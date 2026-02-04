@@ -313,13 +313,21 @@ export function ClientCardPanel({
             {/* Content */}
             <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
               {/* Contact info */}
-              <Card className="p-4 space-y-3">
+              <Card className={cn(
+                "p-4 space-y-3 transition-all duration-300",
+                isEditing ? "ring-2 ring-primary/20 shadow-md" : ""
+              )}>
                 <div className="flex items-center justify-between">
                   <h3 className="font-medium text-sm text-muted-foreground">Контакти</h3>
                   {editable && client.id && (
                     <button
                       onClick={() => setIsEditing(!isEditing)}
-                      className="text-xs text-primary hover:underline flex items-center gap-1"
+                      className={cn(
+                        "text-xs flex items-center gap-1 px-2 py-1 rounded-lg transition-all duration-200",
+                        isEditing 
+                          ? "bg-red-50 text-red-600 hover:bg-red-100" 
+                          : "text-primary hover:bg-primary/10"
+                      )}
                     >
                       <Edit2 className="h-3 w-3" />
                       {isEditing ? 'Скасувати' : 'Редагувати'}
@@ -327,47 +335,53 @@ export function ClientCardPanel({
                   )}
                 </div>
                 <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    {isEditing ? (
+                  <div className="flex items-center gap-3 transition-all duration-200">
+                    <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="flex-1 relative">
                       <Input
-                        value={editForm.phone}
+                        value={isEditing ? editForm.phone : formatPhone(client.phone)}
                         onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
-                        className="h-8 text-sm"
+                        className={cn(
+                          "h-8 text-sm transition-all duration-200",
+                          isEditing ? "opacity-100 bg-white" : "opacity-100 bg-transparent border-transparent pointer-events-none"
+                        )}
+                        readOnly={!isEditing}
                       />
-                    ) : (
-                      <span className="text-sm">{formatPhone(client.phone)}</span>
-                    )}
-                  </div>
-                  {(client.email || isEditing) && (
-                    <div className="flex items-center gap-3">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      {isEditing ? (
-                        <Input
-                          value={editForm.email}
-                          onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
-                          placeholder="email@example.com"
-                          className="h-8 text-sm"
-                        />
-                      ) : (
-                        <span className="text-sm">{client.email}</span>
-                      )}
                     </div>
-                  )}
-                  <div className="flex items-center gap-3">
-                    <MessageCircle className="h-4 w-4 text-muted-foreground" />
-                    {isEditing ? (
+                  </div>
+                  <div className={cn(
+                    "flex items-center gap-3 transition-all duration-200 overflow-hidden",
+                    !client.email && !isEditing ? "h-0 opacity-0" : "h-auto opacity-100"
+                  )}>
+                    <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="flex-1">
                       <Input
-                        value={editForm.telegramUsername}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, telegramUsername: e.target.value.replace('@', '') }))}
-                        placeholder="username (без @)"
-                        className="h-8 text-sm"
+                        value={editForm.email}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                        placeholder="email@example.com"
+                        className={cn(
+                          "h-8 text-sm transition-all duration-200",
+                          isEditing ? "opacity-100 bg-white" : "opacity-100 bg-transparent border-transparent pointer-events-none"
+                        )}
+                        readOnly={!isEditing}
                       />
-                    ) : client.telegramUsername ? (
-                      <span className="text-sm">@{client.telegramUsername}</span>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">Не вказано</span>
-                    )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 transition-all duration-200">
+                    <MessageCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="flex-1">
+                      <Input
+                        value={isEditing ? editForm.telegramUsername : (client.telegramUsername ? `@${client.telegramUsername}` : '')}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, telegramUsername: e.target.value.replace('@', '') }))}
+                        placeholder={isEditing ? "username (без @)" : "Не вказано"}
+                        className={cn(
+                          "h-8 text-sm transition-all duration-200",
+                          isEditing ? "opacity-100 bg-white" : "opacity-100 bg-transparent border-transparent pointer-events-none",
+                          !client.telegramUsername && !isEditing ? "text-muted-foreground" : ""
+                        )}
+                        readOnly={!isEditing}
+                      />
+                    </div>
                   </div>
                 </div>
               </Card>
