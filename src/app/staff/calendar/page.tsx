@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ChevronLeft, Plus, Loader2, Clock, User, X, Check, Pencil, Phone } from 'lucide-react';
+import { ChevronLeft, Plus, Loader2, Clock, User, X, Check, Pencil, Phone, Minus } from 'lucide-react';
+import { TimeWheelPicker } from '@/components/time-wheel-picker';
 
 interface Booking {
   id: string;
@@ -242,9 +243,8 @@ export default function StaffCalendar() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editBooking, setEditBooking] = useState<Booking | null>(null);
   const [editTime, setEditTime] = useState('');
-  const [editDuration, setEditDuration] = useState('');
-  const [editTimePickerOpen, setEditTimePickerOpen] = useState(false);
-  const [editDurationPickerOpen, setEditDurationPickerOpen] = useState(false);
+  const [editBaseDuration, setEditBaseDuration] = useState(60);
+  const [editExtraTime, setEditExtraTime] = useState(0);
   
   // Confirmation modal
   const [confirmModal, setConfirmModal] = useState<{
@@ -473,7 +473,8 @@ export default function StaffCalendar() {
   const openEditModal = (booking: Booking) => {
     setEditBooking(booking);
     setEditTime(booking.time);
-    setEditDuration(booking.duration.toString());
+    setEditBaseDuration(booking.duration);
+    setEditExtraTime(0);
     setEditModalOpen(true);
   };
 
@@ -1270,30 +1271,83 @@ export default function StaffCalendar() {
               <p className="text-sm text-muted-foreground">{editBooking.serviceName}</p>
             </div>
 
-            {/* Time */}
+            {/* Time Wheel Picker */}
             <div>
-              <label className="text-sm font-medium mb-1.5 block">Час</label>
-              <button
-                type="button"
-                onClick={() => setEditTimePickerOpen(true)}
-                className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
-              >
-                <span>{editTime}</span>
-                <ChevronLeft className="h-4 w-4 text-muted-foreground rotate-[-90deg]" />
-              </button>
+              <label className="text-sm font-medium mb-2 flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                Час
+              </label>
+              <div className="bg-zinc-900 rounded-2xl p-4">
+                <TimeWheelPicker
+                  startTime={editTime || '10:00'}
+                  duration={editBaseDuration + editExtraTime}
+                  onTimeChange={(start) => setEditTime(start)}
+                  workingHours={{ start: 9, end: 20 }}
+                  isToday={false}
+                />
+              </div>
             </div>
 
-            {/* Duration */}
+            {/* Extra Time */}
             <div>
-              <label className="text-sm font-medium mb-1.5 block">Тривалість</label>
-              <button
-                type="button"
-                onClick={() => setEditDurationPickerOpen(true)}
-                className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
-              >
-                <span>{durationOptions.find(d => d.value === editDuration)?.label || editDuration + ' хв'}</span>
-                <ChevronLeft className="h-4 w-4 text-muted-foreground rotate-[-90deg]" />
-              </button>
+              <label className="text-sm font-medium mb-2 flex items-center gap-2">
+                <Plus className="h-4 w-4 text-muted-foreground" />
+                Додатковий час
+              </label>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setEditExtraTime(Math.max(0, editExtraTime - 5))}
+                  disabled={editExtraTime === 0}
+                  className="w-10 h-10 rounded-xl bg-muted hover:bg-muted/80 disabled:opacity-50 flex items-center justify-center"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+                <div className="flex-1 text-center">
+                  <span className="text-2xl font-semibold">{editExtraTime}</span>
+                  <span className="text-muted-foreground ml-1">хв</span>
+                </div>
+                <button
+                  onClick={() => setEditExtraTime(editExtraTime + 5)}
+                  className="w-10 h-10 rounded-xl bg-muted hover:bg-muted/80 flex items-center justify-center"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Quick add buttons */}
+            <div className="flex gap-2">
+              {[5, 10, 15, 30].map((mins) => (
+                <button
+                  key={mins}
+                  onClick={() => setEditExtraTime(editExtraTime + mins)}
+                  className="flex-1 py-2 rounded-xl bg-violet-100 text-violet-700 text-sm font-medium hover:bg-violet-200 transition-colors"
+                >
+                  +{mins} хв
+                </button>
+              ))}
+            </div>
+
+            {/* Summary */}
+            <div className="p-3 rounded-xl bg-muted/50">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Час:</span>
+                <span className="font-medium">
+                  {editTime} - {(() => {
+                    if (!editTime) return '';
+                    const [h, m] = editTime.split(':').map(Number);
+                    const totalMin = h * 60 + m + editBaseDuration + editExtraTime;
+                    return `${Math.floor(totalMin / 60).toString().padStart(2, '0')}:${(totalMin % 60).toString().padStart(2, '0')}`;
+                  })()}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm mt-1">
+                <span className="text-muted-foreground">Тривалість:</span>
+                <span className="font-medium">
+                  {editBaseDuration} хв
+                  {editExtraTime > 0 && <span className="text-violet-600"> +{editExtraTime} хв</span>}
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -1315,7 +1369,7 @@ export default function StaffCalendar() {
                   body: JSON.stringify({ 
                     bookingId: editBooking.id, 
                     time: editTime, 
-                    duration: parseInt(editDuration) 
+                    duration: editBaseDuration + editExtraTime
                   })
                 });
                 if (res.ok) {
@@ -1334,80 +1388,6 @@ export default function StaffCalendar() {
             Зберегти
           </button>
         </div>
-      </div>
-
-      {/* Edit Time Picker */}
-      {editTimePickerOpen && (
-        <div 
-          className="fixed inset-0 bg-black/40 z-[60]"
-          onClick={() => setEditTimePickerOpen(false)}
-        />
-      )}
-      <div 
-        className={`fixed inset-x-0 bottom-0 bg-zinc-800 rounded-t-2xl z-[70] transform transition-transform duration-300 ${
-          editTimePickerOpen ? 'translate-y-0' : 'translate-y-full'
-        }`}
-      >
-        <div className="p-2 max-h-[50vh] overflow-y-auto">
-          {timeOptions.map((time) => (
-            <button
-              key={time}
-              onClick={() => {
-                setEditTime(time);
-                setEditTimePickerOpen(false);
-              }}
-              className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
-                editTime === time ? 'text-white' : 'text-zinc-300'
-              }`}
-            >
-              {editTime === time && <Check className="h-5 w-5" />}
-              <span className={editTime === time ? '' : 'ml-8'}>{time}</span>
-            </button>
-          ))}
-        </div>
-        <button
-          onClick={() => setEditTimePickerOpen(false)}
-          className="w-full py-4 text-center text-zinc-400 border-t border-zinc-700"
-        >
-          <X className="h-5 w-5 mx-auto" />
-        </button>
-      </div>
-
-      {/* Edit Duration Picker */}
-      {editDurationPickerOpen && (
-        <div 
-          className="fixed inset-0 bg-black/40 z-[60]"
-          onClick={() => setEditDurationPickerOpen(false)}
-        />
-      )}
-      <div 
-        className={`fixed inset-x-0 bottom-0 bg-zinc-800 rounded-t-2xl z-[70] transform transition-transform duration-300 ${
-          editDurationPickerOpen ? 'translate-y-0' : 'translate-y-full'
-        }`}
-      >
-        <div className="p-2">
-          {durationOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => {
-                setEditDuration(opt.value);
-                setEditDurationPickerOpen(false);
-              }}
-              className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
-                editDuration === opt.value ? 'text-white' : 'text-zinc-300'
-              }`}
-            >
-              {editDuration === opt.value && <Check className="h-5 w-5" />}
-              <span className={editDuration === opt.value ? '' : 'ml-8'}>{opt.label}</span>
-            </button>
-          ))}
-        </div>
-        <button
-          onClick={() => setEditDurationPickerOpen(false)}
-          className="w-full py-4 text-center text-zinc-400 border-t border-zinc-700"
-        >
-          <X className="h-5 w-5 mx-auto" />
-        </button>
       </div>
 
       {/* Confirmation Modal - Bottom Sheet */}
