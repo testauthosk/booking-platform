@@ -431,9 +431,9 @@ export default function StaffClientsPage() {
                     )}
                     <button
                       onClick={() => setIsEditingName(!isEditingName)}
-                      className="h-5 w-5 rounded border border-gray-300 bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 transition-colors shrink-0"
+                      className="h-4 w-4 rounded border border-gray-300 bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 transition-colors shrink-0"
                     >
-                      <Edit2 className="h-2.5 w-2.5" />
+                      <Edit2 className="h-2 w-2" />
                     </button>
                   </div>
                   {/* Tags */}
@@ -497,9 +497,9 @@ export default function StaffClientsPage() {
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {/* Contact info - minimal spacing v2 */}
-              <Card className="p-3 py-2">
-                <div className="flex items-center justify-between mb-0.5">
+              {/* Contact info - tight spacing */}
+              <Card className="px-3 py-2">
+                <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Контакти</span>
                   <button
                     onClick={() => setIsEditing(!isEditing)}
@@ -509,7 +509,7 @@ export default function StaffClientsPage() {
                     {isEditing ? 'Скасувати' : 'Редагувати'}
                   </button>
                 </div>
-                <div className="flex items-center gap-3 py-1">
+                <div className="flex items-center gap-2 mt-1">
                   <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
                   {isEditing ? (
                     <Input value={editForm.phone} onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))} className="h-7 text-sm" />
@@ -517,7 +517,7 @@ export default function StaffClientsPage() {
                     <span className="text-sm">{formatPhone(selectedClient.phone)}</span>
                   )}
                 </div>
-                <div className="flex items-center gap-3 py-1">
+                <div className="flex items-center gap-2 mt-0.5">
                   <MessageCircle className="h-4 w-4 text-muted-foreground shrink-0" />
                   {isEditing ? (
                     <Input value={editForm.telegramUsername} onChange={(e) => setEditForm(prev => ({ ...prev, telegramUsername: e.target.value.replace('@', '') }))} placeholder="username" className="h-7 text-sm" />
