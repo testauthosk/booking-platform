@@ -601,28 +601,22 @@ export default function StaffDashboard() {
 
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-3">
-          <Card className="p-3 text-center flex flex-col h-24">
-            <div className="flex-1 flex items-center justify-center">
-              <p className="text-5xl font-bold" style={{ color: isLightColor(accentColor) ? darkenColor(accentColor, 25) : accentColor }}>
-                {loadingStats ? '...' : stats?.todayCount ?? 0}
-              </p>
-            </div>
+          <Card className="py-3 px-2 text-center">
+            <p className="text-3xl font-bold mb-1" style={{ color: isLightColor(accentColor) ? darkenColor(accentColor, 25) : accentColor }}>
+              {loadingStats ? '...' : stats?.todayCount ?? 0}
+            </p>
             <p className="text-xs text-muted-foreground">Сьогодні</p>
           </Card>
-          <Card className="p-3 text-center flex flex-col h-24">
-            <div className="flex-1 flex items-center justify-center">
-              <p className="text-5xl font-bold text-foreground">
-                {loadingStats ? '...' : stats?.tomorrowCount ?? 0}
-              </p>
-            </div>
+          <Card className="py-3 px-2 text-center">
+            <p className="text-3xl font-bold text-foreground mb-1">
+              {loadingStats ? '...' : stats?.tomorrowCount ?? 0}
+            </p>
             <p className="text-xs text-muted-foreground">Завтра</p>
           </Card>
-          <Card className="p-3 text-center flex flex-col h-24">
-            <div className="flex-1 flex items-center justify-center">
-              <p className="text-5xl font-bold text-foreground">
-                {loadingStats ? '...' : stats?.weekCount ?? 0}
-              </p>
-            </div>
+          <Card className="py-3 px-2 text-center">
+            <p className="text-3xl font-bold text-foreground mb-1">
+              {loadingStats ? '...' : stats?.weekCount ?? 0}
+            </p>
             <p className="text-xs text-muted-foreground">За тиждень</p>
           </Card>
         </div>
