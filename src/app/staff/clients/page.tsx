@@ -5,7 +5,7 @@ import { useTransitionRouter } from 'next-view-transitions';
 import { 
   ArrowLeft, Search, Phone, User, Loader2, ChevronRight, 
   X, Mail, MessageCircle, Calendar, Heart, Star, Award,
-  Edit2, Check
+  Edit2, Check, Plus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,16 +35,26 @@ export default function StaffClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [search, setSearch] = useState('');
   const [masterId, setMasterId] = useState('');
+  const [salonId, setSalonId] = useState('');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isPanelVisible, setIsPanelVisible] = useState(false);
   const [isPanelAnimating, setIsPanelAnimating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', phone: '', email: '', notes: '', telegramUsername: '' });
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Add client modal
+  const [addModalVisible, setAddModalVisible] = useState(false);
+  const [addModalAnimating, setAddModalAnimating] = useState(false);
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientLastName, setNewClientLastName] = useState('');
+  const [newClientPhone, setNewClientPhone] = useState('');
+  const [addingClient, setAddingClient] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('staffToken');
     const id = localStorage.getItem('staffId');
+    const salon = localStorage.getItem('staffSalonId');
     
     if (!token) {
       router.push('/staff/login');
@@ -52,6 +62,7 @@ export default function StaffClientsPage() {
     }
     
     setMasterId(id || '');
+    setSalonId(salon || '');
   }, [router]);
 
   useEffect(() => {
@@ -98,6 +109,67 @@ export default function StaffClientsPage() {
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
+  };
+
+  // Capitalize each word
+  const capitalizeWords = (str: string) => {
+    return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+
+  // Add client modal functions
+  const openAddModal = () => {
+    setNewClientName('');
+    setNewClientLastName('');
+    setNewClientPhone('');
+    setAddModalVisible(true);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setAddModalAnimating(true);
+      });
+    });
+  };
+
+  const closeAddModal = () => {
+    setAddModalAnimating(false);
+    setTimeout(() => {
+      setAddModalVisible(false);
+    }, 400);
+  };
+
+  const handleAddClient = async () => {
+    if (!newClientName || !newClientPhone) return;
+    setAddingClient(true);
+    try {
+      const fullName = newClientLastName 
+        ? `${newClientName} ${newClientLastName}`.trim()
+        : newClientName;
+      const phone = '+380' + newClientPhone.replace(/\D/g, '');
+      
+      const res = await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: fullName, phone, salonId }),
+      });
+      
+      if (res.ok) {
+        closeAddModal();
+        loadClients();
+      }
+    } catch (error) {
+      console.error('Error adding client:', error);
+    } finally {
+      setAddingClient(false);
+    }
+  };
+
+  const handlePhoneChange = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 9);
+    let formatted = '';
+    if (digits.length > 0) formatted = digits.slice(0, 2);
+    if (digits.length > 2) formatted += ' ' + digits.slice(2, 5);
+    if (digits.length > 5) formatted += ' ' + digits.slice(5, 7);
+    if (digits.length > 7) formatted += ' ' + digits.slice(7, 9);
+    setNewClientPhone(formatted);
   };
 
   const formatPhone = (phone: string) => {
@@ -179,17 +251,25 @@ export default function StaffClientsPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-20 bg-background border-b">
-        <div className="flex items-center gap-3 px-4 py-3">
-          <button
-            onClick={() => router.back()}
-            className="h-10 w-10 rounded-xl hover:bg-muted flex items-center justify-center transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <div>
-            <h1 className="font-semibold text-lg">Мої клієнти</h1>
-            <p className="text-xs text-muted-foreground">{clients.length} клієнтів</p>
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.back()}
+              className="h-10 w-10 rounded-xl hover:bg-muted flex items-center justify-center transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div>
+              <h1 className="font-semibold text-lg">Мої клієнти</h1>
+              <p className="text-xs text-muted-foreground">{clients.length} клієнтів</p>
+            </div>
           </div>
+          <button
+            onClick={openAddModal}
+            className="h-10 w-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
+          >
+            <span className="text-xl font-light">+</span>
+          </button>
         </div>
       </header>
 
@@ -507,6 +587,101 @@ export default function StaffClientsPage() {
                 </Button>
               </div>
             )}
+          </div>
+        </>
+      )}
+
+      {/* Add Client Modal */}
+      {addModalVisible && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
+            style={{
+              opacity: addModalAnimating ? 1 : 0,
+              transition: 'opacity 400ms ease-out',
+            }}
+            onClick={closeAddModal}
+          />
+          
+          {/* Modal - 60% height from bottom */}
+          <div 
+            className="fixed inset-x-0 bottom-0 bg-background rounded-t-3xl shadow-xl z-[110] flex flex-col"
+            style={{
+              maxHeight: '60vh',
+              transform: addModalAnimating ? 'translateY(0)' : 'translateY(100%)',
+              transition: 'transform 400ms cubic-bezier(0.32, 0.72, 0, 1)',
+            }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b shrink-0">
+              <h2 className="font-semibold text-lg">Новий клієнт</h2>
+              <button
+                onClick={closeAddModal}
+                className="h-8 w-8 rounded-xl bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            
+            {/* Form */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm text-muted-foreground mb-1.5 block">Ім'я *</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      value={newClientName}
+                      onChange={(e) => setNewClientName(capitalizeWords(e.target.value))}
+                      placeholder="Ім'я"
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm text-muted-foreground mb-1.5 block">Прізвище</label>
+                  <Input
+                    value={newClientLastName}
+                    onChange={(e) => setNewClientLastName(capitalizeWords(e.target.value))}
+                    placeholder="Необов'язково"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-sm text-muted-foreground mb-1.5 block">Телефон *</label>
+                <div className="relative flex items-center">
+                  <div className="absolute left-3 flex items-center gap-1.5 text-muted-foreground">
+                    <Phone className="h-4 w-4" />
+                    <span className="text-base font-medium">+380</span>
+                  </div>
+                  <Input
+                    type="tel"
+                    value={newClientPhone}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    placeholder="XX XXX XX XX"
+                    className="pl-[5.5rem] text-base"
+                    maxLength={12}
+                  />
+                </div>
+              </div>
+            </div>
+            
+            {/* Footer */}
+            <div className="p-4 border-t shrink-0">
+              <Button 
+                className="w-full"
+                onClick={handleAddClient}
+                disabled={!newClientName || !newClientPhone || addingClient}
+              >
+                {addingClient ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Додати клієнта'
+                )}
+              </Button>
+            </div>
           </div>
         </>
       )}
