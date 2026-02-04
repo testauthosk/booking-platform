@@ -755,18 +755,19 @@ export default function StaffDashboard() {
               </div>
             </div>
           ) : (
-            <Card className="p-6 text-center">
-              <div className="h-12 w-12 rounded-xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
-                <Calendar className="h-6 w-6 text-muted-foreground" />
+            <Card className="p-4 flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-muted/50 flex items-center justify-center shrink-0">
+                <Calendar className="h-5 w-5 text-muted-foreground" />
               </div>
-              <p className="font-medium text-sm mb-1">Вільний день</p>
-              <p className="text-xs text-muted-foreground mb-3">Записів немає</p>
+              <div className="flex-1">
+                <p className="font-medium text-sm">Вільний день</p>
+                <p className="text-xs text-muted-foreground">Записів немає</p>
+              </div>
               <button 
                 onClick={() => openNewBooking()}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                className="h-9 w-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors shrink-0"
               >
-                <Plus className="h-4 w-4" />
-                Створити
+                <Plus className="h-5 w-5" />
               </button>
             </Card>
           )}
