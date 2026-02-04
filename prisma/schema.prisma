@@ -69,25 +69,26 @@ model User {
 }
 
 model Master {
-  id           String          @id @default(uuid())
-  salonId      String
-  name         String
-  role         String?
-  phone        String?
-  email        String?         @unique
-  avatar       String?
-  bio          String?
-  rating       Float           @default(5.0)
-  reviewCount  Int             @default(0)
-  price        Int             @default(0)
-  workingHours Json?
-  isActive     Boolean         @default(true)
-  sortOrder    Int             @default(0)
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  lastLogin    DateTime?
-  passwordHash String?
-  color        String?
+  id            String          @id @default(uuid())
+  salonId       String
+  name          String
+  role          String?
+  phone         String?
+  email         String?         @unique
+  avatar        String?
+  bio           String?
+  rating        Float           @default(5.0)
+  reviewCount   Int             @default(0)
+  price         Int             @default(0)
+  workingHours  Json?
+  lunchDuration Int             @default(60)  // Тривалість обіду в хвилинах
+  isActive      Boolean         @default(true)
+  sortOrder     Int             @default(0)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  lastLogin     DateTime?
+  passwordHash  String?
+  color         String?
   bookings     Booking[]
   salon        Salon           @relation(fields: [salonId], references: [id], onDelete: Cascade)
   services     MasterService[]

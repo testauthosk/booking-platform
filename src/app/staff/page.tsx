@@ -11,6 +11,16 @@ import { StaffBookingModal } from '@/components/staff/staff-booking-modal';
 import { BookingDetailsModal } from '@/components/staff/booking-details-modal';
 import { getPaletteById } from '@/lib/color-palettes';
 
+// Затемнити колір на 20% для обводки
+const darkenColor = (hex: string, percent = 20): string => {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = Math.max((num >> 16) - amt, 0);
+  const G = Math.max((num >> 8 & 0x00FF) - amt, 0);
+  const B = Math.max((num & 0x0000FF) - amt, 0);
+  return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+};
+
 interface Booking {
   id: string;
   clientName: string;
@@ -49,6 +59,7 @@ export default function StaffDashboard() {
   const [staffId, setStaffId] = useState('');
   const [salonId, setSalonId] = useState('');
   const [accentColor, setAccentColor] = useState('#000000'); // Колір з палітри салону
+  const [lunchDuration, setLunchDuration] = useState(60); // Тривалість обіду в хв
   const [stats, setStats] = useState<StaffStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -134,8 +145,12 @@ export default function StaffDashboard() {
         const data = await res.json();
         if (data.avatar) setStaffAvatar(data.avatar);
         if (data.name) setStaffName(data.name);
-        // Колір з палітри салону
-        if (data.paletteId) {
+        // Тривалість обіду
+        if (data.lunchDuration) setLunchDuration(data.lunchDuration);
+        // Колір — спершу власний, якщо немає — перший з палітри
+        if (data.color) {
+          setAccentColor(data.color);
+        } else if (data.paletteId) {
           const palette = getPaletteById(data.paletteId);
           if (palette && palette.colors.length > 0) {
             setAccentColor(palette.colors[0].hex);
@@ -282,7 +297,7 @@ export default function StaffDashboard() {
     setBlockTimeEnd(`${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`);
   };
 
-  // Швидка кнопка: обід (1 година, стандартний час 13:00-14:00 або від зараз)
+  // Швидка кнопка: обід (використовує lunchDuration з профілю)
   const setLunchBreak = () => {
     const now = new Date();
     const isToday = blockDate.toDateString() === now.toDateString();
@@ -290,14 +305,16 @@ export default function StaffDashboard() {
     
     if (isToday && currentHour >= 12 && currentHour < 15) {
       // Якщо зараз обідній час — від поточного моменту
-      setBlockTimeStart(getCurrentRoundedTime());
-      const [h, m] = getCurrentRoundedTime().split(':').map(Number);
-      const endMinutes = h * 60 + m + 60;
+      const startTime = getCurrentRoundedTime();
+      setBlockTimeStart(startTime);
+      const [h, m] = startTime.split(':').map(Number);
+      const endMinutes = h * 60 + m + lunchDuration;
       setBlockTimeEnd(`${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`);
     } else {
-      // Стандартний обід 13:00-14:00
+      // Стандартний обід о 13:00
       setBlockTimeStart('13:00');
-      setBlockTimeEnd('14:00');
+      const endMinutes = 13 * 60 + lunchDuration;
+      setBlockTimeEnd(`${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`);
     }
   };
 
@@ -503,7 +520,7 @@ export default function StaffDashboard() {
         {stats?.nextBooking && (
           <div 
             className="flex items-center gap-3 px-3 py-2 rounded-xl"
-            style={{ backgroundColor: `${accentColor}10`, borderWidth: 1, borderColor: `${accentColor}20` }}
+            style={{ backgroundColor: `${accentColor}10`, borderWidth: 1, borderColor: darkenColor(accentColor, 10) }}
           >
             <div 
               className="h-9 w-14 rounded-lg flex items-center justify-center text-sm font-bold"
@@ -746,7 +763,7 @@ export default function StaffDashboard() {
               style={{ 
                 backgroundColor: `${accentColor}08`,
                 borderWidth: 1,
-                borderColor: `${accentColor}30`,
+                borderColor: darkenColor(accentColor, 10),
               }}
             >
               <div 
@@ -769,7 +786,7 @@ export default function StaffDashboard() {
               style={{ 
                 backgroundColor: `${accentColor}08`,
                 borderWidth: 1,
-                borderColor: `${accentColor}30`,
+                borderColor: darkenColor(accentColor, 10),
               }}
             >
               <div 
@@ -848,11 +865,11 @@ export default function StaffDashboard() {
                 style={{ 
                   backgroundColor: `${accentColor}15`,
                   borderWidth: 1,
-                  borderColor: `${accentColor}40`,
+                  borderColor: darkenColor(accentColor),
                   color: accentColor 
                 }}
               >
-                🍽️ Обід
+                🍽️ Обід ({lunchDuration} хв)
               </button>
               
               {/* 1 година */}
@@ -863,7 +880,7 @@ export default function StaffDashboard() {
                 style={{ 
                   backgroundColor: `${accentColor}15`,
                   borderWidth: 1,
-                  borderColor: `${accentColor}40`,
+                  borderColor: darkenColor(accentColor),
                   color: accentColor 
                 }}
               >
@@ -878,7 +895,7 @@ export default function StaffDashboard() {
                 style={{ 
                   backgroundColor: `${accentColor}15`,
                   borderWidth: 1,
-                  borderColor: `${accentColor}40`,
+                  borderColor: darkenColor(accentColor),
                   color: accentColor 
                 }}
               >
@@ -893,7 +910,7 @@ export default function StaffDashboard() {
                 style={{ 
                   backgroundColor: `${accentColor}15`,
                   borderWidth: 1,
-                  borderColor: `${accentColor}40`,
+                  borderColor: darkenColor(accentColor),
                   color: accentColor 
                 }}
               >
@@ -909,7 +926,7 @@ export default function StaffDashboard() {
               style={{ 
                 backgroundColor: `${accentColor}15`,
                 borderWidth: 1,
-                borderColor: `${accentColor}40`,
+                borderColor: darkenColor(accentColor),
                 color: accentColor 
               }}
             >
@@ -976,7 +993,7 @@ export default function StaffDashboard() {
             style={{ 
               backgroundColor: `${accentColor}15`,
               borderWidth: 1,
-              borderColor: `${accentColor}40`,
+              borderColor: darkenColor(accentColor),
               color: accentColor 
             }}
           >

@@ -22,6 +22,7 @@ export default function StaffProfile() {
   const [avatar, setAvatar] = useState('');
   const [role, setRole] = useState('');
   const [color, setColor] = useState('');
+  const [lunchDuration, setLunchDuration] = useState(60); // Тривалість обіду в хв
   
   const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -106,7 +107,8 @@ export default function StaffProfile() {
         setBio(data.bio || '');
         setAvatar(data.avatar || '');
         setRole(data.role || '');
-        setColor(data.color || COLOR_PALETTE[0].hex);
+        setColor(data.color || colorPalette[0]?.hex || '#f97316');
+        setLunchDuration(data.lunchDuration ?? 60);
       }
     } catch (error) {
       console.error('Load profile error:', error);
@@ -124,7 +126,8 @@ export default function StaffProfile() {
           name,
           phone,
           bio,
-          color
+          color,
+          lunchDuration
         })
       });
       
@@ -279,6 +282,35 @@ export default function StaffProfile() {
             )) : (
               <p className="text-sm text-muted-foreground">Завантаження...</p>
             )}
+          </div>
+        </Card>
+
+        {/* Lunch duration */}
+        <Card className="p-4">
+          <h3 className="font-medium mb-0.5">🍽️ Тривалість обіду</h3>
+          <p className="text-xs text-muted-foreground mb-3">
+            Для швидкого блокування часу на обід
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {[15, 30, 45, 60, 90].map((mins) => (
+              <button
+                key={mins}
+                onClick={() => setLunchDuration(mins)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  lunchDuration === mins 
+                    ? 'ring-2 ring-offset-2 ring-primary' 
+                    : 'hover:scale-105'
+                }`}
+                style={{ 
+                  backgroundColor: lunchDuration === mins ? color : `${color}20`,
+                  color: lunchDuration === mins ? 'white' : color,
+                  borderWidth: 1,
+                  borderColor: `${color}50`
+                }}
+              >
+                {mins} хв
+              </button>
+            ))}
           </div>
         </Card>
 
