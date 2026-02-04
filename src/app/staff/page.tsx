@@ -901,7 +901,7 @@ export default function StaffDashboard() {
           </button>
         </div>
 
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 relative z-10">
           <p className="text-sm text-muted-foreground">Заблокуйте час у графіку</p>
           
           {/* Date */}
@@ -920,14 +920,14 @@ export default function StaffDashboard() {
           </div>
 
           {/* Швидкі кнопки */}
-          <div className="space-y-2">
+          <div className="space-y-2 relative z-20">
             <p className="text-xs text-muted-foreground">Швидкий вибір:</p>
             <div className="grid grid-cols-2 gap-2">
               {/* Обід */}
               <button
                 type="button"
                 onClick={setLunchBreak}
-                className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
+                className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 active:opacity-80"
                 style={{ 
                   backgroundColor: `${accentColor}20`,
                   borderWidth: 1,
@@ -942,7 +942,7 @@ export default function StaffDashboard() {
               <button
                 type="button"
                 onClick={() => setQuickBreak(1)}
-                className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
+                className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 active:opacity-80"
                 style={{ 
                   backgroundColor: `${accentColor}20`,
                   borderWidth: 1,
@@ -957,7 +957,7 @@ export default function StaffDashboard() {
               <button
                 type="button"
                 onClick={() => setQuickBreak(2)}
-                className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
+                className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 active:opacity-80"
                 style={{ 
                   backgroundColor: `${accentColor}20`,
                   borderWidth: 1,
@@ -972,7 +972,7 @@ export default function StaffDashboard() {
               <button
                 type="button"
                 onClick={setFullDay}
-                className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
+                className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 active:opacity-80"
                 style={{ 
                   backgroundColor: `${accentColor}20`,
                   borderWidth: 1,
@@ -988,7 +988,7 @@ export default function StaffDashboard() {
             <button
               type="button"
               onClick={setToEndOfDay}
-              className="w-full py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
+              className="w-full py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 active:opacity-80"
               style={{ 
                 backgroundColor: `${accentColor}20`,
                 borderWidth: 1,
