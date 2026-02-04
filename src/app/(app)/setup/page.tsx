@@ -10,10 +10,12 @@ import {
   ChevronRight,
   History,
   Bell,
+  Globe,
 } from 'lucide-react';
 import Link from 'next/link';
 
 const settingsCategories = [
+  { icon: Globe, label: 'Сайт-візитка', description: 'Редагуйте публічну сторінку салону для клієнтів', href: '/setup/website' },
   { icon: Building2, label: 'Налаштування бізнесу', description: 'Вкажіть відомості про компанію, керуйте філіями', href: '/setup/business' },
   { icon: Calendar, label: 'Планування', description: 'Налаштуйте розклад та онлайн-запис', href: '/setup/schedule' },
   { icon: Bell, label: 'Нагадування клієнтам', description: 'Автоматичні сповіщення в Telegram перед візитом', href: '/setup/reminders' },
