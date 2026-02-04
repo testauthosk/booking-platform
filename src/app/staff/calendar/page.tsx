@@ -355,10 +355,10 @@ function StaffCalendarContent() {
     { value: '120', label: '2 год' },
   ];
 
-  // Generate days: 7 days back + today + 14 days forward = 22 days total
-  const days = Array.from({ length: 22 }, (_, i) => {
+  // Generate 14 days from today
+  const days = Array.from({ length: 14 }, (_, i) => {
     const date = new Date();
-    date.setDate(date.getDate() + i - 7); // Start from 7 days ago
+    date.setDate(date.getDate() + i);
     return date;
   });
 
@@ -458,7 +458,7 @@ function StaffCalendarContent() {
   // Scroll to today on mount
   useEffect(() => {
     if (daysRef.current) {
-      const todayIndex = 7; // Today is at index 7 (after 7 past days)
+      const todayIndex = 0; // Today is first
       const dayWidth = 64 + 8; // w-16 + gap
       daysRef.current.scrollLeft = todayIndex * dayWidth;
     }
@@ -554,15 +554,6 @@ function StaffCalendarContent() {
               <h1 className="font-semibold text-lg">Мій календар</h1>
               <p className="text-sm text-muted-foreground">{formatDateHeader(selectedDate)}</p>
             </div>
-            {/* Calendar picker button */}
-            <button 
-              onClick={() => setCalendarPickerOpen(true)}
-              className="h-10 w-10 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center justify-center transition-colors shadow-sm ml-1"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </button>
           </div>
           <div className="flex items-center gap-2">
             {/* Today button */}
@@ -574,6 +565,15 @@ function StaffCalendarContent() {
                 Сьогодні
               </button>
             )}
+            {/* Calendar picker button */}
+            <button 
+              onClick={() => setCalendarPickerOpen(true)}
+              className="h-10 w-10 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center justify-center transition-colors shadow-sm"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </button>
             <button
               onClick={() => setShowOnlyBookings(!showOnlyBookings)}
               className={`h-10 px-3 rounded-xl text-sm font-medium transition-colors ${
@@ -898,8 +898,8 @@ function StaffCalendarContent() {
                 // Get color variants from master color
                 const colors = getColorVariants(masterColor);
                 
-                // Diagonal stripes pattern for past bookings
-                const stripesPattern = isPast ? `repeating-linear-gradient(
+                // Diagonal stripes pattern for past or completed bookings
+                const stripesPattern = (isPast || booking.status === 'COMPLETED') ? `repeating-linear-gradient(
                   45deg,
                   transparent,
                   transparent 5px,
@@ -918,7 +918,7 @@ function StaffCalendarContent() {
                         : isBlocked
                         ? 'bg-zinc-100'
                         : isOngoing
-                        ? 'ring-2 ring-blue-400 shadow-lg z-10'
+                        ? 'shadow-lg z-10'
                         : ''
                     } ${isFocused ? 'ring-4 ring-primary ring-offset-2 scale-[1.02] z-20' : ''}`}
                     style={{ 
@@ -927,9 +927,9 @@ function StaffCalendarContent() {
                       backgroundColor: booking.status === 'COMPLETED' ? undefined : isBlocked ? undefined : colors.bg,
                       backgroundImage: stripesPattern,
                       borderLeft: `4px solid ${isOngoing ? '#3b82f6' : colors.stripe}`,
-                      borderTop: `1px solid ${isOngoing ? '#3b82f6' : colors.stripe}`,
-                      borderRight: `1px solid ${isOngoing ? '#3b82f6' : colors.stripe}`,
-                      borderBottom: `1px solid ${isOngoing ? '#3b82f6' : colors.stripe}`
+                      borderTop: `2px solid ${isOngoing ? '#3b82f6' : colors.stripe}`,
+                      borderRight: `2px solid ${isOngoing ? '#3b82f6' : colors.stripe}`,
+                      borderBottom: `2px solid ${isOngoing ? '#3b82f6' : colors.stripe}`
                     }}
                   >
                     <div className="p-3 h-full flex justify-between gap-3">
@@ -965,50 +965,50 @@ function StaffCalendarContent() {
                       </div>
                       
                       {/* Right: Action buttons */}
-                      {booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && (
-                        <div className="flex flex-col gap-1 shrink-0">
-                          {/* Call button - always visible */}
+                      <div className="flex flex-col gap-1 shrink-0">
+                        {/* Call button - always visible for real clients */}
+                        {!isBlocked && booking.clientPhone && (
                           <a 
                             href={`tel:${booking.clientPhone}`}
                             className="h-9 px-3 rounded-lg bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-600 transition-colors flex items-center justify-center gap-1 shadow-sm whitespace-nowrap"
                           >
                             <Phone className="h-3.5 w-3.5" /> Зателефонувати
                           </a>
-                          {/* Complete button for ongoing */}
-                          {isOngoing && (
+                        )}
+                        {/* Complete button for ongoing */}
+                        {isOngoing && (
+                          <button 
+                            onClick={() => handleCompleteBooking(booking.id)}
+                            className="h-9 px-3 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-semibold hover:bg-emerald-200 transition-colors flex items-center justify-center gap-1 border border-emerald-300"
+                          >
+                            <Check className="h-3.5 w-3.5" /> Завершити
+                          </button>
+                        )}
+                        {/* Other buttons - only for active non-past bookings */}
+                        {booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && !isPast && (
+                          <div className="flex gap-1">
                             <button 
-                              onClick={() => handleCompleteBooking(booking.id)}
-                              className="h-9 px-3 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-semibold hover:bg-emerald-200 transition-colors flex items-center justify-center gap-1 border border-emerald-300"
+                              onClick={() => openEditModal(booking)}
+                              className="flex-1 h-8 rounded-lg bg-white text-zinc-600 hover:bg-zinc-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm"
                             >
-                              <Check className="h-3.5 w-3.5" /> Завершити
+                              <Pencil className="h-4 w-4" />
                             </button>
-                          )}
-                          {/* Other buttons - only for non-past and non-ongoing future */}
-                          {!isPast && (
-                            <div className="flex gap-1">
-                              <button 
-                                onClick={() => openEditModal(booking)}
-                                className="flex-1 h-8 rounded-lg bg-white text-zinc-600 hover:bg-zinc-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </button>
-                              <button 
-                                onClick={() => setConfirmModal({ open: true, type: 'noshow', booking })}
-                                className="flex-1 h-8 rounded-lg bg-white text-orange-500 hover:bg-orange-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm" 
-                                title="Не прийшов"
-                              >
-                                <Clock className="h-4 w-4" />
-                              </button>
-                              <button 
-                                onClick={() => setConfirmModal({ open: true, type: 'cancel', booking })}
-                                className="flex-1 h-8 rounded-lg bg-white text-red-400 hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                            <button 
+                              onClick={() => setConfirmModal({ open: true, type: 'noshow', booking })}
+                              className="flex-1 h-8 rounded-lg bg-white text-orange-500 hover:bg-orange-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm" 
+                              title="Не прийшов"
+                            >
+                              <Clock className="h-4 w-4" />
+                            </button>
+                            <button 
+                              onClick={() => setConfirmModal({ open: true, type: 'cancel', booking })}
+                              className="flex-1 h-8 rounded-lg bg-white text-red-400 hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
