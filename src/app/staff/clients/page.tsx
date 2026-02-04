@@ -312,10 +312,18 @@ export default function StaffClientsPage() {
                 </div>
                 
                 <div className="flex-1">
-                  {/* Name + Tags on same line */}
-                  <div className="flex items-center gap-2 flex-wrap">
+                  {/* Name + pencil */}
+                  <div className="flex items-center gap-1.5">
                     <h2 className="text-xl font-bold">{selectedClient.name}</h2>
-                    {/* Tags inline with name */}
+                    <button
+                      onClick={() => setIsEditing(!isEditing)}
+                      className="h-5 w-5 rounded flex items-center justify-center text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                    >
+                      <Edit2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                  {/* Tags */}
+                  <div className="flex flex-wrap gap-1.5 mt-1">
                     {getClientTags(selectedClient).map((tag, idx) => (
                       <span 
                         key={idx}
@@ -377,7 +385,7 @@ export default function StaffClientsPage() {
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {/* Contact info */}
               <Card className="p-4">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-1">
                   <h3 className="font-medium text-sm text-muted-foreground">Контакти</h3>
                   <button
                     onClick={() => setIsEditing(!isEditing)}
