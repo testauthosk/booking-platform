@@ -39,7 +39,8 @@ export default function StaffClientsPage() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isPanelVisible, setIsPanelVisible] = useState(false);
   const [isPanelAnimating, setIsPanelAnimating] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false); // contacts editing
+  const [isEditingName, setIsEditingName] = useState(false); // name editing only
   const [editForm, setEditForm] = useState({ name: '', phone: '', email: '', notes: '', telegramUsername: '' });
   const [isSaving, setIsSaving] = useState(false);
   
@@ -222,6 +223,7 @@ export default function StaffClientsPage() {
       setIsPanelVisible(false);
       setSelectedClient(null);
       setIsEditing(false);
+      setIsEditingName(false);
     }, 560);
   };
 
@@ -393,14 +395,40 @@ export default function StaffClientsPage() {
                 </div>
                 
                 <div className="flex-1 min-w-0">
-                  {/* Name + pencil in border */}
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-bold truncate">{selectedClient.name}</h2>
+                  {/* Name + small pencil for editing name only */}
+                  <div className="flex items-center gap-1.5">
+                    {isEditingName ? (
+                      <Input
+                        value={editForm.name}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                        onBlur={async () => {
+                          if (editForm.name !== selectedClient.name && editForm.name.trim()) {
+                            try {
+                              await fetch(`/api/staff/clients?masterId=${masterId}&clientId=${selectedClient.id}`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ name: editForm.name }),
+                              });
+                              setSelectedClient(prev => prev ? { ...prev, name: editForm.name } : null);
+                              setClients(prev => prev.map(c => c.id === selectedClient.id ? { ...c, name: editForm.name } : c));
+                            } catch (error) {
+                              console.error('Error saving name:', error);
+                            }
+                          }
+                          setIsEditingName(false);
+                        }}
+                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                        autoFocus
+                        className="text-xl font-bold h-8 py-0 px-2"
+                      />
+                    ) : (
+                      <h2 className="text-xl font-bold truncate">{selectedClient.name}</h2>
+                    )}
                     <button
-                      onClick={() => setIsEditing(!isEditing)}
-                      className="h-6 w-6 rounded-lg border border-gray-300 bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 transition-colors shrink-0"
+                      onClick={() => setIsEditingName(!isEditingName)}
+                      className="h-5 w-5 rounded border border-gray-300 bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 transition-colors shrink-0"
                     >
-                      <Edit2 className="h-3 w-3" />
+                      <Edit2 className="h-2.5 w-2.5" />
                     </button>
                   </div>
                   {/* Tags */}
@@ -464,10 +492,10 @@ export default function StaffClientsPage() {
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {/* Contact info */}
-              <Card className="p-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-sm text-muted-foreground">Контакти</h3>
+              {/* Contact info - minimal spacing */}
+              <Card className="p-3 py-2">
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-sm text-muted-foreground">Контакти</span>
                   <button
                     onClick={() => setIsEditing(!isEditing)}
                     className="text-xs text-primary hover:underline flex items-center gap-1"
@@ -476,49 +504,23 @@ export default function StaffClientsPage() {
                     {isEditing ? 'Скасувати' : 'Редагувати'}
                   </button>
                 </div>
-                <div className="space-y-1 mt-1">
-                  <div className="flex items-center gap-3">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    {isEditing ? (
-                      <Input
-                        value={editForm.phone}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
-                        className="h-8 text-sm"
-                      />
-                    ) : (
-                      <span className="text-sm">{formatPhone(selectedClient.phone)}</span>
-                    )}
-                  </div>
-                  {(selectedClient.email || isEditing) && (
-                    <div className="flex items-center gap-3">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      {isEditing ? (
-                        <Input
-                          value={editForm.email}
-                          onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
-                          placeholder="email@example.com"
-                          className="h-8 text-sm"
-                        />
-                      ) : (
-                        <span className="text-sm">{selectedClient.email}</span>
-                      )}
-                    </div>
+                <div className="flex items-center gap-3 py-1">
+                  <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                  {isEditing ? (
+                    <Input value={editForm.phone} onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))} className="h-7 text-sm" />
+                  ) : (
+                    <span className="text-sm">{formatPhone(selectedClient.phone)}</span>
                   )}
-                  <div className="flex items-center gap-3">
-                    <MessageCircle className="h-4 w-4 text-muted-foreground" />
-                    {isEditing ? (
-                      <Input
-                        value={editForm.telegramUsername}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, telegramUsername: e.target.value.replace('@', '') }))}
-                        placeholder="username (без @)"
-                        className="h-8 text-sm"
-                      />
-                    ) : selectedClient.telegramUsername ? (
-                      <span className="text-sm">@{selectedClient.telegramUsername}</span>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">Не вказано</span>
-                    )}
-                  </div>
+                </div>
+                <div className="flex items-center gap-3 py-1">
+                  <MessageCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+                  {isEditing ? (
+                    <Input value={editForm.telegramUsername} onChange={(e) => setEditForm(prev => ({ ...prev, telegramUsername: e.target.value.replace('@', '') }))} placeholder="username" className="h-7 text-sm" />
+                  ) : selectedClient.telegramUsername ? (
+                    <span className="text-sm">@{selectedClient.telegramUsername}</span>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Не вказано</span>
+                  )}
                 </div>
               </Card>
 
