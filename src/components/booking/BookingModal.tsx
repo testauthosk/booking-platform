@@ -1049,7 +1049,7 @@ export function BookingModal({
                         className="lg:hidden mb-4 p-4 bg-white rounded-xl border border-red-200 shadow-lg animate-fadeIn"
                       >
                         <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                          <div className="w-10 h-10 rounded-2xl bg-red-100 flex items-center justify-center shrink-0">
                             <span className="text-lg">⚠️</span>
                           </div>
                           <div>
@@ -1258,7 +1258,7 @@ export function BookingModal({
                   {/* Telegram bot CTA */}
                   <div className="max-w-sm mx-auto p-5 bg-blue-50 rounded-2xl border border-blue-100">
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-2xl bg-blue-500 flex items-center justify-center">
                         <Send className="w-6 h-6 text-white" />
                       </div>
                       <div className="text-left">
@@ -1362,7 +1362,7 @@ export function BookingModal({
           className="hidden lg:block fixed bottom-6 right-6 z-[110] max-w-sm p-4 bg-white rounded-xl border border-red-200 shadow-2xl animate-slideUp"
         >
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-red-100 flex items-center justify-center shrink-0">
               <span className="text-lg">⚠️</span>
             </div>
             <div>

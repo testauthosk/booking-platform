@@ -233,7 +233,7 @@ export default function ClientsPage() {
                   <tr key={client.id} className="hover:bg-white/5 transition-colors">
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-violet-500/20 flex items-center justify-center text-violet-400 font-medium">
+                        <div className="w-10 h-10 rounded-2xl bg-violet-500/20 flex items-center justify-center text-violet-400 font-medium">
                           {client.name.charAt(0).toUpperCase()}
                         </div>
                         <div>

@@ -760,7 +760,7 @@ export default function SalonPage() {
                     {reviews.map((review: any) => (
                       <div key={review.id} className="border-b border-gray-100 pb-5">
                         <div className="flex items-center gap-3 mb-2">
-                          <div className={`w-9 h-9 rounded-full ${review.author_color || 'bg-blue-500'} flex items-center justify-center text-white font-semibold text-sm`}>
+                          <div className={`w-9 h-9 rounded-xl ${review.author_color || 'bg-blue-500'} flex items-center justify-center text-white font-semibold text-sm`}>
                             {review.author_initial}
                           </div>
                           <div>

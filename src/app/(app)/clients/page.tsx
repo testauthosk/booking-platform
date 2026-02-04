@@ -177,7 +177,7 @@ export default function ClientsPage() {
             <Bell className="h-5 w-5" />
             <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
           </Button>
-          <div className="h-8 w-8 rounded-full bg-orange-500 flex items-center justify-center text-white text-sm font-medium">
+          <div className="h-8 w-8 rounded-xl bg-orange-500 flex items-center justify-center text-white text-sm font-medium">
             D
           </div>
         </div>
@@ -249,7 +249,7 @@ export default function ClientsPage() {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-lg">
+                        <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-medium text-lg">
                           {getInitials(client.name)}
                         </div>
                         <div>

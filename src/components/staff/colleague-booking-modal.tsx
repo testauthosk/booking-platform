@@ -434,7 +434,7 @@ export function ColleagueBookingModal({
                 <>
                   {[1, 2, 3].map((i) => (
                     <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 animate-pulse">
-                      <div className="h-12 w-12 rounded-full bg-muted" />
+                      <div className="h-12 w-12 rounded-2xl bg-muted" />
                       <div className="flex-1 space-y-2">
                         <div className="h-4 w-24 bg-muted rounded" />
                         <div className="h-3 w-16 bg-muted rounded" />
@@ -454,9 +454,9 @@ export function ColleagueBookingModal({
                         : "bg-muted/50 hover:bg-muted border-2 border-transparent"
                     )}
                   >
-                    <div className="h-12 w-12 rounded-full bg-violet-500 flex items-center justify-center text-white font-medium">
+                    <div className="h-12 w-12 rounded-2xl bg-violet-500 flex items-center justify-center text-white font-medium">
                       {colleague.avatar ? (
-                        <img src={colleague.avatar} alt="" className="h-12 w-12 rounded-full object-cover" />
+                        <img src={colleague.avatar} alt="" className="h-12 w-12 rounded-2xl object-cover" />
                       ) : (
                         colleague.name.charAt(0).toUpperCase()
                       )}
@@ -638,7 +638,7 @@ export function ColleagueBookingModal({
                               : "bg-muted/50 hover:bg-muted border-2 border-transparent"
                           )}
                         >
-                          <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">
+                          <div className="h-10 w-10 rounded-2xl bg-blue-500 flex items-center justify-center text-white font-medium">
                             {client.name.charAt(0).toUpperCase()}
                           </div>
                           <div>
@@ -730,7 +730,7 @@ export function ColleagueBookingModal({
             <div className="space-y-4">
               <div className="bg-muted/50 rounded-xl p-4 space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-violet-500 flex items-center justify-center text-white">
+                  <div className="h-10 w-10 rounded-2xl bg-violet-500 flex items-center justify-center text-white">
                     <User className="h-5 w-5" />
                   </div>
                   <div>
@@ -740,7 +740,7 @@ export function ColleagueBookingModal({
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                  <div className="h-10 w-10 rounded-2xl bg-blue-500 flex items-center justify-center text-white">
                     <User className="h-5 w-5" />
                   </div>
                   <div>
@@ -755,7 +755,7 @@ export function ColleagueBookingModal({
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-green-500 flex items-center justify-center text-white">
+                  <div className="h-10 w-10 rounded-2xl bg-green-500 flex items-center justify-center text-white">
                     <Calendar className="h-5 w-5" />
                   </div>
                   <div>

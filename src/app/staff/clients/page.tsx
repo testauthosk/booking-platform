@@ -231,7 +231,7 @@ export default function StaffClientsPage() {
                   <div className="flex items-center gap-3">
                     {/* Avatar */}
                     <div className={cn(
-                      "h-12 w-12 rounded-full flex items-center justify-center text-white font-medium shrink-0",
+                      "h-12 w-12 rounded-2xl flex items-center justify-center text-white font-medium shrink-0",
                       getAvatarColor(client.name)
                     )}>
                       {getInitials(client.name)}

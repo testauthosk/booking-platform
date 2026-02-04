@@ -323,7 +323,7 @@ export default function UsersPage() {
               <div key={`${user.userType}-${user.id}`} className="p-4 hover:bg-white/5 transition-colors">
                 <div className="flex items-center gap-4">
                   {/* Avatar */}
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
                     user.userType === 'admin' 
                       ? 'bg-blue-500/20 text-blue-400' 
                       : 'bg-orange-500/20 text-orange-400'

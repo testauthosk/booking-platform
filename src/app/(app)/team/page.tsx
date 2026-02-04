@@ -365,7 +365,7 @@ export default function TeamPage() {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className={`h-12 w-12 rounded-full ${getAvatarColor(index)} flex items-center justify-center text-white font-medium text-lg`}>
+                    <div className={`h-12 w-12 rounded-2xl ${getAvatarColor(index)} flex items-center justify-center text-white font-medium text-lg`}>
                       {master.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
@@ -390,7 +390,7 @@ export default function TeamPage() {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-full bg-gray-300 flex items-center justify-center relative">
+                        <div className="h-12 w-12 rounded-2xl bg-gray-300 flex items-center justify-center relative">
                           <Mail className="h-5 w-5 text-gray-500" />
                           {invitation.viewedAt && (
                             <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 bg-green-500 rounded-full flex items-center justify-center">
@@ -417,7 +417,7 @@ export default function TeamPage() {
         {/* Empty state */}
         {!loading && filteredMasters.length === 0 && invitations.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12">
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
               <UserPlus className="h-8 w-8 text-muted-foreground" />
             </div>
             <p className="text-muted-foreground mb-4">Додайте першого майстра</p>

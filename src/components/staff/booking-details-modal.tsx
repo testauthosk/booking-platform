@@ -228,7 +228,7 @@ export function BookingDetailsModal({
               >
                 <div className="flex items-center gap-3">
                   <div 
-                    className="h-12 w-12 rounded-full flex items-center justify-center font-bold text-lg"
+                    className="h-12 w-12 rounded-2xl flex items-center justify-center font-bold text-lg"
                     style={{ 
                       backgroundColor: accentColor,
                       color: isLightColor(accentColor) ? darkenColor(accentColor, 50) : 'white'
@@ -349,7 +349,7 @@ export function BookingDetailsModal({
               }`}
             >
               <div 
-                className="h-12 w-12 rounded-full flex items-center justify-center font-medium text-lg overflow-hidden"
+                className="h-12 w-12 rounded-2xl flex items-center justify-center font-medium text-lg overflow-hidden"
                 style={{ 
                   backgroundColor: accentColor,
                   color: isLightColor(accentColor) ? darkenColor(accentColor, 50) : 'white'

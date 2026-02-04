@@ -601,7 +601,7 @@ export function StaffBookingModal({
                       }}
                       className="w-full p-4 rounded-xl border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 transition-all flex items-center gap-3"
                     >
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
                         <Plus className="w-5 h-5 text-primary" />
                       </div>
                       <div className="text-left">
@@ -627,7 +627,7 @@ export function StaffBookingModal({
                             : 'border-border hover:border-primary/50'
                         )}
                       >
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
+                        <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-medium">
                           {getInitials(client.name)}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -647,7 +647,7 @@ export function StaffBookingModal({
                       onClick={() => setIsNewClient(true)}
                       className="w-full p-3 rounded-xl border border-dashed border-muted-foreground/30 hover:border-primary hover:bg-primary/5 transition-all flex items-center gap-3"
                     >
-                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-2xl bg-muted flex items-center justify-center">
                         <Plus className="w-5 h-5 text-muted-foreground" />
                       </div>
                       <span className="text-muted-foreground">Новий клієнт</span>
@@ -770,7 +770,7 @@ export function StaffBookingModal({
           {/* Confirm Step */}
           {step === 'confirm' && (
             <div className="text-center py-6">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
                 <Check className="w-8 h-8 text-primary" />
               </div>
               <h3 className="text-xl font-bold mb-2">Запис створено!</h3>

@@ -16,7 +16,7 @@ export function Header() {
         <Button variant="ghost" size="icon" className="relative">
           <Wallet className="h-5 w-5" />
         </Button>
-        <div className="h-9 w-9 rounded-full bg-orange-500 flex items-center justify-center text-white font-medium ml-2">
+        <div className="h-9 w-9 rounded-xl bg-orange-500 flex items-center justify-center text-white font-medium ml-2">
           D
         </div>
       </div>

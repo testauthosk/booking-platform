@@ -438,7 +438,7 @@ export function RepeatBookingModal({
                     )}
                   >
                     <div
-                      className="w-12 h-12 rounded-full flex items-center justify-center text-white font-medium"
+                      className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-medium"
                       style={{ backgroundColor: master.color || '#8b5cf6' }}
                     >
                       {master.avatar ? (
