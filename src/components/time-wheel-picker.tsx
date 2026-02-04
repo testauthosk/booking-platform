@@ -116,6 +116,17 @@ export function TimeWheelPicker({
     }
   };
 
+  // Block page scroll while interacting with picker
+  const handleTouchStart = useCallback(() => {
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    document.body.style.overflow = '';
+    document.body.style.touchAction = '';
+  }, []);
+
   return (
     <div>
       {/* Labels */}
@@ -130,7 +141,12 @@ export function TimeWheelPicker({
       </div>
     
       {/* Picker */}
-      <div className="relative">
+      <div 
+        className="relative touch-none"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
+      >
         <Picker
           value={pickerValue}
           onChange={handleChange}
