@@ -205,6 +205,14 @@ export default function StaffDashboard() {
     if (date.toDateString() === tomorrow.toDateString()) return 'Завтра';
     return `${date.getDate()} ${MONTHS_UA[date.getMonth()]}`;
   };
+
+  // Закриває settings panel з анімацією, потім переходить
+  const navigateFromSettings = (path: string) => {
+    setSettingsOpen(false);
+    setTimeout(() => {
+      router.push(path);
+    }, 400); // Чекаємо завершення анімації
+  };
   
   const openBlockTime = () => {
     setBlockDate(new Date());
@@ -598,7 +606,7 @@ export default function StaffDashboard() {
 
           <div className="flex-1 p-4 space-y-1">
             <button 
-              onClick={() => { setSettingsOpen(false); router.push('/staff/profile'); }}
+              onClick={() => navigateFromSettings('/staff/profile')}
               className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted transition-colors text-left"
             >
               <div 
@@ -614,7 +622,7 @@ export default function StaffDashboard() {
             </button>
 
             <button 
-              onClick={() => { setSettingsOpen(false); router.push('/staff/schedule'); }}
+              onClick={() => navigateFromSettings('/staff/schedule')}
               className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted transition-colors text-left"
             >
               <div 
@@ -634,7 +642,7 @@ export default function StaffDashboard() {
           <div className="px-4 pt-2 space-y-2">
             {/* My clients button */}
             <button 
-              onClick={() => router.push('/staff/clients')}
+              onClick={() => navigateFromSettings('/staff/clients')}
               className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-colors text-left"
               style={{ 
                 backgroundColor: `${accentColor}08`,
