@@ -192,6 +192,24 @@ export function StaffBookingModal({
   );
 
   // Загальна тривалість (послуга + додатковий час)
+  // Capitalize кожне слово (Анна аэропорт -> Анна Аеропорт)
+  const capitalizeWords = (str: string) => {
+    return str
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  // Розділити на ім'я та прізвище (перше слово = ім'я, друге = прізвище)
+  const parseNameAndLastName = (fullName: string) => {
+    const capitalized = capitalizeWords(fullName.trim());
+    const parts = capitalized.split(' ').filter(p => p.length > 0);
+    if (parts.length >= 2) {
+      return { name: parts[0], lastName: parts.slice(1).join(' ') };
+    }
+    return { name: capitalized, lastName: '' };
+  };
+
   const getTotalDuration = () => {
     return (selectedService?.duration || 60) + extraTime;
   };
@@ -602,7 +620,12 @@ export function StaffBookingModal({
                           <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
                             value={newClientName}
-                            onChange={(e) => setNewClientName(e.target.value)}
+                            onChange={(e) => {
+                              // Capitalize first letter of each word
+                              const val = e.target.value;
+                              const capitalized = val.charAt(0).toUpperCase() + val.slice(1);
+                              setNewClientName(capitalized);
+                            }}
                             placeholder="Ім'я"
                             className="pl-10"
                           />
@@ -612,7 +635,12 @@ export function StaffBookingModal({
                         <label className="text-sm text-muted-foreground mb-1.5 block">Прізвище</label>
                         <Input
                           value={newClientLastName}
-                          onChange={(e) => setNewClientLastName(e.target.value)}
+                          onChange={(e) => {
+                            // Capitalize first letter
+                            const val = e.target.value;
+                            const capitalized = val.charAt(0).toUpperCase() + val.slice(1);
+                            setNewClientLastName(capitalized);
+                          }}
                           placeholder="Необов'язково"
                         />
                       </div>
@@ -697,7 +725,11 @@ export function StaffBookingModal({
                     <button
                       onClick={() => {
                         setIsNewClient(true);
-                        if (clientSearch) setNewClientName(clientSearch);
+                        if (clientSearch) {
+                          const { name, lastName } = parseNameAndLastName(clientSearch);
+                          setNewClientName(name);
+                          setNewClientLastName(lastName);
+                        }
                       }}
                       className="w-full p-3 rounded-xl border border-dashed border-muted-foreground/30 hover:border-primary hover:bg-primary/5 transition-all flex items-center gap-3"
                     >
@@ -705,7 +737,7 @@ export function StaffBookingModal({
                         <Plus className="w-5 h-5 text-muted-foreground" />
                       </div>
                       <span className="text-muted-foreground">
-                        {clientSearch ? `Додати "${clientSearch}"` : 'Новий клієнт'}
+                        {clientSearch ? `Додати "${capitalizeWords(clientSearch)}"` : 'Новий клієнт'}
                       </span>
                     </button>
                   </div>
