@@ -466,7 +466,10 @@ export default function StaffDashboard() {
                 className="h-12 w-12 rounded-2xl object-cover shadow-lg"
               />
             ) : (
-              <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-xl font-bold shadow-lg">
+              <div 
+                className="h-12 w-12 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg"
+                style={{ backgroundColor: accentColor }}
+              >
                 {staffName.charAt(0).toUpperCase()}
               </div>
             )}
@@ -498,15 +501,21 @@ export default function StaffDashboard() {
 
         {/* Next booking - compact */}
         {stats?.nextBooking && (
-          <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-orange-50 border border-orange-100">
-            <div className="h-9 w-14 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600 text-sm font-bold">
+          <div 
+            className="flex items-center gap-3 px-3 py-2 rounded-xl"
+            style={{ backgroundColor: `${accentColor}10`, borderWidth: 1, borderColor: `${accentColor}20` }}
+          >
+            <div 
+              className="h-9 w-14 rounded-lg flex items-center justify-center text-sm font-bold"
+              style={{ backgroundColor: `${accentColor}20`, color: accentColor }}
+            >
               {stats.nextBooking.time}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{stats.nextBooking.clientName} · {stats.nextBooking.serviceName}</p>
             </div>
             {getTimeUntil(stats.nextBooking.time) && (
-              <span className="text-xs text-orange-600 shrink-0">{getTimeUntil(stats.nextBooking.time)}</span>
+              <span className="text-xs shrink-0" style={{ color: accentColor }}>{getTimeUntil(stats.nextBooking.time)}</span>
             )}
           </div>
         )}
@@ -514,19 +523,19 @@ export default function StaffDashboard() {
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-3">
           <Card className="p-3 pt-4 text-center flex flex-col justify-center">
-            <p className="text-4xl font-bold text-primary">
+            <p className="text-4xl font-bold" style={{ color: accentColor }}>
               {loadingStats ? '...' : stats?.todayCount ?? 0}
             </p>
             <p className="text-xs text-muted-foreground mt-2">Сьогодні</p>
           </Card>
           <Card className="p-3 pt-4 text-center flex flex-col justify-center">
-            <p className="text-4xl font-bold">
+            <p className="text-4xl font-bold text-foreground">
               {loadingStats ? '...' : stats?.tomorrowCount ?? 0}
             </p>
             <p className="text-xs text-muted-foreground mt-2">Завтра</p>
           </Card>
           <Card className="p-3 pt-4 text-center flex flex-col justify-center">
-            <p className="text-4xl font-bold">
+            <p className="text-4xl font-bold text-foreground">
               {loadingStats ? '...' : stats?.weekCount ?? 0}
             </p>
             <p className="text-xs text-muted-foreground mt-2">За тиждень</p>
@@ -835,7 +844,13 @@ export default function StaffDashboard() {
               <button
                 type="button"
                 onClick={setLunchBreak}
-                className="py-2.5 rounded-xl bg-orange-500/10 border border-orange-500/30 text-orange-600 text-sm font-medium hover:bg-orange-500/20 transition-colors flex items-center justify-center gap-1.5"
+                className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
+                style={{ 
+                  backgroundColor: `${accentColor}15`,
+                  borderWidth: 1,
+                  borderColor: `${accentColor}40`,
+                  color: accentColor 
+                }}
               >
                 🍽️ Обід
               </button>
@@ -844,7 +859,13 @@ export default function StaffDashboard() {
               <button
                 type="button"
                 onClick={() => setQuickBreak(1)}
-                className="py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-600 text-sm font-medium hover:bg-blue-500/20 transition-colors flex items-center justify-center gap-1.5"
+                className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
+                style={{ 
+                  backgroundColor: `${accentColor}15`,
+                  borderWidth: 1,
+                  borderColor: `${accentColor}40`,
+                  color: accentColor 
+                }}
               >
                 ⏱️ 1 година
               </button>
@@ -853,7 +874,13 @@ export default function StaffDashboard() {
               <button
                 type="button"
                 onClick={() => setQuickBreak(2)}
-                className="py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-600 text-sm font-medium hover:bg-blue-500/20 transition-colors flex items-center justify-center gap-1.5"
+                className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
+                style={{ 
+                  backgroundColor: `${accentColor}15`,
+                  borderWidth: 1,
+                  borderColor: `${accentColor}40`,
+                  color: accentColor 
+                }}
               >
                 ⏱️ 2 години
               </button>
@@ -862,7 +889,13 @@ export default function StaffDashboard() {
               <button
                 type="button"
                 onClick={setFullDay}
-                className="py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 text-sm font-medium hover:bg-red-500/20 transition-colors flex items-center justify-center gap-1.5"
+                className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
+                style={{ 
+                  backgroundColor: `${accentColor}15`,
+                  borderWidth: 1,
+                  borderColor: `${accentColor}40`,
+                  color: accentColor 
+                }}
               >
                 📅 Весь день
               </button>
@@ -872,7 +905,13 @@ export default function StaffDashboard() {
             <button
               type="button"
               onClick={setToEndOfDay}
-              className="w-full py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 text-sm font-medium hover:bg-amber-500/20 transition-colors flex items-center justify-center gap-1.5"
+              className="w-full py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
+              style={{ 
+                backgroundColor: `${accentColor}15`,
+                borderWidth: 1,
+                borderColor: `${accentColor}40`,
+                color: accentColor 
+              }}
             >
               🌙 До кінця робочого дня
             </button>
@@ -910,11 +949,12 @@ export default function StaffDashboard() {
         </div>
 
         <div className="p-4 border-t border-border space-y-2">
-          {/* Кнопка "До кінця дня" з повідомленням адміну */}
+          {/* Кнопка з повідомленням адміну */}
           <button
             onClick={() => createBlockTime(true)}
             disabled={savingBlock}
-            className="w-full py-3 rounded-xl bg-amber-500 text-white font-medium hover:bg-amber-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            style={{ backgroundColor: accentColor, color: 'white' }}
           >
             {savingBlock ? (
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -932,7 +972,13 @@ export default function StaffDashboard() {
           <button
             onClick={() => createBlockTime(false)}
             disabled={savingBlock}
-            className="w-full py-3 rounded-xl bg-muted text-foreground font-medium hover:bg-muted/80 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            style={{ 
+              backgroundColor: `${accentColor}15`,
+              borderWidth: 1,
+              borderColor: `${accentColor}40`,
+              color: accentColor 
+            }}
           >
             {savingBlock ? (
               <Loader2 className="h-5 w-5 animate-spin" />
