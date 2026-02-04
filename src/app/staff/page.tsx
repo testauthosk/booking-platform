@@ -8,6 +8,7 @@ import { Calendar, Clock, LogOut, Settings, Loader2, Plus, ChevronRight, X, Tag,
 import { TimeWheelPicker } from '@/components/time-wheel-picker';
 import { ColleagueBookingModal } from '@/components/staff/colleague-booking-modal';
 import { StaffBookingModal } from '@/components/staff/staff-booking-modal';
+import { getPaletteById } from '@/lib/color-palettes';
 
 interface Booking {
   id: string;
@@ -44,6 +45,7 @@ export default function StaffDashboard() {
   const [staffWorkingHours, setStaffWorkingHours] = useState({ start: 9, end: 20 });
   const [staffId, setStaffId] = useState('');
   const [salonId, setSalonId] = useState('');
+  const [accentColor, setAccentColor] = useState('#000000'); // Колір з палітри салону
   const [stats, setStats] = useState<StaffStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -125,6 +127,13 @@ export default function StaffDashboard() {
         const data = await res.json();
         if (data.avatar) setStaffAvatar(data.avatar);
         if (data.name) setStaffName(data.name);
+        // Колір з палітри салону
+        if (data.paletteId) {
+          const palette = getPaletteById(data.paletteId);
+          if (palette && palette.colors.length > 0) {
+            setAccentColor(palette.colors[0].hex);
+          }
+        }
         // Parse working hours from profile
         if (data.workingHours && Array.isArray(data.workingHours) && data.workingHours.length > 0) {
           // workingHours is array like [{day: 0, start: "09:00", end: "18:00"}, ...]
@@ -582,8 +591,11 @@ export default function StaffDashboard() {
               onClick={() => { setSettingsOpen(false); router.push('/staff/profile'); }}
               className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted transition-colors text-left"
             >
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Settings className="h-5 w-5 text-primary" />
+              <div 
+                className="h-10 w-10 rounded-xl flex items-center justify-center"
+                style={{ backgroundColor: `${accentColor}15` }}
+              >
+                <Settings className="h-5 w-5" style={{ color: accentColor }} />
               </div>
               <div>
                 <p className="font-medium">Мій профіль</p>
@@ -595,8 +607,11 @@ export default function StaffDashboard() {
               onClick={() => { setSettingsOpen(false); router.push('/staff/schedule'); }}
               className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted transition-colors text-left"
             >
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-primary" />
+              <div 
+                className="h-10 w-10 rounded-xl flex items-center justify-center"
+                style={{ backgroundColor: `${accentColor}15` }}
+              >
+                <Clock className="h-5 w-5" style={{ color: accentColor }} />
               </div>
               <div>
                 <p className="font-medium">Графік роботи</p>
@@ -610,25 +625,41 @@ export default function StaffDashboard() {
             {/* My clients button */}
             <button 
               onClick={() => router.push('/staff/clients')}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-primary/5 hover:bg-primary/10 border border-primary/20 transition-colors text-left"
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-colors text-left"
+              style={{ 
+                backgroundColor: `${accentColor}08`,
+                borderWidth: 1,
+                borderColor: `${accentColor}30`,
+              }}
             >
-              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
-                <User className="h-5 w-5 text-primary-foreground" />
+              <div 
+                className="h-10 w-10 rounded-xl flex items-center justify-center"
+                style={{ backgroundColor: accentColor }}
+              >
+                <User className="h-5 w-5 text-white" />
               </div>
               <div className="flex-1">
                 <p className="font-medium">Мої клієнти</p>
                 <p className="text-xs text-muted-foreground">Клієнти що були у вас</p>
               </div>
-              <ChevronRight className="h-5 w-5 text-primary/50" />
+              <ChevronRight className="h-5 w-5" style={{ color: `${accentColor}80` }} />
             </button>
 
             {/* Colleague booking button */}
             <button 
               onClick={() => setColleagueBookingOpen(true)}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-primary/5 hover:bg-primary/10 border border-primary/20 transition-colors text-left"
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-colors text-left"
+              style={{ 
+                backgroundColor: `${accentColor}08`,
+                borderWidth: 1,
+                borderColor: `${accentColor}30`,
+              }}
             >
-              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
-                <Users className="h-5 w-5 text-primary-foreground" />
+              <div 
+                className="h-10 w-10 rounded-xl flex items-center justify-center"
+                style={{ backgroundColor: accentColor }}
+              >
+                <Users className="h-5 w-5 text-white" />
               </div>
               <div>
                 <p className="font-medium">Запис для колеги</p>

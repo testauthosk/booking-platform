@@ -21,7 +21,12 @@ export async function GET(request: NextRequest) {
         bio: true,
         role: true,
         workingHours: true,
-        color: true
+        color: true,
+        salon: {
+          select: {
+            paletteId: true,
+          }
+        }
       }
     });
 
@@ -29,7 +34,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Master not found' }, { status: 404 });
     }
 
-    return NextResponse.json(master);
+    return NextResponse.json({
+      ...master,
+      paletteId: master.salon?.paletteId || 'earth-harmony',
+    });
   } catch (error) {
     console.error('Staff profile error:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
