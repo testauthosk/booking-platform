@@ -11,7 +11,7 @@ import { StaffBookingModal } from '@/components/staff/staff-booking-modal';
 import { BookingDetailsModal } from '@/components/staff/booking-details-modal';
 import { getPaletteById } from '@/lib/color-palettes';
 
-// Затемнити колір на 20% для обводки
+// Затемнити колір на X% для обводки
 const darkenColor = (hex: string, percent = 20): string => {
   const num = parseInt(hex.replace('#', ''), 16);
   const amt = Math.round(2.55 * percent);
@@ -19,6 +19,31 @@ const darkenColor = (hex: string, percent = 20): string => {
   const G = Math.max((num >> 8 & 0x00FF) - amt, 0);
   const B = Math.max((num & 0x0000FF) - amt, 0);
   return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+};
+
+// Визначити яскравість кольору (0-255)
+const getLuminance = (hex: string): number => {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const R = (num >> 16) & 0xFF;
+  const G = (num >> 8) & 0xFF;
+  const B = num & 0xFF;
+  // Формула сприйняття яскравості людським оком
+  return (0.299 * R + 0.587 * G + 0.114 * B);
+};
+
+// Чи колір світлий? (для визначення кольору тексту)
+const isLightColor = (hex: string): boolean => {
+  return getLuminance(hex) > 160; // Поріг світлості
+};
+
+// Отримати контрастний колір тексту
+const getContrastText = (bgHex: string, accentHex: string): string => {
+  if (isLightColor(bgHex)) {
+    // Світлий фон → темний текст (затемнений accent)
+    return darkenColor(accentHex, 40);
+  }
+  // Темний фон → світлий текст
+  return '#ffffff';
 };
 
 interface Booking {
@@ -520,11 +545,11 @@ export default function StaffDashboard() {
         {stats?.nextBooking && (
           <div 
             className="flex items-center gap-3 px-3 py-2 rounded-xl"
-            style={{ backgroundColor: `${accentColor}10`, borderWidth: 1, borderColor: darkenColor(accentColor, 10) }}
+            style={{ backgroundColor: `${accentColor}15`, borderWidth: 1, borderColor: darkenColor(accentColor, 15) }}
           >
             <div 
               className="h-9 w-14 rounded-lg flex items-center justify-center text-sm font-bold"
-              style={{ backgroundColor: `${accentColor}20`, color: accentColor }}
+              style={{ backgroundColor: `${accentColor}30`, color: darkenColor(accentColor, 35) }}
             >
               {stats.nextBooking.time}
             </div>
@@ -532,7 +557,7 @@ export default function StaffDashboard() {
               <p className="text-sm font-medium truncate">{stats.nextBooking.clientName} · {stats.nextBooking.serviceName}</p>
             </div>
             {getTimeUntil(stats.nextBooking.time) && (
-              <span className="text-xs shrink-0" style={{ color: accentColor }}>{getTimeUntil(stats.nextBooking.time)}</span>
+              <span className="text-xs font-semibold shrink-0" style={{ color: darkenColor(accentColor, 30) }}>{getTimeUntil(stats.nextBooking.time)}</span>
             )}
           </div>
         )}
@@ -540,7 +565,7 @@ export default function StaffDashboard() {
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-3">
           <Card className="p-3 pt-4 text-center flex flex-col justify-center">
-            <p className="text-4xl font-bold" style={{ color: accentColor }}>
+            <p className="text-4xl font-bold" style={{ color: isLightColor(accentColor) ? darkenColor(accentColor, 25) : accentColor }}>
               {loadingStats ? '...' : stats?.todayCount ?? 0}
             </p>
             <p className="text-xs text-muted-foreground mt-2">Сьогодні</p>
@@ -863,10 +888,10 @@ export default function StaffDashboard() {
                 onClick={setLunchBreak}
                 className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
                 style={{ 
-                  backgroundColor: `${accentColor}15`,
+                  backgroundColor: `${accentColor}20`,
                   borderWidth: 1,
-                  borderColor: darkenColor(accentColor),
-                  color: accentColor 
+                  borderColor: darkenColor(accentColor, 15),
+                  color: darkenColor(accentColor, 35)
                 }}
               >
                 🍽️ Обід ({lunchDuration} хв)
@@ -878,10 +903,10 @@ export default function StaffDashboard() {
                 onClick={() => setQuickBreak(1)}
                 className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
                 style={{ 
-                  backgroundColor: `${accentColor}15`,
+                  backgroundColor: `${accentColor}20`,
                   borderWidth: 1,
-                  borderColor: darkenColor(accentColor),
-                  color: accentColor 
+                  borderColor: darkenColor(accentColor, 15),
+                  color: darkenColor(accentColor, 35)
                 }}
               >
                 ⏱️ 1 година
@@ -893,10 +918,10 @@ export default function StaffDashboard() {
                 onClick={() => setQuickBreak(2)}
                 className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
                 style={{ 
-                  backgroundColor: `${accentColor}15`,
+                  backgroundColor: `${accentColor}20`,
                   borderWidth: 1,
-                  borderColor: darkenColor(accentColor),
-                  color: accentColor 
+                  borderColor: darkenColor(accentColor, 15),
+                  color: darkenColor(accentColor, 35)
                 }}
               >
                 ⏱️ 2 години
@@ -908,10 +933,10 @@ export default function StaffDashboard() {
                 onClick={setFullDay}
                 className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
                 style={{ 
-                  backgroundColor: `${accentColor}15`,
+                  backgroundColor: `${accentColor}20`,
                   borderWidth: 1,
-                  borderColor: darkenColor(accentColor),
-                  color: accentColor 
+                  borderColor: darkenColor(accentColor, 15),
+                  color: darkenColor(accentColor, 35)
                 }}
               >
                 📅 Весь день
@@ -924,10 +949,10 @@ export default function StaffDashboard() {
               onClick={setToEndOfDay}
               className="w-full py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
               style={{ 
-                backgroundColor: `${accentColor}15`,
+                backgroundColor: `${accentColor}20`,
                 borderWidth: 1,
-                borderColor: darkenColor(accentColor),
-                color: accentColor 
+                borderColor: darkenColor(accentColor, 15),
+                color: darkenColor(accentColor, 35)
               }}
             >
               🌙 До кінця робочого дня
@@ -971,7 +996,7 @@ export default function StaffDashboard() {
             onClick={() => createBlockTime(true)}
             disabled={savingBlock}
             className="w-full py-3 rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            style={{ backgroundColor: accentColor, color: 'white' }}
+            style={{ backgroundColor: accentColor, color: isLightColor(accentColor) ? darkenColor(accentColor, 50) : 'white' }}
           >
             {savingBlock ? (
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -991,10 +1016,10 @@ export default function StaffDashboard() {
             disabled={savingBlock}
             className="w-full py-3 rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             style={{ 
-              backgroundColor: `${accentColor}15`,
+              backgroundColor: `${accentColor}20`,
               borderWidth: 1,
-              borderColor: darkenColor(accentColor),
-              color: accentColor 
+              borderColor: darkenColor(accentColor, 15),
+              color: darkenColor(accentColor, 35)
             }}
           >
             {savingBlock ? (
