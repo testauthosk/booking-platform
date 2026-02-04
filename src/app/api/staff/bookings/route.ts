@@ -131,33 +131,34 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// PUT - Update booking (time, duration)
+// PUT - Update booking (time, duration, status, masterId for transfer)
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { bookingId, time, duration } = body;
+    const { bookingId, time, duration, status, masterId, masterName, serviceId, serviceName, price } = body;
 
     if (!bookingId) {
       return NextResponse.json({ error: 'bookingId required' }, { status: 400 });
     }
 
-    // Calculate new timeEnd if time or duration changed
-    const updateData: Record<string, unknown> = {};
-    
-    if (time) {
-      updateData.time = time;
-    }
-    
-    if (duration) {
-      updateData.duration = duration;
-    }
-
-    // Recalculate timeEnd
     const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
     if (!booking) {
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 
+    // Build update data
+    const updateData: Record<string, unknown> = {};
+    
+    if (time) updateData.time = time;
+    if (duration) updateData.duration = duration;
+    if (status) updateData.status = status;
+    if (masterId) updateData.masterId = masterId;
+    if (masterName) updateData.masterName = masterName;
+    if (serviceId) updateData.serviceId = serviceId;
+    if (serviceName) updateData.serviceName = serviceName;
+    if (price !== undefined) updateData.price = price;
+
+    // Recalculate timeEnd if time or duration changed
     const newTime = time || booking.time;
     const newDuration = duration || booking.duration;
     const [hours, minutes] = newTime.split(':').map(Number);
