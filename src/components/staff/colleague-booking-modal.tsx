@@ -53,6 +53,9 @@ export function ColleagueBookingModal({
   onSuccess,
 }: ColleagueBookingModalProps) {
   const [step, setStep] = useState<Step>('colleague');
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('left');
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [colleagues, setColleagues] = useState<Master[]>([]);
   const [selectedColleague, setSelectedColleague] = useState<Master | null>(null);
   const [services, setServices] = useState<Service[]>([]);
@@ -81,7 +84,26 @@ export function ColleagueBookingModal({
     setNewClientName('');
     setNewClientPhone('');
     setClientSearch('');
+    setShowCancelConfirm(false);
   }, []);
+
+  // Перевірка чи є введені дані
+  const hasData = selectedColleague || selectedServices.length > 0 || selectedClient || newClientName || newClientPhone;
+
+  // Обробка закриття з підтвердженням
+  const handleClose = useCallback(() => {
+    if (hasData) {
+      setShowCancelConfirm(true);
+    } else {
+      onClose();
+    }
+  }, [hasData, onClose]);
+
+  // Підтвердити скасування
+  const confirmCancel = useCallback(() => {
+    resetState();
+    onClose();
+  }, [resetState, onClose]);
 
   // Зберігати стан 3 хвилини після закриття
   usePreservedModal(isOpen, resetState);
@@ -278,16 +300,26 @@ export function ColleagueBookingModal({
   const goNext = () => {
     const steps: Step[] = ['colleague', 'services', 'datetime', 'client', 'confirm'];
     const currentIndex = steps.indexOf(step);
-    if (currentIndex < steps.length - 1) {
-      setStep(steps[currentIndex + 1]);
+    if (currentIndex < steps.length - 1 && !isAnimating) {
+      setSlideDirection('left');
+      setIsAnimating(true);
+      setTimeout(() => {
+        setStep(steps[currentIndex + 1]);
+        setTimeout(() => setIsAnimating(false), 50);
+      }, 150);
     }
   };
 
   const goBack = () => {
     const steps: Step[] = ['colleague', 'services', 'datetime', 'client', 'confirm'];
     const currentIndex = steps.indexOf(step);
-    if (currentIndex > 0) {
-      setStep(steps[currentIndex - 1]);
+    if (currentIndex > 0 && !isAnimating) {
+      setSlideDirection('right');
+      setIsAnimating(true);
+      setTimeout(() => {
+        setStep(steps[currentIndex - 1]);
+        setTimeout(() => setIsAnimating(false), 50);
+      }, 150);
     }
   };
 
@@ -323,8 +355,38 @@ export function ColleagueBookingModal({
           "fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] transition-opacity duration-300",
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
-        onClick={onClose}
+        onClick={handleClose}
       />
+
+      {/* Cancel Confirmation Modal */}
+      {showCancelConfirm && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/40 z-[120]"
+            onClick={() => setShowCancelConfirm(false)}
+          />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 bg-card rounded-2xl shadow-xl z-[130] p-5 max-w-sm mx-auto">
+            <h3 className="text-lg font-semibold mb-2">Відмінити створення запису?</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Всі введені дані буде втрачено
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl bg-muted hover:bg-muted/80 font-medium transition-colors"
+              >
+                Продовжити
+              </button>
+              <button
+                onClick={confirmCancel}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 text-white hover:bg-red-600 font-medium transition-colors"
+              >
+                Відмінити
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Modal */}
       <div 
@@ -348,7 +410,7 @@ export function ColleagueBookingModal({
             <h2 className="font-semibold">{getStepTitle()}</h2>
           </div>
           <button 
-            onClick={onClose}
+            onClick={handleClose}
             className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
           >
             <X className="h-5 w-5" />
@@ -356,7 +418,14 @@ export function ColleagueBookingModal({
         </div>
 
         {/* Content - min-height prevents jumping */}
-        <div className="flex-1 overflow-y-auto p-4 min-h-[300px]">
+        <div 
+          className={cn(
+            "flex-1 overflow-y-auto p-4 min-h-[300px] transition-all duration-200 ease-out",
+            isAnimating && slideDirection === 'left' && "opacity-0 -translate-x-4",
+            isAnimating && slideDirection === 'right' && "opacity-0 translate-x-4",
+            !isAnimating && "opacity-100 translate-x-0"
+          )}
+        >
           {/* Step 1: Colleague */}
           {step === 'colleague' && (
             <div className="space-y-2">

@@ -12,6 +12,7 @@ interface Booking {
   clientName: string;
   clientPhone: string;
   serviceName: string;
+  serviceId?: string;
   time: string;
   timeEnd?: string;
   duration: number;
@@ -245,6 +246,7 @@ export default function StaffCalendar() {
   const [editTime, setEditTime] = useState('');
   const [editBaseDuration, setEditBaseDuration] = useState(60);
   const [editExtraTime, setEditExtraTime] = useState(0);
+  const [editServiceId, setEditServiceId] = useState<string>('');
   
   // Confirmation modal
   const [confirmModal, setConfirmModal] = useState<{
@@ -475,6 +477,9 @@ export default function StaffCalendar() {
     setEditTime(booking.time);
     setEditBaseDuration(booking.duration);
     setEditExtraTime(0);
+    // Знайти serviceId за назвою
+    const service = services.find(s => s.name === booking.serviceName);
+    setEditServiceId(service?.id || '');
     setEditModalOpen(true);
   };
 
@@ -1268,7 +1273,38 @@ export default function StaffCalendar() {
             <div className="p-3 bg-muted rounded-xl">
               <p className="font-semibold">{editBooking.clientName}</p>
               <p className="text-sm text-muted-foreground">{editBooking.clientPhone}</p>
-              <p className="text-sm text-muted-foreground">{editBooking.serviceName}</p>
+            </div>
+
+            {/* Service Selection */}
+            <div>
+              <label className="text-sm font-medium mb-2 flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                Послуга
+              </label>
+              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                {services.map((service) => {
+                  const isSelected = editServiceId === service.id;
+                  return (
+                    <button
+                      key={service.id}
+                      onClick={() => {
+                        setEditServiceId(service.id);
+                        setEditBaseDuration(service.duration);
+                      }}
+                      className={`p-2 rounded-xl border text-left transition-all text-sm ${
+                        isSelected
+                          ? 'border-primary bg-primary/10 ring-2 ring-primary/20'
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <p className="font-medium truncate">{service.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {service.duration} хв · {service.price} ₴
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Time Wheel Picker */}
@@ -1331,6 +1367,12 @@ export default function StaffCalendar() {
             {/* Summary */}
             <div className="p-3 rounded-xl bg-muted/50">
               <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Послуга:</span>
+                <span className="font-medium">
+                  {services.find(s => s.id === editServiceId)?.name || editBooking.serviceName}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm mt-1">
                 <span className="text-muted-foreground">Час:</span>
                 <span className="font-medium">
                   {editTime} - {(() => {
@@ -1362,6 +1404,7 @@ export default function StaffCalendar() {
           <button
             onClick={async () => {
               if (!editBooking) return;
+              const selectedService = services.find(s => s.id === editServiceId);
               try {
                 const res = await fetch('/api/staff/bookings', {
                   method: 'PUT',
@@ -1369,7 +1412,10 @@ export default function StaffCalendar() {
                   body: JSON.stringify({ 
                     bookingId: editBooking.id, 
                     time: editTime, 
-                    duration: editBaseDuration + editExtraTime
+                    duration: editBaseDuration + editExtraTime,
+                    serviceId: editServiceId || undefined,
+                    serviceName: selectedService?.name || editBooking.serviceName,
+                    price: selectedService?.price || editBooking.price
                   })
                 });
                 if (res.ok) {
