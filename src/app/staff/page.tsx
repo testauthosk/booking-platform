@@ -753,50 +753,60 @@ export default function StaffDashboard() {
             </button>
           </div>
 
-          <div className="flex-1 p-4 space-y-1">
+          <div className="flex-1 p-4 space-y-2">
+            {/* Profile button */}
             <button 
               onClick={() => navigateFromSettings('/staff/profile')}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 transition-colors text-left"
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-colors text-left"
+              style={{ 
+                backgroundColor: `${accentColor}08`,
+                borderWidth: 1,
+                borderColor: darkenColor(accentColor, 10),
+              }}
             >
               <div 
                 className="h-10 w-10 rounded-xl flex items-center justify-center"
-                style={{ 
-                  backgroundColor: `${accentColor}15`,
-                  borderWidth: 1,
-                  borderColor: darkenColor(accentColor, 10)
-                }}
+                style={{ backgroundColor: accentColor }}
               >
-                <Settings className="h-5 w-5" style={{ color: accentColor }} />
+                <Settings className="h-5 w-5" style={{ color: isLightColor(accentColor) ? darkenColor(accentColor, 50) : 'white' }} />
               </div>
-              <div>
+              <div className="flex-1">
                 <p className="font-medium">Мій профіль</p>
                 <p className="text-xs text-muted-foreground">Фото, імʼя, контакти</p>
               </div>
+              <ChevronRight className="h-5 w-5" style={{ color: `${accentColor}80` }} />
             </button>
 
+            {/* Schedule button */}
             <button 
               onClick={() => navigateFromSettings('/staff/schedule')}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 transition-colors text-left"
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-colors text-left"
+              style={{ 
+                backgroundColor: `${accentColor}08`,
+                borderWidth: 1,
+                borderColor: darkenColor(accentColor, 10),
+              }}
             >
               <div 
                 className="h-10 w-10 rounded-xl flex items-center justify-center"
-                style={{ 
-                  backgroundColor: `${accentColor}15`,
-                  borderWidth: 1,
-                  borderColor: darkenColor(accentColor, 10)
-                }}
+                style={{ backgroundColor: accentColor }}
               >
-                <Clock className="h-5 w-5" style={{ color: accentColor }} />
+                <Clock className="h-5 w-5" style={{ color: isLightColor(accentColor) ? darkenColor(accentColor, 50) : 'white' }} />
               </div>
-              <div>
+              <div className="flex-1">
                 <p className="font-medium">Графік роботи</p>
                 <p className="text-xs text-muted-foreground">Робочі години</p>
               </div>
+              <ChevronRight className="h-5 w-5" style={{ color: `${accentColor}80` }} />
             </button>
-          </div>
 
-          {/* Action buttons */}
-          <div className="px-4 pt-2 space-y-2">
+            {/* Separator */}
+            <div className="flex items-center gap-3 py-3">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs text-muted-foreground">Швидкі дії</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+
             {/* My clients button */}
             <button 
               onClick={() => navigateFromSettings('/staff/clients')}
@@ -811,7 +821,7 @@ export default function StaffDashboard() {
                 className="h-10 w-10 rounded-xl flex items-center justify-center"
                 style={{ backgroundColor: accentColor }}
               >
-                <User className="h-5 w-5 text-white" />
+                <User className="h-5 w-5" style={{ color: isLightColor(accentColor) ? darkenColor(accentColor, 50) : 'white' }} />
               </div>
               <div className="flex-1">
                 <p className="font-medium">Мої клієнти</p>
@@ -834,12 +844,13 @@ export default function StaffDashboard() {
                 className="h-10 w-10 rounded-xl flex items-center justify-center"
                 style={{ backgroundColor: accentColor }}
               >
-                <Users className="h-5 w-5 text-white" />
+                <Users className="h-5 w-5" style={{ color: isLightColor(accentColor) ? darkenColor(accentColor, 50) : 'white' }} />
               </div>
-              <div>
+              <div className="flex-1">
                 <p className="font-medium">Запис для колеги</p>
                 <p className="text-xs text-muted-foreground">Створити запис напарнику</p>
               </div>
+              <ChevronRight className="h-5 w-5" style={{ color: `${accentColor}80` }} />
             </button>
           </div>
 
