@@ -552,7 +552,7 @@ export function StaffBookingModal({
 
           {/* Client Step */}
           {step === 'client' && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -641,7 +641,7 @@ export function StaffBookingModal({
                 <div 
                   className="overflow-hidden"
                   style={{
-                    maxHeight: isNewClient ? '0px' : '500px',
+                    maxHeight: isNewClient ? '0px' : '600px',
                     opacity: isNewClient ? 0 : 1,
                     visibility: isNewClient ? 'hidden' : 'visible',
                     transition: isNewClient 
@@ -649,73 +649,66 @@ export function StaffBookingModal({
                       : 'max-height 500ms ease-out, opacity 400ms ease-out 100ms, visibility 0ms'
                   }}
                 >
-                  {(
-                <>
-                  {/* Add new client button */}
-                  {clientSearch && filteredClients.length === 0 && (
+                  <div className="space-y-3">
+                    {/* Clients list in bordered container */}
+                    {filteredClients.length > 0 && (
+                      <div className="border border-border rounded-xl overflow-hidden">
+                        <div className="max-h-[250px] overflow-y-auto divide-y divide-border">
+                          {filteredClients.slice(0, 20).map((client) => (
+                            <button
+                              key={client.id}
+                              onClick={() => {
+                                setSelectedClient(client);
+                                setIsNewClient(false);
+                              }}
+                              className={cn(
+                                'w-full p-3 text-left transition-all flex items-center gap-3',
+                                selectedClient?.id === client.id
+                                  ? 'bg-primary/5'
+                                  : 'hover:bg-muted/50'
+                              )}
+                            >
+                              <div className="w-10 h-10 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground font-medium shrink-0">
+                                {getInitials(client.name)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">
+                                  {client.name}{client.lastName ? ` ${client.lastName}` : ''}
+                                </p>
+                                <p className="text-sm text-muted-foreground">{client.phone}</p>
+                              </div>
+                              {selectedClient?.id === client.id && (
+                                <Check className="w-5 h-5 text-primary shrink-0" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* No results message */}
+                    {clientSearch && filteredClients.length === 0 && (
+                      <p className="text-center text-sm text-muted-foreground py-4">
+                        Клієнтів не знайдено
+                      </p>
+                    )}
+
+                    {/* Add new client button - always visible */}
                     <button
                       onClick={() => {
                         setIsNewClient(true);
-                        setNewClientName(clientSearch);
+                        if (clientSearch) setNewClientName(clientSearch);
                       }}
-                      className="w-full p-4 rounded-xl border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 transition-all flex items-center gap-3"
-                    >
-                      <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
-                        <Plus className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-medium text-primary">Додати "{clientSearch}"</p>
-                        <p className="text-xs text-muted-foreground">Створити нового клієнта</p>
-                      </div>
-                    </button>
-                  )}
-
-                  {/* Existing clients */}
-                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                    {filteredClients.slice(0, 20).map((client) => (
-                      <button
-                        key={client.id}
-                        onClick={() => {
-                          setSelectedClient(client);
-                          setIsNewClient(false);
-                        }}
-                        className={cn(
-                          'w-full p-3 rounded-xl border text-left transition-all flex items-center gap-3',
-                          selectedClient?.id === client.id
-                            ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                            : 'border-border hover:border-primary/50'
-                        )}
-                      >
-                        <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-medium">
-                          {getInitials(client.name)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">
-                            {client.name}{client.lastName ? ` ${client.lastName}` : ''}
-                          </p>
-                          <p className="text-sm text-muted-foreground">{client.phone}</p>
-                        </div>
-                        {selectedClient?.id === client.id && (
-                          <Check className="w-5 h-5 text-primary shrink-0" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* No search, show add button */}
-                  {!clientSearch && (
-                    <button
-                      onClick={() => setIsNewClient(true)}
                       className="w-full p-3 rounded-xl border border-dashed border-muted-foreground/30 hover:border-primary hover:bg-primary/5 transition-all flex items-center gap-3"
                     >
                       <div className="w-10 h-10 rounded-2xl bg-muted flex items-center justify-center">
                         <Plus className="w-5 h-5 text-muted-foreground" />
                       </div>
-                      <span className="text-muted-foreground">Новий клієнт</span>
+                      <span className="text-muted-foreground">
+                        {clientSearch ? `Додати "${clientSearch}"` : 'Новий клієнт'}
+                      </span>
                     </button>
-                  )}
-                  </>
-                  )}
+                  </div>
                 </div>
                 </>
               )}
