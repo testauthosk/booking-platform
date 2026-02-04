@@ -328,24 +328,34 @@ export function StaffBookingModal({
   const nextStep = () => {
     const idx = currentStepIndex;
     if (idx < STEPS.length - 1 && !isAnimating) {
-      setSlideDirection('left');
       setIsAnimating(true);
+      setSlideDirection('left');
+      // Fade out, потім змінюємо крок, потім fade in
       setTimeout(() => {
         setStep(STEPS[idx + 1].id);
-        setTimeout(() => setIsAnimating(false), 50);
-      }, 150);
+        // Невелика затримка перед fade in
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setIsAnimating(false);
+          });
+        });
+      }, 250);
     }
   };
 
   const prevStep = () => {
     const idx = currentStepIndex;
     if (idx > 0 && !isAnimating) {
-      setSlideDirection('right');
       setIsAnimating(true);
+      setSlideDirection('right');
       setTimeout(() => {
         setStep(STEPS[idx - 1].id);
-        setTimeout(() => setIsAnimating(false), 50);
-      }, 150);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setIsAnimating(false);
+          });
+        });
+      }, 250);
     }
   };
 
@@ -455,12 +465,14 @@ export function StaffBookingModal({
 
         {/* Content */}
         <div 
-          className={cn(
-            "flex-1 overflow-y-auto p-4 transition-all duration-200 ease-out",
-            isAnimating && slideDirection === 'left' && "opacity-0 -translate-x-4",
-            isAnimating && slideDirection === 'right' && "opacity-0 translate-x-4",
-            !isAnimating && "opacity-100 translate-x-0"
-          )}
+          style={{
+            opacity: isAnimating ? 0 : 1,
+            transform: isAnimating 
+              ? `translateX(${slideDirection === 'left' ? '-20px' : '20px'})` 
+              : 'translateX(0)',
+            transition: 'opacity 250ms ease-out, transform 250ms ease-out',
+          }}
+          className="flex-1 overflow-y-auto p-4"
         >
           {/* Service Step */}
           {step === 'service' && (
