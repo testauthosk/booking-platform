@@ -417,14 +417,14 @@ export function BookingDetailsModal({
 
       {/* Cancel Confirmation Modal */}
       <div 
-        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-[140] transition-opacity duration-500 ${
           cancelConfirmOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setCancelConfirmOpen(false)}
       />
       <div 
-        className={`fixed left-4 right-4 bottom-4 bg-card rounded-2xl shadow-xl z-[90] transform transition-all duration-300 ${
-          cancelConfirmOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0 pointer-events-none'
+        className={`fixed inset-x-0 bottom-0 bg-card rounded-t-3xl shadow-xl z-[150] transform transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+          cancelConfirmOpen ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
         <div className="p-5 text-center">
