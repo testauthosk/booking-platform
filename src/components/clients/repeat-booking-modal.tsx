@@ -335,7 +335,7 @@ export function RepeatBookingModal({
 
           {/* Client info */}
           <div className="flex items-center gap-3 p-2 bg-primary/5 rounded-lg">
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-medium">
+            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary font-medium">
               {getInitials(client.name)}
             </div>
             <div>
@@ -442,7 +442,7 @@ export function RepeatBookingModal({
                       style={{ backgroundColor: master.color || '#8b5cf6' }}
                     >
                       {master.avatar ? (
-                        <img src={master.avatar} alt={master.name} className="w-full h-full rounded-full object-cover" />
+                        <img src={master.avatar} alt={master.name} className="w-full h-full rounded-xl object-cover" />
                       ) : (
                         getInitials(master.name)
                       )}
