@@ -559,7 +559,7 @@ function StaffCalendarContent() {
             {/* Calendar picker button - styled like + button */}
             <button 
               onClick={() => setCalendarPickerOpen(true)}
-              className="h-10 w-10 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center justify-center transition-colors shadow-sm"
+              className="h-10 w-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -567,15 +567,10 @@ function StaffCalendarContent() {
             </button>
             <button
               onClick={() => setShowOnlyBookings(!showOnlyBookings)}
-              className="h-10 px-3 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden flex items-center gap-1"
-              style={{
-                backgroundColor: showOnlyBookings ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
-                color: showOnlyBookings ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
-                width: showOnlyBookings ? '100px' : '76px'
-              }}
+              className="h-10 px-3 rounded-xl text-sm font-medium border border-zinc-200 bg-white transition-all duration-300 flex items-center overflow-hidden"
             >
-              <span className={`transition-all duration-300 ${showOnlyBookings ? 'w-4 opacity-100' : 'w-0 opacity-0'}`}>✓</span>
-              <span>Записи</span>
+              <span className={`transition-all duration-300 ease-out ${showOnlyBookings ? 'w-5 opacity-100 mr-1' : 'w-0 opacity-0 mr-0'}`}>✓</span>
+              <span className="transition-transform duration-300">Записи</span>
             </button>
             <button 
               onClick={openAddModal}
@@ -591,29 +586,8 @@ function StaffCalendarContent() {
       <div className="shrink-0 bg-card border-b">
         <div 
           ref={daysRef}
-          className="flex gap-2 px-4 py-3 overflow-x-auto scrollbar-hide items-center"
+          className="flex gap-2 px-2 py-3 overflow-x-auto scrollbar-hide items-center"
         >
-          {/* Today button - appears on left when not viewing today */}
-          <button
-            onClick={() => {
-              setSelectedDate(new Date());
-              // Scroll days back to start
-              if (daysRef.current) {
-                daysRef.current.scrollTo({ left: 0, behavior: 'smooth' });
-              }
-            }}
-            className={`shrink-0 flex items-center gap-1.5 h-[68px] px-3 rounded-xl bg-primary/10 text-primary text-sm font-medium transition-all duration-300 ease-out overflow-hidden ${
-              isToday(selectedDate) 
-                ? 'w-0 px-0 opacity-0 mr-0' 
-                : 'w-auto opacity-100 mr-1'
-            }`}
-            style={{
-              maxWidth: isToday(selectedDate) ? '0px' : '120px'
-            }}
-          >
-            <ChevronLeft className="h-4 w-4 shrink-0" />
-            <span className="whitespace-nowrap">Сьогодні</span>
-          </button>
           {days.map((date, index) => (
             <button
               key={index}
