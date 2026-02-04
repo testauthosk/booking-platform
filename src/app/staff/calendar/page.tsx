@@ -281,6 +281,23 @@ function StaffCalendarContent() {
       setConfirmLoading(false);
     }
   };
+
+  const handleCompleteBooking = async (bookingId: string) => {
+    try {
+      const res = await fetch('/api/staff/bookings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId, status: 'COMPLETED' })
+      });
+      if (res.ok) {
+        loadBookings();
+      } else {
+        alert('Помилка при завершенні');
+      }
+    } catch (e) {
+      alert('Помилка при завершенні');
+    }
+  };
   
   // Time options will be generated based on working hours
   const getTimeOptions = () => {
@@ -648,19 +665,20 @@ function StaffCalendarContent() {
               bookings
                 .sort((a, b) => a.time.localeCompare(b.time))
                 .map((booking) => {
-                  const isPast = (() => {
-                    if (!isToday(selectedDate)) return false;
-                    const [h, m] = booking.time.split(':').map(Number);
-                    const now = new Date();
-                    return h < now.getHours() || (h === now.getHours() && m < now.getMinutes());
-                  })();
-                  
                   // Calculate end time
                   const [h, m] = booking.time.split(':').map(Number);
                   const endMins = h * 60 + m + booking.duration;
                   const endH = Math.floor(endMins / 60);
                   const endM = endMins % 60;
                   const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+                  
+                  // Check if booking is ongoing or past
+                  const now = new Date();
+                  const nowMins = now.getHours() * 60 + now.getMinutes();
+                  const startMins = h * 60 + m;
+                  
+                  const isOngoing = isToday(selectedDate) && nowMins >= startMins && nowMins < endMins && booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED';
+                  const isPast = isToday(selectedDate) && nowMins >= endMins && booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED';
                   
                   const colors = getColorVariants(masterColor);
                   const isBlocked = booking.clientName === 'Зайнято';
@@ -674,12 +692,14 @@ function StaffCalendarContent() {
                           : isBlocked
                           ? 'bg-zinc-100'
                           : isPast 
-                          ? 'opacity-60' 
+                          ? 'opacity-50' 
+                          : isOngoing
+                          ? 'ring-2 ring-blue-400 shadow-md'
                           : ''
                       }`}
                       style={{ 
                         backgroundColor: booking.status === 'COMPLETED' ? undefined : isBlocked ? undefined : colors.bg,
-                        borderLeft: `4px solid ${colors.stripe}`
+                        borderLeft: `4px solid ${isOngoing ? '#3b82f6' : colors.stripe}`
                       }}
                     >
                       <div className="p-3 flex justify-between gap-3">
@@ -704,6 +724,10 @@ function StaffCalendarContent() {
                             </div>
                           )}
                           
+                          {isOngoing && (
+                            <span className="inline-block mt-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-medium animate-pulse">⏱ Зараз</span>
+                          )}
+                          
                           {booking.status === 'COMPLETED' && (
                             <span className="inline-block mt-2 text-xs bg-green-200 text-green-700 px-2 py-0.5 rounded">✓ Завершено</span>
                           )}
@@ -726,26 +750,37 @@ function StaffCalendarContent() {
                           )}
                           {/* Other buttons - only for active bookings */}
                           {booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && !isPast && (
-                              <div className="flex gap-1">
-                                <button 
-                                  onClick={() => openEditModal(booking)}
-                                  className="flex-1 h-8 rounded-lg bg-white text-zinc-600 hover:bg-zinc-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm"
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </button>
-                                <button 
-                                  onClick={() => setConfirmModal({ open: true, type: 'noshow', booking })}
-                                  className="flex-1 h-8 rounded-lg bg-white text-orange-500 hover:bg-orange-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm" 
-                                  title="Не прийшов"
-                                >
-                                  <Clock className="h-4 w-4" />
-                                </button>
-                                <button 
-                                  onClick={() => setConfirmModal({ open: true, type: 'cancel', booking })}
-                                  className="flex-1 h-8 rounded-lg bg-white text-red-400 hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm"
-                                >
-                                  <X className="h-4 w-4" />
-                                </button>
+                              <div className="flex flex-col gap-1">
+                                {/* Complete button - prominent for ongoing */}
+                                {isOngoing && (
+                                  <button 
+                                    onClick={() => handleCompleteBooking(booking.id)}
+                                    className="h-9 px-3 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-semibold hover:bg-emerald-200 transition-colors flex items-center justify-center gap-1 border border-emerald-300"
+                                  >
+                                    <Check className="h-3.5 w-3.5" /> Завершити
+                                  </button>
+                                )}
+                                <div className="flex gap-1">
+                                  <button 
+                                    onClick={() => openEditModal(booking)}
+                                    className="flex-1 h-8 rounded-lg bg-white text-zinc-600 hover:bg-zinc-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm"
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </button>
+                                  <button 
+                                    onClick={() => setConfirmModal({ open: true, type: 'noshow', booking })}
+                                    className="flex-1 h-8 rounded-lg bg-white text-orange-500 hover:bg-orange-50 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm" 
+                                    title="Не прийшов"
+                                  >
+                                    <Clock className="h-4 w-4" />
+                                  </button>
+                                  <button 
+                                    onClick={() => setConfirmModal({ open: true, type: 'cancel', booking })}
+                                    className="flex-1 h-8 rounded-lg bg-white text-red-400 hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center border border-zinc-200 shadow-sm"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                </div>
                               </div>
                             )}
                           </div>
