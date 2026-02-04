@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Calendar, Clock, LogOut, Settings, Loader2, Plus, ChevronRight, X, Tag, User, Phone, Check, Users } from 'lucide-react';
 import { TimeWheelPicker } from '@/components/time-wheel-picker';
 import { ColleagueBookingModal } from '@/components/staff/colleague-booking-modal';
+import { StaffBookingModal } from '@/components/staff/staff-booking-modal';
 
 interface Booking {
   id: string;
@@ -647,312 +648,6 @@ export default function StaffDashboard() {
           </div>
         </div>
       </div>
-
-      {/* New Booking Modal */}
-      <div 
-        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-all duration-700 ease-in-out ${
-          newBookingOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-        onClick={() => setNewBookingOpen(false)}
-      />
-      <div 
-        className={`fixed inset-x-0 bottom-0 max-h-[85vh] bg-card rounded-t-3xl shadow-xl z-50 transform transition-all duration-700 ease-in-out overflow-hidden flex flex-col ${
-          newBookingOpen ? 'translate-y-0' : 'translate-y-full'
-        }`}
-      >
-        <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2">
-            {bookingStep === 'details' && (
-              <button 
-                onClick={() => setBookingStep('service')}
-                className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
-              >
-                <ChevronRight className="h-5 w-5 rotate-180" />
-              </button>
-            )}
-            <h2 className="font-semibold">
-              {bookingStep === 'service' ? 'Оберіть послугу' : 'Деталі запису'}
-            </h2>
-          </div>
-          <button 
-            onClick={() => setNewBookingOpen(false)}
-            className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Step 1: Select service */}
-        {bookingStep === 'service' && (
-          <div className="p-4 overflow-y-auto flex-1">
-            {services.length > 0 ? (
-              <div className="space-y-2">
-                {services.map((service) => (
-                  <button
-                    key={service.id}
-                    onClick={() => {
-                      setBookingService(service);
-                      // Calculate end time based on service duration
-                      const [h, m] = bookingTime.split(':').map(Number);
-                      const endMins = h * 60 + m + service.duration;
-                      const endH = Math.floor(endMins / 60);
-                      const endM = endMins % 60;
-                      setBookingEndTime(`${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`);
-                      setBookingStep('details');
-                    }}
-                    className="w-full p-3 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all text-left flex items-center justify-between"
-                  >
-                    <div>
-                      <p className="font-medium">{service.name}</p>
-                      <p className="text-sm text-muted-foreground">{service.duration} хв</p>
-                    </div>
-                    <span className="font-semibold">{service.price} ₴</span>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Немає активних послуг</p>
-                <button 
-                  onClick={() => { setNewBookingOpen(false); router.push('/staff/services'); }}
-                  className="mt-2 text-primary text-sm"
-                >
-                  Налаштувати послуги
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Step 2: Client details */}
-        {bookingStep === 'details' && bookingService && (
-          <div className="p-4 overflow-y-auto flex-1 space-y-4">
-            {/* Busy slots timeline */}
-            {stats?.todayBookings && stats.todayBookings.length > 0 && bookingDate.toDateString() === new Date().toDateString() && (
-              <div className="pb-2">
-                <p className="text-xs text-muted-foreground mb-2">Зайнято сьогодні:</p>
-                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                  {stats.todayBookings
-                    .filter((b: Booking) => b.status !== 'CANCELLED')
-                    .sort((a: Booking, b: Booking) => a.time.localeCompare(b.time))
-                    .map((booking: Booking) => {
-                      const [h, m] = booking.time.split(':').map(Number);
-                      const endMins = h * 60 + m + booking.duration;
-                      const endH = Math.floor(endMins / 60);
-                      const endM = endMins % 60;
-                      const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
-                      return (
-                        <div
-                          key={booking.id}
-                          className="shrink-0 px-3 py-1.5 rounded-full bg-red-50 border border-red-200 text-xs"
-                        >
-                          <span className="font-medium text-red-700">{booking.time}-{endTime}</span>
-                          <span className="text-red-500 ml-1">{booking.clientName}</span>
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
-            )}
-
-            {/* Selected service summary */}
-            <div className="p-3 rounded-xl bg-muted/50 flex items-center justify-between">
-              <div>
-                <p className="font-medium text-sm">{bookingService.name}</p>
-                <p className="text-xs text-muted-foreground">{bookingService.duration} хв</p>
-              </div>
-              <span className="font-semibold">{bookingService.price} ₴</span>
-            </div>
-
-            {/* Client name */}
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">Імʼя клієнта</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={bookingClientName}
-                  onChange={(e) => setBookingClientName(e.target.value)}
-                  placeholder="Введіть імʼя"
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            {/* Client phone */}
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">Телефон</label>
-              <div className="relative flex items-center">
-                <div className="absolute left-3 flex items-center gap-1.5 text-muted-foreground">
-                  <Phone className="h-4 w-4" />
-                  <span className="text-sm font-medium">+380</span>
-                </div>
-                <Input
-                  type="tel"
-                  value={bookingClientPhone}
-                  onChange={handlePhoneChange}
-                  placeholder="XX XXX XX XX"
-                  className="pl-[5.5rem]"
-                  maxLength={12}
-                />
-              </div>
-            </div>
-
-            {/* Date */}
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">Дата</label>
-              <button
-                type="button"
-                onClick={() => setDatePickerOpen(true)}
-                className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
-              >
-                <span>{formatDateDisplay(bookingDate)}</span>
-                <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Time */}
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">Час</label>
-              {(() => {
-                const isToday = bookingDate.toDateString() === new Date().toDateString();
-                const now = new Date();
-                const workdayEnded = isToday && now.getHours() >= staffWorkingHours.end;
-                
-                if (workdayEnded) {
-                  return (
-                    <div className="w-full h-11 px-4 rounded-xl border border-input bg-muted/50 text-sm flex items-center text-muted-foreground">
-                      Робочий день закінчився
-                    </div>
-                  );
-                }
-                
-                return (
-                  <button
-                    type="button"
-                    onClick={() => setTimePickerOpen(true)}
-                    className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
-                  >
-                    <span>{bookingTime} — {bookingEndTime}</span>
-                    <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                );
-              })()}
-            </div>
-          </div>
-        )}
-
-        {/* Footer with action button */}
-        {bookingStep === 'details' && (
-          <div className="p-4 border-t border-border shrink-0">
-            <button
-              onClick={createBooking}
-              disabled={savingBooking || !bookingClientName || !bookingClientPhone || !bookingTime}
-              className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {savingBooking ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <>
-                  <Check className="h-5 w-5" />
-                  Створити запис
-                </>
-              )}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Date Picker Bottom Sheet */}
-      {datePickerOpen && (
-        <div 
-          className="fixed inset-0 bg-black/40 z-[60]"
-          onClick={() => setDatePickerOpen(false)}
-        />
-      )}
-      <div 
-        className={`fixed inset-x-0 bottom-0 bg-zinc-800 rounded-t-2xl z-[70] transform transition-transform duration-300 ${
-          datePickerOpen ? 'translate-y-0' : 'translate-y-full'
-        }`}
-      >
-        <div className="p-2 max-h-[50vh] overflow-y-auto">
-          {dateOptions.map((date, index) => {
-            const isSelected = date.toDateString() === bookingDate.toDateString();
-            const isToday = date.toDateString() === new Date().toDateString();
-            return (
-              <button
-                key={index}
-                onClick={() => {
-                  setBookingDate(date);
-                  setDatePickerOpen(false);
-                }}
-                className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
-                  isSelected ? 'text-white' : 'text-zinc-300'
-                }`}
-              >
-                {isSelected && <Check className="h-5 w-5" />}
-                <span className={isSelected ? '' : 'ml-8'}>
-                  {DAYS_UA[date.getDay()]}, {date.getDate()} {MONTHS_UA[date.getMonth()]}
-                  {isToday && <span className="ml-2 text-zinc-400">(сьогодні)</span>}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        <button
-          onClick={() => setDatePickerOpen(false)}
-          className="w-full py-4 text-center text-zinc-400 border-t border-zinc-700"
-        >
-          <X className="h-5 w-5 mx-auto" />
-        </button>
-      </div>
-
-      {/* Time Picker Bottom Sheet with Dual Wheels */}
-      {timePickerOpen && (
-        <div 
-          className="fixed inset-0 bg-black/40 z-[60]"
-          onClick={() => setTimePickerOpen(false)}
-        />
-      )}
-      <div 
-        className={`fixed inset-x-0 bottom-0 bg-zinc-800 rounded-t-2xl z-[70] transform transition-transform duration-300 ${
-          timePickerOpen ? 'translate-y-0' : 'translate-y-full'
-        }`}
-      >
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-white font-semibold">Оберіть час</h3>
-            <button
-              onClick={() => setTimePickerOpen(false)}
-              className="text-zinc-400 hover:text-white"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          
-          <TimeWheelPicker
-            startTime={bookingTime}
-            duration={bookingService?.duration || 60}
-            onTimeChange={(start, end) => {
-              setBookingTime(start);
-              setBookingEndTime(end);
-            }}
-            workingHours={staffWorkingHours}
-            isToday={bookingDate.toDateString() === new Date().toDateString()}
-          />
-          
-          <button
-            onClick={() => setTimePickerOpen(false)}
-            className="w-full mt-4 py-3 rounded-xl bg-primary text-primary-foreground font-medium"
-          >
-            Готово
-          </button>
-        </div>
-      </div>
-
       {/* Block Time Modal */}
       <div 
         className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-all duration-700 ease-in-out ${
@@ -1167,6 +862,21 @@ export default function StaffDashboard() {
           onClose={() => setColleagueBookingOpen(false)}
           salonId={salonId}
           currentMasterId={staffId}
+          onSuccess={() => {
+            loadStats();
+          }}
+        />
+      )}
+
+      {/* Staff Booking Modal — для власних записів */}
+      {salonId && staffId && (
+        <StaffBookingModal
+          isOpen={newBookingOpen}
+          onClose={() => setNewBookingOpen(false)}
+          salonId={salonId}
+          masterId={staffId}
+          masterName={staffName}
+          services={services}
           onSuccess={() => {
             loadStats();
           }}
