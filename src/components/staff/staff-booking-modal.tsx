@@ -55,6 +55,10 @@ export function StaffBookingModal({
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [contentHeight, setContentHeight] = useState<number | 'auto'>('auto');
   const contentRef = useRef<HTMLDivElement>(null);
+  
+  // Анімація відкриття/закриття
+  const [isVisible, setIsVisible] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [extraTime, setExtraTime] = useState(0); // Додатковий час в хвилинах
   
@@ -110,6 +114,26 @@ export function StaffBookingModal({
     resetState();
     onClose();
   }, [resetState, onClose]);
+
+  // Анімація відкриття/закриття
+  useEffect(() => {
+    if (isOpen) {
+      setIsVisible(true);
+      // Невелика затримка для запуску анімації
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setIsAnimating(true);
+        });
+      });
+    } else {
+      setIsAnimating(false);
+      // Чекаємо завершення анімації перед приховуванням
+      const timer = setTimeout(() => {
+        setIsVisible(false);
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
 
   usePreservedModal(isOpen, resetState);
 
@@ -351,13 +375,17 @@ export function StaffBookingModal({
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  if (!isOpen) return null;
+  if (!isVisible) return null;
 
   return (
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] transition-opacity"
+        style={{
+          opacity: isAnimating ? 1 : 0,
+          transition: 'opacity 350ms cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
         onClick={handleClose}
       />
 
@@ -396,7 +424,8 @@ export function StaffBookingModal({
         className="fixed inset-x-0 bottom-0 bg-card rounded-t-3xl shadow-xl z-[110] flex flex-col overflow-hidden"
         style={{
           maxHeight: '90vh',
-          transition: 'height 300ms ease-out',
+          transform: isAnimating ? 'translateY(0)' : 'translateY(100%)',
+          transition: 'transform 350ms cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         {/* Header */}
