@@ -256,6 +256,8 @@ function StaffCalendarContent() {
   const [pickerViewDate, setPickerViewDate] = useState(new Date());
   const [pickerBookings, setPickerBookings] = useState<Booking[]>([]);
   const [pickerBookingsLoading, setPickerBookingsLoading] = useState(false);
+  const [calendarCollapsed, setCalendarCollapsed] = useState(false);
+  const bookingsListRef = useRef<HTMLDivElement>(null);
   
   // Client card panel
   const [clientCardOpen, setClientCardOpen] = useState(false);
@@ -1374,35 +1376,48 @@ function StaffCalendarContent() {
         </button>
       </div>
       
-      {/* Calendar */}
-      <div className="p-4 bg-card border-b shrink-0">
-        {/* Month navigation */}
-        <div className="flex items-center justify-between mb-3">
-          <button 
-            onClick={() => {
-              const newDate = new Date(pickerViewDate);
-              newDate.setMonth(newDate.getMonth() - 1);
-              setPickerViewDate(newDate);
-            }}
-            className="h-9 w-9 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center justify-center"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <p className="font-semibold capitalize">
-            {pickerViewDate.toLocaleDateString('uk-UA', { month: 'long', year: 'numeric' })}
-          </p>
-          <button 
-            onClick={() => {
-              const newDate = new Date(pickerViewDate);
-              newDate.setMonth(newDate.getMonth() + 1);
-              setPickerViewDate(newDate);
-            }}
-            className="h-9 w-9 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center justify-center"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
+      {/* Calendar - collapsible */}
+      <div 
+        className={`bg-card border-b shrink-0 transition-all duration-300 ease-out overflow-hidden ${
+          calendarCollapsed ? 'max-h-[60px]' : 'max-h-[400px]'
+        }`}
+        onClick={() => calendarCollapsed && setCalendarCollapsed(false)}
+      >
+        <div className="p-4">
+          {/* Month navigation */}
+          <div className="flex items-center justify-between mb-3">
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                const newDate = new Date(pickerViewDate);
+                newDate.setMonth(newDate.getMonth() - 1);
+                setPickerViewDate(newDate);
+              }}
+              className={`h-9 w-9 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center justify-center transition-opacity ${calendarCollapsed ? 'opacity-0' : 'opacity-100'}`}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <div className="text-center">
+              <p className="font-semibold capitalize">
+                {pickerViewDate.toLocaleDateString('uk-UA', { month: 'long', year: 'numeric' })}
+              </p>
+              {calendarCollapsed && (
+                <p className="text-xs text-muted-foreground">Натисніть щоб розгорнути</p>
+              )}
+            </div>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                const newDate = new Date(pickerViewDate);
+                newDate.setMonth(newDate.getMonth() + 1);
+                setPickerViewDate(newDate);
+              }}
+              className={`h-9 w-9 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center justify-center transition-opacity ${calendarCollapsed ? 'opacity-0' : 'opacity-100'}`}
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
         </div>
         
         {/* Days of week */}
@@ -1459,10 +1474,22 @@ function StaffCalendarContent() {
             return cells;
           })()}
         </div>
+        </div>
       </div>
       
       {/* Bookings list */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div 
+        ref={bookingsListRef}
+        className="flex-1 overflow-y-auto p-4 space-y-3"
+        onScroll={(e) => {
+          const target = e.target as HTMLDivElement;
+          if (target.scrollTop > 30 && !calendarCollapsed) {
+            setCalendarCollapsed(true);
+          } else if (target.scrollTop === 0 && calendarCollapsed) {
+            setCalendarCollapsed(false);
+          }
+        }}
+      >
         {pickerBookingsLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
