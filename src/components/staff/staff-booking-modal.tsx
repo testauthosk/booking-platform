@@ -404,7 +404,13 @@ export function StaffBookingModal({
       )}
 
       {/* Modal */}
-      <div className="fixed inset-x-0 bottom-0 max-h-[90vh] bg-card rounded-t-3xl shadow-xl z-[110] flex flex-col overflow-hidden">
+      <div 
+        className="fixed inset-x-0 bottom-0 bg-card rounded-t-3xl shadow-xl z-[110] flex flex-col overflow-hidden"
+        style={{
+          maxHeight: '90vh',
+          transition: 'height 300ms ease-out',
+        }}
+      >
         {/* Header */}
         <div className="p-4 border-b shrink-0">
           <div className="flex items-center justify-between">
@@ -471,6 +477,7 @@ export function StaffBookingModal({
               ? `translateX(${slideDirection === 'left' ? '-20px' : '20px'})` 
               : 'translateX(0)',
             transition: 'opacity 250ms ease-out, transform 250ms ease-out',
+            minHeight: '350px', // Стабільна висота щоб модалка не стрибала
           }}
           className="flex-1 overflow-y-auto p-4"
         >
