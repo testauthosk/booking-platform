@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ChevronLeft, Plus, Loader2, Clock, User, X, Check, Pencil, Phone, Minus } from 'lucide-react';
@@ -213,8 +213,11 @@ function BookingCard({ booking, isPast, isToday: isTodayDate }: { booking: Booki
 
 export default function StaffCalendar() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const daysRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
+  const [focusBookingId, setFocusBookingId] = useState<string | null>(null);
   const [staffId, setStaffId] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -492,6 +495,38 @@ export default function StaffCalendar() {
     }
   }, []);
 
+  // Handle focus on specific booking from URL params
+  useEffect(() => {
+    const bookingId = searchParams.get('bookingId');
+    const time = searchParams.get('time');
+    
+    if (bookingId && time) {
+      setFocusBookingId(bookingId);
+      
+      // Scroll to the booking time after a short delay
+      setTimeout(() => {
+        if (gridRef.current) {
+          const [hours] = time.split(':').map(Number);
+          const startHour = workingHours.start;
+          const hourIndex = hours - startHour;
+          const rowHeight = 60; // approximate height per hour
+          const scrollTop = hourIndex * rowHeight;
+          
+          gridRef.current.scrollTo({
+            top: Math.max(0, scrollTop - 100), // offset to center
+            behavior: 'smooth'
+          });
+        }
+        
+        // Clear the focus after animation
+        setTimeout(() => setFocusBookingId(null), 2000);
+      }, 500);
+      
+      // Clean up URL
+      router.replace('/staff/calendar', { scroll: false });
+    }
+  }, [searchParams, workingHours.start, router]);
+
   const loadBookings = async () => {
     setLoadingBookings(true);
     try {
@@ -735,6 +770,7 @@ export default function StaffCalendar() {
             
             {/* Timeline view */}
             <div 
+              ref={gridRef}
               className={`absolute inset-0 pb-4 overflow-y-auto bg-background transition-transform duration-500 ease-out ${
                 showOnlyBookings ? 'translate-y-full z-0' : 'translate-y-0 z-10'
               }`}
@@ -848,16 +884,18 @@ export default function StaffCalendar() {
                   rgba(0,0,0,0.07) 10px
                 )` : undefined;
                 
+                const isFocused = focusBookingId === booking.id;
+                
                 return (
                   <div 
                     key={booking.id}
-                    className={`absolute -left-2 right-4 rounded-r-xl ${
+                    className={`absolute -left-2 right-4 rounded-r-xl transition-all duration-300 ${
                       booking.status === 'COMPLETED' 
                         ? 'bg-green-50' 
                         : isBlocked
                         ? 'bg-zinc-100'
                         : ''
-                    }`}
+                    } ${isFocused ? 'ring-4 ring-primary ring-offset-2 scale-[1.02] z-20' : ''}`}
                     style={{ 
                       top: `${topPosition}px`, 
                       height: `${height + 1}px`,

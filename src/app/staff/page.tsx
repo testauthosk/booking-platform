@@ -1011,7 +1011,10 @@ export default function StaffDashboard() {
               {selectedBooking.status !== 'COMPLETED' && selectedBooking.status !== 'CANCELLED' && (
                 <div className="space-y-2">
                   <button
-                    onClick={() => router.push(`/staff/calendar`)}
+                    onClick={() => {
+                      // Передаємо ID запису щоб календар міг сфокусуватись на ньому
+                      router.push(`/staff/calendar?bookingId=${selectedBooking.id}&time=${selectedBooking.time}`);
+                    }}
                     className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:bg-muted/50 transition-colors"
                   >
                     <Calendar className="h-5 w-5 text-muted-foreground" />
@@ -1086,87 +1089,102 @@ export default function StaffDashboard() {
             )}
           </div>
 
-          {/* Transfer Modal */}
-          {transferModalOpen && (
-            <>
-              <div 
-                className="fixed inset-0 bg-black/40 z-[120]"
+          {/* Transfer Modal - Bottom Sheet */}
+          <div 
+            className="fixed inset-0 bg-black/40 z-[120]"
+            style={{
+              opacity: transferModalOpen ? 1 : 0,
+              pointerEvents: transferModalOpen ? 'auto' : 'none',
+              transition: 'opacity 300ms ease-out',
+            }}
+            onClick={() => setTransferModalOpen(false)}
+          />
+          <div 
+            className="fixed inset-x-0 bottom-0 bg-card rounded-t-3xl shadow-xl z-[130] max-h-[70vh] overflow-hidden flex flex-col"
+            style={{
+              transform: transferModalOpen ? 'translateY(0)' : 'translateY(100%)',
+              transition: 'transform 350ms cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+          >
+            <div className="p-4 border-b flex items-center justify-between shrink-0">
+              <div>
+                <h3 className="font-semibold">Передати запис</h3>
+                <p className="text-sm text-muted-foreground">Оберіть колегу</p>
+              </div>
+              <button 
                 onClick={() => setTransferModalOpen(false)}
-              />
-              <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 bg-card rounded-2xl shadow-xl z-[130] max-w-sm mx-auto overflow-hidden">
-                <div className="p-4 border-b">
-                  <h3 className="font-semibold">Передати запис</h3>
-                  <p className="text-sm text-muted-foreground">Оберіть колегу</p>
-                </div>
-                <div className="p-2 max-h-[300px] overflow-y-auto">
-                  {colleagues.length > 0 ? colleagues.map((colleague) => (
-                    <button
-                      key={colleague.id}
-                      onClick={() => setSelectedColleague(colleague.id)}
-                      className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors ${
-                        selectedColleague === colleague.id ? 'bg-primary/10' : 'hover:bg-muted'
-                      }`}
-                    >
-                      <div 
-                        className="h-10 w-10 rounded-full flex items-center justify-center text-white font-medium"
-                        style={{ backgroundColor: accentColor }}
-                      >
-                        {colleague.avatar ? (
-                          <img src={colleague.avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
-                        ) : (
-                          colleague.name.charAt(0).toUpperCase()
-                        )}
-                      </div>
-                      <span className="font-medium">{colleague.name}</span>
-                      {selectedColleague === colleague.id && (
-                        <Check className="h-5 w-5 ml-auto" style={{ color: accentColor }} />
-                      )}
-                    </button>
-                  )) : (
-                    <p className="text-center py-4 text-muted-foreground">Немає колег</p>
-                  )}
-                </div>
-                <div className="p-4 border-t flex gap-2">
-                  <button
-                    onClick={() => setTransferModalOpen(false)}
-                    className="flex-1 py-2.5 rounded-xl bg-muted hover:bg-muted/80 font-medium"
-                  >
-                    Скасувати
-                  </button>
-                  <button
-                    onClick={async () => {
-                      if (!selectedColleague || !selectedBooking) return;
-                      setTransferring(true);
-                      try {
-                        const colleague = colleagues.find(c => c.id === selectedColleague);
-                        const res = await fetch('/api/staff/bookings', {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ 
-                            bookingId: selectedBooking.id, 
-                            masterId: selectedColleague,
-                            masterName: colleague?.name,
-                          }),
-                        });
-                        if (res.ok) {
-                          setTransferModalOpen(false);
-                          setBookingDetailsOpen(false);
-                          setSelectedColleague(null);
-                          loadStats();
-                        }
-                      } catch (e) {}
-                      setTransferring(false);
-                    }}
-                    disabled={!selectedColleague || transferring}
-                    className="flex-1 py-2.5 rounded-xl text-white font-medium disabled:opacity-50"
+                className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2">
+              {colleagues.length > 0 ? colleagues.map((colleague) => (
+                <button
+                  key={colleague.id}
+                  onClick={() => setSelectedColleague(colleague.id)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors ${
+                    selectedColleague === colleague.id ? 'bg-primary/10' : 'hover:bg-muted'
+                  }`}
+                >
+                  <div 
+                    className="h-12 w-12 rounded-full flex items-center justify-center text-white font-medium text-lg"
                     style={{ backgroundColor: accentColor }}
                   >
-                    {transferring ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : 'Передати'}
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
+                    {colleague.avatar ? (
+                      <img src={colleague.avatar} alt="" className="h-12 w-12 rounded-full object-cover" />
+                    ) : (
+                      colleague.name.charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  <span className="font-medium text-lg">{colleague.name}</span>
+                  {selectedColleague === colleague.id && (
+                    <Check className="h-6 w-6 ml-auto" style={{ color: accentColor }} />
+                  )}
+                </button>
+              )) : (
+                <p className="text-center py-8 text-muted-foreground">Немає колег</p>
+              )}
+            </div>
+            <div className="p-4 border-t flex gap-2 shrink-0">
+              <button
+                onClick={() => setTransferModalOpen(false)}
+                className="flex-1 py-3 rounded-xl bg-muted hover:bg-muted/80 font-medium"
+              >
+                Скасувати
+              </button>
+              <button
+                onClick={async () => {
+                  if (!selectedColleague || !selectedBooking) return;
+                  setTransferring(true);
+                  try {
+                    const colleague = colleagues.find(c => c.id === selectedColleague);
+                    const res = await fetch('/api/staff/bookings', {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ 
+                        bookingId: selectedBooking.id, 
+                        masterId: selectedColleague,
+                        masterName: colleague?.name,
+                      }),
+                    });
+                    if (res.ok) {
+                      setTransferModalOpen(false);
+                      setBookingDetailsOpen(false);
+                      setSelectedColleague(null);
+                      loadStats();
+                    }
+                  } catch (e) {}
+                  setTransferring(false);
+                }}
+                disabled={!selectedColleague || transferring}
+                className="flex-1 py-3 rounded-xl text-white font-medium disabled:opacity-50"
+                style={{ backgroundColor: accentColor }}
+              >
+                {transferring ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : 'Передати'}
+              </button>
+            </div>
+          </div>
         </>
       )}
     </div>
