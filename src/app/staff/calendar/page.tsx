@@ -1003,7 +1003,7 @@ function StaffCalendarContent() {
         onClick={() => setEditModalOpen(false)}
       />
       <div 
-        className={`fixed inset-x-0 bottom-0 max-h-[90vh] bg-card rounded-t-3xl shadow-xl z-50 transform transition-all duration-700 ease-in-out overflow-hidden flex flex-col ${
+        className={`fixed inset-x-0 top-0 bottom-0 bg-card shadow-xl z-50 transform transition-all duration-500 ease-out overflow-hidden flex flex-col ${
           editModalOpen ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
