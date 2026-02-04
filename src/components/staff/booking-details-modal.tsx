@@ -200,35 +200,24 @@ export function BookingDetailsModal({
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {/* Time & Status */}
               <div className="flex items-center justify-between">
-                <div 
-                  className="px-4 py-2 rounded-xl text-lg font-bold"
-                  style={{ 
-                    backgroundColor: `${accentColor}20`, 
-                    borderWidth: 1,
-                    borderColor: darkenColor(accentColor, 15),
-                    color: darkenColor(accentColor, 35) 
-                  }}
-                >
+                <p className="text-xl font-bold text-foreground">
                   {booking.time} — {getEndTime()}
-                </div>
-                <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${
-                  booking.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
-                  booking.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
-                  'bg-yellow-100 text-yellow-700'
-                }`}>
-                  {booking.status === 'COMPLETED' ? 'Виконано' :
-                   booking.status === 'CANCELLED' ? 'Скасовано' : 'Очікує'}
-                </span>
+                </p>
+                {/* Show status badge only for completed/cancelled */}
+                {(booking.status === 'COMPLETED' || booking.status === 'CANCELLED') && (
+                  <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${
+                    booking.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                    'bg-red-100 text-red-700'
+                  }`}>
+                    {booking.status === 'COMPLETED' ? 'Виконано' : 'Скасовано'}
+                  </span>
+                )}
               </div>
 
               {/* Client - CLICKABLE */}
               <button
                 onClick={() => setClientCardOpen(true)}
-                className="w-full p-4 rounded-xl bg-muted/50 hover:bg-muted/70 transition-colors text-left"
-                style={{ 
-                  borderWidth: 1,
-                  borderColor: darkenColor(accentColor, 15),
-                }}
+                className="w-full p-4 rounded-xl border border-border hover:bg-muted/50 transition-colors text-left"
               >
                 <div className="flex items-center gap-3">
                   <div 
@@ -250,23 +239,11 @@ export function BookingDetailsModal({
 
               {/* Details */}
               <div className="grid grid-cols-2 gap-3">
-                <div 
-                  className="p-3 rounded-xl bg-muted/30"
-                  style={{ 
-                    borderWidth: 1,
-                    borderColor: darkenColor(accentColor, 15),
-                  }}
-                >
+                <div className="p-3 rounded-xl border border-border">
                   <p className="text-xs text-muted-foreground mb-1">Тривалість</p>
                   <p className="font-semibold">{booking.duration} хв</p>
                 </div>
-                <div 
-                  className="p-3 rounded-xl bg-muted/30"
-                  style={{ 
-                    borderWidth: 1,
-                    borderColor: darkenColor(accentColor, 15),
-                  }}
-                >
+                <div className="p-3 rounded-xl border border-border">
                   <p className="text-xs text-muted-foreground mb-1">Вартість</p>
                   <p className="font-semibold">{booking.price || 0} ₴</p>
                 </div>
