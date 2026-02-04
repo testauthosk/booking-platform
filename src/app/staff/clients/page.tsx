@@ -492,7 +492,7 @@ export default function StaffClientsPage() {
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {/* Contact info - minimal spacing */}
+              {/* Contact info - minimal spacing v2 */}
               <Card className="p-3 py-2">
                 <div className="flex items-center justify-between mb-0.5">
                   <span className="text-sm text-muted-foreground">Контакти</span>
