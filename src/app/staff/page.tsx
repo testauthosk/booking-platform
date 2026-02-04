@@ -756,11 +756,15 @@ export default function StaffDashboard() {
           <div className="flex-1 p-4 space-y-1">
             <button 
               onClick={() => navigateFromSettings('/staff/profile')}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted transition-colors text-left"
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 transition-colors text-left"
             >
               <div 
                 className="h-10 w-10 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: `${accentColor}15` }}
+                style={{ 
+                  backgroundColor: `${accentColor}15`,
+                  borderWidth: 1,
+                  borderColor: darkenColor(accentColor, 10)
+                }}
               >
                 <Settings className="h-5 w-5" style={{ color: accentColor }} />
               </div>
@@ -772,11 +776,15 @@ export default function StaffDashboard() {
 
             <button 
               onClick={() => navigateFromSettings('/staff/schedule')}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted transition-colors text-left"
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 transition-colors text-left"
             >
               <div 
                 className="h-10 w-10 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: `${accentColor}15` }}
+                style={{ 
+                  backgroundColor: `${accentColor}15`,
+                  borderWidth: 1,
+                  borderColor: darkenColor(accentColor, 10)
+                }}
               >
                 <Clock className="h-5 w-5" style={{ color: accentColor }} />
               </div>
