@@ -355,7 +355,7 @@ export function StaffBookingModal({
       const height = contentRef.current.scrollHeight;
       setContentHeight(height);
     }
-  }, [step, selectedService, selectedClient, isNewClient, clients, extraTime]);
+  }, [step, selectedService, selectedClient, isNewClient, clients, extraTime, newClientName, newClientPhone, clientSearch, selectedDate, selectedTime]);
 
   const nextStep = () => {
     const idx = currentStepIndex;
@@ -489,9 +489,12 @@ export function StaffBookingModal({
         {/* Content wrapper - плавно анімує висоту */}
         <div 
           style={{
+            height: typeof contentHeight === 'number' 
+              ? `${Math.min(contentHeight, window?.innerHeight ? window.innerHeight * 0.65 : 500)}px` 
+              : 'auto',
             minHeight: '150px',
             maxHeight: '65vh',
-            transition: 'height 350ms cubic-bezier(0.4, 0, 0.2, 1)',
+            transition: 'height 400ms cubic-bezier(0.4, 0, 0.2, 1)',
             overflowY: 'auto',
             overflowX: 'hidden',
           }}
