@@ -587,6 +587,7 @@ function StaffCalendarContent() {
   }
 
   return (
+    <>
     <div className="h-[100dvh] flex flex-col bg-background overflow-x-hidden">
       {/* Header */}
       <header className="bg-card border-b px-4 py-3 shrink-0 z-10">
@@ -1512,6 +1513,7 @@ function StaffCalendarContent() {
         accentColor={masterColor}
       />
     )}
+    </>
   );
 }
 
