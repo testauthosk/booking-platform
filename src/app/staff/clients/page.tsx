@@ -67,15 +67,16 @@ export default function StaffClientsPage() {
   }, [router]);
 
   useEffect(() => {
-    if (masterId) {
+    if (salonId) {
       loadClients();
     }
-  }, [masterId]);
+  }, [salonId]);
 
   const loadClients = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/staff/clients?masterId=${masterId}&search=${search}`);
+      // Use /all endpoint to get ALL salon clients, not just those with bookings
+      const res = await fetch(`/api/staff/clients/all?salonId=${salonId}&search=${search}`);
       if (res.ok) {
         const data = await res.json();
         setClients(data);
@@ -90,7 +91,7 @@ export default function StaffClientsPage() {
   // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (masterId) loadClients();
+      if (salonId) loadClients();
     }, 300);
     return () => clearTimeout(timer);
   }, [search]);
