@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
-
-export const dynamic = 'force-dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -213,7 +211,7 @@ function BookingCard({ booking, isPast, isToday: isTodayDate }: { booking: Booki
   );
 }
 
-export default function StaffCalendar() {
+function StaffCalendarContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const daysRef = useRef<HTMLDivElement>(null);
@@ -1560,4 +1558,11 @@ export default function StaffCalendar() {
     </div>
   );
 }
-// trigger 1770044868
+
+export default function StaffCalendar() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}>
+      <StaffCalendarContent />
+    </Suspense>
+  );
+}
