@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { masterId, salonId, serviceId, clientName, clientPhone, date, time, duration, price, serviceName } = body;
+    const { masterId, salonId, serviceId, clientName, clientPhone, date, time, duration, price, serviceName, notifyAdmin, blockReason } = body;
 
     if (!masterId || !clientName || !clientPhone || !date || !time) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -80,6 +80,43 @@ export async function POST(request: NextRequest) {
         status: 'CONFIRMED'
       }
     });
+
+    // Якщо треба повідомити адміна (термінове закриття)
+    if (notifyAdmin && blockReason === 'end_of_day') {
+      try {
+        const finalSalonId = salonId || master.salonId;
+        
+        // Знайти адмінів/власників салону
+        const admins = await prisma.user.findMany({
+          where: {
+            salonId: finalSalonId,
+            role: { in: ['OWNER', 'ADMIN'] }
+          },
+          select: { telegramChatId: true, name: true }
+        });
+
+        // Відправити Telegram повідомлення кожному адміну
+        const baseUrl = request.nextUrl.origin;
+        for (const admin of admins) {
+          if (admin.telegramChatId) {
+            const message = `⚠️ *Термінове закриття*\n\nМайстер *${master.name}* закрив запис до кінця робочого дня.\n\n📅 Дата: ${date}\n⏰ Час: ${time} — ${timeEnd}`;
+            
+            fetch(`${baseUrl}/api/telegram/send`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chatId: admin.telegramChatId,
+                message,
+                parseMode: 'Markdown'
+              })
+            }).catch(console.error);
+          }
+        }
+      } catch (notifyError) {
+        console.error('Failed to notify admins:', notifyError);
+        // Не блокуємо створення запису через помилку нотифікації
+      }
+    }
 
     return NextResponse.json(booking);
   } catch (error) {

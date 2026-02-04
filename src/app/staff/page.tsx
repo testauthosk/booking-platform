@@ -45,6 +45,7 @@ export default function StaffDashboard() {
   const [staffName, setStaffName] = useState('');
   const [staffAvatar, setStaffAvatar] = useState('');
   const [staffWorkingHours, setStaffWorkingHours] = useState({ start: 9, end: 20 });
+  const [allWorkingHours, setAllWorkingHours] = useState<Array<{ day: number; start: string; end: string }>>([]);
   const [staffId, setStaffId] = useState('');
   const [salonId, setSalonId] = useState('');
   const [accentColor, setAccentColor] = useState('#000000'); // Колір з палітри салону
@@ -143,6 +144,7 @@ export default function StaffDashboard() {
         // Parse working hours from profile
         if (data.workingHours && Array.isArray(data.workingHours) && data.workingHours.length > 0) {
           // workingHours is array like [{day: 0, start: "09:00", end: "18:00"}, ...]
+          setAllWorkingHours(data.workingHours);
           // Get today's working hours or default
           const today = new Date().getDay();
           const todayHours = data.workingHours.find((wh: { day: number }) => wh.day === today);
@@ -220,8 +222,42 @@ export default function StaffDashboard() {
     setBlockTimeEnd('11:00');
     setBlockTimeOpen(true);
   };
+
+  // Отримати кінець робочого дня для обраної дати
+  const getWorkingEndForDate = (date: Date): string => {
+    const dayOfWeek = date.getDay();
+    const dayHours = allWorkingHours.find(wh => wh.day === dayOfWeek);
+    if (dayHours?.end) {
+      return dayHours.end;
+    }
+    // Якщо немає даних — дефолт
+    return `${staffWorkingHours.end}:00`;
+  };
+
+  // Встановити "До кінця робочого дня"
+  const setToEndOfDay = () => {
+    const now = new Date();
+    const isToday = blockDate.toDateString() === now.toDateString();
+    
+    // Якщо сьогодні — починаємо з поточного часу (округленого до 15 хв)
+    if (isToday) {
+      const minutes = now.getMinutes();
+      const roundedMinutes = Math.ceil(minutes / 15) * 15;
+      const startHour = roundedMinutes >= 60 ? now.getHours() + 1 : now.getHours();
+      const startMin = roundedMinutes >= 60 ? 0 : roundedMinutes;
+      setBlockTimeStart(`${startHour.toString().padStart(2, '0')}:${startMin.toString().padStart(2, '0')}`);
+    } else {
+      // Якщо інший день — весь день
+      const dayOfWeek = blockDate.getDay();
+      const dayHours = allWorkingHours.find(wh => wh.day === dayOfWeek);
+      setBlockTimeStart(dayHours?.start || '09:00');
+    }
+    
+    // Кінець = кінець робочого дня
+    setBlockTimeEnd(getWorkingEndForDate(blockDate));
+  };
   
-  const createBlockTime = async () => {
+  const createBlockTime = async (isEmergency = false) => {
     setSavingBlock(true);
     try {
       const dateStr = blockDate.toISOString().split('T')[0];
@@ -239,11 +275,13 @@ export default function StaffDashboard() {
           salonId,
           clientName: 'Зайнято',
           clientPhone: '-',
-          serviceName: 'Вільний запис',
+          serviceName: isEmergency ? 'Терміново закрито' : 'Вільний запис',
           date: dateStr,
           time: blockTimeStart,
           duration: duration,
-          price: 0
+          price: 0,
+          notifyAdmin: isEmergency, // Прапорець для повідомлення адміну
+          blockReason: isEmergency ? 'end_of_day' : 'manual'
         })
       });
       
@@ -737,6 +775,18 @@ export default function StaffDashboard() {
             </button>
           </div>
 
+          {/* Quick button: До кінця дня */}
+          <button
+            type="button"
+            onClick={setToEndOfDay}
+            className="w-full py-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 font-medium hover:bg-amber-500/20 transition-colors flex items-center justify-center gap-2"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            До кінця робочого дня
+          </button>
+
           {/* Time range */}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -768,18 +818,37 @@ export default function StaffDashboard() {
           </div>
         </div>
 
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-border space-y-2">
+          {/* Кнопка "До кінця дня" з повідомленням адміну */}
           <button
-            onClick={createBlockTime}
+            onClick={() => createBlockTime(true)}
             disabled={savingBlock}
-            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-xl bg-amber-500 text-white font-medium hover:bg-amber-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {savingBlock ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <>
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                Закрити та повідомити адміна
+              </>
+            )}
+          </button>
+          
+          {/* Звичайна кнопка без повідомлення */}
+          <button
+            onClick={() => createBlockTime(false)}
+            disabled={savingBlock}
+            className="w-full py-3 rounded-xl bg-muted text-foreground font-medium hover:bg-muted/80 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {savingBlock ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
               <>
                 <Check className="h-5 w-5" />
-                Заблокувати
+                Тихо заблокувати
               </>
             )}
           </button>
