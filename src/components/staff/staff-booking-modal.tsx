@@ -127,10 +127,10 @@ export function StaffBookingModal({
       });
     } else {
       setIsAnimating(false);
-      // Чекаємо завершення анімації перед приховуванням
+      // Чекаємо завершення анімації перед приховуванням (700ms для закриття)
       const timer = setTimeout(() => {
         setIsVisible(false);
-      }, 350);
+      }, 700);
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
@@ -383,7 +383,7 @@ export function StaffBookingModal({
       <div
         style={{
           opacity: isAnimating ? 1 : 0,
-          transition: 'opacity 350ms cubic-bezier(0.4, 0, 0.2, 1)',
+          transition: `opacity ${isAnimating ? '350ms' : '600ms'} cubic-bezier(0.4, 0, 0.2, 1)`,
         }}
         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
         onClick={handleClose}
@@ -425,7 +425,7 @@ export function StaffBookingModal({
         style={{
           maxHeight: '90vh',
           transform: isAnimating ? 'translateY(0)' : 'translateY(100%)',
-          transition: 'transform 350ms cubic-bezier(0.4, 0, 0.2, 1)',
+          transition: `transform ${isAnimating ? '350ms' : '600ms'} cubic-bezier(0.4, 0, 0.2, 1)`,
         }}
       >
         {/* Header */}
@@ -464,9 +464,9 @@ export function StaffBookingModal({
                     className={cn(
                       'w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-colors',
                       idx < currentStepIndex
-                        ? 'bg-green-500 text-white'
+                        ? 'bg-primary text-primary-foreground'
                         : idx === currentStepIndex
-                        ? 'bg-primary text-white'
+                        ? 'bg-primary text-primary-foreground'
                         : 'bg-muted text-muted-foreground'
                     )}
                   >
@@ -476,7 +476,7 @@ export function StaffBookingModal({
                     <div
                       className={cn(
                         'flex-1 h-0.5 transition-colors',
-                        idx < currentStepIndex ? 'bg-green-500' : 'bg-muted'
+                        idx < currentStepIndex ? 'bg-primary' : 'bg-muted'
                       )}
                     />
                   )}
@@ -489,11 +489,11 @@ export function StaffBookingModal({
         {/* Content wrapper - плавно анімує висоту */}
         <div 
           style={{
-            height: typeof contentHeight === 'number' ? `${contentHeight}px` : 'auto',
             minHeight: '150px',
             maxHeight: '65vh',
             transition: 'height 350ms cubic-bezier(0.4, 0, 0.2, 1)',
-            overflow: 'hidden',
+            overflowY: 'auto',
+            overflowX: 'hidden',
           }}
         >
           {/* Content inner */}
@@ -751,8 +751,8 @@ export function StaffBookingModal({
           {/* Confirm Step */}
           {step === 'confirm' && (
             <div className="text-center py-6">
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                <Check className="w-8 h-8 text-green-600" />
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <Check className="w-8 h-8 text-primary" />
               </div>
               <h3 className="text-xl font-bold mb-2">Запис створено!</h3>
               <p className="text-muted-foreground mb-6">
