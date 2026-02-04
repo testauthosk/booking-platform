@@ -39,7 +39,7 @@ export default function StaffClientsPage() {
   const [isPanelVisible, setIsPanelVisible] = useState(false);
   const [isPanelAnimating, setIsPanelAnimating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', phone: '', email: '', notes: '' });
+  const [editForm, setEditForm] = useState({ name: '', phone: '', email: '', notes: '', telegramUsername: '' });
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -133,6 +133,7 @@ export default function StaffClientsPage() {
       phone: client.phone,
       email: client.email || '',
       notes: client.notes || '',
+      telegramUsername: client.telegramUsername || '',
     });
     setIsEditing(false);
     setIsPanelVisible(true);
@@ -297,9 +298,9 @@ export default function StaffClientsPage() {
             <div className="relative bg-gradient-to-br from-primary/10 to-primary/5 p-6 pb-4">
               <button
                 onClick={closeClientCard}
-                className="absolute top-4 right-4 h-8 w-8 rounded-full hover:bg-black/10 flex items-center justify-center"
+                className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/80 hover:bg-white shadow-md border border-gray-200 flex items-center justify-center"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4 text-gray-700" />
               </button>
 
               <div className="flex items-start gap-4">
@@ -338,25 +339,29 @@ export default function StaffClientsPage() {
               {/* Quick actions */}
               <div className="flex gap-2 mt-4">
                 <Button 
-                  variant="secondary" 
                   size="sm" 
-                  className="flex-1 gap-2"
+                  className="flex-1 gap-2 bg-emerald-500 hover:bg-emerald-600 text-white"
                   onClick={() => window.open(`tel:${selectedClient.phone}`)}
                 >
                   <Phone className="h-4 w-4" />
                   Зателефонувати
                 </Button>
-                {selectedClient.telegramUsername && (
-                  <Button 
-                    variant="secondary" 
-                    size="sm" 
-                    className="flex-1 gap-2"
-                    onClick={() => window.open(`https://t.me/${selectedClient.telegramUsername}`)}
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                    Telegram
-                  </Button>
-                )}
+                <Button 
+                  size="sm" 
+                  className="flex-1 gap-2 bg-sky-500 hover:bg-sky-600 text-white"
+                  onClick={() => {
+                    if (selectedClient.telegramUsername) {
+                      window.open(`https://t.me/${selectedClient.telegramUsername}`);
+                    } else if (selectedClient.telegramChatId) {
+                      window.open(`tg://user?id=${selectedClient.telegramChatId}`);
+                    } else {
+                      alert('У клієнта немає Telegram');
+                    }
+                  }}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Telegram
+                </Button>
               </div>
             </div>
 
@@ -418,30 +423,53 @@ export default function StaffClientsPage() {
                       )}
                     </div>
                   )}
-                  {selectedClient.telegramUsername && (
-                    <div className="flex items-center gap-3">
-                      <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex items-center gap-3">
+                    <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                    {isEditing ? (
+                      <Input
+                        value={editForm.telegramUsername}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, telegramUsername: e.target.value.replace('@', '') }))}
+                        placeholder="username (без @)"
+                        className="h-8 text-sm"
+                      />
+                    ) : selectedClient.telegramUsername ? (
                       <span className="text-sm">@{selectedClient.telegramUsername}</span>
-                    </div>
-                  )}
+                    ) : (
+                      <span className="text-sm text-muted-foreground">Не вказано</span>
+                    )}
+                  </div>
                 </div>
               </Card>
 
               {/* Notes */}
               <Card className="p-4">
-                <h3 className="font-medium text-sm text-muted-foreground mb-2">Нотатки</h3>
-                {isEditing ? (
-                  <textarea
-                    value={editForm.notes}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
-                    placeholder="Додайте нотатки про клієнта..."
-                    className="w-full h-24 text-sm border rounded-lg p-2 resize-none"
-                  />
-                ) : (
-                  <p className="text-sm whitespace-pre-wrap">
-                    {selectedClient.notes || 'Немає нотаток'}
-                  </p>
-                )}
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-medium text-sm text-muted-foreground">Нотатки</h3>
+                  <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                    🔒 Бачать тільки працівники
+                  </span>
+                </div>
+                <textarea
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
+                  onBlur={async () => {
+                    if (editForm.notes !== selectedClient.notes) {
+                      try {
+                        await fetch(`/api/staff/clients?masterId=${masterId}&clientId=${selectedClient.id}`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ notes: editForm.notes }),
+                        });
+                        setSelectedClient(prev => prev ? { ...prev, notes: editForm.notes } : null);
+                        setClients(prev => prev.map(c => c.id === selectedClient.id ? { ...c, notes: editForm.notes } : c));
+                      } catch (error) {
+                        console.error('Error saving notes:', error);
+                      }
+                    }
+                  }}
+                  placeholder="Додайте нотатки про клієнта..."
+                  className="w-full h-24 text-sm border rounded-lg p-2 resize-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
               </Card>
 
               {/* Last visit */}
