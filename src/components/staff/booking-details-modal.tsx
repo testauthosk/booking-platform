@@ -81,6 +81,9 @@ export function BookingDetailsModal({
   
   // Client card
   const [clientCardOpen, setClientCardOpen] = useState(false);
+  
+  // Cancel confirmation
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
   // Анімація відкриття/закриття
   useEffect(() => {
@@ -138,13 +141,32 @@ export function BookingDetailsModal({
 
   const handleStatusChange = async (status: string) => {
     if (!booking) return;
-    if (status === 'CANCELLED' && !confirm('Скасувати цей запис?')) return;
+    if (status === 'CANCELLED') {
+      setCancelConfirmOpen(true);
+      return;
+    }
     
     try {
       const res = await fetch('/api/staff/bookings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bookingId: booking.id, status }),
+      });
+      if (res.ok) {
+        onClose();
+        onStatusChange();
+      }
+    } catch (e) {}
+  };
+  
+  const confirmCancel = async () => {
+    if (!booking) return;
+    setCancelConfirmOpen(false);
+    try {
+      const res = await fetch('/api/staff/bookings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: booking.id, status: 'CANCELLED' }),
       });
       if (res.ok) {
         onClose();
@@ -392,6 +414,46 @@ export function BookingDetailsModal({
           accentColor={accentColor}
         />
       )}
+
+      {/* Cancel Confirmation Modal */}
+      <div 
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] transition-opacity duration-300 ${
+          cancelConfirmOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setCancelConfirmOpen(false)}
+      />
+      <div 
+        className={`fixed left-4 right-4 bottom-4 bg-card rounded-2xl shadow-xl z-[90] transform transition-all duration-300 ${
+          cancelConfirmOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0 pointer-events-none'
+        }`}
+      >
+        <div className="p-5 text-center">
+          <div 
+            className="h-14 w-14 rounded-2xl flex items-center justify-center mx-auto mb-3"
+            style={{ backgroundColor: '#FEE2E2' }}
+          >
+            <X className="h-7 w-7 text-red-500" />
+          </div>
+          <h3 className="text-lg font-semibold mb-1">Скасувати запис?</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            {booking?.clientName} · {booking?.serviceName}
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setCancelConfirmOpen(false)}
+              className="flex-1 py-3 rounded-xl bg-muted hover:bg-muted/80 font-medium transition-colors"
+            >
+              Ні, залишити
+            </button>
+            <button
+              onClick={confirmCancel}
+              className="flex-1 py-3 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600 transition-colors"
+            >
+              Так, скасувати
+            </button>
+          </div>
+        </div>
+      </div>
     </>
   );
 }
