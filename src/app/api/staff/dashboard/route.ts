@@ -27,9 +27,15 @@ export async function GET(request: NextRequest) {
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowStr = tomorrow.toISOString().split('T')[0];
     
-    // Week range
-    const weekEnd = new Date(now);
-    weekEnd.setDate(weekEnd.getDate() + 7);
+    // Week range (Monday to Sunday of current week)
+    const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Days to Monday
+    const weekStart = new Date(now);
+    weekStart.setDate(weekStart.getDate() + mondayOffset);
+    const weekStartStr = weekStart.toISOString().split('T')[0];
+    
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6); // Sunday
     const weekEndStr = weekEnd.toISOString().split('T')[0];
 
     // Автозавершення: записи що закінчились переводимо в COMPLETED
@@ -97,12 +103,12 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Count this week
+    // Count this week (Monday to Sunday)
     const weekCount = await prisma.booking.count({
       where: {
         masterId,
         date: {
-          gte: todayStr,
+          gte: weekStartStr,
           lte: weekEndStr
         },
         status: { not: 'CANCELLED' }
