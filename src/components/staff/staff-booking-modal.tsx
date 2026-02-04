@@ -421,9 +421,8 @@ export function StaffBookingModal({
 
       {/* Modal */}
       <div 
-        className="fixed inset-x-0 bottom-0 bg-card rounded-t-3xl shadow-xl z-[110] flex flex-col overflow-hidden"
+        className="fixed inset-x-0 top-0 bottom-0 bg-card shadow-xl z-[110] flex flex-col overflow-hidden"
         style={{
-          maxHeight: '90vh',
           transform: isAnimating ? 'translateY(0)' : 'translateY(100%)',
           transition: `transform ${isAnimating ? '350ms' : '600ms'} cubic-bezier(0.4, 0, 0.2, 1)`,
         }}
@@ -488,16 +487,7 @@ export function StaffBookingModal({
 
         {/* Content wrapper - плавно анімує висоту */}
         <div 
-          style={{
-            height: typeof contentHeight === 'number' 
-              ? `${Math.min(contentHeight, window?.innerHeight ? window.innerHeight * 0.65 : 500)}px` 
-              : 'auto',
-            minHeight: '150px',
-            maxHeight: '65vh',
-            transition: 'height 400ms cubic-bezier(0.4, 0, 0.2, 1)',
-            overflowY: 'auto',
-            overflowX: 'hidden',
-          }}
+          className="flex-1 overflow-y-auto overflow-x-hidden"
         >
           {/* Content inner */}
           <div 
