@@ -40,6 +40,7 @@ interface Salon {
 }
 
 export default function BusinessSettingsPage() {
+  const salonId = DEFAULT_SALON_ID;
   const [salon, setSalon] = useState<Salon | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

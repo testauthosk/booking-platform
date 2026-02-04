@@ -73,6 +73,7 @@ function formatDate(dateStr: string) {
 }
 
 export default function HistoryPage() {
+  const salonId = DEFAULT_SALON_ID;
   const [loading, setLoading] = useState(true);
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [total, setTotal] = useState(0);
