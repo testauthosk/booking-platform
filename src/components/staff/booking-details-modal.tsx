@@ -6,6 +6,30 @@ import { X, Calendar, Users, ChevronRight, Loader2, Phone, Check } from 'lucide-
 import { cn } from '@/lib/utils';
 import { ClientCardPanel } from './client-card-panel';
 
+// Затемнити колір на X%
+const darkenColor = (hex: string, percent = 20): string => {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = Math.max((num >> 16) - amt, 0);
+  const G = Math.max((num >> 8 & 0x00FF) - amt, 0);
+  const B = Math.max((num & 0x0000FF) - amt, 0);
+  return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+};
+
+// Визначити яскравість кольору (0-255)
+const getLuminance = (hex: string): number => {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const R = (num >> 16) & 0xFF;
+  const G = (num >> 8) & 0xFF;
+  const B = num & 0xFF;
+  return (0.299 * R + 0.587 * G + 0.114 * B);
+};
+
+// Чи колір світлий?
+const isLightColor = (hex: string): boolean => {
+  return getLuminance(hex) > 160;
+};
+
 interface Booking {
   id: string;
   clientName: string;
@@ -178,7 +202,12 @@ export function BookingDetailsModal({
               <div className="flex items-center justify-between">
                 <div 
                   className="px-4 py-2 rounded-xl text-lg font-bold"
-                  style={{ backgroundColor: `${accentColor}15`, color: accentColor }}
+                  style={{ 
+                    backgroundColor: `${accentColor}20`, 
+                    borderWidth: 1,
+                    borderColor: darkenColor(accentColor, 15),
+                    color: darkenColor(accentColor, 35) 
+                  }}
                 >
                   {booking.time} — {getEndTime()}
                 </div>
@@ -199,8 +228,11 @@ export function BookingDetailsModal({
               >
                 <div className="flex items-center gap-3">
                   <div 
-                    className="h-12 w-12 rounded-full flex items-center justify-center text-white font-bold text-lg"
-                    style={{ backgroundColor: accentColor }}
+                    className="h-12 w-12 rounded-full flex items-center justify-center font-bold text-lg"
+                    style={{ 
+                      backgroundColor: accentColor,
+                      color: isLightColor(accentColor) ? darkenColor(accentColor, 50) : 'white'
+                    }}
                   >
                     {booking.clientName.charAt(0).toUpperCase()}
                   </div>
@@ -264,8 +296,11 @@ export function BookingDetailsModal({
                 </button>
                 <button
                   onClick={() => handleStatusChange('COMPLETED')}
-                  className="flex-1 py-3 rounded-xl font-medium transition-colors text-white"
-                  style={{ backgroundColor: accentColor }}
+                  className="flex-1 py-3 rounded-xl font-medium transition-colors"
+                  style={{ 
+                    backgroundColor: accentColor,
+                    color: isLightColor(accentColor) ? darkenColor(accentColor, 50) : 'white'
+                  }}
                 >
                   Виконано ✓
                 </button>
@@ -314,8 +349,11 @@ export function BookingDetailsModal({
               }`}
             >
               <div 
-                className="h-12 w-12 rounded-full flex items-center justify-center text-white font-medium text-lg overflow-hidden"
-                style={{ backgroundColor: accentColor }}
+                className="h-12 w-12 rounded-full flex items-center justify-center font-medium text-lg overflow-hidden"
+                style={{ 
+                  backgroundColor: accentColor,
+                  color: isLightColor(accentColor) ? darkenColor(accentColor, 50) : 'white'
+                }}
               >
                 {colleague.avatar ? (
                   <img src={colleague.avatar} alt="" className="h-12 w-12 object-cover" />
@@ -325,7 +363,7 @@ export function BookingDetailsModal({
               </div>
               <span className="font-medium text-lg">{colleague.name}</span>
               {selectedColleague === colleague.id && (
-                <Check className="h-6 w-6 ml-auto" style={{ color: accentColor }} />
+                <Check className="h-6 w-6 ml-auto" style={{ color: darkenColor(accentColor, 20) }} />
               )}
             </button>
           )) : (
@@ -342,8 +380,11 @@ export function BookingDetailsModal({
           <button
             onClick={handleTransfer}
             disabled={!selectedColleague || transferring}
-            className="flex-1 py-3 rounded-xl text-white font-medium disabled:opacity-50"
-            style={{ backgroundColor: accentColor }}
+            className="flex-1 py-3 rounded-xl font-medium disabled:opacity-50"
+            style={{ 
+              backgroundColor: accentColor,
+              color: isLightColor(accentColor) ? darkenColor(accentColor, 50) : 'white'
+            }}
           >
             {transferring ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : 'Передати'}
           </button>
