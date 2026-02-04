@@ -85,6 +85,7 @@ export default function StaffDashboard() {
   const [salonId, setSalonId] = useState('');
   const [accentColor, setAccentColor] = useState('#000000'); // Колір з палітри салону
   const [lunchDuration, setLunchDuration] = useState(60); // Тривалість обіду в хв
+  const [lunchStart, setLunchStart] = useState('13:00'); // Час початку обіду
   const [stats, setStats] = useState<StaffStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -172,6 +173,7 @@ export default function StaffDashboard() {
         if (data.name) setStaffName(data.name);
         // Тривалість обіду
         if (data.lunchDuration) setLunchDuration(data.lunchDuration);
+        if (data.lunchStart) setLunchStart(data.lunchStart);
         // Колір — спершу власний, якщо немає — перший з палітри
         if (data.color) {
           setAccentColor(data.color);
@@ -322,25 +324,13 @@ export default function StaffDashboard() {
     setBlockTimeEnd(`${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`);
   };
 
-  // Швидка кнопка: обід (використовує lunchDuration з профілю)
+  // Швидка кнопка: обід (використовує lunchStart та lunchDuration з профілю)
   const setLunchBreak = () => {
-    const now = new Date();
-    const isToday = blockDate.toDateString() === now.toDateString();
-    const currentHour = now.getHours();
-    
-    if (isToday && currentHour >= 12 && currentHour < 15) {
-      // Якщо зараз обідній час — від поточного моменту
-      const startTime = getCurrentRoundedTime();
-      setBlockTimeStart(startTime);
-      const [h, m] = startTime.split(':').map(Number);
-      const endMinutes = h * 60 + m + lunchDuration;
-      setBlockTimeEnd(`${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`);
-    } else {
-      // Стандартний обід о 13:00
-      setBlockTimeStart('13:00');
-      const endMinutes = 13 * 60 + lunchDuration;
-      setBlockTimeEnd(`${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`);
-    }
+    // Використовуємо налаштований час обіду з профілю
+    setBlockTimeStart(lunchStart);
+    const [h, m] = lunchStart.split(':').map(Number);
+    const endMinutes = h * 60 + m + lunchDuration;
+    setBlockTimeEnd(`${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`);
   };
 
   // Швидка кнопка: весь день
@@ -919,85 +909,96 @@ export default function StaffDashboard() {
             </button>
           </div>
 
-          {/* Швидкі кнопки */}
-          <div className="space-y-2 relative z-20">
-            <p className="text-xs text-muted-foreground">Швидкий вибір:</p>
-            <div className="grid grid-cols-2 gap-2">
-              {/* Обід */}
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); setLunchBreak(); }}
-                className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 active:opacity-80"
-                style={{ 
-                  backgroundColor: `${accentColor}20`,
-                  borderWidth: 1,
-                  borderColor: darkenColor(accentColor, 15),
-                  color: darkenColor(accentColor, 35)
-                }}
-              >
-                🍽️ Обід ({lunchDuration} хв)
-              </button>
+          {/* Швидкі кнопки — два столбці */}
+          <div className="relative z-20">
+            <p className="text-xs text-muted-foreground mb-2">Швидкий вибір:</p>
+            <div className="grid grid-cols-2 gap-3">
+              {/* Лівий столб — Обід, Весь день, До кінця дня */}
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setLunchBreak(); }}
+                  className="w-full py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 active:opacity-80"
+                  style={{ 
+                    backgroundColor: `${accentColor}20`,
+                    borderWidth: 1,
+                    borderColor: darkenColor(accentColor, 15),
+                    color: darkenColor(accentColor, 35)
+                  }}
+                >
+                  🍽️ Обід
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setFullDay(); }}
+                  className="w-full py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 active:opacity-80"
+                  style={{ 
+                    backgroundColor: `${accentColor}20`,
+                    borderWidth: 1,
+                    borderColor: darkenColor(accentColor, 15),
+                    color: darkenColor(accentColor, 35)
+                  }}
+                >
+                  📅 Весь день
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setToEndOfDay(); }}
+                  className="w-full py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 active:opacity-80"
+                  style={{ 
+                    backgroundColor: `${accentColor}20`,
+                    borderWidth: 1,
+                    borderColor: darkenColor(accentColor, 15),
+                    color: darkenColor(accentColor, 35)
+                  }}
+                >
+                  🌙 До кінця дня
+                </button>
+              </div>
               
-              {/* 1 година */}
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); setQuickBreak(1); }}
-                className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 active:opacity-80"
-                style={{ 
-                  backgroundColor: `${accentColor}20`,
-                  borderWidth: 1,
-                  borderColor: darkenColor(accentColor, 15),
-                  color: darkenColor(accentColor, 35)
-                }}
-              >
-                ⏱️ 1 година
-              </button>
-              
-              {/* 2 години */}
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); setQuickBreak(2); }}
-                className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 active:opacity-80"
-                style={{ 
-                  backgroundColor: `${accentColor}20`,
-                  borderWidth: 1,
-                  borderColor: darkenColor(accentColor, 15),
-                  color: darkenColor(accentColor, 35)
-                }}
-              >
-                ⏱️ 2 години
-              </button>
-              
-              {/* Весь день */}
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); setFullDay(); }}
-                className="py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 active:opacity-80"
-                style={{ 
-                  backgroundColor: `${accentColor}20`,
-                  borderWidth: 1,
-                  borderColor: darkenColor(accentColor, 15),
-                  color: darkenColor(accentColor, 35)
-                }}
-              >
-                📅 Весь день
-              </button>
+              {/* Правий столб — 30 хв, 1 год, 2 год */}
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setQuickBreak(0.5); }}
+                  className="w-full py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 active:opacity-80"
+                  style={{ 
+                    backgroundColor: `${accentColor}20`,
+                    borderWidth: 1,
+                    borderColor: darkenColor(accentColor, 15),
+                    color: darkenColor(accentColor, 35)
+                  }}
+                >
+                  ⏱️ 30 хв
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setQuickBreak(1); }}
+                  className="w-full py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 active:opacity-80"
+                  style={{ 
+                    backgroundColor: `${accentColor}20`,
+                    borderWidth: 1,
+                    borderColor: darkenColor(accentColor, 15),
+                    color: darkenColor(accentColor, 35)
+                  }}
+                >
+                  ⏱️ 1 година
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setQuickBreak(2); }}
+                  className="w-full py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 active:opacity-80"
+                  style={{ 
+                    backgroundColor: `${accentColor}20`,
+                    borderWidth: 1,
+                    borderColor: darkenColor(accentColor, 15),
+                    color: darkenColor(accentColor, 35)
+                  }}
+                >
+                  ⏱️ 2 години
+                </button>
+              </div>
             </div>
-            
-            {/* До кінця дня — окрема велика кнопка */}
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setToEndOfDay(); }}
-              className="w-full py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 active:opacity-80"
-              style={{ 
-                backgroundColor: `${accentColor}20`,
-                borderWidth: 1,
-                borderColor: darkenColor(accentColor, 15),
-                color: darkenColor(accentColor, 35)
-              }}
-            >
-              🌙 До кінця робочого дня
-            </button>
           </div>
 
           {/* Time range */}
@@ -1147,6 +1148,13 @@ export default function StaffDashboard() {
                 onClick={() => {
                   if (!isPast) {
                     setBlockTimeStart(time);
+                    // Автокорекція: якщо кінець став менше початку — зсуваємо кінець на +1 год
+                    const [newH, newM] = time.split(':').map(Number);
+                    const [endH, endM] = blockTimeEnd.split(':').map(Number);
+                    if (endH * 60 + endM <= newH * 60 + newM) {
+                      const newEndMinutes = newH * 60 + newM + 60;
+                      setBlockTimeEnd(`${Math.floor(newEndMinutes / 60).toString().padStart(2, '0')}:${(newEndMinutes % 60).toString().padStart(2, '0')}`);
+                    }
                     setBlockStartPickerOpen(false);
                   }
                 }}
@@ -1182,21 +1190,33 @@ export default function StaffDashboard() {
         }`}
       >
         <div className="p-2 max-h-[50vh] overflow-y-auto">
-          {timeOptions.map((time) => (
-            <button
-              key={time}
-              onClick={() => {
-                setBlockTimeEnd(time);
-                setBlockEndPickerOpen(false);
-              }}
-              className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
-                blockTimeEnd === time ? 'text-white' : 'text-zinc-300'
-              }`}
-            >
-              {blockTimeEnd === time && <Check className="h-5 w-5" />}
-              <span className={blockTimeEnd === time ? '' : 'ml-8'}>{time}</span>
-            </button>
-          ))}
+          {timeOptions.map((time) => {
+            // Час кінця має бути більше за час початку
+            const [startH, startM] = blockTimeStart.split(':').map(Number);
+            const [endH, endM] = time.split(':').map(Number);
+            const startMinutes = startH * 60 + startM;
+            const endMinutes = endH * 60 + endM;
+            const isBefore = endMinutes <= startMinutes;
+            
+            return (
+              <button
+                key={time}
+                onClick={() => {
+                  if (!isBefore) {
+                    setBlockTimeEnd(time);
+                    setBlockEndPickerOpen(false);
+                  }
+                }}
+                disabled={isBefore}
+                className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 ${
+                  isBefore ? 'text-zinc-600 opacity-50' : blockTimeEnd === time ? 'text-white' : 'text-zinc-300'
+                }`}
+              >
+                {blockTimeEnd === time && !isBefore && <Check className="h-5 w-5" />}
+                <span className={blockTimeEnd === time && !isBefore ? '' : 'ml-8'}>{time}</span>
+              </button>
+            );
+          })}
         </div>
         <button
           onClick={() => setBlockEndPickerOpen(false)}

@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
         workingHours: true,
         color: true,
         lunchDuration: true,
+        lunchStart: true,
         salon: {
           select: {
             paletteId: true,
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { masterId, name, phone, bio, workingHours, color, avatar, lunchDuration } = body;
+    const { masterId, name, phone, bio, workingHours, color, avatar, lunchDuration, lunchStart } = body;
 
     if (!masterId) {
       return NextResponse.json({ error: 'masterId required' }, { status: 400 });
@@ -63,7 +64,8 @@ export async function PUT(request: NextRequest) {
         ...(workingHours !== undefined && { workingHours }),
         ...(color !== undefined && { color }),
         ...(avatar !== undefined && { avatar }),
-        ...(lunchDuration !== undefined && { lunchDuration })
+        ...(lunchDuration !== undefined && { lunchDuration }),
+        ...(lunchStart !== undefined && { lunchStart })
       }
     });
 

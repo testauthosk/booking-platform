@@ -82,6 +82,7 @@ model Master {
   price         Int             @default(0)
   workingHours  Json?
   lunchDuration Int             @default(60)  // Тривалість обіду в хвилинах
+  lunchStart    String          @default("13:00") // Час початку обіду (HH:mm)
   isActive      Boolean         @default(true)
   sortOrder     Int             @default(0)
   createdAt     DateTime        @default(now())

@@ -23,6 +23,7 @@ export default function StaffProfile() {
   const [role, setRole] = useState('');
   const [color, setColor] = useState('');
   const [lunchDuration, setLunchDuration] = useState(60); // Тривалість обіду в хв
+  const [lunchStart, setLunchStart] = useState('13:00'); // Час початку обіду
   
   const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -109,6 +110,7 @@ export default function StaffProfile() {
         setRole(data.role || '');
         setColor(data.color || colorPalette[0]?.hex || '#f97316');
         setLunchDuration(data.lunchDuration ?? 60);
+        setLunchStart(data.lunchStart ?? '13:00');
       }
     } catch (error) {
       console.error('Load profile error:', error);
@@ -127,7 +129,8 @@ export default function StaffProfile() {
           phone,
           bio,
           color,
-          lunchDuration
+          lunchDuration,
+          lunchStart
         })
       });
       
@@ -285,32 +288,76 @@ export default function StaffProfile() {
           </div>
         </Card>
 
-        {/* Lunch duration */}
+        {/* Lunch settings */}
         <Card className="p-4">
-          <h3 className="font-medium mb-0.5">🍽️ Тривалість обіду</h3>
+          <h3 className="font-medium mb-0.5">🍽️ Налаштування обіду</h3>
           <p className="text-xs text-muted-foreground mb-3">
             Для швидкого блокування часу на обід
           </p>
-          <div className="flex flex-wrap gap-2">
-            {[15, 30, 45, 60, 90].map((mins) => (
-              <button
-                key={mins}
-                onClick={() => setLunchDuration(mins)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                  lunchDuration === mins 
-                    ? 'ring-2 ring-offset-2 ring-primary' 
-                    : 'hover:scale-105'
-                }`}
-                style={{ 
-                  backgroundColor: lunchDuration === mins ? color : `${color}20`,
-                  color: lunchDuration === mins ? 'white' : color,
-                  borderWidth: 1,
-                  borderColor: `${color}50`
-                }}
-              >
-                {mins} хв
-              </button>
-            ))}
+          
+          {/* Час початку обіду */}
+          <div className="mb-4">
+            <label className="text-sm text-muted-foreground mb-2 block">Час початку</label>
+            <div className="flex flex-wrap gap-2">
+              {['12:00', '12:30', '13:00', '13:30', '14:00', '14:30'].map((time) => (
+                <button
+                  key={time}
+                  onClick={() => setLunchStart(time)}
+                  className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                    lunchStart === time 
+                      ? 'ring-2 ring-offset-2 ring-primary' 
+                      : 'hover:scale-105'
+                  }`}
+                  style={{ 
+                    backgroundColor: lunchStart === time ? color : `${color}20`,
+                    color: lunchStart === time ? 'white' : color,
+                    borderWidth: 1,
+                    borderColor: `${color}50`
+                  }}
+                >
+                  {time}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Тривалість обіду */}
+          <div>
+            <label className="text-sm text-muted-foreground mb-2 block">Тривалість</label>
+            <div className="flex flex-wrap gap-2">
+              {[15, 30, 45, 60, 90].map((mins) => (
+                <button
+                  key={mins}
+                  onClick={() => setLunchDuration(mins)}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                    lunchDuration === mins 
+                      ? 'ring-2 ring-offset-2 ring-primary' 
+                      : 'hover:scale-105'
+                  }`}
+                  style={{ 
+                    backgroundColor: lunchDuration === mins ? color : `${color}20`,
+                    color: lunchDuration === mins ? 'white' : color,
+                    borderWidth: 1,
+                    borderColor: `${color}50`
+                  }}
+                >
+                  {mins} хв
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Прев'ю */}
+          <div className="mt-3 pt-3 border-t border-border">
+            <p className="text-xs text-muted-foreground">
+              Обід: <span className="font-medium text-foreground">{lunchStart}</span> — <span className="font-medium text-foreground">
+                {(() => {
+                  const [h, m] = lunchStart.split(':').map(Number);
+                  const endMinutes = h * 60 + m + lunchDuration;
+                  return `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
+                })()}
+              </span>
+            </p>
           </div>
         </Card>
 
