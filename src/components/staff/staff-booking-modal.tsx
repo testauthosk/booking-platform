@@ -454,35 +454,48 @@ export function StaffBookingModal({
             </button>
           </div>
 
-          {/* Progress */}
-          {step !== 'confirm' && (
-            <div className="flex items-center gap-2 mt-3">
-              {STEPS.slice(0, -1).map((s, idx) => (
-                <div key={s.id} className="flex items-center gap-2 flex-1">
-                  <div
-                    className={cn(
-                      'w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-colors',
-                      idx < currentStepIndex
-                        ? 'bg-primary text-primary-foreground'
-                        : idx === currentStepIndex
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground'
-                    )}
-                  >
-                    {idx < currentStepIndex ? <Check className="w-3 h-3" /> : idx + 1}
-                  </div>
-                  {idx < STEPS.length - 2 && (
-                    <div
-                      className={cn(
-                        'flex-1 h-0.5 transition-colors',
-                        idx < currentStepIndex ? 'bg-primary' : 'bg-muted'
-                      )}
-                    />
+          {/* Progress - 4 точки */}
+          <div className="flex items-center gap-1 mt-3">
+            {STEPS.map((s, idx) => (
+              <div key={s.id} className="flex items-center flex-1 last:flex-none">
+                {/* Точка */}
+                <div
+                  className={cn(
+                    'w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-all duration-300',
+                    // Остання точка (confirm) — зелена коли активна
+                    idx === STEPS.length - 1 && idx === currentStepIndex
+                      ? 'bg-green-500 text-white scale-110'
+                      : idx === STEPS.length - 1 && idx < currentStepIndex
+                      ? 'bg-green-500 text-white'
+                      // Пройдені — primary з галочкою
+                      : idx < currentStepIndex
+                      ? 'bg-primary text-primary-foreground'
+                      // Поточна — primary
+                      : idx === currentStepIndex
+                      ? 'bg-primary text-primary-foreground scale-110'
+                      // Майбутні — muted
+                      : 'bg-muted text-muted-foreground'
                   )}
+                >
+                  {idx < currentStepIndex || (idx === STEPS.length - 1 && idx <= currentStepIndex) 
+                    ? <Check className="w-4 h-4" /> 
+                    : idx + 1}
                 </div>
-              ))}
-            </div>
-          )}
+                {/* Лінія між точками */}
+                {idx < STEPS.length - 1 && (
+                  <div className="flex-1 h-0.5 bg-muted mx-1 relative overflow-hidden">
+                    {/* Анімована заливка */}
+                    <div
+                      className="absolute inset-y-0 left-0 bg-primary transition-all duration-500 ease-out"
+                      style={{ 
+                        width: idx < currentStepIndex ? '100%' : '0%'
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Content wrapper - плавно анімує висоту */}
@@ -726,15 +739,32 @@ export function StaffBookingModal({
                 </div>
               </div>
 
-              {/* Existing bookings strip */}
-              {masterBookings.filter(b => b.status !== 'CANCELLED').length > 0 && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">Записи на цей день</p>
-                  <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-                    {masterBookings
-                      .filter(b => b.status !== 'CANCELLED')
-                      .sort((a, b) => a.time.localeCompare(b.time))
-                      .map((booking) => {
+              {/* Existing bookings strip - тільки майбутні */}
+              {(() => {
+                const now = new Date();
+                const currentMinutes = now.getHours() * 60 + now.getMinutes();
+                const isToday = selectedDate.toDateString() === now.toDateString();
+                
+                const futureBookings = masterBookings
+                  .filter(b => {
+                    if (b.status === 'CANCELLED') return false;
+                    if (!isToday) return true; // Якщо не сьогодні — показуємо всі
+                    // Для сьогодні — тільки ті що ще не закінчились
+                    const [h, m] = b.time.split(':').map(Number);
+                    const endMin = b.timeEnd 
+                      ? (() => { const [eh, em] = b.timeEnd.split(':').map(Number); return eh * 60 + em; })()
+                      : h * 60 + m + (b.duration || 60);
+                    return endMin > currentMinutes;
+                  })
+                  .sort((a, b) => a.time.localeCompare(b.time));
+                
+                if (futureBookings.length === 0) return null;
+                
+                return (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Записи на цей день</p>
+                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                      {futureBookings.map((booking) => {
                         const [h, m] = booking.time.split(':').map(Number);
                         const endMin = h * 60 + m + (booking.duration || 60);
                         const endTime = `${Math.floor(endMin / 60).toString().padStart(2, '0')}:${(endMin % 60).toString().padStart(2, '0')}`;
@@ -748,9 +778,10 @@ export function StaffBookingModal({
                           </div>
                         );
                       })}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Time picker - wheel */}
               <div className="bg-zinc-900 rounded-2xl p-4">
