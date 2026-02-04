@@ -937,7 +937,7 @@ export function StaffBookingModal({
         <div className="p-4 border-t shrink-0">
           {step === 'confirm' ? (
             <button
-              onClick={onClose}
+              onClick={() => { resetState(); onClose(); }}
               className="w-full h-12 bg-primary text-white font-medium rounded-xl hover:bg-primary/90 transition-colors"
             >
               Закрити
