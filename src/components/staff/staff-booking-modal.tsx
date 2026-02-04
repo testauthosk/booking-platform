@@ -621,9 +621,12 @@ export function StaffBookingModal({
                           <Input
                             value={newClientName}
                             onChange={(e) => {
-                              // Capitalize first letter of each word
+                              // Capitalize each word as user types
                               const val = e.target.value;
-                              const capitalized = val.charAt(0).toUpperCase() + val.slice(1);
+                              const capitalized = val
+                                .split(' ')
+                                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                .join(' ');
                               setNewClientName(capitalized);
                             }}
                             placeholder="Ім'я"
@@ -636,9 +639,12 @@ export function StaffBookingModal({
                         <Input
                           value={newClientLastName}
                           onChange={(e) => {
-                            // Capitalize first letter
+                            // Capitalize each word as user types
                             const val = e.target.value;
-                            const capitalized = val.charAt(0).toUpperCase() + val.slice(1);
+                            const capitalized = val
+                              .split(' ')
+                              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                              .join(' ');
                             setNewClientLastName(capitalized);
                           }}
                           placeholder="Необов'язково"
