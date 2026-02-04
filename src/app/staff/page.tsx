@@ -591,8 +591,24 @@ export default function StaffDashboard() {
             </button>
           </div>
 
-          {/* Colleague booking button */}
-          <div className="px-4 pt-2">
+          {/* Action buttons */}
+          <div className="px-4 pt-2 space-y-2">
+            {/* My clients button */}
+            <button 
+              onClick={() => router.push('/staff/clients')}
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200 transition-colors text-left"
+            >
+              <div className="h-10 w-10 rounded-xl bg-emerald-500 flex items-center justify-center">
+                <User className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-emerald-900">Мої клієнти</p>
+                <p className="text-xs text-emerald-600">Клієнти що були у вас</p>
+              </div>
+              <ChevronRight className="h-5 w-5 text-emerald-400" />
+            </button>
+
+            {/* Colleague booking button */}
             <button 
               onClick={() => setColleagueBookingOpen(true)}
               className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-gradient-to-r from-violet-50 to-purple-50 hover:from-violet-100 hover:to-purple-100 border border-violet-200 transition-colors text-left"
