@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const masterId = searchParams.get('masterId');
+    const requestedDate = searchParams.get('date'); // Optional: specific date YYYY-MM-DD
 
     if (!masterId) {
       return NextResponse.json({ error: 'masterId required' }, { status: 400 });
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     // Get dates in Kyiv timezone
     const now = getKyivTime();
-    const todayStr = now.toISOString().split('T')[0];
+    const todayStr = requestedDate || now.toISOString().split('T')[0]; // Use requested date or today
     
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -32,33 +33,37 @@ export async function GET(request: NextRequest) {
     const weekEndStr = weekEnd.toISOString().split('T')[0];
 
     // Автозавершення: записи що закінчились переводимо в COMPLETED
+    // Тільки якщо запитуємо сьогоднішню дату
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     const currentTotalMinutes = currentHour * 60 + currentMinute;
+    const isRequestingToday = !requestedDate || requestedDate === now.toISOString().split('T')[0];
     
-    // Знаходимо записи які повинні бути завершені
-    const pendingBookings = await prisma.booking.findMany({
-      where: {
-        masterId,
-        date: todayStr,
-        status: 'CONFIRMED'
-      },
-      select: { id: true, time: true, timeEnd: true, duration: true }
-    });
-    
-    // Автоматично завершуємо записи час яких пройшов
-    for (const booking of pendingBookings) {
-      const [h, m] = booking.time.split(':').map(Number);
-      const endMinutes = booking.timeEnd 
-        ? (() => { const [eh, em] = booking.timeEnd.split(':').map(Number); return eh * 60 + em; })()
-        : h * 60 + m + (booking.duration || 60);
+    if (isRequestingToday) {
+      // Знаходимо записи які повинні бути завершені
+      const pendingBookings = await prisma.booking.findMany({
+        where: {
+          masterId,
+          date: todayStr,
+          status: 'CONFIRMED'
+        },
+        select: { id: true, time: true, timeEnd: true, duration: true }
+      });
       
-      // Якщо запис закінчився — помічаємо як виконаний
-      if (currentTotalMinutes >= endMinutes) {
-        await prisma.booking.update({
-          where: { id: booking.id },
-          data: { status: 'COMPLETED' }
-        });
+      // Автоматично завершуємо записи час яких пройшов
+      for (const booking of pendingBookings) {
+        const [h, m] = booking.time.split(':').map(Number);
+        const endMinutes = booking.timeEnd 
+          ? (() => { const [eh, em] = booking.timeEnd.split(':').map(Number); return eh * 60 + em; })()
+          : h * 60 + m + (booking.duration || 60);
+        
+        // Якщо запис закінчився — помічаємо як виконаний
+        if (currentTotalMinutes >= endMinutes) {
+          await prisma.booking.update({
+            where: { id: booking.id },
+            data: { status: 'COMPLETED' }
+          });
+        }
       }
     }
 

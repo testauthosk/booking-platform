@@ -877,7 +877,14 @@ function StaffCalendarContent() {
                 const topPosition = startMinutes * 2; // 2px per minute (120px per hour)
                 const height = booking.duration * 2; // 2px per minute
                 
-                const isPast = isToday(selectedDate) && (startH < new Date().getHours() || (startH === new Date().getHours() && startM < new Date().getMinutes()));
+                // Calculate current time in minutes
+                const nowTime = new Date();
+                const nowMins = nowTime.getHours() * 60 + nowTime.getMinutes();
+                const bookingStartMins = startH * 60 + startM;
+                const bookingEndMins = bookingStartMins + booking.duration;
+                
+                const isOngoing = isToday(selectedDate) && nowMins >= bookingStartMins && nowMins < bookingEndMins && booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED';
+                const isPast = isToday(selectedDate) && nowMins >= bookingEndMins && booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED';
                 const isBlocked = booking.clientName === 'Зайнято';
                 
                 // Calculate end time
@@ -908,6 +915,8 @@ function StaffCalendarContent() {
                         ? 'bg-green-50' 
                         : isBlocked
                         ? 'bg-zinc-100'
+                        : isOngoing
+                        ? 'ring-2 ring-blue-400 shadow-lg z-10'
                         : ''
                     } ${isFocused ? 'ring-4 ring-primary ring-offset-2 scale-[1.02] z-20' : ''}`}
                     style={{ 
@@ -915,10 +924,10 @@ function StaffCalendarContent() {
                       height: `${height + 1}px`,
                       backgroundColor: booking.status === 'COMPLETED' ? undefined : isBlocked ? undefined : colors.bg,
                       backgroundImage: stripesPattern,
-                      borderLeft: `4px solid ${colors.stripe}`,
-                      borderTop: `1px solid ${colors.stripe}`,
-                      borderRight: `1px solid ${colors.stripe}`,
-                      borderBottom: `1px solid ${colors.stripe}`
+                      borderLeft: `4px solid ${isOngoing ? '#3b82f6' : colors.stripe}`,
+                      borderTop: `1px solid ${isOngoing ? '#3b82f6' : colors.stripe}`,
+                      borderRight: `1px solid ${isOngoing ? '#3b82f6' : colors.stripe}`,
+                      borderBottom: `1px solid ${isOngoing ? '#3b82f6' : colors.stripe}`
                     }}
                   >
                     <div className="p-3 h-full flex justify-between gap-3">
@@ -940,6 +949,10 @@ function StaffCalendarContent() {
                           </div>
                         )}
                         
+                        {isOngoing && (
+                          <span className="inline-block text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium animate-pulse">⏱ Зараз</span>
+                        )}
+                        
                         {booking.status === 'COMPLETED' && (
                           <span className="inline-block text-sm bg-green-200 text-green-700 px-2 py-1 rounded">✓ Завершено</span>
                         )}
@@ -955,11 +968,20 @@ function StaffCalendarContent() {
                           {/* Call button - always visible */}
                           <a 
                             href={`tel:${booking.clientPhone}`}
-                            className="h-9 px-3 rounded-lg bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-1 shadow-sm whitespace-nowrap"
+                            className="h-9 px-3 rounded-lg bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-600 transition-colors flex items-center justify-center gap-1 shadow-sm whitespace-nowrap"
                           >
                             <Phone className="h-3.5 w-3.5" /> Зателефонувати
                           </a>
-                          {/* Other buttons - only for non-past */}
+                          {/* Complete button for ongoing */}
+                          {isOngoing && (
+                            <button 
+                              onClick={() => handleCompleteBooking(booking.id)}
+                              className="h-9 px-3 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-semibold hover:bg-emerald-200 transition-colors flex items-center justify-center gap-1 border border-emerald-300"
+                            >
+                              <Check className="h-3.5 w-3.5" /> Завершити
+                            </button>
+                          )}
+                          {/* Other buttons - only for non-past and non-ongoing future */}
                           {!isPast && (
                             <div className="flex gap-1">
                               <button 
@@ -1366,7 +1388,7 @@ function StaffCalendarContent() {
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <p className="font-semibold">
+          <p className="font-semibold capitalize">
             {pickerViewDate.toLocaleDateString('uk-UA', { month: 'long', year: 'numeric' })}
           </p>
           <button 
