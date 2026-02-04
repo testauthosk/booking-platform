@@ -556,33 +556,26 @@ function StaffCalendarContent() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* Today button */}
-            {!isToday(selectedDate) && (
-              <button
-                onClick={() => setSelectedDate(new Date())}
-                className="h-10 px-3 rounded-xl bg-primary/10 text-primary text-sm font-medium"
-              >
-                Сьогодні
-              </button>
-            )}
-            {/* Calendar picker button */}
+            {/* Calendar picker button - styled like + button */}
             <button 
               onClick={() => setCalendarPickerOpen(true)}
               className="h-10 w-10 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center justify-center transition-colors shadow-sm"
             >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </button>
             <button
               onClick={() => setShowOnlyBookings(!showOnlyBookings)}
-              className={`h-10 px-3 rounded-xl text-sm font-medium transition-colors ${
-                showOnlyBookings 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'bg-muted text-muted-foreground'
-              }`}
+              className="h-10 px-3 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden flex items-center gap-1"
+              style={{
+                backgroundColor: showOnlyBookings ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+                color: showOnlyBookings ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
+                width: showOnlyBookings ? '100px' : '76px'
+              }}
             >
-              {showOnlyBookings ? '✓ Записи' : 'Записи'}
+              <span className={`transition-all duration-300 ${showOnlyBookings ? 'w-4 opacity-100' : 'w-0 opacity-0'}`}>✓</span>
+              <span>Записи</span>
             </button>
             <button 
               onClick={openAddModal}
@@ -598,8 +591,29 @@ function StaffCalendarContent() {
       <div className="shrink-0 bg-card border-b">
         <div 
           ref={daysRef}
-          className="flex gap-2 px-4 py-3 overflow-x-auto scrollbar-hide"
+          className="flex gap-2 px-4 py-3 overflow-x-auto scrollbar-hide items-center"
         >
+          {/* Today button - appears on left when not viewing today */}
+          <button
+            onClick={() => {
+              setSelectedDate(new Date());
+              // Scroll days back to start
+              if (daysRef.current) {
+                daysRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+              }
+            }}
+            className={`shrink-0 flex items-center gap-1.5 h-[68px] px-3 rounded-xl bg-primary/10 text-primary text-sm font-medium transition-all duration-300 ease-out overflow-hidden ${
+              isToday(selectedDate) 
+                ? 'w-0 px-0 opacity-0 mr-0' 
+                : 'w-auto opacity-100 mr-1'
+            }`}
+            style={{
+              maxWidth: isToday(selectedDate) ? '0px' : '120px'
+            }}
+          >
+            <ChevronLeft className="h-4 w-4 shrink-0" />
+            <span className="whitespace-nowrap">Сьогодні</span>
+          </button>
           {days.map((date, index) => (
             <button
               key={index}
@@ -794,11 +808,12 @@ function StaffCalendarContent() {
               <div className="pt-4">
           <div className="relative flex px-4">
             {/* Left: Time labels */}
-            <div className="w-12 shrink-0 relative" style={{ height: `${(workingHours.end - workingHours.start + 1) * 120}px` }}>
-              {Array.from({ length: workingHours.end - workingHours.start }, (_, i) => {
+            <div className="w-12 shrink-0 relative" style={{ height: `${(workingHours.end - workingHours.start) * 120}px` }}>
+              {Array.from({ length: workingHours.end - workingHours.start + 1 }, (_, i) => {
                 const hour = workingHours.start + i;
                 const timeStr = `${hour.toString().padStart(2, '0')}:00`;
                 const isPastHour = isToday(selectedDate) && hour < new Date().getHours();
+                const isLastHour = hour === workingHours.end;
                 
                 return (
                   <div key={hour}>
@@ -811,45 +826,52 @@ function StaffCalendarContent() {
                         {timeStr}
                       </span>
                     </div>
-                    {/* :30 label */}
-                    <div 
-                      className="absolute w-full text-right pr-2 -translate-y-1/2"
-                      style={{ top: `${i * 120 + 60}px` }}
-                    >
-                      <span className="text-[10px] text-muted-foreground/40">30</span>
-                    </div>
+                    {/* :30 label - only show if not last hour */}
+                    {!isLastHour && (
+                      <div 
+                        className="absolute w-full text-right pr-2 -translate-y-1/2"
+                        style={{ top: `${i * 120 + 60}px` }}
+                      >
+                        <span className="text-[10px] text-muted-foreground/40">30</span>
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
             
             {/* Vertical line with ticks */}
-            <div className="relative shrink-0" style={{ height: `${(workingHours.end - workingHours.start + 1) * 120}px` }}>
+            <div className="relative shrink-0" style={{ height: `${(workingHours.end - workingHours.start) * 120}px` }}>
               {/* Main line */}
               <div className="absolute left-2 top-0 bottom-0 w-px bg-zinc-300" />
               
               {/* Ticks */}
-              {Array.from({ length: workingHours.end - workingHours.start }, (_, i) => (
-                <div key={i}>
-                  {/* Hour tick - longer */}
-                  <div 
-                    className="absolute left-0 w-2 h-px bg-zinc-400"
-                    style={{ top: `${i * 120}px` }}
-                  />
-                  {/* :30 tick - shorter */}
-                  <div 
-                    className="absolute left-1 w-1 h-px bg-zinc-300"
-                    style={{ top: `${i * 120 + 60}px` }}
-                  />
-                </div>
-              ))}
+              {Array.from({ length: workingHours.end - workingHours.start + 1 }, (_, i) => {
+                const isLastHour = i === workingHours.end - workingHours.start;
+                return (
+                  <div key={i}>
+                    {/* Hour tick - longer */}
+                    <div 
+                      className="absolute left-0 w-2 h-px bg-zinc-400"
+                      style={{ top: `${i * 120}px` }}
+                    />
+                    {/* :30 tick - shorter, only if not last hour */}
+                    {!isLastHour && (
+                      <div 
+                        className="absolute left-1 w-1 h-px bg-zinc-300"
+                        style={{ top: `${i * 120 + 60}px` }}
+                      />
+                    )}
+                  </div>
+                );
+              })}
               
               {/* Spacer for line area */}
               <div className="w-4" />
             </div>
             
             {/* Right: Cards area */}
-            <div className="flex-1 relative" style={{ height: `${(workingHours.end - workingHours.start + 1) * 120}px` }}>
+            <div className="flex-1 relative" style={{ height: `${(workingHours.end - workingHours.start) * 120}px` }}>
               {/* Current time red line */}
               {isToday(selectedDate) && (() => {
                 const now = new Date();
