@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
+// Отримати поточний час в Києві
+const getKyivTime = () => {
+  const now = new Date();
+  // Конвертуємо в Київський час
+  const kyivTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Kyiv' }));
+  return kyivTime;
+};
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -10,8 +18,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'masterId required' }, { status: 400 });
     }
 
-    // Get dates
-    const now = new Date();
+    // Get dates in Kyiv timezone
+    const now = getKyivTime();
     const todayStr = now.toISOString().split('T')[0];
     
     const tomorrow = new Date(now);
@@ -23,7 +31,38 @@ export async function GET(request: NextRequest) {
     weekEnd.setDate(weekEnd.getDate() + 7);
     const weekEndStr = weekEnd.toISOString().split('T')[0];
 
-    // Get today's bookings
+    // Автозавершення: записи що закінчились переводимо в COMPLETED
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentTotalMinutes = currentHour * 60 + currentMinute;
+    
+    // Знаходимо записи які повинні бути завершені
+    const pendingBookings = await prisma.booking.findMany({
+      where: {
+        masterId,
+        date: todayStr,
+        status: 'CONFIRMED'
+      },
+      select: { id: true, time: true, timeEnd: true, duration: true }
+    });
+    
+    // Автоматично завершуємо записи час яких пройшов
+    for (const booking of pendingBookings) {
+      const [h, m] = booking.time.split(':').map(Number);
+      const endMinutes = booking.timeEnd 
+        ? (() => { const [eh, em] = booking.timeEnd.split(':').map(Number); return eh * 60 + em; })()
+        : h * 60 + m + (booking.duration || 60);
+      
+      // Якщо запис закінчився — помічаємо як виконаний
+      if (currentTotalMinutes >= endMinutes) {
+        await prisma.booking.update({
+          where: { id: booking.id },
+          data: { status: 'COMPLETED' }
+        });
+      }
+    }
+
+    // Get today's bookings (оновлені після автозавершення)
     const todayBookings = await prisma.booking.findMany({
       where: {
         masterId,
@@ -74,11 +113,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Find next upcoming booking (використовуємо хвилини для точного порівняння)
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentTotalMinutes = currentHour * 60 + currentMinute;
-    
+    // Find next upcoming booking
     let nextBooking = todayBookings.find(b => {
       const [h, m] = b.time.split(':').map(Number);
       const bookingMinutes = h * 60 + m;
@@ -114,7 +149,12 @@ export async function GET(request: NextRequest) {
       weekCount,
       totalClients: uniqueClients.length,
       todayBookings,
-      nextBooking: nextBooking || null
+      nextBooking: nextBooking || null,
+      serverTime: now.toISOString() // Для дебагу
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+      }
     });
   } catch (error) {
     console.error('Staff dashboard error:', error);
