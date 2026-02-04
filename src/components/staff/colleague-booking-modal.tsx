@@ -196,7 +196,7 @@ export function ColleagueBookingModal({
   const generateTimeSlots = () => {
     const slots: string[] = [];
     for (let h = 9; h <= 20; h++) {
-      for (let m = 0; m < 60; m += 30) {
+      for (let m = 0; m < 60; m += 15) {
         if (h === 20 && m > 0) continue;
         slots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
       }
