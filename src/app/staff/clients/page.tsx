@@ -36,6 +36,8 @@ export default function StaffClientsPage() {
   const [search, setSearch] = useState('');
   const [masterId, setMasterId] = useState('');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [isPanelVisible, setIsPanelVisible] = useState(false);
+  const [isPanelAnimating, setIsPanelAnimating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', phone: '', email: '', notes: '' });
   const [isSaving, setIsSaving] = useState(false);
@@ -133,6 +135,21 @@ export default function StaffClientsPage() {
       notes: client.notes || '',
     });
     setIsEditing(false);
+    setIsPanelVisible(true);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setIsPanelAnimating(true);
+      });
+    });
+  };
+
+  const closeClientCard = () => {
+    setIsPanelAnimating(false);
+    setTimeout(() => {
+      setIsPanelVisible(false);
+      setSelectedClient(null);
+      setIsEditing(false);
+    }, 350);
   };
 
   const handleSaveClient = async () => {
@@ -256,20 +273,30 @@ export default function StaffClientsPage() {
       </div>
 
       {/* Client Detail Slide-over */}
-      {selectedClient && (
+      {isPanelVisible && selectedClient && (
         <>
           {/* Backdrop */}
           <div 
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity"
-            onClick={() => setSelectedClient(null)}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+            style={{
+              opacity: isPanelAnimating ? 1 : 0,
+              transition: 'opacity 300ms ease-out',
+            }}
+            onClick={closeClientCard}
           />
 
           {/* Panel */}
-          <div className="fixed inset-y-0 right-0 w-full sm:w-[400px] bg-background shadow-2xl z-50 flex flex-col overflow-hidden animate-in slide-in-from-right duration-300">
+          <div 
+            className="fixed inset-y-0 right-0 w-full sm:w-[400px] bg-background shadow-2xl z-50 flex flex-col overflow-hidden"
+            style={{
+              transform: isPanelAnimating ? 'translateX(0)' : 'translateX(100%)',
+              transition: 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)',
+            }}
+          >
             {/* Header */}
             <div className="relative bg-gradient-to-br from-primary/10 to-primary/5 p-6 pb-4">
               <button
-                onClick={() => setSelectedClient(null)}
+                onClick={closeClientCard}
                 className="absolute top-4 right-4 h-8 w-8 rounded-full hover:bg-black/10 flex items-center justify-center"
               >
                 <X className="h-4 w-4" />
