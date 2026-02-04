@@ -52,6 +52,9 @@ export function StaffBookingModal({
   onSuccess,
 }: StaffBookingModalProps) {
   const [step, setStep] = useState<Step>('service');
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('left');
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [extraTime, setExtraTime] = useState(0); // Додатковий час в хвилинах
   
@@ -85,7 +88,28 @@ export function StaffBookingModal({
     setSelectedDate(new Date());
     setSelectedTime('');
     setError(null);
+    setShowCancelConfirm(false);
   }, []);
+
+  // Перевірка чи є введені дані
+  const hasData = selectedService || selectedClient || newClientName || newClientPhone || selectedTime;
+
+  // Обробка закриття з підтвердженням
+  const handleClose = useCallback(() => {
+    if (step === 'confirm') {
+      onClose();
+    } else if (hasData) {
+      setShowCancelConfirm(true);
+    } else {
+      onClose();
+    }
+  }, [hasData, step, onClose]);
+
+  // Підтвердити скасування
+  const confirmCancel = useCallback(() => {
+    resetState();
+    onClose();
+  }, [resetState, onClose]);
 
   usePreservedModal(isOpen, resetState);
 
@@ -303,15 +327,25 @@ export function StaffBookingModal({
 
   const nextStep = () => {
     const idx = currentStepIndex;
-    if (idx < STEPS.length - 1) {
-      setStep(STEPS[idx + 1].id);
+    if (idx < STEPS.length - 1 && !isAnimating) {
+      setSlideDirection('left');
+      setIsAnimating(true);
+      setTimeout(() => {
+        setStep(STEPS[idx + 1].id);
+        setTimeout(() => setIsAnimating(false), 50);
+      }, 150);
     }
   };
 
   const prevStep = () => {
     const idx = currentStepIndex;
-    if (idx > 0) {
-      setStep(STEPS[idx - 1].id);
+    if (idx > 0 && !isAnimating) {
+      setSlideDirection('right');
+      setIsAnimating(true);
+      setTimeout(() => {
+        setStep(STEPS[idx - 1].id);
+        setTimeout(() => setIsAnimating(false), 50);
+      }, 150);
     }
   };
 
@@ -326,8 +360,38 @@ export function StaffBookingModal({
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] transition-opacity"
-        onClick={onClose}
+        onClick={handleClose}
       />
+
+      {/* Cancel Confirmation Modal */}
+      {showCancelConfirm && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/40 z-[120]"
+            onClick={() => setShowCancelConfirm(false)}
+          />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 bg-card rounded-2xl shadow-xl z-[130] p-5 max-w-sm mx-auto">
+            <h3 className="text-lg font-semibold mb-2">Відмінити створення запису?</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Всі введені дані буде втрачено
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl bg-muted hover:bg-muted/80 font-medium transition-colors"
+              >
+                Продовжити
+              </button>
+              <button
+                onClick={confirmCancel}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 text-white hover:bg-red-600 font-medium transition-colors"
+              >
+                Відмінити
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Modal */}
       <div className="fixed inset-x-0 bottom-0 max-h-[90vh] bg-card rounded-t-3xl shadow-xl z-[110] flex flex-col overflow-hidden">
@@ -351,7 +415,7 @@ export function StaffBookingModal({
               </h2>
             </div>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
             >
               <X className="h-5 w-5" />
@@ -390,7 +454,14 @@ export function StaffBookingModal({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div 
+          className={cn(
+            "flex-1 overflow-y-auto p-4 transition-all duration-200 ease-out",
+            isAnimating && slideDirection === 'left' && "opacity-0 -translate-x-4",
+            isAnimating && slideDirection === 'right' && "opacity-0 translate-x-4",
+            !isAnimating && "opacity-100 translate-x-0"
+          )}
+        >
           {/* Service Step */}
           {step === 'service' && (
             <div className="space-y-2">
