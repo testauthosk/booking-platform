@@ -1031,12 +1031,13 @@ export default function StaffDashboard() {
           </div>
         </div>
 
-        <div className="p-4 border-t border-border space-y-2">
+        <div className="p-4 border-t border-border space-y-2 relative z-[100]">
           {/* Кнопка з повідомленням адміну */}
           <button
+            type="button"
             onClick={() => createBlockTime(true)}
             disabled={savingBlock}
-            className="w-full py-3 rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
             style={{ backgroundColor: accentColor, color: isLightColor(accentColor) ? darkenColor(accentColor, 50) : 'white' }}
           >
             {savingBlock ? (
@@ -1053,9 +1054,10 @@ export default function StaffDashboard() {
           
           {/* Звичайна кнопка без повідомлення */}
           <button
+            type="button"
             onClick={() => createBlockTime(false)}
             disabled={savingBlock}
-            className="w-full py-3 rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
             style={{ 
               backgroundColor: `${accentColor}20`,
               borderWidth: 1,
