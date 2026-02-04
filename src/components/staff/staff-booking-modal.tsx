@@ -169,7 +169,7 @@ export function StaffBookingModal({
   const loadMasterBookings = async () => {
     try {
       const dateStr = selectedDate.toISOString().split('T')[0];
-      const res = await fetch(`/api/booking?masterId=${masterId}&date=${dateStr}`);
+      const res = await fetch(`/api/staff/bookings?masterId=${masterId}&date=${dateStr}`);
       if (res.ok) {
         const data = await res.json();
         setMasterBookings(data);
