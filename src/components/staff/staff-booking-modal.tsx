@@ -154,10 +154,12 @@ export function StaffBookingModal({
     }
   }, [step, masterId, selectedDate]);
 
-  const loadClients = async () => {
+  const loadClients = async (search?: string) => {
     setLoadingClients(true);
     try {
-      const res = await fetch('/api/clients');
+      const params = new URLSearchParams({ salonId });
+      if (search) params.append('search', search);
+      const res = await fetch(`/api/staff/clients/all?${params}`);
       if (res.ok) {
         const data = await res.json();
         setClients(data);
