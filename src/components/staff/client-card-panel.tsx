@@ -206,7 +206,7 @@ export function ClientCardPanel({
             <div className="relative bg-gradient-to-br from-primary/10 to-primary/5 p-6 pb-4">
               <button
                 onClick={onClose}
-                className="absolute top-4 right-4 h-8 w-8 rounded-full hover:bg-black/10 flex items-center justify-center"
+                className="absolute top-4 right-4 h-9 w-9 rounded-xl bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>

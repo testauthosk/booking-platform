@@ -190,7 +190,7 @@ export function BookingDetailsModal({
               <h2 className="font-semibold text-lg">Деталі запису</h2>
               <button 
                 onClick={onClose}
-                className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
+                className="h-9 w-9 rounded-xl bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -334,7 +334,7 @@ export function BookingDetailsModal({
           </div>
           <button 
             onClick={() => setTransferModalOpen(false)}
-            className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
+            className="h-9 w-9 rounded-xl bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
           >
             <X className="h-5 w-5" />
           </button>

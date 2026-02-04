@@ -434,7 +434,7 @@ export function StaffBookingModal({
               {step !== 'service' && step !== 'confirm' && (
                 <button
                   onClick={prevStep}
-                  className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
+                  className="h-9 w-9 rounded-xl bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </button>
@@ -448,7 +448,7 @@ export function StaffBookingModal({
             </div>
             <button
               onClick={handleClose}
-              className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
+              className="h-9 w-9 rounded-xl bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
