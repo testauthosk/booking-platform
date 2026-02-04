@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, Calendar, Users, ChevronRight, Loader2, Phone, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ClientCardPanel } from './client-card-panel';
 
 interface Booking {
   id: string;
@@ -56,8 +57,6 @@ export function BookingDetailsModal({
   
   // Client card
   const [clientCardOpen, setClientCardOpen] = useState(false);
-  const [clientData, setClientData] = useState<any>(null);
-  const [loadingClient, setLoadingClient] = useState(false);
 
   // Анімація відкриття/закриття
   useEffect(() => {
@@ -88,27 +87,6 @@ export function BookingDetailsModal({
         setColleagues(data.filter((m: any) => m.id !== staffId));
       }
     } catch (e) {}
-  };
-
-  const loadClientData = async () => {
-    if (!booking?.clientPhone) return;
-    setLoadingClient(true);
-    try {
-      const res = await fetch(`/api/clients/by-phone?phone=${encodeURIComponent(booking.clientPhone)}&salonId=${salonId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setClientData(data);
-      }
-    } catch (e) {
-      console.error('Error loading client:', e);
-    } finally {
-      setLoadingClient(false);
-    }
-  };
-
-  const openClientCard = () => {
-    loadClientData();
-    setClientCardOpen(true);
   };
 
   const handleTransfer = async () => {
@@ -216,7 +194,7 @@ export function BookingDetailsModal({
 
               {/* Client - CLICKABLE */}
               <button
-                onClick={openClientCard}
+                onClick={() => setClientCardOpen(true)}
                 className="w-full p-4 rounded-xl bg-muted/50 hover:bg-muted/70 transition-colors text-left"
               >
                 <div className="flex items-center gap-3">
@@ -372,115 +350,18 @@ export function BookingDetailsModal({
         </div>
       </div>
 
-      {/* Client Card - Slide from Right */}
-      <div 
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[120]"
-        style={{
-          opacity: clientCardOpen ? 1 : 0,
-          pointerEvents: clientCardOpen ? 'auto' : 'none',
-          transition: 'opacity 300ms ease-out',
-        }}
-        onClick={() => setClientCardOpen(false)}
-      />
-      <div 
-        className="fixed inset-y-0 right-0 w-full sm:w-[400px] bg-background shadow-2xl z-[130] flex flex-col overflow-hidden"
-        style={{
-          transform: clientCardOpen ? 'translateX(0)' : 'translateX(100%)',
-          transition: 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)',
-        }}
-      >
-        {loadingClient ? (
-          <div className="flex-1 flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : booking ? (
-          <>
-            {/* Header with gradient */}
-            <div 
-              className="relative p-6 pb-4"
-              style={{ background: `linear-gradient(135deg, ${accentColor}15, ${accentColor}05)` }}
-            >
-              <button
-                onClick={() => setClientCardOpen(false)}
-                className="absolute top-4 right-4 h-8 w-8 rounded-full hover:bg-black/10 flex items-center justify-center"
-              >
-                <X className="h-4 w-4" />
-              </button>
-
-              <div className="flex items-start gap-4">
-                <div 
-                  className="h-16 w-16 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg"
-                  style={{ backgroundColor: accentColor }}
-                >
-                  {booking.clientName.charAt(0).toUpperCase()}
-                </div>
-                
-                <div className="flex-1">
-                  <h2 className="text-xl font-bold">{booking.clientName}</h2>
-                  {booking.clientPhone && (
-                    <p className="text-muted-foreground mt-1">{booking.clientPhone}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Quick action */}
-              {booking.clientPhone && (
-                <a
-                  href={`tel:${booking.clientPhone}`}
-                  className="flex items-center justify-center gap-2 w-full mt-4 py-2.5 rounded-xl text-white font-medium"
-                  style={{ backgroundColor: accentColor }}
-                >
-                  <Phone className="h-4 w-4" />
-                  Зателефонувати
-                </a>
-              )}
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 gap-3 p-4 border-b">
-              <div className="text-center">
-                <p className="text-2xl font-bold">{clientData?.totalVisits || 0}</p>
-                <p className="text-xs text-muted-foreground">Візитів</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold">{(clientData?.totalSpent || 0).toLocaleString()} ₴</p>
-                <p className="text-xs text-muted-foreground">Витрачено</p>
-              </div>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {/* Last visits */}
-              {clientData?.lastVisits && clientData.lastVisits.length > 0 && (
-                <div>
-                  <h3 className="font-medium text-sm text-muted-foreground mb-3">Останні візити</h3>
-                  <div className="space-y-2">
-                    {clientData.lastVisits.slice(0, 10).map((visit: any) => (
-                      <div key={visit.id} className="p-3 rounded-xl bg-muted/30 flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">{visit.serviceName}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(visit.date).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' })}
-                          </p>
-                        </div>
-                        <p className="font-semibold">{visit.price || 0} ₴</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* No visits */}
-              {(!clientData?.lastVisits || clientData.lastVisits.length === 0) && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>Немає історії візитів</p>
-                </div>
-              )}
-            </div>
-          </>
-        ) : null}
-      </div>
+      {/* Client Card Panel */}
+      {booking?.clientPhone && (
+        <ClientCardPanel
+          isOpen={clientCardOpen}
+          onClose={() => setClientCardOpen(false)}
+          clientPhone={booking.clientPhone}
+          clientName={booking.clientName}
+          masterId={staffId}
+          salonId={salonId}
+          accentColor={accentColor}
+        />
+      )}
     </>
   );
 }
