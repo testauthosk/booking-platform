@@ -284,7 +284,7 @@ function StaffCalendarContent() {
   
   // Time options will be generated based on working hours
   const getTimeOptions = () => {
-    const slots = (workingHours.end - workingHours.start + 1) * 2;
+    const slots = (workingHours.end - workingHours.start) * 2;
     return Array.from({ length: slots }, (_, i) => {
       const hour = workingHours.start + Math.floor(i / 2);
       const min = i % 2 === 0 ? '00' : '30';
@@ -302,10 +302,10 @@ function StaffCalendarContent() {
     { value: '120', label: '2 год' },
   ];
 
-  // Generate 14 days from today
-  const days = Array.from({ length: 14 }, (_, i) => {
+  // Generate days: 7 days back + today + 14 days forward = 22 days total
+  const days = Array.from({ length: 22 }, (_, i) => {
     const date = new Date();
-    date.setDate(date.getDate() + i);
+    date.setDate(date.getDate() + i - 7); // Start from 7 days ago
     return date;
   });
 
@@ -482,7 +482,7 @@ function StaffCalendarContent() {
   // Scroll to today on mount
   useEffect(() => {
     if (daysRef.current) {
-      const todayIndex = 0;
+      const todayIndex = 7; // Today is at index 7 (after 7 past days)
       const dayWidth = 64 + 8; // w-16 + gap
       daysRef.current.scrollLeft = todayIndex * dayWidth;
     }
@@ -714,17 +714,18 @@ function StaffCalendarContent() {
                         </div>
                         
                         {/* Right: Action buttons */}
-                        {booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && (
-                          <div className="flex flex-col gap-1 shrink-0">
-                            {/* Call button */}
+                        <div className="flex flex-col gap-1 shrink-0">
+                          {/* Call button - always visible for real clients */}
+                          {!isBlocked && booking.clientPhone && (
                             <a 
                               href={`tel:${booking.clientPhone}`}
-                              className="h-9 px-3 rounded-lg bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-1 shadow-sm whitespace-nowrap"
+                              className="h-9 px-3 rounded-lg bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-600 transition-colors flex items-center justify-center gap-1 shadow-sm whitespace-nowrap"
                             >
                               <Phone className="h-3.5 w-3.5" /> Зателефонувати
                             </a>
-                            {/* Other buttons - only for non-past */}
-                            {!isPast && (
+                          )}
+                          {/* Other buttons - only for active bookings */}
+                          {booking.status !== 'COMPLETED' && booking.status !== 'NO_SHOW' && !isBlocked && !isPast && (
                               <div className="flex gap-1">
                                 <button 
                                   onClick={() => openEditModal(booking)}
@@ -748,7 +749,6 @@ function StaffCalendarContent() {
                               </div>
                             )}
                           </div>
-                        )}
                       </div>
                     </div>
                   );
@@ -771,8 +771,8 @@ function StaffCalendarContent() {
               <div className="pt-4">
           <div className="relative flex px-4">
             {/* Left: Time labels */}
-            <div className="w-12 shrink-0 relative" style={{ height: `${(workingHours.end - workingHours.start + 1) * 120}px` }}>
-              {Array.from({ length: workingHours.end - workingHours.start + 1 }, (_, i) => {
+            <div className="w-12 shrink-0 relative" style={{ height: `${(workingHours.end - workingHours.start) * 120}px` }}>
+              {Array.from({ length: workingHours.end - workingHours.start }, (_, i) => {
                 const hour = workingHours.start + i;
                 const timeStr = `${hour.toString().padStart(2, '0')}:00`;
                 const isPastHour = isToday(selectedDate) && hour < new Date().getHours();
@@ -801,12 +801,12 @@ function StaffCalendarContent() {
             </div>
             
             {/* Vertical line with ticks */}
-            <div className="relative shrink-0" style={{ height: `${(workingHours.end - workingHours.start + 1) * 120}px` }}>
+            <div className="relative shrink-0" style={{ height: `${(workingHours.end - workingHours.start) * 120}px` }}>
               {/* Main line */}
               <div className="absolute left-2 top-0 bottom-0 w-px bg-zinc-300" />
               
               {/* Ticks */}
-              {Array.from({ length: workingHours.end - workingHours.start + 1 }, (_, i) => (
+              {Array.from({ length: workingHours.end - workingHours.start }, (_, i) => (
                 <div key={i}>
                   {/* Hour tick - longer */}
                   <div 
@@ -826,7 +826,7 @@ function StaffCalendarContent() {
             </div>
             
             {/* Right: Cards area */}
-            <div className="flex-1 relative" style={{ height: `${(workingHours.end - workingHours.start + 1) * 120}px` }}>
+            <div className="flex-1 relative" style={{ height: `${(workingHours.end - workingHours.start) * 120}px` }}>
               {/* Current time red line */}
               {isToday(selectedDate) && (() => {
                 const now = new Date();
