@@ -225,9 +225,9 @@ export function ClientCardPanel({
             <div className="relative bg-gradient-to-br from-primary/10 to-primary/5 p-6 pb-4">
               <button
                 onClick={onClose}
-                className="absolute top-4 right-4 h-9 w-9 rounded-xl bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
+                className="absolute top-4 right-4 h-8 w-8 rounded-xl bg-white/80 hover:bg-white shadow-md border border-gray-200 flex items-center justify-center transition-colors"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4 text-gray-700" />
               </button>
 
               <div className="flex items-start gap-4">
@@ -295,7 +295,7 @@ export function ClientCardPanel({
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-3 p-4 border-b">
+            <div className="grid grid-cols-3 gap-3 px-4 py-3 border-b">
               <div className="text-center">
                 <p className="text-2xl font-bold">{client.visitsWithMaster || 0}</p>
                 <p className="text-xs text-muted-foreground">у вас</p>
@@ -311,7 +311,7 @@ export function ClientCardPanel({
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
               {/* Contact info */}
               <Card className="p-4 space-y-3">
                 <div className="flex items-center justify-between">
