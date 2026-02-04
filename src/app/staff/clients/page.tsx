@@ -312,48 +312,10 @@ export default function StaffClientsPage() {
                 </div>
                 
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    {/* Name with smooth edit transition */}
-                    <div className="relative flex-1">
-                      <div 
-                        className="overflow-hidden transition-all duration-300 ease-out"
-                        style={{
-                          maxHeight: isEditing ? '0px' : '40px',
-                          opacity: isEditing ? 0 : 1,
-                        }}
-                      >
-                        <h2 className="text-xl font-bold">{selectedClient.name}</h2>
-                      </div>
-                      <div 
-                        className="overflow-hidden transition-all duration-300 ease-out"
-                        style={{
-                          maxHeight: isEditing ? '40px' : '0px',
-                          opacity: isEditing ? 1 : 0,
-                        }}
-                      >
-                        <Input
-                          value={editForm.name}
-                          onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                          className="text-xl font-bold h-auto py-1 px-2"
-                        />
-                      </div>
-                    </div>
-                    {/* Edit pencil button */}
-                    <button
-                      onClick={() => setIsEditing(!isEditing)}
-                      className={cn(
-                        "h-7 w-7 rounded-lg flex items-center justify-center transition-all duration-200",
-                        isEditing 
-                          ? "bg-primary text-white" 
-                          : "bg-white/60 hover:bg-white/80 text-muted-foreground"
-                      )}
-                    >
-                      <Edit2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                  
-                  {/* Tags */}
-                  <div className="flex flex-wrap gap-1.5 mt-2">
+                  {/* Name + Tags on same line */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-xl font-bold">{selectedClient.name}</h2>
+                    {/* Tags inline with name */}
                     {getClientTags(selectedClient).map((tag, idx) => (
                       <span 
                         key={idx}
@@ -414,8 +376,8 @@ export default function StaffClientsPage() {
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {/* Contact info */}
-              <Card className="p-4 space-y-2">
-                <div className="flex items-center justify-between">
+              <Card className="p-4">
+                <div className="flex items-center justify-between mb-2">
                   <h3 className="font-medium text-sm text-muted-foreground">Контакти</h3>
                   <button
                     onClick={() => setIsEditing(!isEditing)}
@@ -425,7 +387,7 @@ export default function StaffClientsPage() {
                     {isEditing ? 'Скасувати' : 'Редагувати'}
                   </button>
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <div className="flex items-center gap-3">
                     <Phone className="h-4 w-4 text-muted-foreground" />
                     {isEditing ? (
