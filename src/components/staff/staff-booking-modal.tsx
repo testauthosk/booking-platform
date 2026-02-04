@@ -20,6 +20,7 @@ interface Service {
 interface Client {
   id: string;
   name: string;
+  lastName?: string;
   phone: string;
 }
 
@@ -68,6 +69,7 @@ export function StaffBookingModal({
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isNewClient, setIsNewClient] = useState(false);
   const [newClientName, setNewClientName] = useState('');
+  const [newClientLastName, setNewClientLastName] = useState('');
   const [newClientPhone, setNewClientPhone] = useState('');
   const [loadingClients, setLoadingClients] = useState(false);
   
@@ -87,6 +89,7 @@ export function StaffBookingModal({
     setSelectedClient(null);
     setIsNewClient(false);
     setNewClientName('');
+    setNewClientLastName('');
     setNewClientPhone('');
     setClientSearch('');
     setSelectedDate(new Date());
@@ -182,6 +185,7 @@ export function StaffBookingModal({
   // Фільтр клієнтів
   const filteredClients = clients.filter(c =>
     c.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
+    (c.lastName && c.lastName.toLowerCase().includes(clientSearch.toLowerCase())) ||
     c.phone.includes(clientSearch)
   );
 
@@ -279,7 +283,11 @@ export function StaffBookingModal({
     try {
       // Якщо новий клієнт — створюємо
       let clientId = selectedClient?.id;
-      let clientName = selectedClient?.name || newClientName;
+      // Combine name + lastName if provided
+      const fullName = newClientLastName 
+        ? `${newClientName} ${newClientLastName}`.trim()
+        : newClientName;
+      let clientName = selectedClient?.name || fullName;
       let clientPhone = selectedClient?.phone || ('+380' + newClientPhone.replace(/\D/g, ''));
 
       if (isNewClient) {
@@ -287,7 +295,7 @@ export function StaffBookingModal({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            name: newClientName, 
+            name: fullName, 
             phone: clientPhone,
             salonId 
           }),
@@ -562,48 +570,76 @@ export function StaffBookingModal({
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                 </div>
-              ) : isNewClient ? (
-                <div className="space-y-4 pt-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Новий клієнт</span>
-                    <button
-                      onClick={() => setIsNewClient(false)}
-                      className="text-xs text-primary hover:underline"
-                    >
-                      Скасувати
-                    </button>
-                  </div>
-                  <div>
-                    <label className="text-sm text-muted-foreground mb-1.5 block">Ім'я</label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        value={newClientName}
-                        onChange={(e) => setNewClientName(e.target.value)}
-                        placeholder="Введіть ім'я"
-                        className="pl-10"
-                      />
+              ) : (
+                <>
+                {/* New client form - animated expansion */}
+                <div 
+                  className={`overflow-hidden transition-all duration-500 ease-out ${
+                    isNewClient ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'
+                  }`}
+                >
+                  <div className="space-y-4 pt-2 pb-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Новий клієнт</span>
+                      <button
+                        onClick={() => {
+                          setIsNewClient(false);
+                          setNewClientName('');
+                          setNewClientLastName('');
+                          setNewClientPhone('');
+                        }}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Скасувати
+                      </button>
                     </div>
-                  </div>
-                  <div>
-                    <label className="text-sm text-muted-foreground mb-1.5 block">Телефон</label>
-                    <div className="relative flex items-center">
-                      <div className="absolute left-3 flex items-center gap-1.5 text-muted-foreground">
-                        <Phone className="h-4 w-4" />
-                        <span className="text-base font-medium">+380</span>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-sm text-muted-foreground mb-1.5 block">Ім'я *</label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            value={newClientName}
+                            onChange={(e) => setNewClientName(e.target.value)}
+                            placeholder="Ім'я"
+                            className="pl-10"
+                          />
+                        </div>
                       </div>
-                      <Input
-                        type="tel"
-                        value={newClientPhone}
-                        onChange={(e) => handlePhoneChange(e.target.value)}
-                        placeholder="XX XXX XX XX"
-                        className="pl-[5.5rem] text-base"
-                        maxLength={12}
-                      />
+                      <div>
+                        <label className="text-sm text-muted-foreground mb-1.5 block">Прізвище</label>
+                        <Input
+                          value={newClientLastName}
+                          onChange={(e) => setNewClientLastName(e.target.value)}
+                          placeholder="Необов'язково"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm text-muted-foreground mb-1.5 block">Телефон *</label>
+                      <div className="relative flex items-center">
+                        <div className="absolute left-3 flex items-center gap-1.5 text-muted-foreground">
+                          <Phone className="h-4 w-4" />
+                          <span className="text-base font-medium">+380</span>
+                        </div>
+                        <Input
+                          type="tel"
+                          value={newClientPhone}
+                          onChange={(e) => handlePhoneChange(e.target.value)}
+                          placeholder="XX XXX XX XX"
+                          className="pl-[5.5rem] text-base"
+                          maxLength={12}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
-              ) : (
+
+                {/* Client list - hidden when new client form is open */}
+                <div className={`transition-all duration-500 ease-out ${
+                  isNewClient ? 'max-h-0 opacity-0 overflow-hidden' : 'max-h-[500px] opacity-100'
+                }`}>
+                  {(
                 <>
                   {/* Add new client button */}
                   {clientSearch && filteredClients.length === 0 && (
@@ -644,7 +680,9 @@ export function StaffBookingModal({
                           {getInitials(client.name)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{client.name}</p>
+                          <p className="font-medium truncate">
+                            {client.name}{client.lastName ? ` ${client.lastName}` : ''}
+                          </p>
                           <p className="text-sm text-muted-foreground">{client.phone}</p>
                         </div>
                         {selectedClient?.id === client.id && (
@@ -666,6 +704,9 @@ export function StaffBookingModal({
                       <span className="text-muted-foreground">Новий клієнт</span>
                     </button>
                   )}
+                  </>
+                  )}
+                </div>
                 </>
               )}
             </div>
