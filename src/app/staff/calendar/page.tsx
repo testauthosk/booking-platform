@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { ChevronLeft, Plus, Loader2, Clock, User, X, Check, Pencil, Phone, Minus } from 'lucide-react';
 import { TimeWheelPicker } from '@/components/time-wheel-picker';
 import { StaffBookingModal } from '@/components/staff/staff-booking-modal';
+import { ClientCardPanel } from '@/components/staff/client-card-panel';
 
 interface Booking {
   id: string;
@@ -252,6 +253,10 @@ function StaffCalendarContent() {
   
   // Calendar picker modal
   const [calendarPickerOpen, setCalendarPickerOpen] = useState(false);
+  
+  // Client card panel
+  const [clientCardOpen, setClientCardOpen] = useState(false);
+  const [selectedClientForCard, setSelectedClientForCard] = useState<{ name: string; phone: string } | null>(null);
 
   // Close confirm modal with delay to keep content during animation
   const closeConfirmModal = () => {
@@ -724,7 +729,17 @@ function StaffCalendarContent() {
                             <span className="text-sm text-muted-foreground">{endTime}</span>
                           </div>
                           
-                          <p className="font-semibold truncate">{booking.clientName}</p>
+                          <button 
+                            onClick={() => {
+                              if (!isBlocked && booking.clientPhone) {
+                                setSelectedClientForCard({ name: booking.clientName, phone: booking.clientPhone });
+                                setClientCardOpen(true);
+                              }
+                            }}
+                            className={`font-semibold truncate text-left ${!isBlocked ? 'hover:text-primary hover:underline' : ''}`}
+                          >
+                            {booking.clientName}
+                          </button>
                           <p className="text-sm text-muted-foreground truncate">{booking.serviceName}</p>
                           
                           {!isBlocked && (
@@ -1481,6 +1496,22 @@ function StaffCalendarContent() {
         </div>
       </div>
     </div>
+
+    {/* Client Card Panel */}
+    {selectedClientForCard && (
+      <ClientCardPanel
+        isOpen={clientCardOpen}
+        onClose={() => {
+          setClientCardOpen(false);
+          setTimeout(() => setSelectedClientForCard(null), 350);
+        }}
+        clientPhone={selectedClientForCard.phone}
+        clientName={selectedClientForCard.name}
+        masterId={staffId}
+        salonId={salonId}
+        accentColor={masterColor}
+      />
+    )}
   );
 }
 
