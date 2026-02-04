@@ -74,9 +74,16 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Find next upcoming booking
-    const currentTime = now.toTimeString().slice(0, 5); // HH:MM
-    let nextBooking = todayBookings.find(b => b.time > currentTime && b.status !== 'COMPLETED');
+    // Find next upcoming booking (використовуємо хвилини для точного порівняння)
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentTotalMinutes = currentHour * 60 + currentMinute;
+    
+    let nextBooking = todayBookings.find(b => {
+      const [h, m] = b.time.split(':').map(Number);
+      const bookingMinutes = h * 60 + m;
+      return bookingMinutes > currentTotalMinutes && b.status !== 'COMPLETED';
+    });
     
     // If no upcoming today, check tomorrow
     if (!nextBooking) {
