@@ -361,6 +361,12 @@ export default function StaffDashboard() {
       const [endH, endM] = blockTimeEnd.split(':').map(Number);
       const duration = (endH * 60 + endM) - (startH * 60 + startM);
       
+      if (duration <= 0) {
+        alert('Час закінчення має бути пізніше за час початку');
+        setSavingBlock(false);
+        return;
+      }
+      
       const res = await fetch('/api/staff/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -374,7 +380,7 @@ export default function StaffDashboard() {
           time: blockTimeStart,
           duration: duration,
           price: 0,
-          notifyAdmin: isEmergency, // Прапорець для повідомлення адміну
+          notifyAdmin: isEmergency,
           blockReason: isEmergency ? 'end_of_day' : 'manual'
         })
       });
@@ -382,9 +388,13 @@ export default function StaffDashboard() {
       if (res.ok) {
         setBlockTimeOpen(false);
         loadStats();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Помилка створення блокування');
       }
     } catch (error) {
       console.error('Create block error:', error);
+      alert('Помилка з\'єднання з сервером');
     } finally {
       setSavingBlock(false);
     }
