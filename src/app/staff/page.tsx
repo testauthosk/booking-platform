@@ -276,6 +276,21 @@ export default function StaffDashboard() {
     return `${staffWorkingHours.end}:00`;
   };
 
+  // Перевірка: чи закінчився робочий день для обраної дати
+  const isWorkDayEnded = (): boolean => {
+    const now = new Date();
+    const isToday = blockDate.toDateString() === now.toDateString();
+    
+    if (!isToday) return false; // Для інших днів — завжди можна блокувати
+    
+    const workEnd = getWorkingEndForDate(blockDate);
+    const [endH, endM] = workEnd.split(':').map(Number);
+    const endMinutes = endH * 60 + endM;
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    
+    return nowMinutes >= endMinutes;
+  };
+
   // Встановити "До кінця робочого дня"
   const setToEndOfDay = () => {
     const now = new Date();
@@ -910,7 +925,7 @@ export default function StaffDashboard() {
           </div>
 
           {/* Швидкі кнопки — два столбці */}
-          <div className="relative z-20">
+          <div className={`relative z-20 transition-opacity duration-300 ${isWorkDayEnded() ? 'opacity-40 pointer-events-none' : ''}`}>
             <p className="text-xs text-muted-foreground mb-2">Швидкий вибір:</p>
             <div className="grid grid-cols-2 gap-3">
               {/* Лівий столб — Обід, Весь день, До кінця дня */}
@@ -1001,38 +1016,72 @@ export default function StaffDashboard() {
             </div>
           </div>
 
-          {/* Time range */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">Початок</label>
-              <button
-                type="button"
-                onClick={() => setBlockStartPickerOpen(true)}
-                className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
+          {/* Time range або повідомлення про кінець робочого дня */}
+          <div className="relative overflow-hidden">
+            {/* Повідомлення "Робота закінчена" */}
+            <div 
+              className={`transition-all duration-300 ease-out ${
+                isWorkDayEnded() 
+                  ? 'opacity-100 translate-y-0 h-auto' 
+                  : 'opacity-0 -translate-y-4 h-0 overflow-hidden'
+              }`}
+            >
+              <div 
+                className="py-6 px-4 rounded-xl text-center"
+                style={{ 
+                  backgroundColor: `${accentColor}15`,
+                  borderWidth: 1,
+                  borderColor: darkenColor(accentColor, 10)
+                }}
               >
-                <span>{blockTimeStart}</span>
-                <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
+                <p className="text-lg font-medium" style={{ color: darkenColor(accentColor, 25) }}>
+                  Робота закінчена, час додому ❤️
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Оберіть інший день для блокування часу
+                </p>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">Кінець</label>
-              <button
-                type="button"
-                onClick={() => setBlockEndPickerOpen(true)}
-                className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
-              >
-                <span>{blockTimeEnd}</span>
-                <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
+            
+            {/* Поля вибору часу */}
+            <div 
+              className={`grid grid-cols-2 gap-3 transition-all duration-300 ease-out ${
+                isWorkDayEnded() 
+                  ? 'opacity-0 translate-y-4 h-0 overflow-hidden' 
+                  : 'opacity-100 translate-y-0 h-auto'
+              }`}
+            >
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Початок</label>
+                <button
+                  type="button"
+                  onClick={() => setBlockStartPickerOpen(true)}
+                  className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
+                >
+                  <span>{blockTimeStart}</span>
+                  <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Кінець</label>
+                <button
+                  type="button"
+                  onClick={() => setBlockEndPickerOpen(true)}
+                  className="w-full h-11 px-4 rounded-xl border border-input bg-card text-sm text-left flex items-center justify-between"
+                >
+                  <span>{blockTimeEnd}</span>
+                  <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="p-4 border-t border-border space-y-2 relative z-[100]">
+        <div className={`p-4 border-t border-border space-y-2 relative z-[100] transition-opacity duration-300 ${isWorkDayEnded() ? 'opacity-50 pointer-events-none' : ''}`}>
           {/* Кнопка з повідомленням адміну */}
           <button
             type="button"
