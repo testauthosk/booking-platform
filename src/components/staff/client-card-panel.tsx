@@ -119,7 +119,7 @@ export function ClientCardPanel({
         setIsVisible(false);
         setClient(null);
         setIsEditing(false);
-      }, 350);
+      }, 560);
       return () => clearTimeout(timer);
     }
   }, [isOpen, clientPhone, clientName]);
@@ -206,7 +206,7 @@ export function ClientCardPanel({
         className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[120]"
         style={{
           opacity: isAnimating ? 1 : 0,
-          transition: 'opacity 300ms ease-out',
+          transition: 'opacity 560ms ease-out',
         }}
         onClick={onClose}
       />
@@ -216,7 +216,7 @@ export function ClientCardPanel({
         className="fixed inset-y-0 right-0 w-full sm:w-[400px] bg-background shadow-2xl z-[130] flex flex-col overflow-hidden"
         style={{
           transform: isAnimating ? 'translateX(0)' : 'translateX(100%)',
-          transition: 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)',
+          transition: 'transform 560ms ease-out',
         }}
       >
         {client && (
