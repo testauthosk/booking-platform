@@ -256,6 +256,58 @@ export default function StaffDashboard() {
     // Кінець = кінець робочого дня
     setBlockTimeEnd(getWorkingEndForDate(blockDate));
   };
+
+  // Отримати поточний час (округлений до 15 хв)
+  const getCurrentRoundedTime = (): string => {
+    const now = new Date();
+    const minutes = now.getMinutes();
+    const roundedMinutes = Math.ceil(minutes / 15) * 15;
+    const hour = roundedMinutes >= 60 ? now.getHours() + 1 : now.getHours();
+    const min = roundedMinutes >= 60 ? 0 : roundedMinutes;
+    return `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+  };
+
+  // Швидка кнопка: перерва на X годин
+  const setQuickBreak = (hours: number) => {
+    const now = new Date();
+    const isToday = blockDate.toDateString() === now.toDateString();
+    
+    const startTime = isToday ? getCurrentRoundedTime() : '10:00';
+    setBlockTimeStart(startTime);
+    
+    const [h, m] = startTime.split(':').map(Number);
+    const endMinutes = h * 60 + m + hours * 60;
+    const endH = Math.floor(endMinutes / 60);
+    const endM = endMinutes % 60;
+    setBlockTimeEnd(`${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`);
+  };
+
+  // Швидка кнопка: обід (1 година, стандартний час 13:00-14:00 або від зараз)
+  const setLunchBreak = () => {
+    const now = new Date();
+    const isToday = blockDate.toDateString() === now.toDateString();
+    const currentHour = now.getHours();
+    
+    if (isToday && currentHour >= 12 && currentHour < 15) {
+      // Якщо зараз обідній час — від поточного моменту
+      setBlockTimeStart(getCurrentRoundedTime());
+      const [h, m] = getCurrentRoundedTime().split(':').map(Number);
+      const endMinutes = h * 60 + m + 60;
+      setBlockTimeEnd(`${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`);
+    } else {
+      // Стандартний обід 13:00-14:00
+      setBlockTimeStart('13:00');
+      setBlockTimeEnd('14:00');
+    }
+  };
+
+  // Швидка кнопка: весь день
+  const setFullDay = () => {
+    const dayOfWeek = blockDate.getDay();
+    const dayHours = allWorkingHours.find(wh => wh.day === dayOfWeek);
+    setBlockTimeStart(dayHours?.start || '09:00');
+    setBlockTimeEnd(dayHours?.end || '20:00');
+  };
   
   const createBlockTime = async (isEmergency = false) => {
     setSavingBlock(true);
@@ -775,17 +827,56 @@ export default function StaffDashboard() {
             </button>
           </div>
 
-          {/* Quick button: До кінця дня */}
-          <button
-            type="button"
-            onClick={setToEndOfDay}
-            className="w-full py-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 font-medium hover:bg-amber-500/20 transition-colors flex items-center justify-center gap-2"
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            До кінця робочого дня
-          </button>
+          {/* Швидкі кнопки */}
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">Швидкий вибір:</p>
+            <div className="grid grid-cols-2 gap-2">
+              {/* Обід */}
+              <button
+                type="button"
+                onClick={setLunchBreak}
+                className="py-2.5 rounded-xl bg-orange-500/10 border border-orange-500/30 text-orange-600 text-sm font-medium hover:bg-orange-500/20 transition-colors flex items-center justify-center gap-1.5"
+              >
+                🍽️ Обід
+              </button>
+              
+              {/* 1 година */}
+              <button
+                type="button"
+                onClick={() => setQuickBreak(1)}
+                className="py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-600 text-sm font-medium hover:bg-blue-500/20 transition-colors flex items-center justify-center gap-1.5"
+              >
+                ⏱️ 1 година
+              </button>
+              
+              {/* 2 години */}
+              <button
+                type="button"
+                onClick={() => setQuickBreak(2)}
+                className="py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-600 text-sm font-medium hover:bg-blue-500/20 transition-colors flex items-center justify-center gap-1.5"
+              >
+                ⏱️ 2 години
+              </button>
+              
+              {/* Весь день */}
+              <button
+                type="button"
+                onClick={setFullDay}
+                className="py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 text-sm font-medium hover:bg-red-500/20 transition-colors flex items-center justify-center gap-1.5"
+              >
+                📅 Весь день
+              </button>
+            </div>
+            
+            {/* До кінця дня — окрема велика кнопка */}
+            <button
+              type="button"
+              onClick={setToEndOfDay}
+              className="w-full py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 text-sm font-medium hover:bg-amber-500/20 transition-colors flex items-center justify-center gap-1.5"
+            >
+              🌙 До кінця робочого дня
+            </button>
+          </div>
 
           {/* Time range */}
           <div className="grid grid-cols-2 gap-3">
