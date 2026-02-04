@@ -263,10 +263,7 @@ export default function StaffDashboard() {
       const fullPhone = '+380' + bookingClientPhone.replace(/\D/g, '');
       const dateStr = bookingDate.toISOString().split('T')[0];
       
-      const res = await fetch('/api/booking', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const bookingData = {
           salonId,
           masterId: staffId,
           serviceId: bookingService.id,
@@ -279,15 +276,31 @@ export default function StaffDashboard() {
           timeEnd: bookingEndTime,
           duration: bookingService.duration,
           price: bookingService.price
-        })
+        };
+      
+      console.log('[STAFF] Creating booking:', bookingData);
+      
+      const res = await fetch('/api/booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bookingData)
       });
       
       if (res.ok) {
         setNewBookingOpen(false);
+        setBookingStep('service');
+        setBookingService(null);
+        setBookingClientName('');
+        setBookingClientPhone('');
         loadStats(); // Refresh stats
+      } else {
+        const error = await res.json();
+        console.error('[STAFF] Booking error:', error);
+        alert(error.error || 'Помилка створення запису');
       }
     } catch (error) {
       console.error('Create booking error:', error);
+      alert('Помилка з\'єднання');
     } finally {
       setSavingBooking(false);
     }
