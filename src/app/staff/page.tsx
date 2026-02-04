@@ -557,7 +557,15 @@ export default function StaffDashboard() {
               <p className="text-sm font-medium truncate">{stats.nextBooking.clientName} · {stats.nextBooking.serviceName}</p>
             </div>
             {getTimeUntil(stats.nextBooking.time) && (
-              <span className="text-xs font-semibold shrink-0" style={{ color: darkenColor(accentColor, 30) }}>{getTimeUntil(stats.nextBooking.time)}</span>
+              <span 
+                className="text-xs font-bold shrink-0 px-2 py-1 rounded-lg"
+                style={{ 
+                  backgroundColor: `${accentColor}25`,
+                  color: darkenColor(accentColor, 40)
+                }}
+              >
+                {getTimeUntil(stats.nextBooking.time)}
+              </span>
             )}
           </div>
         )}
