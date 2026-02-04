@@ -556,34 +556,48 @@ export default function StaffDashboard() {
           </p>
         </div>
 
-        {/* Next booking - compact */}
-        {stats?.nextBooking && (
-          <div 
-            className="flex items-center gap-3 px-3 py-2 rounded-xl"
-            style={{ backgroundColor: `${accentColor}15`, borderWidth: 1, borderColor: darkenColor(accentColor, 15) }}
-          >
-            <div 
-              className="h-9 w-14 rounded-lg flex items-center justify-center text-sm font-bold"
-              style={{ backgroundColor: `${accentColor}30`, color: darkenColor(accentColor, 35) }}
-            >
-              {stats.nextBooking.time}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{stats.nextBooking.clientName} · {stats.nextBooking.serviceName}</p>
-            </div>
-            {getTimeUntil(stats.nextBooking.time) && (
-              <span 
-                className="text-xs font-bold shrink-0 px-2 py-1 rounded-lg"
-                style={{ 
-                  backgroundColor: `${accentColor}25`,
-                  color: darkenColor(accentColor, 40)
-                }}
+        {/* Next booking - always visible */}
+        <div 
+          className="flex items-center gap-3 px-3 py-2 rounded-xl"
+          style={{ backgroundColor: `${accentColor}15`, borderWidth: 1, borderColor: darkenColor(accentColor, 15) }}
+        >
+          {stats?.nextBooking ? (
+            <>
+              <div 
+                className="h-9 w-14 rounded-lg flex items-center justify-center text-sm font-bold shrink-0"
+                style={{ backgroundColor: `${accentColor}30`, color: darkenColor(accentColor, 35) }}
               >
-                {getTimeUntil(stats.nextBooking.time)}
-              </span>
-            )}
-          </div>
-        )}
+                {stats.nextBooking.time}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{stats.nextBooking.clientName} · {stats.nextBooking.serviceName}</p>
+              </div>
+              {getTimeUntil(stats.nextBooking.time) && (
+                <span 
+                  className="text-xs font-bold shrink-0 px-2 py-1 rounded-lg"
+                  style={{ 
+                    backgroundColor: `${accentColor}25`,
+                    color: darkenColor(accentColor, 40)
+                  }}
+                >
+                  {getTimeUntil(stats.nextBooking.time)}
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              <div 
+                className="h-9 w-14 rounded-lg flex items-center justify-center text-lg shrink-0"
+                style={{ backgroundColor: `${accentColor}30` }}
+              >
+                ☀️
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-muted-foreground">Немає найближчих записів</p>
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-3">
