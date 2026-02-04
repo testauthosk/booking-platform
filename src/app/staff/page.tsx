@@ -673,6 +673,10 @@ export default function StaffDashboard() {
                       className={`p-3 w-[160px] shrink-0 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${isPast ? 'opacity-50' : ''} ${
                         booking.status === 'COMPLETED' ? 'border-green-300 bg-green-50' : ''
                       }`}
+                      style={{
+                        borderWidth: booking.status !== 'COMPLETED' ? 1 : undefined,
+                        borderColor: booking.status !== 'COMPLETED' ? darkenColor(accentColor, 15) : undefined,
+                      }}
                     >
                       {/* Time badge */}
                       <div className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-bold mb-2 ${

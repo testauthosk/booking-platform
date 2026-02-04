@@ -225,6 +225,10 @@ export function BookingDetailsModal({
               <button
                 onClick={() => setClientCardOpen(true)}
                 className="w-full p-4 rounded-xl bg-muted/50 hover:bg-muted/70 transition-colors text-left"
+                style={{ 
+                  borderWidth: 1,
+                  borderColor: darkenColor(accentColor, 15),
+                }}
               >
                 <div className="flex items-center gap-3">
                   <div 
@@ -246,11 +250,23 @@ export function BookingDetailsModal({
 
               {/* Details */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-xl bg-muted/30">
+                <div 
+                  className="p-3 rounded-xl bg-muted/30"
+                  style={{ 
+                    borderWidth: 1,
+                    borderColor: darkenColor(accentColor, 15),
+                  }}
+                >
                   <p className="text-xs text-muted-foreground mb-1">Тривалість</p>
                   <p className="font-semibold">{booking.duration} хв</p>
                 </div>
-                <div className="p-3 rounded-xl bg-muted/30">
+                <div 
+                  className="p-3 rounded-xl bg-muted/30"
+                  style={{ 
+                    borderWidth: 1,
+                    borderColor: darkenColor(accentColor, 15),
+                  }}
+                >
                   <p className="text-xs text-muted-foreground mb-1">Вартість</p>
                   <p className="font-semibold">{booking.price || 0} ₴</p>
                 </div>
@@ -290,17 +306,13 @@ export function BookingDetailsModal({
               <div className="p-4 border-t flex gap-2 shrink-0">
                 <button
                   onClick={() => handleStatusChange('CANCELLED')}
-                  className="flex-1 py-3 rounded-xl bg-red-50 text-red-600 font-medium hover:bg-red-100 transition-colors"
+                  className="flex-1 py-3 rounded-xl bg-red-50 text-red-600 font-medium hover:bg-red-100 transition-colors border-2 border-red-300"
                 >
                   Скасувати
                 </button>
                 <button
                   onClick={() => handleStatusChange('COMPLETED')}
-                  className="flex-1 py-3 rounded-xl font-medium transition-colors"
-                  style={{ 
-                    backgroundColor: accentColor,
-                    color: isLightColor(accentColor) ? darkenColor(accentColor, 50) : 'white'
-                  }}
+                  className="flex-1 py-3 rounded-xl font-medium transition-colors bg-emerald-100 text-emerald-700 border-2 border-emerald-400"
                 >
                   Виконано ✓
                 </button>
@@ -392,11 +404,11 @@ export function BookingDetailsModal({
       </div>
 
       {/* Client Card Panel */}
-      {booking?.clientPhone && (
+      {booking && (
         <ClientCardPanel
           isOpen={clientCardOpen}
           onClose={() => setClientCardOpen(false)}
-          clientPhone={booking.clientPhone}
+          clientPhone={booking.clientPhone || ''}
           clientName={booking.clientName}
           masterId={staffId}
           salonId={salonId}
