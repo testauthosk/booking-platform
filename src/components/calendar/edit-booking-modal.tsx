@@ -7,6 +7,7 @@ import { format, addDays, isSameDay } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { usePreservedModal } from '@/hooks/use-preserved-modal';
+import { TimeWheelPicker } from '@/components/time-wheel-picker';
 
 interface Service {
   id: string;
@@ -231,27 +232,22 @@ export function EditBookingModal({ isOpen, onClose, booking, services, onSave }:
             </div>
           </div>
 
-          {/* Час */}
+          {/* Час - wheel picker */}
           <div>
             <label className="text-sm font-medium flex items-center gap-2 mb-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
               Час
             </label>
-            <div className="grid grid-cols-4 gap-1.5 max-h-28 overflow-y-auto">
-              {timeSlots.map((slot) => (
-                <button
-                  key={slot}
-                  onClick={() => setSelectedTime(slot)}
-                  className={cn(
-                    "py-2 rounded-lg text-sm transition-all",
-                    selectedTime === slot
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted hover:bg-muted/80'
-                  )}
-                >
-                  {slot}
-                </button>
-              ))}
+            <div className="bg-zinc-900 rounded-2xl p-4">
+              <TimeWheelPicker
+                startTime={selectedTime || '10:00'}
+                duration={totalDuration}
+                onTimeChange={(start, end) => {
+                  setSelectedTime(start);
+                }}
+                workingHours={{ start: 9, end: 20 }}
+                isToday={isSameDay(selectedDate, new Date())}
+              />
             </div>
           </div>
 

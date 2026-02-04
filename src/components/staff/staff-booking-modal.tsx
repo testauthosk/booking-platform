@@ -8,6 +8,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { usePreservedModal } from '@/hooks/use-preserved-modal';
+import { TimeWheelPicker } from '@/components/time-wheel-picker';
 
 interface Service {
   id: string;
@@ -622,46 +623,18 @@ export function StaffBookingModal({
                 </div>
               </div>
 
-              {/* Time picker */}
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">Час</p>
-                <div className="grid grid-cols-4 gap-2">
-                  {generateTimeSlots().map((time) => {
-                    const booked = isSlotBooked(time);
-                    const past = isTimePast(time);
-                    const disabled = booked || past;
-                    return (
-                      <button
-                        key={time}
-                        onClick={() => !disabled && setSelectedTime(time)}
-                        disabled={disabled}
-                        className={cn(
-                          'py-2.5 rounded-lg text-sm font-medium transition-all',
-                          selectedTime === time
-                            ? 'bg-primary text-white'
-                            : disabled
-                            ? 'bg-muted text-muted-foreground/50 cursor-not-allowed'
-                            : 'bg-white border hover:border-primary'
-                        )}
-                      >
-                        {time}
-                      </button>
-                    );
-                  })}
-                </div>
+              {/* Time picker - wheel */}
+              <div className="bg-zinc-900 rounded-2xl p-4">
+                <TimeWheelPicker
+                  startTime={selectedTime || '10:00'}
+                  duration={getTotalDuration()}
+                  onTimeChange={(start, end) => {
+                    setSelectedTime(start);
+                  }}
+                  workingHours={{ start: 9, end: 20 }}
+                  isToday={selectedDate.toDateString() === new Date().toDateString()}
+                />
               </div>
-
-              {/* Time summary */}
-              {selectedTime && (
-                <div className="p-3 rounded-xl bg-green-50 border border-green-200 text-center">
-                  <p className="text-green-700 font-medium">
-                    {selectedTime} — {getEndTime()}
-                  </p>
-                  <p className="text-xs text-green-600">
-                    {getTotalDuration()} хв ({selectedService?.duration} + {extraTime} доп.)
-                  </p>
-                </div>
-              )}
             </div>
           )}
 

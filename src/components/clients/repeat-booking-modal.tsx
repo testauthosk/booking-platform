@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePreservedModal } from '@/hooks/use-preserved-modal';
+import { TimeWheelPicker } from '@/components/time-wheel-picker';
 
 interface Master {
   id: string;
@@ -491,32 +492,19 @@ export function RepeatBookingModal({
                 </div>
               </div>
 
-              {/* Time picker */}
+              {/* Time picker - wheel */}
               <div>
                 <p className="text-sm text-muted-foreground mb-3">Оберіть час</p>
-                <div className="grid grid-cols-4 gap-2">
-                  {generateTimeSlots().map((time) => {
-                    const booked = isSlotBooked(time);
-                    const past = isTimePast(time);
-                    const disabled = booked || past;
-                    return (
-                      <button
-                        key={time}
-                        onClick={() => !disabled && setSelectedTime(time)}
-                        disabled={disabled}
-                        className={cn(
-                          'py-2.5 rounded-lg text-sm font-medium transition-all',
-                          selectedTime === time
-                            ? 'bg-primary text-white'
-                            : disabled
-                            ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'
-                            : 'bg-white border hover:border-primary'
-                        )}
-                      >
-                        {time}
-                      </button>
-                    );
-                  })}
+                <div className="bg-zinc-900 rounded-2xl p-4">
+                  <TimeWheelPicker
+                    startTime={selectedTime || '10:00'}
+                    duration={selectedService?.duration || 60}
+                    onTimeChange={(start, end) => {
+                      setSelectedTime(start);
+                    }}
+                    workingHours={{ start: 9, end: 20 }}
+                    isToday={selectedDate.toDateString() === new Date().toDateString()}
+                  />
                 </div>
               </div>
             </div>
