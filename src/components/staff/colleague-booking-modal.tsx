@@ -710,13 +710,13 @@ export function ColleagueBookingModal({
                   <div>
                     <label className="text-sm text-muted-foreground">Телефон *</label>
                     <div className="flex mt-1">
-                      <span className="px-3 py-3 bg-muted rounded-l-xl text-muted-foreground">+380</span>
+                      <span className="px-3 py-3 bg-muted rounded-l-xl text-muted-foreground text-base">+380</span>
                       <input
                         type="tel"
                         value={formatPhoneDisplay(newClientPhone)}
                         onChange={(e) => setNewClientPhone(e.target.value.replace(/\D/g, '').slice(0, 9))}
                         placeholder="XX XXX XX XX"
-                        className="flex-1 px-4 py-3 rounded-r-xl bg-muted/50 border-none outline-none"
+                        className="flex-1 px-4 py-3 rounded-r-xl bg-muted/50 border-none outline-none text-base"
                       />
                     </div>
                   </div>

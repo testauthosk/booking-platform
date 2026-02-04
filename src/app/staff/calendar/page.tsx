@@ -1017,12 +1017,12 @@ export default function StaffCalendar() {
           <div>
             <label className="text-sm font-medium mb-1.5 block">Телефон *</label>
             <div className="relative flex items-center">
-              <span className="absolute left-4 text-sm font-medium text-muted-foreground">+380</span>
+              <span className="absolute left-4 text-base font-medium text-muted-foreground">+380</span>
               <Input
                 value={newClientPhone}
                 onChange={handlePhoneChange}
                 placeholder="XX XXX XX XX"
-                className="pl-16"
+                className="pl-16 text-base"
                 maxLength={12}
               />
             </div>

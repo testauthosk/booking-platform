@@ -1149,7 +1149,7 @@ export function BookingModal({
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Номер телефону *</label>
                       <div className="flex">
-                        <span className="inline-flex items-center px-4 py-3 rounded-l-xl border border-r-0 border-gray-200 bg-gray-50 text-gray-600 font-medium">
+                        <span className="inline-flex items-center px-4 py-3 rounded-l-xl border border-r-0 border-gray-200 bg-gray-50 text-gray-600 font-medium text-base">
                           +380
                         </span>
                         <input
@@ -1167,7 +1167,7 @@ export function BookingModal({
                             setPhone(formatted);
                           }}
                           placeholder="12 345 67 89"
-                          className="flex-1 px-4 py-3 rounded-r-xl border border-gray-200 focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none transition-all"
+                          className="flex-1 px-4 py-3 rounded-r-xl border border-gray-200 focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none transition-all text-base"
                         />
                       </div>
                     </div>

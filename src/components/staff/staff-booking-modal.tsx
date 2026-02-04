@@ -587,14 +587,14 @@ export function StaffBookingModal({
                     <div className="relative flex items-center">
                       <div className="absolute left-3 flex items-center gap-1.5 text-muted-foreground">
                         <Phone className="h-4 w-4" />
-                        <span className="text-sm font-medium">+380</span>
+                        <span className="text-base font-medium">+380</span>
                       </div>
                       <Input
                         type="tel"
                         value={newClientPhone}
                         onChange={(e) => handlePhoneChange(e.target.value)}
                         placeholder="XX XXX XX XX"
-                        className="pl-[5.5rem]"
+                        className="pl-[5.5rem] text-base"
                         maxLength={12}
                       />
                     </div>

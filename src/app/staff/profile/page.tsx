@@ -296,13 +296,13 @@ export default function StaffProfile() {
           <div>
             <label className="text-sm font-medium mb-1.5 block">Телефон</label>
             <div className="relative flex items-center">
-              <span className="absolute left-4 text-sm font-medium text-muted-foreground">+380</span>
+              <span className="absolute left-4 text-base font-medium text-muted-foreground">+380</span>
               <Input
                 type="tel"
                 value={formatPhoneDisplay(phone)}
                 onChange={handlePhoneChange}
                 placeholder="XX XXX XX XX"
-                className="pl-14"
+                className="pl-16 text-base"
                 maxLength={12}
               />
             </div>
