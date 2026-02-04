@@ -52,8 +52,6 @@ export function StaffBookingModal({
   onSuccess,
 }: StaffBookingModalProps) {
   const [step, setStep] = useState<Step>('service');
-  const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('left');
-  const [isAnimating, setIsAnimating] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [contentHeight, setContentHeight] = useState<number | 'auto'>('auto');
   const contentRef = useRef<HTMLDivElement>(null);
@@ -327,54 +325,25 @@ export function StaffBookingModal({
     }
   };
 
-  // Вимірюємо висоту контенту після рендеру
+  // Вимірюємо висоту контенту після кожного рендеру
   useLayoutEffect(() => {
-    if (contentRef.current && !isAnimating) {
+    if (contentRef.current) {
       const height = contentRef.current.scrollHeight;
       setContentHeight(height);
     }
-  }, [step, isAnimating, selectedService, selectedClient, isNewClient, clients]);
-
-  const animateToNextStep = (nextStepId: Step, direction: 'left' | 'right') => {
-    if (isAnimating) return;
-    
-    // 1. Зафіксувати поточну висоту
-    if (contentRef.current) {
-      setContentHeight(contentRef.current.scrollHeight);
-    }
-    
-    // 2. Почати fade out
-    setIsAnimating(true);
-    setSlideDirection(direction);
-    
-    // 3. Після fade out — змінити крок
-    setTimeout(() => {
-      setStep(nextStepId);
-      
-      // 4. Дати React оновити DOM, потім виміряти нову висоту і fade in
-      requestAnimationFrame(() => {
-        if (contentRef.current) {
-          const newHeight = contentRef.current.scrollHeight;
-          setContentHeight(newHeight);
-        }
-        requestAnimationFrame(() => {
-          setIsAnimating(false);
-        });
-      });
-    }, 200);
-  };
+  }, [step, selectedService, selectedClient, isNewClient, clients, extraTime]);
 
   const nextStep = () => {
     const idx = currentStepIndex;
     if (idx < STEPS.length - 1) {
-      animateToNextStep(STEPS[idx + 1].id, 'left');
+      setStep(STEPS[idx + 1].id);
     }
   };
 
   const prevStep = () => {
     const idx = currentStepIndex;
     if (idx > 0) {
-      animateToNextStep(STEPS[idx - 1].id, 'right');
+      setStep(STEPS[idx - 1].id);
     }
   };
 
@@ -488,26 +457,19 @@ export function StaffBookingModal({
           )}
         </div>
 
-        {/* Content wrapper - анімує висоту */}
+        {/* Content wrapper - плавно анімує висоту */}
         <div 
           style={{
             height: typeof contentHeight === 'number' ? `${contentHeight}px` : 'auto',
-            minHeight: '200px',
-            maxHeight: '60vh',
-            transition: 'height 300ms ease-out',
+            minHeight: '150px',
+            maxHeight: '65vh',
+            transition: 'height 350ms cubic-bezier(0.4, 0, 0.2, 1)',
             overflow: 'hidden',
           }}
         >
-          {/* Content inner - анімує fade/slide */}
+          {/* Content inner */}
           <div 
             ref={contentRef}
-            style={{
-              opacity: isAnimating ? 0 : 1,
-              transform: isAnimating 
-                ? `translateX(${slideDirection === 'left' ? '-20px' : '20px'})` 
-                : 'translateX(0)',
-              transition: 'opacity 200ms ease-out, transform 200ms ease-out',
-            }}
             className="p-4"
           >
           {/* Service Step */}
