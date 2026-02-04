@@ -567,10 +567,10 @@ function StaffCalendarContent() {
             </button>
             <button
               onClick={() => setShowOnlyBookings(!showOnlyBookings)}
-              className="h-10 px-3 rounded-xl text-sm font-medium border border-zinc-200 bg-white transition-all duration-300 flex items-center overflow-hidden"
+              className="h-10 w-[88px] rounded-xl text-sm font-medium border border-zinc-200 bg-white transition-colors duration-300 flex items-center justify-center gap-1 relative"
             >
-              <span className={`transition-all duration-300 ease-out ${showOnlyBookings ? 'w-5 opacity-100 mr-1' : 'w-0 opacity-0 mr-0'}`}>✓</span>
-              <span className="transition-transform duration-300">Записи</span>
+              <span className={`transition-all duration-300 ease-out absolute left-2.5 ${showOnlyBookings ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}>✓</span>
+              <span className={`transition-transform duration-300 ease-out ${showOnlyBookings ? 'translate-x-2' : 'translate-x-0'}`}>Записи</span>
             </button>
             <button 
               onClick={openAddModal}
@@ -586,7 +586,7 @@ function StaffCalendarContent() {
       <div className="shrink-0 bg-card border-b">
         <div 
           ref={daysRef}
-          className="flex gap-2 px-2 py-3 overflow-x-auto scrollbar-hide items-center"
+          className="flex gap-2 px-4 py-3 overflow-x-auto scrollbar-hide items-center"
         >
           {days.map((date, index) => (
             <button
