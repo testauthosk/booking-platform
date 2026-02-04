@@ -284,7 +284,7 @@ function StaffCalendarContent() {
   
   // Time options will be generated based on working hours
   const getTimeOptions = () => {
-    const slots = (workingHours.end - workingHours.start) * 2;
+    const slots = (workingHours.end - workingHours.start + 1) * 2;
     return Array.from({ length: slots }, (_, i) => {
       const hour = workingHours.start + Math.floor(i / 2);
       const min = i % 2 === 0 ? '00' : '30';
@@ -771,7 +771,7 @@ function StaffCalendarContent() {
               <div className="pt-4">
           <div className="relative flex px-4">
             {/* Left: Time labels */}
-            <div className="w-12 shrink-0 relative" style={{ height: `${(workingHours.end - workingHours.start) * 120}px` }}>
+            <div className="w-12 shrink-0 relative" style={{ height: `${(workingHours.end - workingHours.start + 1) * 120}px` }}>
               {Array.from({ length: workingHours.end - workingHours.start }, (_, i) => {
                 const hour = workingHours.start + i;
                 const timeStr = `${hour.toString().padStart(2, '0')}:00`;
@@ -801,7 +801,7 @@ function StaffCalendarContent() {
             </div>
             
             {/* Vertical line with ticks */}
-            <div className="relative shrink-0" style={{ height: `${(workingHours.end - workingHours.start) * 120}px` }}>
+            <div className="relative shrink-0" style={{ height: `${(workingHours.end - workingHours.start + 1) * 120}px` }}>
               {/* Main line */}
               <div className="absolute left-2 top-0 bottom-0 w-px bg-zinc-300" />
               
@@ -826,7 +826,7 @@ function StaffCalendarContent() {
             </div>
             
             {/* Right: Cards area */}
-            <div className="flex-1 relative" style={{ height: `${(workingHours.end - workingHours.start) * 120}px` }}>
+            <div className="flex-1 relative" style={{ height: `${(workingHours.end - workingHours.start + 1) * 120}px` }}>
               {/* Current time red line */}
               {isToday(selectedDate) && (() => {
                 const now = new Date();
