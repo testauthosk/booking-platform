@@ -587,13 +587,18 @@ export default function StaffDashboard() {
           ) : (
             <>
               <div 
-                className="h-9 w-14 rounded-lg flex items-center justify-center text-lg shrink-0"
-                style={{ backgroundColor: `${accentColor}30` }}
+                className="h-9 w-14 rounded-lg flex items-center justify-center shrink-0 relative overflow-hidden"
+                style={{ 
+                  background: `linear-gradient(135deg, ${accentColor}40 0%, ${accentColor}20 100%)`,
+                }}
               >
-                ☀️
+                <span className="text-lg animate-pulse">✂️</span>
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-muted-foreground">Немає найближчих записів</p>
+                <p className="text-sm font-medium" style={{ color: darkenColor(accentColor, 20) }}>
+                  Вікно вільне — час на каву
+                </p>
+                <p className="text-xs text-muted-foreground">Або приймайте walk-in клієнтів</p>
               </div>
             </>
           )}
