@@ -253,13 +253,13 @@ export default function StaffClientsPage() {
                       </p>
                     </div>
 
-                    {/* Quick call button */}
+                    {/* Quick call button - same size and shape as avatar */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         window.open(`tel:${client.phone}`);
                       }}
-                      className="h-10 w-10 rounded-full bg-emerald-100 hover:bg-emerald-200 flex items-center justify-center text-emerald-600 transition-colors shrink-0"
+                      className="h-12 w-12 rounded-2xl bg-emerald-100 hover:bg-emerald-200 flex items-center justify-center text-emerald-600 transition-colors shrink-0"
                     >
                       <Phone className="h-5 w-5" />
                     </button>
