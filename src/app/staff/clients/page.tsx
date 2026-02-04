@@ -431,7 +431,7 @@ export default function StaffClientsPage() {
                     )}
                     <button
                       onClick={() => setIsEditingName(!isEditingName)}
-                      className="h-[18px] w-[18px] rounded border border-gray-300 bg-white flex items-center justify-center text-black hover:bg-gray-50 transition-colors shrink-0"
+                      className="h-[18px] w-[18px] rounded border border-black bg-black flex items-center justify-center text-white hover:bg-gray-800 transition-colors shrink-0"
                     >
                       <Edit2 className="h-2.5 w-2.5" />
                     </button>
