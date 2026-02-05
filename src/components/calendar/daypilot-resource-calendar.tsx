@@ -281,12 +281,12 @@ export function DayPilotResourceCalendar({
         <div className="relative flex items-center justify-around w-full h-[28px] px-[23px] touch-none overflow-visible">
           {/* Плаваючий індикатор — виглядає вище жовтої полоси */}
           <div 
-            className="absolute bg-white rounded-2xl transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
+            className="absolute bg-white rounded-t-2xl transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
             style={{
               width: 'calc((100% - 46px) / 7)',
               left: `calc(23px + ${weekDays.findIndex(d => isSelected(d))} * ((100% - 46px) / 7))`,
               top: '-7px',
-              bottom: '4px',
+              bottom: '0px',
             }}
           />
           
