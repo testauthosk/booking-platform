@@ -43,10 +43,11 @@ const ukDaysShort = ['НД', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'];
 
 // Хелпер для конвертації DayPilot.Date в JS Date
 function toJsDate(dpDate: any): Date {
+  if (!dpDate) return new Date();
   if (dpDate instanceof Date) return dpDate;
   if (typeof dpDate === 'string') return new Date(dpDate);
-  if (dpDate && typeof dpDate.toDate === 'function') return dpDate.toDate();
-  if (dpDate && dpDate.value) return new Date(dpDate.value);
+  if (typeof dpDate.toDate === 'function') return dpDate.toDate();
+  if (dpDate.value) return new Date(dpDate.value);
   return new Date(String(dpDate));
 }
 
@@ -62,12 +63,12 @@ export function DayPilotResourceCalendar({
   dayStartHour = 8,
   dayEndHour = 21,
 }: DayPilotResourceCalendarProps) {
-  const calendarRef = useRef<DayPilotCalendar>(null);
+  const calendarRef = useRef<any>(null);
   const [internalDate, setInternalDate] = useState(startDate);
-  const [isClient, setIsClient] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
+    setMounted(true);
   }, []);
 
   useEffect(() => {
@@ -103,124 +104,22 @@ export function DayPilotResourceCalendar({
     onDateChange?.(date);
   };
 
+  // Не рендеримо на сервері
+  if (!mounted) {
+    return (
+      <div className="flex flex-col h-full bg-white">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-gray-400">Завантаження календаря...</div>
+        </div>
+      </div>
+    );
+  }
+
   // Конвертуємо ресурси в формат DayPilot
   const columns = resources.map(r => ({
     id: r.id,
     name: r.name,
-    html: `
-      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 4px;">
-        ${r.avatar 
-          ? `<img src="${r.avatar}" style="width:44px;height:44px;border-radius:14px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.12);border:2px solid white;" />`
-          : `<div style="width:44px;height:44px;border-radius:14px;background:${r.color || '#9ca3af'};display:flex;align-items:center;justify-content:center;color:white;font-weight:600;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,0.12);border:2px solid white;">
-              ${r.name.charAt(0).toUpperCase()}
-            </div>`
-        }
-        <span style="font-weight:600;font-size:12px;color:#1f2937;">${r.name.split(' ')[0]}</span>
-      </div>
-    `,
   }));
-
-  // Конфігурація календаря
-  const config: any = {
-    viewType: 'Resources',
-    headerHeight: 85,
-    cellHeight: 25,
-    cellDuration: 15,
-    dayBeginsHour: dayStartHour,
-    dayEndsHour: dayEndHour,
-    timeRangeSelectedHandling: 'Enabled',
-    eventMoveHandling: 'Update',
-    eventResizeHandling: 'Update',
-    eventClickHandling: 'Enabled',
-    heightSpec: 'Parent100Pct',
-    
-    // Формат часу 24h
-    timeFormat: 'Clock24Hours',
-    
-    // Кастомізація відображення подій
-    onBeforeEventRender: (args: any) => {
-      const e = args.data;
-      const isNew = e.tags?.isNewClient;
-      const startTime = formatTime(e.start);
-      const endTime = formatTime(e.end);
-      
-      // Компактний HTML для картки
-      args.data.html = `
-        <div style="padding:3px 6px;height:100%;display:flex;flex-direction:column;justify-content:center;gap:1px;font-family:system-ui,-apple-system,sans-serif;">
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <span style="font-weight:700;font-size:11px;opacity:0.9;">${startTime}-${endTime}</span>
-            ${e.tags?.clientPhone ? `
-              <a href="tel:${e.tags.clientPhone}" onclick="event.stopPropagation();" 
-                 style="width:22px;height:22px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.25);border-radius:50%;margin-left:4px;flex-shrink:0;">
-                <svg width="11" height="11" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
-                </svg>
-              </a>
-            ` : ''}
-          </div>
-          <div style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px;">
-            ${e.tags?.clientName || e.text}
-            ${isNew ? '<span style="padding:1px 4px;font-size:8px;font-weight:700;background:rgba(0,0,0,0.15);border-radius:3px;text-transform:uppercase;letter-spacing:0.5px;">new</span>' : ''}
-          </div>
-          ${e.tags?.clientPhone ? `<div style="font-size:10px;opacity:0.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.tags.clientPhone}</div>` : ''}
-          ${e.tags?.serviceName ? `<div style="font-size:10px;opacity:0.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.tags.serviceName}</div>` : ''}
-        </div>
-      `;
-      
-      // Колір рамки трохи темніший за фон
-      args.data.barColor = args.data.backColor;
-    },
-
-    // Кастомізація заголовків часу
-    onBeforeTimeHeaderRender: (args: any) => {
-      // Форматуємо час як 09:00, 10:00
-      const hour = args.header.start.getHours();
-      args.header.html = `<span style="font-size:12px;font-weight:500;color:#6b7280;">${hour.toString().padStart(2, '0')}:00</span>`;
-    },
-
-    onEventClick: (args: any) => {
-      if (onEventClick) {
-        const eventData = events.find(e => e.id === args.e.id());
-        if (eventData) {
-          onEventClick(eventData);
-        }
-      }
-    },
-
-    onEventMoved: (args: any) => {
-      if (onEventMove) {
-        onEventMove(
-          args.e.id(),
-          toJsDate(args.newStart),
-          toJsDate(args.newEnd),
-          args.newResource
-        );
-      }
-    },
-
-    onEventResized: (args: any) => {
-      if (onEventResize) {
-        onEventResize(
-          args.e.id(),
-          toJsDate(args.newStart),
-          toJsDate(args.newEnd)
-        );
-      }
-    },
-
-    onTimeRangeSelected: (args: any) => {
-      if (onTimeRangeSelect) {
-        onTimeRangeSelect(
-          toJsDate(args.start),
-          toJsDate(args.end),
-          args.resource
-        );
-      }
-      if (calendarRef.current) {
-        calendarRef.current.control?.clearSelection();
-      }
-    },
-  };
 
   // Конвертуємо події
   const dpEvents = events.map(e => ({
@@ -230,28 +129,10 @@ export function DayPilotResourceCalendar({
     end: e.end,
     resource: e.resource,
     backColor: e.backColor || '#22c55e',
-    tags: {
-      clientName: e.clientName,
-      clientPhone: e.clientPhone,
-      serviceName: e.serviceName,
-      isNewClient: e.isNewClient,
-      status: e.status,
-    },
   }));
 
   // Форматуємо дату як рядок YYYY-MM-DD
   const dpStartDate = `${internalDate.getFullYear()}-${String(internalDate.getMonth() + 1).padStart(2, '0')}-${String(internalDate.getDate()).padStart(2, '0')}`;
-
-  // Не рендеримо на сервері
-  if (!isClient) {
-    return (
-      <div className="flex flex-col h-full bg-white">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-gray-400">Завантаження календаря...</div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -269,11 +150,10 @@ export function DayPilotResourceCalendar({
           }
           .calendar_default_event_inner {
             border-radius: 6px !important;
-            border-left: 3px solid rgba(0,0,0,0.2) !important;
-            padding: 0 !important;
+            padding: 4px !important;
           }
           .calendar_default_colheader, .calendar_default_colheader_inner {
-            background: linear-gradient(to bottom, #fafafa, #f5f5f5) !important;
+            background: #fafafa !important;
             border: none !important;
             border-bottom: 1px solid #e5e7eb !important;
           }
@@ -285,33 +165,46 @@ export function DayPilotResourceCalendar({
           .calendar_default_cell {
             border-color: #f3f4f6 !important;
           }
-          .calendar_default_cell_inner {
-            background: #ffffff !important;
-          }
-          .calendar_default_cell_business .calendar_default_cell_inner {
-            background: #ffffff !important;
-          }
-          .calendar_default_corner {
-            background: #fafafa !important;
-            border: none !important;
-          }
-          .calendar_default_colheader_cell_inner {
-            border: none !important;
-          }
-          .calendar_default_rowheader_minutes {
-            font-size: 10px !important;
-            color: #9ca3af !important;
-          }
-          .calendar_default_event:hover {
-            filter: brightness(1.05);
-          }
         `}</style>
         <DayPilotCalendar
           ref={calendarRef}
+          viewType="Resources"
           startDate={dpStartDate}
-          {...config}
           columns={columns}
           events={dpEvents}
+          headerHeight={50}
+          cellHeight={25}
+          cellDuration={15}
+          dayBeginsHour={dayStartHour}
+          dayEndsHour={dayEndHour}
+          heightSpec="Parent100Pct"
+          timeFormat="Clock24Hours"
+          onEventClick={(args: any) => {
+            if (onEventClick) {
+              const eventData = events.find(e => e.id === args.e.id());
+              if (eventData) onEventClick(eventData);
+            }
+          }}
+          onEventMoved={(args: any) => {
+            if (onEventMove) {
+              onEventMove(
+                args.e.id(),
+                toJsDate(args.newStart),
+                toJsDate(args.newEnd),
+                args.newResource
+              );
+            }
+          }}
+          onTimeRangeSelected={(args: any) => {
+            if (onTimeRangeSelect) {
+              onTimeRangeSelect(
+                toJsDate(args.start),
+                toJsDate(args.end),
+                args.resource
+              );
+            }
+            calendarRef.current?.control?.clearSelection();
+          }}
         />
       </div>
 
@@ -363,9 +256,4 @@ export function DayPilotResourceCalendar({
       </div>
     </div>
   );
-}
-
-function formatTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 }
