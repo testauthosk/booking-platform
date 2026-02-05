@@ -277,15 +277,15 @@ export function DayPilotResourceCalendar({
       </div>
 
       {/* Навігація по тижню - жовта полоса над MobileNav */}
-      <div className="lg:hidden sticky bottom-16 z-40 bg-yellow-400 h-[38px] flex items-center justify-center shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none overscroll-none">
-        <div className="relative flex items-center touch-none" style={{ width: '320px' }}>
-          {/* Плаваючий індикатор — зливається з меню знизу */}
+      <div className="lg:hidden sticky bottom-16 z-40 bg-yellow-400 h-[42px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none overscroll-none">
+        <div className="relative flex items-center justify-around w-full h-[38px] px-2 touch-none">
+          {/* Плаваючий індикатор — виглядає вище жовтої полоси */}
           <div 
             className="absolute bg-white rounded-t-xl transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
             style={{
-              width: `${320 / 7}px`,
-              left: `${weekDays.findIndex(d => isSelected(d)) * (320 / 7)}px`,
-              top: '4px',
+              width: 'calc((100% - 16px) / 7)',
+              left: `calc(8px + ${weekDays.findIndex(d => isSelected(d))} * ((100% - 16px) / 7))`,
+              top: '-4px',
               bottom: '0px',
             }}
           />
@@ -300,8 +300,7 @@ export function DayPilotResourceCalendar({
               <button
                 key={idx}
                 onClick={() => handleDateSelect(day)}
-                className="relative z-10 flex flex-col items-center justify-center h-[34px]"
-                style={{ width: `${320 / 7}px` }}
+                className="relative z-10 flex flex-col items-center justify-center flex-1 h-full"
               >
                 <span className={`text-[9px] font-medium leading-none transition-colors duration-300 ${
                   selected ? 'text-gray-900' : weekend ? 'text-orange-600' : 'text-gray-600'
