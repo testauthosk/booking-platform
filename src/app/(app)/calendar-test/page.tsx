@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { Menu, Bell, Plus, Filter } from 'lucide-react';
+import { Menu, Bell, Plus } from 'lucide-react';
+import { useCalendarSettings } from '@/lib/calendar-settings-context';
 
 // Dynamic import з вимкненим SSR — DayPilot потребує window
 const DayPilotResourceCalendar = dynamic(
@@ -34,11 +35,11 @@ interface CalendarResource {
   color?: string;
 }
 
-// Тестові дані
-const testResources: CalendarResource[] = [
-  { id: '1', name: 'Андрій', color: '#22c55e' },
-  { id: '2', name: 'Данил', color: '#3b82f6' },
-  { id: '3', name: 'Сергій', color: '#f97316' },
+// Тестові дані (кольори призначаються динамічно з палітри)
+const testResourcesBase = [
+  { id: '1', name: 'Андрій' },
+  { id: '2', name: 'Данил' },
+  { id: '3', name: 'Сергій' },
 ];
 
 const today = new Date();
@@ -51,7 +52,7 @@ const testEvents: CalendarEvent[] = [
     start: `${dateStr}T10:00:00`,
     end: `${dateStr}T11:00:00`,
     resource: '1',
-    backColor: '#22c55e',
+    
     clientName: 'Костян',
     clientPhone: '+380 98 478-85-13',
     serviceName: 'Стрижка',
@@ -63,7 +64,7 @@ const testEvents: CalendarEvent[] = [
     start: `${dateStr}T11:30:00`,
     end: `${dateStr}T13:00:00`,
     resource: '1',
-    backColor: '#22c55e',
+    
     clientName: 'Микола',
     clientPhone: '+380 50 591-94-39',
     serviceName: 'Стрижка + борода',
@@ -75,7 +76,7 @@ const testEvents: CalendarEvent[] = [
     start: `${dateStr}T10:30:00`,
     end: `${dateStr}T11:30:00`,
     resource: '2',
-    backColor: '#3b82f6',
+    
     clientName: 'Володимир',
     clientPhone: '+380 63 777-01-75',
     serviceName: 'Стрижка',
@@ -87,7 +88,7 @@ const testEvents: CalendarEvent[] = [
     start: `${dateStr}T14:00:00`,
     end: `${dateStr}T14:45:00`,
     resource: '2',
-    backColor: '#3b82f6',
+    
     clientName: 'Дмитро',
     clientPhone: '+380 66 744-41-90',
     serviceName: 'Buzz cut',
@@ -99,7 +100,7 @@ const testEvents: CalendarEvent[] = [
     start: `${dateStr}T09:00:00`,
     end: `${dateStr}T10:00:00`,
     resource: '3',
-    backColor: '#f97316',
+    
     clientName: 'Артем',
     clientPhone: '+380 93 558-47-92',
     serviceName: 'Стрижка',
@@ -111,7 +112,7 @@ const testEvents: CalendarEvent[] = [
     start: `${dateStr}T12:00:00`,
     end: `${dateStr}T13:30:00`,
     resource: '3',
-    backColor: '#f97316',
+    
     clientName: 'Саша Порт',
     clientPhone: '+380 63 707-32-19',
     serviceName: 'Стрижка + борода',
@@ -123,7 +124,7 @@ const testEvents: CalendarEvent[] = [
     start: `${dateStr}T15:00:00`,
     end: `${dateStr}T16:00:00`,
     resource: '1',
-    backColor: '#22c55e',
+    
     clientName: 'Валентин',
     clientPhone: '+380 68 365-49-32',
     serviceName: 'Камуфляж',
@@ -135,7 +136,7 @@ const testEvents: CalendarEvent[] = [
     start: `${dateStr}T16:30:00`,
     end: `${dateStr}T17:30:00`,
     resource: '3',
-    backColor: '#f97316',
+    
     clientName: 'Ник',
     clientPhone: '+380 50 123-45-67',
     serviceName: 'Ник лис',
@@ -149,6 +150,25 @@ const ukMonths = ['січня', 'лютого', 'березня', 'квітня'
 
 export default function CalendarTestPage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const { getColorForIndex, settings } = useCalendarSettings();
+
+  // Ресурси з кольорами з палітри салону
+  const testResources = useMemo(() => 
+    testResourcesBase.map((r, idx) => ({
+      ...r,
+      color: getColorForIndex(idx),
+    })),
+    [settings.paletteId] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  // Кольори для подій
+  const eventColors = useMemo(() => {
+    const colors: Record<string, string> = {};
+    testResourcesBase.forEach((r, idx) => {
+      colors[r.id] = getColorForIndex(idx);
+    });
+    return colors;
+  }, [settings.paletteId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleEventClick = (event: CalendarEvent) => {
     alert(`Клік на запис:\n${event.clientName}\n${event.clientPhone}\n${event.serviceName}`);
@@ -188,16 +208,7 @@ export default function CalendarTestPage() {
         </div>
       </div>
 
-      {/* Filter bar */}
-      <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-100">
-        <span className="text-sm font-medium text-gray-700">{formatDate(selectedDate)}</span>
-        <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 bg-gray-100 rounded-full hover:bg-gray-200">
-            <Filter className="w-3.5 h-3.5" />
-            Усі
-          </button>
-        </div>
-      </div>
+      {/* Filter bar - hidden for now */}
 
       {/* Calendar */}
       <div className="flex-1 overflow-hidden">
@@ -214,39 +225,7 @@ export default function CalendarTestPage() {
         />
       </div>
 
-      {/* Bottom navigation */}
-      <div className="flex items-center justify-around py-2 bg-white border-t border-gray-200 safe-area-pb">
-        <button className="flex flex-col items-center gap-0.5 px-4 py-1 text-yellow-600">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <span className="text-xs font-medium">Календар</span>
-        </button>
-        <button className="flex flex-col items-center gap-0.5 px-4 py-1 text-gray-400">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
-          <span className="text-xs">Графік</span>
-        </button>
-        
-        {/* FAB */}
-        <button className="w-14 h-14 -mt-6 bg-gray-900 rounded-full flex items-center justify-center shadow-lg">
-          <Plus className="w-7 h-7 text-white" />
-        </button>
-        
-        <button className="flex flex-col items-center gap-0.5 px-4 py-1 text-gray-400">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <span className="text-xs">Клієнти</span>
-        </button>
-        <button className="flex flex-col items-center gap-0.5 px-4 py-1 text-gray-400">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-          <span className="text-xs">Більше</span>
-        </button>
-      </div>
+      {/* Bottom navigation removed - using global MobileNav from layout */}
     </div>
   );
 }

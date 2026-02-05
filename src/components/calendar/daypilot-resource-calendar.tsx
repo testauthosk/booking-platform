@@ -152,11 +152,11 @@ export function DayPilotResourceCalendar({
                 <img
                   src={r.avatar}
                   alt={r.name}
-                  className="w-9 h-9 mx-auto rounded-full object-cover border-2 border-white shadow-sm"
+                  className="w-9 h-9 mx-auto rounded-lg object-cover border-2 border-white shadow-sm"
                 />
               ) : (
                 <div
-                  className="w-9 h-9 mx-auto rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm"
+                  className="w-9 h-9 mx-auto rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-sm"
                   style={{ backgroundColor: r.color || '#9ca3af' }}
                 >
                   {r.name.charAt(0).toUpperCase()}
@@ -259,8 +259,8 @@ export function DayPilotResourceCalendar({
         </div>
       </div>
 
-      {/* Навігація по тижню - жовта полоса над меню */}
-      <div className="sticky bottom-0 z-50 bg-yellow-400 h-[38px] flex items-center px-2 shadow-[0_-2px_8px_rgba(0,0,0,0.1)]">
+      {/* Навігація по тижню - жовта полоса над MobileNav */}
+      <div className="lg:hidden sticky bottom-16 z-40 bg-yellow-400 h-[38px] flex items-center px-2 shadow-[0_-2px_8px_rgba(0,0,0,0.1)]">
         <div className="flex items-center justify-around w-full">
           {weekDays.map((day, idx) => {
             const dayNum = day.getDate();
