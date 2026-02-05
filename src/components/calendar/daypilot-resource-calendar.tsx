@@ -208,49 +208,47 @@ export function DayPilotResourceCalendar({
                       style={{
                         top: `${pos.top}%`,
                         height: `${pos.height}%`,
-                        minHeight: '40px',
+                        minHeight: '36px',
                         background: `linear-gradient(160deg, ${bgColor} 0%, ${bgColor}e0 100%)`,
                         boxShadow: `0 1px 4px ${bgColor}50, 0 2px 6px rgba(0,0,0,0.08)`,
                       }}
                       onClick={() => onEventClick?.(event)}
                     >
-                      <div className="h-full p-1.5 text-white flex flex-col">
-                        {/* Верхня строка: час + телефон */}
-                        <div className="flex items-start justify-between gap-1">
-                          <span className="text-[10px] font-bold leading-none">
-                            {formatTime(event.start)}-{formatTime(event.end)}
-                          </span>
-                          {event.clientPhone && (
-                            <a
-                              href={`tel:${event.clientPhone}`}
-                              onClick={e => e.stopPropagation()}
-                              className="w-5 h-5 flex-shrink-0 flex items-center justify-center bg-white/25 rounded-full"
-                            >
-                              <Phone className="w-3 h-3" fill="currentColor" />
-                            </a>
-                          )}
+                      <div className="h-full p-1.5 text-white relative">
+                        {/* Іконка телефону - справа, текст обтікає */}
+                        {event.clientPhone && (
+                          <a
+                            href={`tel:${event.clientPhone}`}
+                            onClick={e => e.stopPropagation()}
+                            className="float-right ml-1 w-6 h-6 flex items-center justify-center bg-white/25 rounded-full"
+                          >
+                            <Phone className="w-3.5 h-3.5" fill="currentColor" />
+                          </a>
+                        )}
+                        
+                        {/* Час */}
+                        <div className="text-[10px] font-bold leading-tight">
+                          {formatTime(event.start)}-{formatTime(event.end)}
                         </div>
                         
                         {/* Ім'я клієнта */}
-                        <div className="mt-0.5 flex items-center gap-1 flex-wrap min-w-0">
-                          <span className="text-[11px] font-semibold leading-tight truncate">
-                            {event.clientName || event.text}
-                          </span>
+                        <div className="text-[11px] font-semibold leading-tight">
+                          {event.clientName || event.text}
                           {event.isNewClient && (
-                            <span className="px-1 py-px text-[8px] font-bold bg-white/25 rounded text-white uppercase flex-shrink-0">
+                            <span className="ml-1 px-1 py-px text-[7px] font-bold bg-white/25 rounded text-white uppercase align-middle">
                               new
                             </span>
                           )}
                         </div>
                         
-                        {/* Телефон - тільки якщо є місце */}
+                        {/* Телефон */}
                         {event.clientPhone && (
-                          <div className="text-[9px] opacity-85 truncate">{event.clientPhone}</div>
+                          <div className="text-[9px] opacity-90 leading-tight">{event.clientPhone}</div>
                         )}
                         
                         {/* Послуга */}
                         {event.serviceName && (
-                          <div className="text-[9px] opacity-75 mt-auto truncate">{event.serviceName}</div>
+                          <div className="text-[9px] opacity-80 leading-tight">{event.serviceName}</div>
                         )}
                       </div>
                     </div>
@@ -261,9 +259,9 @@ export function DayPilotResourceCalendar({
         </div>
       </div>
 
-      {/* Навігація по тижню - тонка жовта полоса */}
-      <div className="bg-yellow-400 h-[44px] flex items-center px-2">
-        <div className="flex items-center justify-between w-full">
+      {/* Навігація по тижню - тонка жовта полоса 15px */}
+      <div className="bg-yellow-400 h-[36px] flex items-center px-1">
+        <div className="flex items-center justify-around w-full">
           {weekDays.map((day, idx) => {
             const dayNum = day.getDate();
             const dayName = ukDaysShort[day.getDay()];
@@ -274,14 +272,14 @@ export function DayPilotResourceCalendar({
               <button
                 key={idx}
                 onClick={() => handleDateSelect(day)}
-                className="flex flex-col items-center justify-center flex-1"
+                className="flex items-center gap-0.5"
               >
-                <span className={`text-[9px] font-medium leading-none ${weekend ? 'text-orange-600' : 'text-gray-700'}`}>
+                <span className={`text-[8px] font-medium ${weekend ? 'text-orange-600' : 'text-gray-600'}`}>
                   {dayName}
                 </span>
                 <div
                   className={`
-                    w-7 h-7 flex items-center justify-center rounded-full text-sm font-bold transition-all
+                    w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold
                     ${selected 
                       ? 'bg-white text-gray-900 shadow-sm' 
                       : weekend 
