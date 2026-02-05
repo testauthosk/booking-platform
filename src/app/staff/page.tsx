@@ -720,14 +720,11 @@ export default function StaffDashboard() {
                       <div>
                         {/* Time badge */}
                         <div 
-                          className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-bold mb-3 ${
-                            isPast ? 'bg-muted text-muted-foreground' : 
-                            booking.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : ''
-                          }`}
-                          style={!isPast && booking.status !== 'COMPLETED' ? {
-                            backgroundColor: `${accentColor}20`,
-                            color: darkenColor(accentColor, 35)
-                          } : undefined}
+                          className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-bold mb-3"
+                          style={{
+                            backgroundColor: isPast ? '#e5e5e5' : `${accentColor}20`,
+                            color: isPast ? '#737373' : darkenColor(accentColor, 35)
+                          }}
                         >
                           {booking.time}
                         </div>
@@ -738,10 +735,10 @@ export default function StaffDashboard() {
                       </div>
                       
                       {/* Bottom row */}
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">{booking.duration} хв</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground text-sm">{booking.duration} хв</span>
                         {booking.price && (
-                          <span className="font-medium">{booking.price} ₴</span>
+                          <span className="font-bold text-sm">{booking.price} ₴</span>
                         )}
                       </div>
                     </Card>
