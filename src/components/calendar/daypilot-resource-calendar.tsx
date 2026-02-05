@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Phone, Plus, Calendar, LayoutList, Users, Menu } from 'lucide-react';
 
 export interface CalendarEvent {
   id: string;
@@ -38,7 +39,7 @@ interface DayPilotResourceCalendarProps {
 }
 
 // Українські назви днів
-const ukDaysShort = ['НД', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'];
+const ukDaysShort = ['нд', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
 
 function formatTime(dateStr: string): string {
   const date = new Date(dateStr);
@@ -51,6 +52,7 @@ export function DayPilotResourceCalendar({
   startDate,
   onDateChange,
   onEventClick,
+  onTimeRangeSelect,
   dayStartHour = 8,
   dayEndHour = 21,
 }: DayPilotResourceCalendarProps) {
@@ -133,34 +135,48 @@ export function DayPilotResourceCalendar({
       {/* Календар */}
       <div className="flex-1 overflow-auto">
         {/* Заголовки ресурсів */}
-        <div className="sticky top-0 z-10 flex border-b border-gray-200 bg-gray-50">
-          <div className="w-16 flex-shrink-0 border-r border-gray-200" />
+        <div className="sticky top-0 z-10 flex border-b border-gray-100 bg-white pt-2">
+          {/* Кнопка додавання */}
+          <div className="w-12 flex-shrink-0 flex items-center justify-center">
+            <button className="w-8 h-8 flex items-center justify-center text-yellow-500 hover:bg-yellow-50 rounded-lg transition-colors">
+              <Plus className="w-6 h-6" strokeWidth={2.5} />
+            </button>
+          </div>
+          
           {resources.map(r => (
             <div
               key={r.id}
-              className="flex-1 min-w-[100px] p-2 border-r border-gray-200 text-center"
+              className="flex-1 min-w-[90px] py-2 text-center"
             >
-              <div
-                className="w-10 h-10 mx-auto rounded-xl flex items-center justify-center text-white font-bold text-sm mb-1"
-                style={{ backgroundColor: r.color || '#9ca3af' }}
-              >
-                {r.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="text-xs font-medium text-gray-700 truncate">{r.name}</div>
+              {r.avatar ? (
+                <img
+                  src={r.avatar}
+                  alt={r.name}
+                  className="w-11 h-11 mx-auto rounded-full object-cover border-2 border-white shadow-sm"
+                />
+              ) : (
+                <div
+                  className="w-11 h-11 mx-auto rounded-full flex items-center justify-center text-white font-bold text-base shadow-sm"
+                  style={{ backgroundColor: r.color || '#9ca3af' }}
+                >
+                  {r.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="text-xs font-medium text-gray-700 mt-1.5 truncate px-1">{r.name}</div>
             </div>
           ))}
         </div>
 
         {/* Сітка часу */}
-        <div className="relative flex" style={{ minHeight: `${hours.length * 60}px` }}>
+        <div className="relative flex" style={{ minHeight: `${hours.length * 80}px` }}>
           {/* Колонка часу */}
-          <div className="w-16 flex-shrink-0 border-r border-gray-200">
+          <div className="w-12 flex-shrink-0">
             {hours.map(hour => (
               <div
                 key={hour}
-                className="h-[60px] border-b border-gray-100 pr-2 text-right"
+                className="h-[80px] flex items-start justify-end pr-2 pt-0"
               >
-                <span className="text-xs text-gray-500 font-medium">
+                <span className="text-[11px] text-gray-400 font-medium -mt-2">
                   {hour.toString().padStart(2, '0')}:00
                 </span>
               </div>
@@ -168,14 +184,15 @@ export function DayPilotResourceCalendar({
           </div>
 
           {/* Колонки ресурсів */}
-          {resources.map(r => (
+          {resources.map((r, rIdx) => (
             <div
               key={r.id}
-              className="flex-1 min-w-[100px] border-r border-gray-200 relative"
+              className={`flex-1 min-w-[90px] relative ${rIdx < resources.length - 1 ? 'border-r border-gray-100' : ''}`}
+              style={{ backgroundColor: `${r.color}08` }}
             >
               {/* Лінії годин */}
               {hours.map(hour => (
-                <div key={hour} className="h-[60px] border-b border-gray-100" />
+                <div key={hour} className="h-[80px] border-b border-gray-100" />
               ))}
 
               {/* Події */}
@@ -183,46 +200,58 @@ export function DayPilotResourceCalendar({
                 .filter(e => e.resource === r.id)
                 .map(event => {
                   const pos = getEventPosition(event);
+                  const bgColor = event.backColor || r.color || '#22c55e';
                   return (
                     <div
                       key={event.id}
-                      className="absolute left-1 right-1 rounded-md px-2 py-1 cursor-pointer overflow-hidden text-white shadow-sm hover:brightness-110 transition-all"
+                      className="absolute left-1 right-1 rounded-lg cursor-pointer overflow-hidden shadow-sm hover:shadow-md transition-shadow"
                       style={{
                         top: `${pos.top}%`,
                         height: `${pos.height}%`,
-                        minHeight: '30px',
-                        backgroundColor: event.backColor || r.color || '#22c55e',
+                        minHeight: '50px',
+                        backgroundColor: bgColor,
                       }}
                       onClick={() => onEventClick?.(event)}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold opacity-90">
-                          {formatTime(event.start)}-{formatTime(event.end)}
-                        </span>
+                      <div className="h-full p-2 text-white flex flex-col">
+                        {/* Верхня строка: час + телефон */}
+                        <div className="flex items-start justify-between">
+                          <span className="text-[11px] font-bold opacity-95">
+                            {formatTime(event.start)}-{formatTime(event.end)}
+                          </span>
+                          {event.clientPhone && (
+                            <a
+                              href={`tel:${event.clientPhone}`}
+                              onClick={e => e.stopPropagation()}
+                              className="w-6 h-6 -mt-0.5 -mr-0.5 flex items-center justify-center bg-white/25 rounded-full hover:bg-white/40 transition-colors"
+                            >
+                              <Phone className="w-3.5 h-3.5" fill="currentColor" />
+                            </a>
+                          )}
+                        </div>
+                        
+                        {/* Ім'я клієнта */}
+                        <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[13px] font-semibold leading-tight">
+                            {event.clientName || event.text}
+                          </span>
+                          {event.isNewClient && (
+                            <span className="px-1.5 py-0.5 text-[9px] font-bold bg-white/25 rounded text-white uppercase tracking-wide">
+                              new
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* Телефон */}
                         {event.clientPhone && (
-                          <a
-                            href={`tel:${event.clientPhone}`}
-                            onClick={e => e.stopPropagation()}
-                            className="w-5 h-5 flex items-center justify-center bg-white/20 rounded-full"
-                          >
-                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
-                            </svg>
-                          </a>
+                          <div className="text-[11px] opacity-85 mt-0.5">{event.clientPhone}</div>
+                        )}
+                        
+                        {/* Послуга */}
+                        {event.serviceName && (
+                          <div className="text-[11px] opacity-75 mt-auto">{event.serviceName}</div>
                         )}
                       </div>
-                      <div className="text-xs font-semibold truncate flex items-center gap-1">
-                        {event.clientName || event.text}
-                        {event.isNewClient && (
-                          <span className="px-1 text-[8px] font-bold bg-black/20 rounded">new</span>
-                        )}
-                      </div>
-                      {event.clientPhone && (
-                        <div className="text-[10px] opacity-80 truncate">{event.clientPhone}</div>
-                      )}
-                      {event.serviceName && (
-                        <div className="text-[10px] opacity-70 truncate">{event.serviceName}</div>
-                      )}
                     </div>
                   );
                 })}
@@ -231,37 +260,37 @@ export function DayPilotResourceCalendar({
         </div>
       </div>
 
-      {/* Навігація по тижню */}
-      <div className="border-t border-gray-200 bg-white px-2 py-3">
+      {/* Навігація по тижню - жовта полоса */}
+      <div className="bg-yellow-400 px-3 py-2">
         <div className="flex items-center justify-between max-w-md mx-auto">
           {weekDays.map((day, idx) => {
             const dayNum = day.getDate();
             const dayName = ukDaysShort[day.getDay()];
             const selected = isSelected(day);
-            const today = isToday(day);
             const weekend = isWeekend(day);
             
             return (
               <button
                 key={idx}
                 onClick={() => handleDateSelect(day)}
-                className={`
-                  flex flex-col items-center justify-center w-10 h-14 rounded-xl transition-all
-                  ${selected 
-                    ? 'bg-yellow-400 text-gray-900 shadow-md' 
-                    : today 
-                      ? 'bg-gray-100 text-gray-900'
-                      : 'hover:bg-gray-50'
-                  }
-                  ${weekend && !selected ? 'text-orange-500' : ''}
-                `}
+                className="flex flex-col items-center justify-center transition-all"
               >
-                <span className={`text-xs font-medium ${selected ? 'text-gray-800' : 'text-gray-500'}`}>
+                <span className={`text-[11px] font-medium ${weekend ? 'text-orange-600' : 'text-gray-700'}`}>
                   {dayName}
                 </span>
-                <span className={`text-lg font-bold ${selected ? 'text-gray-900' : ''}`}>
+                <div
+                  className={`
+                    w-9 h-9 flex items-center justify-center rounded-full text-base font-bold mt-0.5 transition-all
+                    ${selected 
+                      ? 'bg-white text-gray-900 shadow-md' 
+                      : weekend 
+                        ? 'text-orange-600 hover:bg-yellow-300'
+                        : 'text-gray-800 hover:bg-yellow-300'
+                    }
+                  `}
+                >
                   {dayNum}
-                </span>
+                </div>
               </button>
             );
           })}
@@ -271,11 +300,31 @@ export function DayPilotResourceCalendar({
         <div className="flex justify-center mt-2">
           <button
             onClick={() => handleDateSelect(new Date())}
-            className="px-4 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
+            className="px-5 py-1.5 text-sm font-medium text-gray-700 bg-white rounded-full shadow-sm hover:shadow transition-shadow"
           >
             Сьогодні
           </button>
         </div>
+      </div>
+
+      {/* Нижня навігація - як в референсі */}
+      <div className="flex items-center justify-around py-2 bg-white border-t border-gray-200">
+        <button className="flex flex-col items-center gap-0.5 px-3 py-1 text-yellow-600">
+          <Calendar className="w-6 h-6" />
+          <span className="text-[10px] font-medium">Календар</span>
+        </button>
+        <button className="flex flex-col items-center gap-0.5 px-3 py-1 text-gray-400">
+          <LayoutList className="w-6 h-6" />
+          <span className="text-[10px] font-medium">Графік</span>
+        </button>
+        <button className="flex flex-col items-center gap-0.5 px-3 py-1 text-gray-400">
+          <Users className="w-6 h-6" />
+          <span className="text-[10px] font-medium">Клієнти</span>
+        </button>
+        <button className="flex flex-col items-center gap-0.5 px-3 py-1 text-gray-400">
+          <Menu className="w-6 h-6" />
+          <span className="text-[10px] font-medium">Більше</span>
+        </button>
       </div>
     </div>
   );
