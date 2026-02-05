@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { DayPilot, DayPilotCalendar } from '@daypilot/daypilot-lite-react';
+import { useState, useEffect } from 'react';
 
 export interface CalendarEvent {
   id: string;
@@ -41,14 +40,9 @@ interface DayPilotResourceCalendarProps {
 // Українські назви днів
 const ukDaysShort = ['НД', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'];
 
-// Хелпер для конвертації DayPilot.Date в JS Date
-function toJsDate(dpDate: any): Date {
-  if (!dpDate) return new Date();
-  if (dpDate instanceof Date) return dpDate;
-  if (typeof dpDate === 'string') return new Date(dpDate);
-  if (typeof dpDate.toDate === 'function') return dpDate.toDate();
-  if (dpDate.value) return new Date(dpDate.value);
-  return new Date(String(dpDate));
+function formatTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 }
 
 export function DayPilotResourceCalendar({
@@ -57,13 +51,9 @@ export function DayPilotResourceCalendar({
   startDate,
   onDateChange,
   onEventClick,
-  onEventMove,
-  onEventResize,
-  onTimeRangeSelect,
   dayStartHour = 8,
   dayEndHour = 21,
 }: DayPilotResourceCalendarProps) {
-  const calendarRef = useRef<any>(null);
   const [internalDate, setInternalDate] = useState(startDate);
   const [mounted, setMounted] = useState(false);
 
@@ -74,6 +64,12 @@ export function DayPilotResourceCalendar({
   useEffect(() => {
     setInternalDate(startDate);
   }, [startDate]);
+
+  // Генеруємо години для сітки
+  const hours: number[] = [];
+  for (let h = dayStartHour; h < dayEndHour; h++) {
+    hours.push(h);
+  }
 
   // Отримуємо дні тижня для навігації
   const getWeekDays = (date: Date) => {
@@ -104,108 +100,135 @@ export function DayPilotResourceCalendar({
     onDateChange?.(date);
   };
 
-  // Не рендеримо на сервері
+  // Фільтруємо події для поточної дати
+  const dateStr = internalDate.toISOString().split('T')[0];
+  const filteredEvents = events.filter(e => e.start.startsWith(dateStr));
+
+  // Розраховуємо позицію події
+  const getEventPosition = (event: CalendarEvent) => {
+    const start = new Date(event.start);
+    const end = new Date(event.end);
+    const startMinutes = start.getHours() * 60 + start.getMinutes() - dayStartHour * 60;
+    const endMinutes = end.getHours() * 60 + end.getMinutes() - dayStartHour * 60;
+    const totalMinutes = (dayEndHour - dayStartHour) * 60;
+    
+    return {
+      top: (startMinutes / totalMinutes) * 100,
+      height: ((endMinutes - startMinutes) / totalMinutes) * 100,
+    };
+  };
+
   if (!mounted) {
     return (
       <div className="flex flex-col h-full bg-white">
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-gray-400">Завантаження календаря...</div>
+          <div className="text-gray-400">Завантаження...</div>
         </div>
       </div>
     );
   }
 
-  // Конвертуємо ресурси в формат DayPilot
-  const columns = resources.map(r => ({
-    id: r.id,
-    name: r.name,
-  }));
-
-  // Конвертуємо події
-  const dpEvents = events.map(e => ({
-    id: e.id,
-    text: e.clientName || e.text,
-    start: e.start,
-    end: e.end,
-    resource: e.resource,
-    backColor: e.backColor || '#22c55e',
-  }));
-
-  // Форматуємо дату як рядок YYYY-MM-DD
-  const dpStartDate = `${internalDate.getFullYear()}-${String(internalDate.getMonth() + 1).padStart(2, '0')}-${String(internalDate.getDate()).padStart(2, '0')}`;
-
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Календар */}
-      <div className="flex-1 overflow-hidden">
-        <style>{`
-          .calendar_default_main {
-            border: none !important;
-            font-family: system-ui, -apple-system, sans-serif !important;
-          }
-          .calendar_default_event {
-            border-radius: 6px !important;
-            border: none !important;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
-          }
-          .calendar_default_event_inner {
-            border-radius: 6px !important;
-            padding: 4px !important;
-          }
-          .calendar_default_colheader, .calendar_default_colheader_inner {
-            background: #fafafa !important;
-            border: none !important;
-            border-bottom: 1px solid #e5e7eb !important;
-          }
-          .calendar_default_rowheader, .calendar_default_rowheader_inner {
-            background: #fafafa !important;
-            border: none !important;
-            border-right: 1px solid #e5e7eb !important;
-          }
-          .calendar_default_cell {
-            border-color: #f3f4f6 !important;
-          }
-        `}</style>
-        <DayPilotCalendar
-          ref={calendarRef}
-          viewType="Resources"
-          startDate={dpStartDate}
-          columns={columns}
-          events={dpEvents}
-          headerHeight={50}
-          cellHeight={25}
-          cellDuration={15}
-          dayBeginsHour={dayStartHour}
-          dayEndsHour={dayEndHour}
-          heightSpec="Parent100Pct"
-          timeFormat="Clock24Hours"
-          onEventClick={(args: any) => {
-            if (onEventClick) {
-              const eventData = events.find(e => e.id === args.e.id());
-              if (eventData) onEventClick(eventData);
-            }
-          }}
-          onEventMoved={(args: any) => {
-            if (onEventMove) {
-              onEventMove(
-                args.e.id(),
-                toJsDate(args.newStart),
-                toJsDate(args.newEnd),
-                args.newResource
-              );
-            }
-          }}
-          onTimeRangeSelected={(args: any) => {
-            if (onTimeRangeSelect) {
-              onTimeRangeSelect(
-                toJsDate(args.start),
-                toJsDate(args.end),
-                args.resource
-              );
-            }
-            calendarRef.current?.control?.clearSelection();
-          }}
-        />
+      <div className="flex-1 overflow-auto">
+        {/* Заголовки ресурсів */}
+        <div className="sticky top-0 z-10 flex border-b border-gray-200 bg-gray-50">
+          <div className="w-16 flex-shrink-0 border-r border-gray-200" />
+          {resources.map(r => (
+            <div
+              key={r.id}
+              className="flex-1 min-w-[100px] p-2 border-r border-gray-200 text-center"
+            >
+              <div
+                className="w-10 h-10 mx-auto rounded-xl flex items-center justify-center text-white font-bold text-sm mb-1"
+                style={{ backgroundColor: r.color || '#9ca3af' }}
+              >
+                {r.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="text-xs font-medium text-gray-700 truncate">{r.name}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Сітка часу */}
+        <div className="relative flex" style={{ minHeight: `${hours.length * 60}px` }}>
+          {/* Колонка часу */}
+          <div className="w-16 flex-shrink-0 border-r border-gray-200">
+            {hours.map(hour => (
+              <div
+                key={hour}
+                className="h-[60px] border-b border-gray-100 pr-2 text-right"
+              >
+                <span className="text-xs text-gray-500 font-medium">
+                  {hour.toString().padStart(2, '0')}:00
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Колонки ресурсів */}
+          {resources.map(r => (
+            <div
+              key={r.id}
+              className="flex-1 min-w-[100px] border-r border-gray-200 relative"
+            >
+              {/* Лінії годин */}
+              {hours.map(hour => (
+                <div key={hour} className="h-[60px] border-b border-gray-100" />
+              ))}
+
+              {/* Події */}
+              {filteredEvents
+                .filter(e => e.resource === r.id)
+                .map(event => {
+                  const pos = getEventPosition(event);
+                  return (
+                    <div
+                      key={event.id}
+                      className="absolute left-1 right-1 rounded-md px-2 py-1 cursor-pointer overflow-hidden text-white shadow-sm hover:brightness-110 transition-all"
+                      style={{
+                        top: `${pos.top}%`,
+                        height: `${pos.height}%`,
+                        minHeight: '30px',
+                        backgroundColor: event.backColor || r.color || '#22c55e',
+                      }}
+                      onClick={() => onEventClick?.(event)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold opacity-90">
+                          {formatTime(event.start)}-{formatTime(event.end)}
+                        </span>
+                        {event.clientPhone && (
+                          <a
+                            href={`tel:${event.clientPhone}`}
+                            onClick={e => e.stopPropagation()}
+                            className="w-5 h-5 flex items-center justify-center bg-white/20 rounded-full"
+                          >
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                            </svg>
+                          </a>
+                        )}
+                      </div>
+                      <div className="text-xs font-semibold truncate flex items-center gap-1">
+                        {event.clientName || event.text}
+                        {event.isNewClient && (
+                          <span className="px-1 text-[8px] font-bold bg-black/20 rounded">new</span>
+                        )}
+                      </div>
+                      {event.clientPhone && (
+                        <div className="text-[10px] opacity-80 truncate">{event.clientPhone}</div>
+                      )}
+                      {event.serviceName && (
+                        <div className="text-[10px] opacity-70 truncate">{event.serviceName}</div>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Навігація по тижню */}
