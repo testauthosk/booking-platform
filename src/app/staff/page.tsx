@@ -694,7 +694,7 @@ export default function StaffDashboard() {
             </div>
           ) : (
             <div className="overflow-x-auto -mx-4 scrollbar-hide">
-              <div className="flex gap-3 pb-2 px-4 items-stretch">
+              <div className="flex gap-3 pb-2 px-4 items-stretch min-h-[185px]">
                 {stats?.todayBookings?.map((booking) => {
                   const isPast = (() => {
                     const [h, m] = booking.time.split(':').map(Number);
@@ -743,7 +743,7 @@ export default function StaffDashboard() {
                 
                 {/* Add button - same height as booking card */}
                 <Card 
-                  className="p-3 w-[160px] min-h-[180px] self-stretch shrink-0 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors border-dashed border-2"
+                  className="p-3 w-[160px] h-full shrink-0 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors border-dashed border-2"
                   onClick={() => openNewBooking()}
                 >
                   <Plus className="h-8 w-8 text-muted-foreground mb-2" />
