@@ -41,6 +41,15 @@ interface DayPilotResourceCalendarProps {
 // Українські назви днів
 const ukDaysShort = ['нд', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
 
+// Затемнити колір на X%
+function darkenColor(hex: string, percent: number = 20): string {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const R = Math.max((num >> 16) - Math.round(2.55 * percent), 0);
+  const G = Math.max((num >> 8 & 0x00FF) - Math.round(2.55 * percent), 0);
+  const B = Math.max((num & 0x0000FF) - Math.round(2.55 * percent), 0);
+  return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+}
+
 function formatTime(dateStr: string): string {
   const date = new Date(dateStr);
   return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
@@ -220,6 +229,7 @@ export function DayPilotResourceCalendar({
                 .map(event => {
                   const pos = getEventPosition(event);
                   const bgColor = event.backColor || r.color || '#22c55e';
+                  const borderColor = darkenColor(bgColor, 25);
                   return (
                     <div
                       key={event.id}
@@ -230,6 +240,10 @@ export function DayPilotResourceCalendar({
                         minHeight: '36px',
                         background: `linear-gradient(160deg, ${bgColor} 0%, ${bgColor}e0 100%)`,
                         boxShadow: `0 1px 4px ${bgColor}50, 0 2px 6px rgba(0,0,0,0.08)`,
+                        borderLeft: `3px solid ${borderColor}`,
+                        borderTop: `1px solid ${borderColor}`,
+                        borderRight: `1px solid ${borderColor}`,
+                        borderBottom: `1px solid ${borderColor}`,
                       }}
                       onClick={() => openEventModal(event)}
                     >
@@ -263,8 +277,8 @@ export function DayPilotResourceCalendar({
       </div>
 
       {/* Навігація по тижню - жовта полоса над MobileNav */}
-      <div className="lg:hidden sticky bottom-16 z-40 bg-yellow-400 h-[38px] flex items-center px-2 shadow-[0_-2px_8px_rgba(0,0,0,0.1)]">
-        <div className="flex items-center justify-around w-full">
+      <div className="lg:hidden sticky bottom-16 z-40 bg-yellow-400 h-[38px] flex items-center px-2 shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none overscroll-none">
+        <div className="flex items-center justify-around w-full touch-none">
           {weekDays.map((day, idx) => {
             const dayNum = day.getDate();
             const dayName = ukDaysShort[day.getDay()];
@@ -276,19 +290,19 @@ export function DayPilotResourceCalendar({
                 key={idx}
                 onClick={() => handleDateSelect(day)}
                 className={`
-                  flex items-center gap-1 px-2 py-1 rounded-lg transition-all duration-200
+                  relative flex flex-col items-center justify-center w-10 h-8 rounded-lg transition-all duration-300 ease-out
                   ${selected 
-                    ? 'bg-white shadow-sm' 
+                    ? 'bg-white shadow-md scale-105' 
                     : 'hover:bg-yellow-300/50'
                   }
                 `}
               >
-                <span className={`text-[10px] font-medium transition-colors duration-200 ${
+                <span className={`text-[9px] font-medium leading-none transition-colors duration-200 ${
                   selected ? 'text-gray-900' : weekend ? 'text-orange-600' : 'text-gray-600'
                 }`}>
                   {dayName}
                 </span>
-                <span className={`text-sm font-bold transition-colors duration-200 ${
+                <span className={`text-[13px] font-bold leading-none transition-colors duration-200 ${
                   selected ? 'text-gray-900' : weekend ? 'text-orange-600' : 'text-gray-800'
                 }`}>
                   {dayNum}

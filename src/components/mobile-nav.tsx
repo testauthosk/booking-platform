@@ -35,7 +35,7 @@ export function MobileNav() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center justify-center w-14 h-14 -mt-4 rounded-full",
+                  "flex items-center justify-center w-12 h-12 rounded-2xl",
                   "bg-foreground text-background shadow-lg",
                   "transition-all duration-200",
                   "hover:scale-105 active:scale-95"
