@@ -277,8 +277,8 @@ export function DayPilotResourceCalendar({
       </div>
 
       {/* Навігація по тижню - жовта полоса над MobileNav */}
-      <div className="lg:hidden sticky bottom-16 z-40 bg-yellow-400 h-[45px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none overscroll-visible overflow-visible">
-        <div className="relative flex items-center justify-around w-full h-[38px] px-[23px] touch-none overflow-visible">
+      <div className="lg:hidden sticky bottom-16 z-40 bg-yellow-400 h-[32px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none overscroll-visible overflow-visible">
+        <div className="relative flex items-center justify-around w-full h-[28px] px-[23px] touch-none overflow-visible">
           {/* Плаваючий індикатор — виглядає вище жовтої полоси */}
           <div 
             className="absolute bg-white rounded-t-xl transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
