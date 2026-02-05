@@ -204,39 +204,40 @@ export function DayPilotResourceCalendar({
                   return (
                     <div
                       key={event.id}
-                      className="absolute left-1 right-1 rounded-lg cursor-pointer overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                      className="absolute left-1.5 right-1.5 rounded-xl cursor-pointer overflow-hidden transition-all hover:scale-[1.02] hover:z-10"
                       style={{
                         top: `${pos.top}%`,
                         height: `${pos.height}%`,
-                        minHeight: '50px',
-                        backgroundColor: bgColor,
+                        minHeight: '55px',
+                        background: `linear-gradient(145deg, ${bgColor} 0%, ${bgColor}dd 100%)`,
+                        boxShadow: `0 2px 8px ${bgColor}40, 0 4px 12px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.15)`,
                       }}
                       onClick={() => onEventClick?.(event)}
                     >
-                      <div className="h-full p-2 text-white flex flex-col">
+                      <div className="h-full p-2.5 text-white flex flex-col relative">
                         {/* Верхня строка: час + телефон */}
                         <div className="flex items-start justify-between">
-                          <span className="text-[11px] font-bold opacity-95">
+                          <span className="text-[11px] font-bold tracking-wide drop-shadow-sm">
                             {formatTime(event.start)}-{formatTime(event.end)}
                           </span>
                           {event.clientPhone && (
                             <a
                               href={`tel:${event.clientPhone}`}
                               onClick={e => e.stopPropagation()}
-                              className="w-6 h-6 -mt-0.5 -mr-0.5 flex items-center justify-center bg-white/25 rounded-full hover:bg-white/40 transition-colors"
+                              className="w-7 h-7 -mt-1 -mr-1 flex items-center justify-center bg-white/30 backdrop-blur-sm rounded-full hover:bg-white/50 transition-all shadow-sm"
                             >
-                              <Phone className="w-3.5 h-3.5" fill="currentColor" />
+                              <Phone className="w-4 h-4 drop-shadow-sm" fill="currentColor" />
                             </a>
                           )}
                         </div>
                         
                         {/* Ім'я клієнта */}
-                        <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[13px] font-semibold leading-tight">
+                        <div className="mt-1 flex items-center gap-2 flex-wrap">
+                          <span className="text-[14px] font-bold leading-tight drop-shadow-sm">
                             {event.clientName || event.text}
                           </span>
                           {event.isNewClient && (
-                            <span className="px-1.5 py-0.5 text-[9px] font-bold bg-white/25 rounded text-white uppercase tracking-wide">
+                            <span className="px-2 py-0.5 text-[10px] font-black bg-white/30 backdrop-blur-sm rounded-md text-white uppercase tracking-wider shadow-sm">
                               new
                             </span>
                           )}
@@ -244,12 +245,12 @@ export function DayPilotResourceCalendar({
                         
                         {/* Телефон */}
                         {event.clientPhone && (
-                          <div className="text-[11px] opacity-85 mt-0.5">{event.clientPhone}</div>
+                          <div className="text-[12px] font-medium opacity-90 mt-0.5 drop-shadow-sm">{event.clientPhone}</div>
                         )}
                         
                         {/* Послуга */}
                         {event.serviceName && (
-                          <div className="text-[11px] opacity-75 mt-auto">{event.serviceName}</div>
+                          <div className="text-[11px] font-medium opacity-80 mt-auto drop-shadow-sm">{event.serviceName}</div>
                         )}
                       </div>
                     </div>
