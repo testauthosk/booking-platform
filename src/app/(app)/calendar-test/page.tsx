@@ -1,8 +1,35 @@
 'use client';
 
 import { useState } from 'react';
-import { DayPilotResourceCalendar, CalendarEvent, CalendarResource } from '@/components/calendar/daypilot-resource-calendar';
+import dynamic from 'next/dynamic';
 import { Menu, Bell, Plus, Filter } from 'lucide-react';
+
+// Dynamic import з вимкненим SSR — DayPilot потребує window
+const DayPilotResourceCalendar = dynamic(
+  () => import('@/components/calendar/daypilot-resource-calendar').then(mod => mod.DayPilotResourceCalendar),
+  { ssr: false, loading: () => <div className="flex-1 flex items-center justify-center"><div className="text-gray-400">Завантаження...</div></div> }
+);
+
+// Типи
+interface CalendarEvent {
+  id: string;
+  text: string;
+  start: string;
+  end: string;
+  resource: string;
+  backColor?: string;
+  clientName?: string;
+  clientPhone?: string;
+  serviceName?: string;
+  isNewClient?: boolean;
+}
+
+interface CalendarResource {
+  id: string;
+  name: string;
+  avatar?: string;
+  color?: string;
+}
 
 // Тестові дані
 const testResources: CalendarResource[] = [
