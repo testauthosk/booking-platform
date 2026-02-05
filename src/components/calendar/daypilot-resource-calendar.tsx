@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { DayPilotCalendar } from '@daypilot/daypilot-lite-react';
+import { DayPilot, DayPilotCalendar } from '@daypilot/daypilot-lite-react';
 
 export interface CalendarEvent {
   id: string;
@@ -41,6 +41,15 @@ interface DayPilotResourceCalendarProps {
 // Українські назви днів
 const ukDaysShort = ['НД', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'];
 
+// Хелпер для конвертації DayPilot.Date в JS Date
+function toJsDate(dpDate: any): Date {
+  if (dpDate instanceof Date) return dpDate;
+  if (typeof dpDate === 'string') return new Date(dpDate);
+  if (dpDate && typeof dpDate.toDate === 'function') return dpDate.toDate();
+  if (dpDate && dpDate.value) return new Date(dpDate.value);
+  return new Date(String(dpDate));
+}
+
 export function DayPilotResourceCalendar({
   resources,
   events,
@@ -55,6 +64,11 @@ export function DayPilotResourceCalendar({
 }: DayPilotResourceCalendarProps) {
   const calendarRef = useRef<DayPilotCalendar>(null);
   const [internalDate, setInternalDate] = useState(startDate);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     setInternalDate(startDate);
@@ -177,8 +191,8 @@ export function DayPilotResourceCalendar({
       if (onEventMove) {
         onEventMove(
           args.e.id(),
-          args.newStart.toDate(),
-          args.newEnd.toDate(),
+          toJsDate(args.newStart),
+          toJsDate(args.newEnd),
           args.newResource
         );
       }
@@ -188,8 +202,8 @@ export function DayPilotResourceCalendar({
       if (onEventResize) {
         onEventResize(
           args.e.id(),
-          args.newStart.toDate(),
-          args.newEnd.toDate()
+          toJsDate(args.newStart),
+          toJsDate(args.newEnd)
         );
       }
     },
@@ -197,13 +211,13 @@ export function DayPilotResourceCalendar({
     onTimeRangeSelected: (args: any) => {
       if (onTimeRangeSelect) {
         onTimeRangeSelect(
-          args.start.toDate(),
-          args.end.toDate(),
+          toJsDate(args.start),
+          toJsDate(args.end),
           args.resource
         );
       }
       if (calendarRef.current) {
-        calendarRef.current.control.clearSelection();
+        calendarRef.current.control?.clearSelection();
       }
     },
   };
@@ -227,6 +241,17 @@ export function DayPilotResourceCalendar({
 
   // Форматуємо дату як рядок YYYY-MM-DD
   const dpStartDate = `${internalDate.getFullYear()}-${String(internalDate.getMonth() + 1).padStart(2, '0')}-${String(internalDate.getDate()).padStart(2, '0')}`;
+
+  // Не рендеримо на сервері
+  if (!isClient) {
+    return (
+      <div className="flex flex-col h-full bg-white">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-gray-400">Завантаження календаря...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-white">
