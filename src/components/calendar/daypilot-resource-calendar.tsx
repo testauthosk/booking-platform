@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Phone, Plus } from 'lucide-react';
+import { Plus, X, Phone, MessageCircle, User, Clock, Scissors } from 'lucide-react';
 
 export interface CalendarEvent {
   id: string;
@@ -58,6 +58,25 @@ export function DayPilotResourceCalendar({
 }: DayPilotResourceCalendarProps) {
   const [internalDate, setInternalDate] = useState(startDate);
   const [mounted, setMounted] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  // Відкрити модалку з деталями запису
+  const openEventModal = (event: CalendarEvent) => {
+    setSelectedEvent(event);
+    setModalOpen(true);
+  };
+
+  // Закрити модалку
+  const closeModal = () => {
+    setModalOpen(false);
+    setTimeout(() => setSelectedEvent(null), 300);
+  };
+
+  // Отримати ресурс (майстра) за id
+  const getResourceById = (resourceId: string) => {
+    return resources.find(r => r.id === resourceId);
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -212,43 +231,27 @@ export function DayPilotResourceCalendar({
                         background: `linear-gradient(160deg, ${bgColor} 0%, ${bgColor}e0 100%)`,
                         boxShadow: `0 1px 4px ${bgColor}50, 0 2px 6px rgba(0,0,0,0.08)`,
                       }}
-                      onClick={() => onEventClick?.(event)}
+                      onClick={() => openEventModal(event)}
                     >
-                      <div className="h-full p-1.5 text-white relative">
-                        {/* Іконка телефону - справа, текст обтікає */}
-                        {event.clientPhone && (
-                          <a
-                            href={`tel:${event.clientPhone}`}
-                            onClick={e => e.stopPropagation()}
-                            className="float-right ml-1 w-6 h-6 flex items-center justify-center bg-white/25 rounded-full"
-                          >
-                            <Phone className="w-3.5 h-3.5" fill="currentColor" />
-                          </a>
-                        )}
-                        
+                      <div className="h-full p-1.5 text-white relative flex flex-col justify-center">
                         {/* Час */}
-                        <div className="text-[10px] font-bold leading-tight">
-                          {formatTime(event.start)}-{formatTime(event.end)}
+                        <div className="text-[10px] font-bold leading-tight opacity-90">
+                          {formatTime(event.start)}
                         </div>
                         
-                        {/* Ім'я клієнта */}
-                        <div className="text-[11px] font-semibold leading-tight">
+                        {/* Ім'я клієнта + NEW бейдж */}
+                        <div className="text-[11px] font-semibold leading-tight truncate">
                           {event.clientName || event.text}
                           {event.isNewClient && (
-                            <span className="ml-1 px-1 py-px text-[7px] font-bold bg-white/25 rounded text-white uppercase align-middle">
+                            <span className="ml-1 px-1 py-px text-[7px] font-bold bg-white/30 rounded text-white uppercase align-middle">
                               new
                             </span>
                           )}
                         </div>
                         
-                        {/* Телефон */}
-                        {event.clientPhone && (
-                          <div className="text-[9px] opacity-90 leading-tight">{event.clientPhone}</div>
-                        )}
-                        
                         {/* Послуга */}
                         {event.serviceName && (
-                          <div className="text-[9px] opacity-80 leading-tight">{event.serviceName}</div>
+                          <div className="text-[9px] opacity-80 leading-tight truncate">{event.serviceName}</div>
                         )}
                       </div>
                     </div>
@@ -294,6 +297,127 @@ export function DayPilotResourceCalendar({
             );
           })}
         </div>
+      </div>
+
+      {/* Модалка деталей запису */}
+      <div 
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] transition-opacity duration-300 ${
+          modalOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={closeModal}
+      />
+      <div 
+        className={`fixed inset-x-0 bottom-0 bg-white rounded-t-3xl shadow-2xl z-[101] transform transition-transform duration-300 ease-out max-h-[85vh] overflow-hidden ${
+          modalOpen ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        {selectedEvent && (() => {
+          const master = getResourceById(selectedEvent.resource);
+          const masterColor = master?.color || '#8b5cf6';
+          return (
+            <>
+              {/* Заголовок */}
+              <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between">
+                <h2 className="font-semibold text-lg">Деталі запису</h2>
+                <button 
+                  onClick={closeModal}
+                  className="h-9 w-9 rounded-xl hover:bg-gray-100 flex items-center justify-center transition-colors"
+                >
+                  <X className="h-5 w-5 text-gray-500" />
+                </button>
+              </div>
+
+              <div className="p-4 space-y-4 overflow-y-auto">
+                {/* Картка запису */}
+                <div className="rounded-2xl p-4" style={{ backgroundColor: `${masterColor}15`, borderLeft: `4px solid ${masterColor}` }}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Clock className="h-4 w-4" style={{ color: masterColor }} />
+                    <span className="font-bold text-lg">{formatTime(selectedEvent.start)} — {formatTime(selectedEvent.end)}</span>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-gray-400" />
+                      <span className="font-medium">{selectedEvent.clientName}</span>
+                      {selectedEvent.isNewClient && (
+                        <span className="px-2 py-0.5 text-[10px] font-bold bg-green-100 text-green-700 rounded-full uppercase">
+                          новий
+                        </span>
+                      )}
+                    </div>
+                    
+                    {selectedEvent.serviceName && (
+                      <div className="flex items-center gap-2">
+                        <Scissors className="h-4 w-4 text-gray-400" />
+                        <span className="text-gray-600">{selectedEvent.serviceName}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Картка майстра */}
+                {master && (
+                  <div className="rounded-2xl border p-4">
+                    <p className="text-xs text-gray-500 mb-2 uppercase tracking-wide">Майстер</p>
+                    <div className="flex items-center gap-3">
+                      {master.avatar ? (
+                        <img src={master.avatar} alt={master.name} className="w-12 h-12 rounded-xl object-cover" />
+                      ) : (
+                        <div 
+                          className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg"
+                          style={{ backgroundColor: masterColor }}
+                        >
+                          {master.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-semibold text-lg">{master.name}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Картка клієнта */}
+                <div className="rounded-2xl border p-4">
+                  <p className="text-xs text-gray-500 mb-2 uppercase tracking-wide">Клієнт</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-lg">
+                        {selectedEvent.clientName?.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-semibold">{selectedEvent.clientName}</p>
+                        {selectedEvent.clientPhone && (
+                          <p className="text-sm text-gray-500">{selectedEvent.clientPhone}</p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Кнопки зв'язку */}
+                    {selectedEvent.clientPhone && (
+                      <div className="flex gap-2">
+                        <a
+                          href={`tel:${selectedEvent.clientPhone}`}
+                          className="h-11 w-11 rounded-xl bg-green-500 text-white flex items-center justify-center hover:bg-green-600 transition-colors"
+                        >
+                          <Phone className="h-5 w-5" />
+                        </a>
+                        <a
+                          href={`https://t.me/${selectedEvent.clientPhone?.replace(/[^0-9]/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="h-11 w-11 rounded-xl bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 transition-colors"
+                        >
+                          <MessageCircle className="h-5 w-5" />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          );
+        })()}
       </div>
     </div>
   );
