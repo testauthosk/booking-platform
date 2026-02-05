@@ -259,8 +259,8 @@ export function DayPilotResourceCalendar({
         </div>
       </div>
 
-      {/* Навігація по тижню - тонка жовта полоса */}
-      <div className="bg-yellow-400 h-[28px] flex items-center px-1">
+      {/* Навігація по тижню - жовта полоса над меню */}
+      <div className="sticky bottom-0 z-50 bg-yellow-400 h-[38px] flex items-center px-2 shadow-[0_-2px_8px_rgba(0,0,0,0.1)]">
         <div className="flex items-center justify-around w-full">
           {weekDays.map((day, idx) => {
             const dayNum = day.getDate();
@@ -273,19 +273,19 @@ export function DayPilotResourceCalendar({
                 key={idx}
                 onClick={() => handleDateSelect(day)}
                 className={`
-                  flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg transition-all duration-200
+                  flex items-center gap-1 px-2 py-1 rounded-lg transition-all duration-200
                   ${selected 
                     ? 'bg-white shadow-sm' 
                     : 'hover:bg-yellow-300/50'
                   }
                 `}
               >
-                <span className={`text-[8px] font-medium transition-colors duration-200 ${
+                <span className={`text-[10px] font-medium transition-colors duration-200 ${
                   selected ? 'text-gray-900' : weekend ? 'text-orange-600' : 'text-gray-600'
                 }`}>
                   {dayName}
                 </span>
-                <span className={`text-[11px] font-bold transition-colors duration-200 ${
+                <span className={`text-sm font-bold transition-colors duration-200 ${
                   selected ? 'text-gray-900' : weekend ? 'text-orange-600' : 'text-gray-800'
                 }`}>
                   {dayNum}
