@@ -36,6 +36,12 @@ export async function POST(request: NextRequest) {
     // Хешируем пароль
     const passwordHash = await bcrypt.hash(password, 10);
 
+    // Отримуємо timezone з салону
+    const salon = await prisma.salon.findUnique({
+      where: { id: invitation.salonId },
+      select: { timezone: true }
+    });
+
     // Создаём мастера
     const master = await prisma.master.create({
       data: {
@@ -44,6 +50,7 @@ export async function POST(request: NextRequest) {
         name: name || invitation.name || invitation.email.split('@')[0],
         role: invitation.role,
         passwordHash,
+        timezone: salon?.timezone || 'Europe/Kiev', // Копіюємо з салону
       },
     });
 

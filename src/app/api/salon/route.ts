@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/prisma';
+import { getTimezoneFromAddress, updateSalonTimezone } from '@/lib/timezone';
 
 // GET /api/salon - получить данные салона
 export async function GET(request: NextRequest) {
@@ -70,6 +71,30 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'salonId required' }, { status: 400 });
     }
 
+    // Перевіряємо чи змінилась адреса
+    let timezoneData: { timezone: string; lat?: number; lng?: number } | null = null;
+    
+    if (address !== undefined) {
+      // Отримуємо поточну адресу салону
+      const currentSalon = await prisma.salon.findUnique({
+        where: { id: salonId },
+        select: { address: true }
+      });
+      
+      // Якщо адреса змінилась — визначаємо нову таймзону
+      if (currentSalon?.address !== address && address) {
+        console.log('Address changed, determining timezone for:', address);
+        timezoneData = await getTimezoneFromAddress(address);
+        
+        if (timezoneData) {
+          console.log('Timezone determined:', timezoneData.timezone);
+        } else {
+          console.warn('Could not determine timezone for address:', address);
+        }
+      }
+    }
+
+    // Оновлюємо салон
     const salon = await prisma.salon.update({
       where: { id: salonId },
       data: {
@@ -88,8 +113,23 @@ export async function PATCH(request: NextRequest) {
         ...(workingHours !== undefined && { workingHours }),
         ...(amenities !== undefined && { amenities }),
         ...(bufferTime !== undefined && { bufferTime }),
+        // Оновлюємо таймзону і координати якщо визначили
+        ...(timezoneData && {
+          timezone: timezoneData.timezone,
+          ...(timezoneData.lat !== undefined && { latitude: timezoneData.lat }),
+          ...(timezoneData.lng !== undefined && { longitude: timezoneData.lng }),
+        }),
       },
     });
+
+    // Якщо таймзона змінилась — оновлюємо всіх мастерів салону
+    if (timezoneData) {
+      await prisma.master.updateMany({
+        where: { salonId },
+        data: { timezone: timezoneData.timezone }
+      });
+      console.log('Updated timezone for all masters of salon:', salonId);
+    }
 
     return NextResponse.json(salon);
   } catch (error) {

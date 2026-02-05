@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-// Отримати поточний час в Києві
-const getKyivTime = () => {
+// Отримати поточний час в заданій таймзоні
+const getTimeInTimezone = (timezone: string) => {
   const now = new Date();
-  // Конвертуємо в Київський час
-  const kyivTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Kyiv' }));
-  return kyivTime;
+  const timeInZone = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
+  return timeInZone;
 };
 
 export async function GET(request: NextRequest) {
@@ -19,8 +18,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'masterId required' }, { status: 400 });
     }
 
-    // Get dates in Kyiv timezone
-    const now = getKyivTime();
+    // Отримуємо timezone мастера
+    const master = await prisma.master.findUnique({
+      where: { id: masterId },
+      select: { timezone: true }
+    });
+    const timezone = master?.timezone || 'Europe/Kiev';
+
+    // Get dates in master's timezone
+    const now = getTimeInTimezone(timezone);
     const todayStr = requestedDate || now.toISOString().split('T')[0]; // Use requested date or today
     
     const tomorrow = new Date(now);

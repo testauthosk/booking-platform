@@ -83,6 +83,7 @@ model Master {
   workingHours  Json?
   lunchDuration Int             @default(60)  // Тривалість обіду в хвилинах
   lunchStart    String          @default("13:00") // Час початку обіду (HH:mm)
+  timezone      String          @default("Europe/Kiev") // Копіюється з салону при створенні
   isActive      Boolean         @default(true)
   sortOrder     Int             @default(0)
   createdAt     DateTime        @default(now())
