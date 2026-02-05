@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { DayPilotResourceCalendar, CalendarEvent, CalendarResource } from '@/components/calendar/daypilot-resource-calendar';
-import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Menu, Bell, Plus, Filter } from 'lucide-react';
 
 // Тестові дані
 const testResources: CalendarResource[] = [
@@ -88,77 +87,135 @@ const testEvents: CalendarEvent[] = [
     serviceName: 'Стрижка + борода',
     isNewClient: false,
   },
+  {
+    id: '7',
+    text: 'Камуфляж',
+    start: `${dateStr}T15:00:00`,
+    end: `${dateStr}T16:00:00`,
+    resource: '1',
+    backColor: '#22c55e',
+    clientName: 'Валентин',
+    clientPhone: '+380 68 365-49-32',
+    serviceName: 'Камуфляж',
+    isNewClient: true,
+  },
+  {
+    id: '8',
+    text: 'Стрижка',
+    start: `${dateStr}T16:30:00`,
+    end: `${dateStr}T17:30:00`,
+    resource: '3',
+    backColor: '#f97316',
+    clientName: 'Ник',
+    clientPhone: '+380 50 123-45-67',
+    serviceName: 'Ник лис',
+    isNewClient: false,
+  },
 ];
+
+// Українські місяці
+const ukMonths = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 
+                  'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
 
 export default function CalendarTestPage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
   const handleEventClick = (event: CalendarEvent) => {
-    setSelectedEvent(event);
     alert(`Клік на запис:\n${event.clientName}\n${event.clientPhone}\n${event.serviceName}`);
   };
 
   const handleEventMove = (eventId: string, newStart: Date, newEnd: Date, newResourceId: string) => {
-    console.log('Event moved:', { eventId, newStart, newEnd, newResourceId });
-    alert(`Запис переміщено!\nНовий час: ${newStart.toLocaleTimeString()}\nМайстер: ${newResourceId}`);
+    const resource = testResources.find(r => r.id === newResourceId);
+    alert(`Запис переміщено!\nЧас: ${newStart.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })} - ${newEnd.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}\nМайстер: ${resource?.name || newResourceId}`);
   };
 
   const handleTimeRangeSelect = (start: Date, end: Date, resourceId: string) => {
-    console.log('Time range selected:', { start, end, resourceId });
-    alert(`Виділено час:\n${start.toLocaleTimeString()} - ${end.toLocaleTimeString()}\nМайстер: ${resourceId}`);
+    const resource = testResources.find(r => r.id === resourceId);
+    alert(`Новий запис:\n${start.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}\nМайстер: ${resource?.name || resourceId}`);
+  };
+
+  const formatDate = (date: Date) => {
+    return `${date.getDate()} ${ukMonths[date.getMonth()]}`;
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className="h-[100dvh] flex flex-col bg-gray-50">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-white border-b">
-        <h1 className="text-xl font-bold">🧪 Тест DayPilot Calendar</h1>
+      <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
+        <button className="w-10 h-10 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50">
+          <Menu className="w-5 h-5 text-gray-700" />
+        </button>
+        
+        <h1 className="text-lg font-bold text-gray-900">Календар</h1>
+        
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => {
-            const prev = new Date(selectedDate);
-            prev.setDate(prev.getDate() - 1);
-            setSelectedDate(prev);
-          }}>
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <Button variant="secondary" onClick={() => setSelectedDate(new Date())}>
-            Сьогодні
-          </Button>
-          <Button variant="outline" size="icon" onClick={() => {
-            const next = new Date(selectedDate);
-            next.setDate(next.getDate() + 1);
-            setSelectedDate(next);
-          }}>
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-          <span className="ml-2 text-sm text-gray-600">
-            {selectedDate.toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </span>
+          <button className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-50">
+            <Bell className="w-5 h-5 text-gray-700" />
+          </button>
+          <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold text-sm">
+            D
+          </div>
+        </div>
+      </div>
+
+      {/* Filter bar */}
+      <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-100">
+        <span className="text-sm font-medium text-gray-700">{formatDate(selectedDate)}</span>
+        <div className="flex items-center gap-2">
+          <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 bg-gray-100 rounded-full hover:bg-gray-200">
+            <Filter className="w-3.5 h-3.5" />
+            Усі
+          </button>
         </div>
       </div>
 
       {/* Calendar */}
-      <div className="flex-1 p-4">
-        <div className="h-full bg-white rounded-xl shadow-sm border overflow-hidden">
-          <DayPilotResourceCalendar
-            resources={testResources}
-            events={testEvents}
-            startDate={selectedDate}
-            onEventClick={handleEventClick}
-            onEventMove={handleEventMove}
-            onTimeRangeSelect={handleTimeRangeSelect}
-            dayStartHour={8}
-            dayEndHour={20}
-          />
-        </div>
+      <div className="flex-1 overflow-hidden">
+        <DayPilotResourceCalendar
+          resources={testResources}
+          events={testEvents}
+          startDate={selectedDate}
+          onDateChange={setSelectedDate}
+          onEventClick={handleEventClick}
+          onEventMove={handleEventMove}
+          onTimeRangeSelect={handleTimeRangeSelect}
+          dayStartHour={8}
+          dayEndHour={20}
+        />
       </div>
 
-      {/* Info */}
-      <div className="p-4 bg-white border-t text-sm text-gray-500">
-        <p>✅ Клікни на запис — відкриється alert</p>
-        <p>✅ Перетягни запис — побачиш нові дані</p>
-        <p>✅ Виділи час — створення нового запису</p>
+      {/* Bottom navigation */}
+      <div className="flex items-center justify-around py-2 bg-white border-t border-gray-200 safe-area-pb">
+        <button className="flex flex-col items-center gap-0.5 px-4 py-1 text-yellow-600">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span className="text-xs font-medium">Календар</span>
+        </button>
+        <button className="flex flex-col items-center gap-0.5 px-4 py-1 text-gray-400">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          <span className="text-xs">Графік</span>
+        </button>
+        
+        {/* FAB */}
+        <button className="w-14 h-14 -mt-6 bg-gray-900 rounded-full flex items-center justify-center shadow-lg">
+          <Plus className="w-7 h-7 text-white" />
+        </button>
+        
+        <button className="flex flex-col items-center gap-0.5 px-4 py-1 text-gray-400">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span className="text-xs">Клієнти</span>
+        </button>
+        <button className="flex flex-col items-center gap-0.5 px-4 py-1 text-gray-400">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          <span className="text-xs">Більше</span>
+        </button>
       </div>
     </div>
   );
