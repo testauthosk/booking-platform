@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { DayPilot, DayPilotCalendar } from '@daypilot/daypilot-lite-react';
+import { DayPilotCalendar } from '@daypilot/daypilot-lite-react';
 
 export interface CalendarEvent {
   id: string;
@@ -225,11 +225,8 @@ export function DayPilotResourceCalendar({
     },
   }));
 
-  const dpStartDate = DayPilot.Date.fromYearMonthDay(
-    internalDate.getFullYear(),
-    internalDate.getMonth() + 1,
-    internalDate.getDate()
-  );
+  // Форматуємо дату як рядок YYYY-MM-DD
+  const dpStartDate = `${internalDate.getFullYear()}-${String(internalDate.getMonth() + 1).padStart(2, '0')}-${String(internalDate.getDate()).padStart(2, '0')}`;
 
   return (
     <div className="flex flex-col h-full bg-white">
