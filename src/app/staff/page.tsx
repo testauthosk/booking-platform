@@ -709,7 +709,7 @@ export default function StaffDashboard() {
                         setSelectedBooking(booking);
                         setBookingDetailsOpen(true);
                       }}
-                      className={`p-3 w-[160px] h-[200px] shrink-0 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${isPast ? 'opacity-50' : ''} ${
+                      className={`p-3 w-[160px] h-[190px] shrink-0 flex flex-col justify-between transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${isPast ? 'opacity-50' : ''} ${
                         booking.status === 'COMPLETED' ? 'border-green-300 bg-green-50' : ''
                       }`}
                       style={{
@@ -717,18 +717,20 @@ export default function StaffDashboard() {
                         borderColor: booking.status !== 'COMPLETED' ? darkenColor(accentColor, 15) : undefined,
                       }}
                     >
-                      {/* Time badge */}
-                      <div className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-bold mb-2 ${
-                        isPast ? 'bg-muted text-muted-foreground' : 
-                        booking.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : 
-                        'bg-zinc-100 text-zinc-900'
-                      }`}>
-                        {booking.time}
+                      <div>
+                        {/* Time badge */}
+                        <div className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-bold mb-3 ${
+                          isPast ? 'bg-muted text-muted-foreground' : 
+                          booking.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : 
+                          'bg-zinc-100 text-zinc-900'
+                        }`}>
+                          {booking.time}
+                        </div>
+                        
+                        {/* Client */}
+                        <p className="font-semibold text-sm truncate">{booking.clientName}</p>
+                        <p className="text-xs text-muted-foreground truncate mt-1">{booking.serviceName}</p>
                       </div>
-                      
-                      {/* Client */}
-                      <p className="font-semibold text-sm truncate mb-0.5">{booking.clientName}</p>
-                      <p className="text-xs text-muted-foreground truncate mb-2">{booking.serviceName}</p>
                       
                       {/* Bottom row */}
                       <div className="flex items-center justify-between text-xs">
@@ -743,7 +745,7 @@ export default function StaffDashboard() {
                 
                 {/* Add button - same height as booking card */}
                 <Card 
-                  className="p-3 w-[160px] h-[200px] shrink-0 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors border-dashed border-2"
+                  className="p-3 w-[160px] h-[190px] shrink-0 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors border-dashed border-2"
                   onClick={() => openNewBooking()}
                 >
                   <Plus className="h-8 w-8 text-muted-foreground mb-2" />
