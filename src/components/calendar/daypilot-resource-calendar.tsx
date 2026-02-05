@@ -138,7 +138,7 @@ export function DayPilotResourceCalendar({
         <div className="sticky top-0 z-10 flex border-b border-gray-100 bg-white py-1.5">
           {/* Кнопка додавання */}
           <div className="w-10 flex-shrink-0 flex items-center justify-center">
-            <button className="w-6 h-6 flex items-center justify-center text-yellow-500">
+            <button className="w-7 h-7 flex items-center justify-center text-yellow-500 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors">
               <Plus className="w-5 h-5" strokeWidth={2.5} />
             </button>
           </div>
@@ -272,24 +272,24 @@ export function DayPilotResourceCalendar({
               <button
                 key={idx}
                 onClick={() => handleDateSelect(day)}
-                className="flex items-center gap-px"
+                className={`
+                  flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg transition-all duration-200
+                  ${selected 
+                    ? 'bg-white shadow-sm' 
+                    : 'hover:bg-yellow-300/50'
+                  }
+                `}
               >
-                <span className={`text-[7px] font-medium ${weekend ? 'text-orange-600' : 'text-gray-600'}`}>
+                <span className={`text-[8px] font-medium transition-colors duration-200 ${
+                  selected ? 'text-gray-900' : weekend ? 'text-orange-600' : 'text-gray-600'
+                }`}>
                   {dayName}
                 </span>
-                <div
-                  className={`
-                    w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold
-                    ${selected 
-                      ? 'bg-white text-gray-900' 
-                      : weekend 
-                        ? 'text-orange-600'
-                        : 'text-gray-800'
-                    }
-                  `}
-                >
+                <span className={`text-[11px] font-bold transition-colors duration-200 ${
+                  selected ? 'text-gray-900' : weekend ? 'text-orange-600' : 'text-gray-800'
+                }`}>
                   {dayNum}
-                </div>
+                </span>
               </button>
             );
           })}
