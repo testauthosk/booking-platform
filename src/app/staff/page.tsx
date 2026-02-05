@@ -722,7 +722,7 @@ export default function StaffDashboard() {
                         <div 
                           className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-bold mb-3"
                           style={{
-                            backgroundColor: isPast ? '#e5e5e5' : `${accentColor}20`,
+                            backgroundColor: isPast ? '#e5e5e5' : `${accentColor}30`,
                             color: isPast ? '#737373' : darkenColor(accentColor, 35)
                           }}
                         >
