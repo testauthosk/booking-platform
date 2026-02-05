@@ -278,13 +278,13 @@ export function DayPilotResourceCalendar({
 
       {/* Навігація по тижню - жовта полоса над MobileNav */}
       <div className="lg:hidden sticky bottom-16 z-40 bg-yellow-400 h-[45px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none overscroll-none">
-        <div className="relative flex items-center justify-around w-full h-[38px] px-[13px] touch-none">
+        <div className="relative flex items-center justify-around w-full h-[38px] px-[18px] touch-none">
           {/* Плаваючий індикатор — виглядає вище жовтої полоси */}
           <div 
             className="absolute bg-white rounded-t-xl transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
             style={{
-              width: 'calc((100% - 26px) / 7)',
-              left: `calc(13px + ${weekDays.findIndex(d => isSelected(d))} * ((100% - 26px) / 7))`,
+              width: 'calc((100% - 36px) / 7)',
+              left: `calc(18px + ${weekDays.findIndex(d => isSelected(d))} * ((100% - 36px) / 7))`,
               top: '-7px',
               bottom: '0px',
             }}
