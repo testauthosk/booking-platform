@@ -277,8 +277,18 @@ export function DayPilotResourceCalendar({
       </div>
 
       {/* Навігація по тижню - жовта полоса над MobileNav */}
-      <div className="lg:hidden sticky bottom-16 z-40 bg-yellow-400 h-[38px] flex items-center px-2 shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none overscroll-none">
-        <div className="flex items-center justify-around w-full touch-none">
+      <div className="lg:hidden sticky bottom-16 z-40 bg-yellow-400 h-[38px] flex items-center shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none overscroll-none">
+        <div className="relative flex items-center justify-between w-full px-3 touch-none">
+          {/* Плаваючий індикатор */}
+          <div 
+            className="absolute h-[30px] bg-white rounded-lg shadow-md transition-all duration-300 ease-out z-0"
+            style={{
+              width: 'calc((100% - 24px) / 7)',
+              left: `calc(12px + ${weekDays.findIndex(d => isSelected(d)) * (100 - 24/3.5) / 7}%)`,
+              top: '4px',
+            }}
+          />
+          
           {weekDays.map((day, idx) => {
             const dayNum = day.getDate();
             const dayName = ukDaysShort[day.getDay()];
@@ -289,20 +299,14 @@ export function DayPilotResourceCalendar({
               <button
                 key={idx}
                 onClick={() => handleDateSelect(day)}
-                className={`
-                  relative flex flex-col items-center justify-center w-10 h-8 rounded-lg transition-all duration-300 ease-out
-                  ${selected 
-                    ? 'bg-white shadow-md scale-105' 
-                    : 'hover:bg-yellow-300/50'
-                  }
-                `}
+                className="relative z-10 flex flex-col items-center justify-center flex-1 h-[30px]"
               >
-                <span className={`text-[9px] font-medium leading-none transition-colors duration-200 ${
+                <span className={`text-[9px] font-medium leading-none transition-colors duration-300 ${
                   selected ? 'text-gray-900' : weekend ? 'text-orange-600' : 'text-gray-600'
                 }`}>
                   {dayName}
                 </span>
-                <span className={`text-[13px] font-bold leading-none transition-colors duration-200 ${
+                <span className={`text-[13px] font-bold leading-none transition-colors duration-300 ${
                   selected ? 'text-gray-900' : weekend ? 'text-orange-600' : 'text-gray-800'
                 }`}>
                   {dayNum}
