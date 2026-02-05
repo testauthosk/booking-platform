@@ -7,7 +7,20 @@ import { Menu, Bell, Plus, Filter } from 'lucide-react';
 // Dynamic import з вимкненим SSR — DayPilot потребує window
 const DayPilotResourceCalendar = dynamic(
   () => import('@/components/calendar/daypilot-resource-calendar').then(mod => mod.DayPilotResourceCalendar),
-  { ssr: false, loading: () => <div className="flex-1 flex items-center justify-center"><div className="text-gray-400">Завантаження...</div></div> }
+  { 
+    ssr: false, 
+    loading: () => <div className="flex-1 flex items-center justify-center"><div className="text-gray-400">Завантаження...</div></div> 
+  }
+);
+
+// Тимчасовий fallback для тестування
+const SimpleFallback = () => (
+  <div className="flex-1 flex items-center justify-center bg-gray-100">
+    <div className="text-center">
+      <div className="text-lg font-bold text-gray-700">Календар (тест)</div>
+      <div className="text-gray-500 mt-2">Компонент завантажується...</div>
+    </div>
+  </div>
 );
 
 // Типи
@@ -198,17 +211,24 @@ export default function CalendarTestPage() {
 
       {/* Calendar */}
       <div className="flex-1 overflow-hidden">
-        <DayPilotResourceCalendar
-          resources={testResources}
-          events={testEvents}
-          startDate={selectedDate}
-          onDateChange={setSelectedDate}
-          onEventClick={handleEventClick}
-          onEventMove={handleEventMove}
-          onTimeRangeSelect={handleTimeRangeSelect}
-          dayStartHour={8}
-          dayEndHour={20}
-        />
+        {/* Тимчасово вимкнено DayPilot для діагностики */}
+        <div className="h-full flex flex-col items-center justify-center bg-gray-50 p-4">
+          <div className="text-lg font-bold text-gray-700 mb-2">🗓️ Тестовий календар</div>
+          <div className="text-gray-500 text-center">
+            DayPilot компонент тимчасово вимкнено.<br/>
+            Дата: {selectedDate.toLocaleDateString('uk-UA')}
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            {testResources.map(r => (
+              <div key={r.id} className="p-2 rounded-lg text-center text-sm" style={{backgroundColor: r.color + '20', borderLeft: `3px solid ${r.color}`}}>
+                {r.name}
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 text-xs text-gray-400">
+            {testEvents.length} записів на сьогодні
+          </div>
+        </div>
       </div>
 
       {/* Bottom navigation */}
