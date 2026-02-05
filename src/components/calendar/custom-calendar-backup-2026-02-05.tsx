@@ -27,7 +27,6 @@ export interface BookingEvent {
   serviceName?: string;
   masterName?: string;
   status?: string;
-  isNewClient?: boolean; // Для бейджа "new"
   // Для блокування часу
   type?: 'booking' | 'block';
   blockType?: 'BREAK' | 'LUNCH' | 'DAY_OFF' | 'VACATION' | 'OTHER';
@@ -694,45 +693,14 @@ export function CustomCalendar({
                             )}
                           </>
                         ) : (
-                          // Regular booking card - новий дизайн
+                          // Regular booking card
                           <>
-                            {/* Час + іконка дзвінка */}
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="font-bold text-xs drop-shadow-sm">
-                                {formatTime(event.start)}-{formatTime(event.end)}
-                              </span>
-                              {event.clientPhone && (
-                                <a 
-                                  href={`tel:${event.clientPhone}`}
-                                  className="w-5 h-5 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 transition-colors"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
-                                  </svg>
-                                </a>
-                              )}
+                            <div className="font-semibold text-sm drop-shadow-sm">
+                              {formatTime(event.start)} - {formatTime(event.end)}
                             </div>
-                            {/* Ім'я клієнта + бейдж new */}
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="font-semibold text-sm truncate">{event.clientName}</span>
-                              {event.isNewClient && (
-                                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-white/25 rounded text-white uppercase tracking-wide flex-shrink-0">
-                                  new
-                                </span>
-                              )}
-                            </div>
-                            {/* Телефон */}
-                            {event.clientPhone && height > 55 && (
-                              <div className="text-xs opacity-80 truncate mt-0.5">
-                                {event.clientPhone}
-                              </div>
-                            )}
-                            {/* Послуга */}
-                            {height > 75 && (
-                              <div className="text-xs opacity-70 truncate mt-0.5">
-                                {event.serviceName || event.title}
-                              </div>
+                            <div className="font-medium text-base truncate">{event.clientName}</div>
+                            {height > 80 && (
+                              <div className="opacity-80 text-sm truncate">{event.title}</div>
                             )}
                           </>
                         )}
@@ -789,24 +757,12 @@ export function CustomCalendar({
           }}
         >
           <div style={{ padding: '8px 12px', color: 'white', height: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontWeight: 700, fontSize: 12 }}>
-                {formatTime(dragState.event.start)}-{formatTime(dragState.event.end)}
-              </span>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>
+              {formatTime(dragState.event.start)} - {formatTime(dragState.event.end)}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-              <span style={{ fontWeight: 600, fontSize: 14 }}>{dragState.event.clientName}</span>
-              {dragState.event.isNewClient && (
-                <span style={{ padding: '2px 6px', fontSize: 10, fontWeight: 700, background: 'rgba(255,255,255,0.25)', borderRadius: 3, textTransform: 'uppercase' }}>
-                  new
-                </span>
-              )}
-            </div>
-            {dragState.event.clientPhone && dragState.originalHeight > 55 && (
-              <div style={{ opacity: 0.8, fontSize: 12, marginTop: 2 }}>{dragState.event.clientPhone}</div>
-            )}
-            {dragState.originalHeight > 75 && (
-              <div style={{ opacity: 0.7, fontSize: 12, marginTop: 2 }}>{dragState.event.serviceName || dragState.event.title}</div>
+            <div style={{ fontWeight: 500, fontSize: 16, marginTop: 4 }}>{dragState.event.clientName}</div>
+            {dragState.originalHeight > 80 && (
+              <div style={{ opacity: 0.8, fontSize: 14, marginTop: 4 }}>{dragState.event.title}</div>
             )}
           </div>
         </div>,

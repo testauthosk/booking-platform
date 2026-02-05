@@ -26,15 +26,17 @@ export async function GET(request: NextRequest) {
       take: 100,
       include: {
         master: { select: { name: true } },
-        service: { select: { name: true } }
+        service: { select: { name: true } },
+        client: { select: { visitsCount: true } }
       }
     });
 
-    // Return with explicit serviceId and clientId
+    // Return with explicit serviceId, clientId and isNewClient
     const result = bookings.map(b => ({
       ...b,
       serviceId: b.serviceId,
       clientId: b.clientId,
+      isNewClient: b.client ? b.client.visitsCount <= 1 : false,
     }));
 
     return NextResponse.json(result);

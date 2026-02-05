@@ -62,6 +62,7 @@ interface BookingFromAPI {
   timeEnd: string | null;
   duration: number;
   status: string;
+  isNewClient?: boolean;
 }
 
 // Украинские названия дней и месяцев
@@ -180,6 +181,7 @@ export default function CalendarPage() {
             serviceName: b.serviceName || undefined,
             masterName: b.masterName || undefined,
             status: b.status.toLowerCase(),
+            isNewClient: b.isNewClient || false,
             type: 'booking',
           });
         });
