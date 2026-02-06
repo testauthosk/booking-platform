@@ -316,41 +316,20 @@ export function DayPilotResourceCalendar({
       </div>{/* end scroll container */}
 
       {/* Навігація по тижню - жовта полоса над MobileNav */}
-      <div className="lg:hidden fixed bottom-16 left-0 right-0 z-40 bg-yellow-400 h-[32px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none rounded-t-2xl">
-        <div className="relative flex items-center justify-around w-full h-[28px] px-[23px] touch-none overflow-visible">
+      <div className="lg:hidden fixed bottom-16 left-[23px] right-[23px] z-40 bg-yellow-400 h-[32px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none rounded-t-2xl">
+        <div className="relative flex items-center justify-around w-full h-[28px] touch-none overflow-visible">
           {/* Плаваючий індикатор — виглядає вище жовтої полоси */}
           {(() => {
             const selectedIdx = weekDays.findIndex(d => isSelected(d));
-            const isFirst = selectedIdx === 0;
-            const isLast = selectedIdx === 6;
-            
-            // Базова ширина і позиція
-            const baseWidth = '(100% - 46px) / 7';
-            let width = `calc(${baseWidth})`;
-            let left = `calc(23px + ${selectedIdx} * (${baseWidth}))`;
-            let right = 'auto';
-            
-            // На крайніх позиціях розширюємо до краю
-            if (isFirst) {
-              width = `calc(${baseWidth} + 23px)`;
-              left = '0px';
-            } else if (isLast) {
-              width = `calc(${baseWidth} + 23px)`;
-              left = 'auto';
-              right = '0px';
-            }
             
             return (
               <div 
-                className="absolute bg-white transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
+                className="absolute bg-white rounded-t-2xl transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
                 style={{
-                  width,
-                  left,
-                  right,
+                  width: 'calc(100% / 7)',
+                  left: `calc(${selectedIdx} * 100% / 7)`,
                   top: '-7px',
                   bottom: '0px',
-                  borderTopLeftRadius: '16px',
-                  borderTopRightRadius: '16px',
                 }}
               />
             );
