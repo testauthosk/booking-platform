@@ -320,37 +320,41 @@ export function DayPilotResourceCalendar({
         {/* SVG обводка що обтікає індикатор */}
         {(() => {
           const selectedIdx = weekDays.findIndex(d => isSelected(d));
-          const indicatorWidth = 100 / 7; // %
-          const indicatorLeft = selectedIdx * indicatorWidth; // %
-          const indicatorRight = indicatorLeft + indicatorWidth; // %
-          const r = 16; // border-radius
-          const h = 32; // height of yellow bar
-          const bump = 7; // how much indicator sticks up
+          // Працюємо в координатах viewBox (width=700, height=39)
+          const vw = 700; // viewBox width
+          const vh = 39; // viewBox height (32 + 7)
+          const cellW = vw / 7; // ширина однієї комірки
+          const r = 11; // border-radius в координатах viewBox (16px ≈ 11 в масштабі)
+          const bump = 7; // висота виступу індикатора
+          const indL = selectedIdx * cellW; // лівий край індикатора
+          const indR = indL + cellW; // правий край індикатора
           
           return (
             <svg 
-              className="absolute inset-0 w-full h-full overflow-visible pointer-events-none"
-              style={{ top: `-${bump}px`, height: `${h + bump}px` }}
+              className="absolute inset-0 overflow-visible pointer-events-none"
+              style={{ top: '-7px', left: 0, right: 0, height: '39px' }}
+              viewBox={`0 0 ${vw} ${vh}`}
               preserveAspectRatio="none"
             >
               <path
                 className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
                 fill="none"
                 stroke="black"
-                strokeWidth="1"
+                strokeWidth="2"
+                vectorEffect="non-scaling-stroke"
                 d={`
-                  M 0 ${h + bump}
+                  M 0 ${vh}
                   L 0 ${bump + r}
                   Q 0 ${bump} ${r} ${bump}
-                  L ${indicatorLeft}% ${bump}
-                  L ${indicatorLeft}% ${r}
-                  Q ${indicatorLeft}% 0 calc(${indicatorLeft}% + ${r}px) 0
-                  L calc(${indicatorRight}% - ${r}px) 0
-                  Q ${indicatorRight}% 0 ${indicatorRight}% ${r}
-                  L ${indicatorRight}% ${bump}
-                  L calc(100% - ${r}px) ${bump}
-                  Q 100% ${bump} 100% ${bump + r}
-                  L 100% ${h + bump}
+                  L ${indL} ${bump}
+                  L ${indL} ${r}
+                  Q ${indL} 0 ${indL + r} 0
+                  L ${indR - r} 0
+                  Q ${indR} 0 ${indR} ${r}
+                  L ${indR} ${bump}
+                  L ${vw - r} ${bump}
+                  Q ${vw} ${bump} ${vw} ${bump + r}
+                  L ${vw} ${vh}
                 `}
               />
             </svg>
