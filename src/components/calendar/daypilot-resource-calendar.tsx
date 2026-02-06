@@ -855,41 +855,54 @@ export function DayPilotResourceCalendar({
         const durationMin = dragRender.targetEndMin - dragRender.targetStartMin;
 
         return (
-          <div
-            className="fixed z-[90] pointer-events-none select-none"
-            style={{
-              left: dragRender.ghostX - 70,
-              top: dragRender.ghostY + 25,
-            }}
-          >
+          <>
+            {/* Карточка — ВИЩЕ пальця */}
             <div
-              className="w-[140px] rounded-xl px-3 py-2 text-white text-[11px] font-semibold shadow-2xl"
+              className="fixed z-[90] pointer-events-none select-none"
               style={{
-                background: `linear-gradient(160deg, ${ghostColor} 0%, ${darkenColor(ghostColor, 15)} 100%)`,
-                opacity: 0.95,
+                left: dragRender.ghostX - 70,
+                bottom: `calc(100vh - ${dragRender.ghostY}px + 12px)`,
               }}
             >
-              <div className="font-bold text-[11px]">
-                {formatMinutes(dragRender.targetStartMin)} – {formatMinutes(dragRender.targetEndMin)}
+              <div
+                className="w-[140px] rounded-xl px-3 py-2 text-white text-[11px] font-semibold shadow-2xl"
+                style={{
+                  background: `linear-gradient(160deg, ${ghostColor} 0%, ${darkenColor(ghostColor, 15)} 100%)`,
+                  opacity: 0.95,
+                }}
+              >
+                <div className="font-bold text-[12px]">
+                  {formatMinutes(dragRender.targetStartMin)} – {formatMinutes(dragRender.targetEndMin)}
+                </div>
+                <div className="truncate opacity-90">{ev.clientName || ev.text}</div>
+                {isResize && (
+                  <div className="text-[9px] opacity-70 mt-0.5">
+                    ⏱ {durationMin} хв
+                  </div>
+                )}
               </div>
-              <div className="truncate opacity-90">{ev.clientName || ev.text}</div>
+            </div>
+
+            {/* Подпись мастера / resize — НИЖЕ пальця */}
+            <div
+              className="fixed z-[90] pointer-events-none select-none"
+              style={{
+                left: dragRender.ghostX - 70,
+                top: dragRender.ghostY + 14,
+              }}
+            >
+              {dragRender.mode === 'move' && (
+                <div className="text-center text-[11px] text-gray-700 bg-white/95 rounded-lg px-3 py-1 shadow-md font-semibold">
+                  → {targetResource?.name || '?'}
+                </div>
+              )}
               {isResize && (
-                <div className="text-[9px] opacity-70 mt-0.5">
-                  ⏱ {durationMin} хв
+                <div className="text-center text-[11px] text-gray-700 bg-white/95 rounded-lg px-3 py-1 shadow-md font-semibold">
+                  ↕ {dragRender.mode === 'resize-top' ? 'початок' : 'кінець'}
                 </div>
               )}
             </div>
-            {dragRender.mode === 'move' && (
-              <div className="text-center text-[10px] text-gray-700 mt-1 bg-white/95 rounded-lg px-2 py-0.5 shadow-sm font-medium">
-                → {targetResource?.name || '?'}
-              </div>
-            )}
-            {isResize && (
-              <div className="text-center text-[10px] text-gray-700 mt-1 bg-white/95 rounded-lg px-2 py-0.5 shadow-sm font-medium">
-                ↕ {dragRender.mode === 'resize-top' ? 'початок' : 'кінець'}
-              </div>
-            )}
-          </div>
+          </>
         );
       })()}
 
