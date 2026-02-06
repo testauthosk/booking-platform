@@ -230,7 +230,7 @@ export function DayPilotResourceCalendar({
       {/* Скрол контейнер */}
       <div className="flex-1 overflow-auto">
         {/* Сітка часу */}
-        <div className="relative flex pt-2" style={{ minHeight: `${hours.length * 60}px` }}>
+        <div className="relative flex" style={{ minHeight: `${hours.length * 60}px` }}>
           {/* Колонка часу */}
           <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300">
             {hours.map(hour => (
@@ -323,14 +323,25 @@ export function DayPilotResourceCalendar({
             const selectedIdx = weekDays.findIndex(d => isSelected(d));
             const isFirst = selectedIdx === 0;
             const isLast = selectedIdx === 6;
+            const baseWidth = 'calc((100% - 24px) / 7)';
+            
+            // На крайніх позиціях розширюємо до краю
+            let width = baseWidth;
+            let left = `calc(12px + ${selectedIdx} * ((100% - 24px) / 7))`;
+            
+            if (isFirst) {
+              width = 'calc((100% - 24px) / 7 + 12px)';
+              left = '0px';
+            } else if (isLast) {
+              width = 'calc((100% - 24px) / 7 + 12px)';
+            }
+            
             return (
               <div 
-                className={`absolute bg-white transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0 ${
-                  isFirst ? 'rounded-t-2xl' : isLast ? 'rounded-t-2xl' : 'rounded-t-2xl'
-                }`}
+                className="absolute bg-white transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
                 style={{
-                  width: 'calc((100% - 24px) / 7)',
-                  left: `calc(12px + ${selectedIdx} * ((100% - 24px) / 7))`,
+                  width,
+                  left,
                   top: '-7px',
                   bottom: '0px',
                   borderTopLeftRadius: isFirst ? '16px' : '16px',
