@@ -316,7 +316,7 @@ export function DayPilotResourceCalendar({
       </div>{/* end scroll container */}
 
       {/* Навігація по тижню - жовта полоса над MobileNav */}
-      <div className="lg:hidden fixed bottom-16 left-[23px] right-[23px] z-40 bg-yellow-400 h-[32px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none rounded-t-2xl">
+      <div className="lg:hidden fixed bottom-16 left-[23px] right-[23px] z-40 bg-yellow-400 h-[32px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none rounded-t-2xl border border-black border-b-0">
         <div className="relative flex items-center justify-around w-full h-[28px] touch-none overflow-visible">
           {/* Плаваючий індикатор — виглядає вище жовтої полоси */}
           {(() => {
