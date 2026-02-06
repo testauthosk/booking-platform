@@ -213,7 +213,7 @@ export function DayPilotResourceCalendar({
           {resources.map((r, idx) => (
             <div
               key={r.id}
-              className={`flex-1 min-w-0 lg:max-w-[200px] py-2 text-center ${idx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
+              className={`flex-1 lg:flex-none lg:w-[180px] min-w-0 py-2 text-center ${idx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
             >
               {r.avatar ? (
                 <img
@@ -235,7 +235,7 @@ export function DayPilotResourceCalendar({
         </div>
 
         {/* Сітка часу */}
-        <div className="relative flex pb-28 lg:pb-8" style={{ minHeight: `${(hours.length + 1) * 60}px` }}>
+        <div className="relative flex pt-1 pb-28 lg:pb-8" style={{ minHeight: `${(hours.length + 1) * 60}px` }}>
           {/* Колонка часу */}
           <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300">
             {hours.map(hour => (
@@ -260,7 +260,7 @@ export function DayPilotResourceCalendar({
           {resources.map((r, rIdx) => (
             <div
               key={r.id}
-              className={`flex-1 min-w-0 lg:max-w-[200px] relative ${rIdx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
+              className={`flex-1 lg:flex-none lg:w-[180px] min-w-0 relative ${rIdx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
               style={{ backgroundColor: `${r.color}18` }}
             >
               {/* Лінії годин */}
