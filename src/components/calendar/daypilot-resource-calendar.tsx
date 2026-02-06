@@ -400,8 +400,6 @@ export function DayPilotResourceCalendar({
           // Клампимо для крайніх позицій
           const safeIndL = Math.max(0, indL);
           const safeIndR = Math.min(w, indR);
-          const isAtLeft = safeIndL < cr;
-          const isAtRight = safeIndR > w - cr;
           
           // --- Жовтий фон (дві частини: ліворуч і праворуч від індикатора) ---
           const yellowLeft = safeIndL > 0 ? `
@@ -433,55 +431,28 @@ export function DayPilotResourceCalendar({
             Z
           `;
           
-          // --- Обводка (єдина лінія) ---
-          let contour = '';
+          // --- Обводка (єдина лінія — однаковий path для ВСІХ позицій) ---
+          const leftEnd = sx + cr; // де закінчується Q-крива лівого кута
+          const rightStart = w - cr - sx; // де починається Q-крива правого кута
           
-          if (isAtLeft && isAtRight) {
-            // Дуже широкий індикатор або повна ширина
-            contour = `
-              M ${sx} ${totalH}
-              L ${sx} ${topY + cr}
-              Q ${sx} ${topY} ${cr} ${topY}
-              L ${w - cr} ${topY}
-              Q ${w - sx} ${topY} ${w - sx} ${topY + cr}
-              L ${w - sx} ${totalH}
-            `;
-          } else if (isAtLeft) {
-            contour = `
-              M ${sx} ${totalH}
-              L ${sx} ${topY + cr}
-              Q ${sx} ${topY} ${sx + cr} ${topY}
-              L ${safeIndR - curve} ${topY}
-              C ${safeIndR} ${topY} ${safeIndR} ${barTop} ${safeIndR} ${barTop}
-              L ${w - cr} ${barTop}
-              Q ${w - sx} ${barTop} ${w - sx} ${barTop + cr}
-              L ${w - sx} ${totalH}
-            `;
-          } else if (isAtRight) {
-            contour = `
-              M ${sx} ${totalH}
-              L ${sx} ${barTop + cr}
-              Q ${sx} ${barTop} ${sx + cr} ${barTop}
-              L ${safeIndL} ${barTop}
-              C ${safeIndL} ${barTop} ${safeIndL} ${topY} ${safeIndL + curve} ${topY}
-              L ${w - cr - sx} ${topY}
-              Q ${w - sx} ${topY} ${w - sx} ${topY + cr}
-              L ${w - sx} ${totalH}
-            `;
-          } else {
-            contour = `
-              M ${sx} ${totalH}
-              L ${sx} ${barTop + cr}
-              Q ${sx} ${barTop} ${sx + cr} ${barTop}
-              L ${safeIndL} ${barTop}
-              C ${safeIndL} ${barTop} ${safeIndL} ${topY} ${safeIndL + curve} ${topY}
-              L ${safeIndR - curve} ${topY}
-              C ${safeIndR} ${topY} ${safeIndR} ${barTop} ${safeIndR} ${barTop}
-              L ${w - cr - sx} ${barTop}
-              Q ${w - sx} ${barTop} ${w - sx} ${barTop + cr}
-              L ${w - sx} ${totalH}
-            `;
+          let contour = `M ${sx} ${totalH} L ${sx} ${barTop + cr} Q ${sx} ${barTop} ${leftEnd} ${barTop}`;
+          
+          // Горизонтальна лінія до індикатора (тільки якщо вперед)
+          if (safeIndL > leftEnd) {
+            contour += ` L ${safeIndL} ${barTop}`;
           }
+          
+          // C-крива підйому індикатора (ЗАВЖДИ однакова форма)
+          contour += ` C ${safeIndL} ${barTop} ${safeIndL} ${topY} ${safeIndL + curve} ${topY}`;
+          contour += ` L ${safeIndR - curve} ${topY}`;
+          contour += ` C ${safeIndR} ${topY} ${safeIndR} ${barTop} ${safeIndR} ${barTop}`;
+          
+          // Горизонтальна лінія від індикатора (тільки якщо вперед)
+          if (safeIndR < rightStart) {
+            contour += ` L ${rightStart} ${barTop}`;
+          }
+          
+          contour += ` Q ${w - sx} ${barTop} ${w - sx} ${barTop + cr} L ${w - sx} ${totalH}`;
           
           return (
             <svg 
