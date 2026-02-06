@@ -343,24 +343,22 @@ export function DayPilotResourceCalendar({
           const h = 32;
           const bump = 7;
           const r = 16; // радіус кутів меню
-          const cr = 7; // радіус з'єднувача
+          const ir = 16; // радіус скруглення індикатора (rounded-t-2xl)
           const cellW = w / 7;
           const indL = selectedIdx * cellW;
           const indR = indL + cellW;
           
-          // Координати зміщені: 0 = верх індикатора, bump = верх меню, bump+h = низ меню
+          // Координати: 0 = верх SVG (= верх індикатора), bump = верх меню
           const path = `
             M 0 ${bump + h}
             L 0 ${bump + r}
             Q 0 ${bump} ${r} ${bump}
-            L ${indL - cr} ${bump}
-            Q ${indL} ${bump} ${indL} ${bump - cr}
-            L ${indL} ${cr}
-            Q ${indL} 0 ${indL + cr} 0
-            L ${indR - cr} 0
-            Q ${indR} 0 ${indR} ${cr}
-            L ${indR} ${bump - cr}
-            Q ${indR} ${bump} ${indR + cr} ${bump}
+            L ${indL} ${bump}
+            L ${indL} ${ir}
+            Q ${indL} 0 ${indL + ir} 0
+            L ${indR - ir} 0
+            Q ${indR} 0 ${indR} ${ir}
+            L ${indR} ${bump}
             L ${w - r} ${bump}
             Q ${w} ${bump} ${w} ${bump + r}
             L ${w} ${bump + h}
