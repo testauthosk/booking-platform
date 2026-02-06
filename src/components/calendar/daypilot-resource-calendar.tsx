@@ -391,9 +391,10 @@ export function DayPilotResourceCalendar({
           const cellW = w / 7;
           const indL = pos * cellW;
           const indR = indL + cellW;
-          const topY = 0;
-          const barTop = bump;
-          const totalH = bump + barH;
+          const pad = 1; // padding зверху щоб stroke не обрізався
+          const topY = pad;
+          const barTop = bump + pad;
+          const totalH = bump + barH + pad;
           const sx = 0.5;
           
           // Клампимо для крайніх позицій
@@ -485,7 +486,7 @@ export function DayPilotResourceCalendar({
           return (
             <svg 
               className="absolute pointer-events-none z-[2]"
-              style={{ top: -bump, left: 0, width: w, height: totalH }}
+              style={{ top: -(bump + pad), left: 0, width: w, height: totalH }}
             >
               {/* Жовтий фон */}
               {yellowLeft && <path d={yellowLeft} fill="#facc15" />}
@@ -493,7 +494,7 @@ export function DayPilotResourceCalendar({
               {/* Білий індикатор */}
               <path d={whitePath} fill="white" />
               {/* Обводка */}
-              <path d={contour} fill="none" stroke="black" strokeWidth="1.5" strokeLinejoin="round" />
+              <path d={contour} fill="none" stroke="black" strokeWidth="1" />
             </svg>
           );
         })()}
