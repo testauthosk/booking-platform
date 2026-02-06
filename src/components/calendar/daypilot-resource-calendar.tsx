@@ -197,7 +197,7 @@ export function DayPilotResourceCalendar({
     if (sc) {
       const blockScroll = (ev: TouchEvent) => { ev.preventDefault(); };
       sc.addEventListener('touchmove', blockScroll, { passive: false });
-      (sc as any).__blockScroll = blockScroll;
+      ((sc as unknown) as Record<string, unknown>).__blockScroll = blockScroll;
       sc.style.overflowY = 'hidden';
       sc.style.overflowX = 'hidden';
     }
@@ -207,10 +207,10 @@ export function DayPilotResourceCalendar({
     document.body.style.overflow = savedBodyOverflow.current;
     const sc = scrollContainerRef.current;
     if (sc) {
-      const fn = (sc as any).__blockScroll;
+      const fn = ((sc as unknown) as Record<string, unknown>).__blockScroll;
       if (fn) {
         sc.removeEventListener('touchmove', fn);
-        delete (sc as any).__blockScroll;
+        delete ((sc as unknown) as Record<string, unknown>).__blockScroll;
       }
       sc.style.overflowY = '';
       sc.style.overflowX = '';
@@ -566,6 +566,8 @@ export function DayPilotResourceCalendar({
         el.style.opacity = '1';
         el.style.backgroundColor = `${previewColorRef.current}30`;
         el.style.borderColor = previewColorRef.current;
+        const label = el.querySelector('.preview-time-label') as HTMLElement;
+        if (label) label.style.color = `${previewColorRef.current}cc`;
       }
 
       previewAnimRef.current = requestAnimationFrame(tick);
@@ -790,7 +792,7 @@ export function DayPilotResourceCalendar({
               }}
             >
               {dragRender && dragRender.phase === 'dragging' && (
-                <div className="px-1.5 py-1 text-[10px] font-semibold" style={{ color: `${previewColorRef.current}cc` }}>
+                <div className="px-1.5 py-1 text-[10px] font-semibold preview-time-label">
                   {formatMinutes(dragRender.targetStartMin)} – {formatMinutes(dragRender.targetEndMin)}
                 </div>
               )}
