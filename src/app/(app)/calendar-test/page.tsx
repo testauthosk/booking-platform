@@ -202,7 +202,7 @@ export default function CalendarTestPage() {
           <button className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-50">
             <Bell className="w-5 h-5 text-gray-700" />
           </button>
-          <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold text-sm">
+          <div className="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center text-white font-bold text-sm">
             D
           </div>
         </div>
