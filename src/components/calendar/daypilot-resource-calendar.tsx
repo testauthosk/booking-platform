@@ -316,9 +316,49 @@ export function DayPilotResourceCalendar({
       </div>{/* end scroll container */}
 
       {/* Навігація по тижню - жовта полоса над MobileNav */}
-      <div className="lg:hidden fixed bottom-[68px] left-[23px] right-[23px] z-40 bg-yellow-400 h-[32px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none rounded-t-2xl border border-black border-b-0">
+      <div className="lg:hidden fixed bottom-[68px] left-[23px] right-[23px] z-40 bg-yellow-400 h-[32px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none rounded-t-2xl">
+        {/* SVG обводка що обтікає індикатор */}
+        {(() => {
+          const selectedIdx = weekDays.findIndex(d => isSelected(d));
+          const indicatorWidth = 100 / 7; // %
+          const indicatorLeft = selectedIdx * indicatorWidth; // %
+          const indicatorRight = indicatorLeft + indicatorWidth; // %
+          const r = 16; // border-radius
+          const h = 32; // height of yellow bar
+          const bump = 7; // how much indicator sticks up
+          
+          return (
+            <svg 
+              className="absolute inset-0 w-full h-full overflow-visible pointer-events-none"
+              style={{ top: `-${bump}px`, height: `${h + bump}px` }}
+              preserveAspectRatio="none"
+            >
+              <path
+                className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+                fill="none"
+                stroke="black"
+                strokeWidth="1"
+                d={`
+                  M 0 ${h + bump}
+                  L 0 ${bump + r}
+                  Q 0 ${bump} ${r} ${bump}
+                  L ${indicatorLeft}% ${bump}
+                  L ${indicatorLeft}% ${r}
+                  Q ${indicatorLeft}% 0 calc(${indicatorLeft}% + ${r}px) 0
+                  L calc(${indicatorRight}% - ${r}px) 0
+                  Q ${indicatorRight}% 0 ${indicatorRight}% ${r}
+                  L ${indicatorRight}% ${bump}
+                  L calc(100% - ${r}px) ${bump}
+                  Q 100% ${bump} 100% ${bump + r}
+                  L 100% ${h + bump}
+                `}
+              />
+            </svg>
+          );
+        })()}
+        
         <div className="relative flex items-center justify-around w-full h-[28px] touch-none overflow-visible">
-          {/* Плаваючий індикатор — виглядає вище жовтої полоси */}
+          {/* Плаваючий індикатор */}
           {(() => {
             const selectedIdx = weekDays.findIndex(d => isSelected(d));
             
