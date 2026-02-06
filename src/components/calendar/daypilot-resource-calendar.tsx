@@ -684,7 +684,39 @@ export function DayPilotResourceCalendar({
             </div>
 
             {/* Колонки ресурсів */}
-            <div data-resources className="flex" style={{ minWidth: resources.length > 3 ? `${resources.length * 110}px` : '100%' }}>
+            <div data-resources className="flex relative" style={{ minWidth: resources.length > 3 ? `${resources.length * 110}px` : '100%' }}>
+            {/* Drop Preview — єдиний елемент з transition для плавного переходу між колонками */}
+            {dragRender && dragRender.phase === 'dragging' && (() => {
+              const totalMinutes = (dayEndHour - dayStartHour) * 60;
+              const previewStartMin = dragRender.targetStartMin - dayStartHour * 60;
+              const previewEndMin = dragRender.targetEndMin - dayStartHour * 60;
+              const topPct = (previewStartMin / totalMinutes) * 100;
+              const heightPct = ((previewEndMin - previewStartMin) / totalMinutes) * 100;
+              const colIdx = resources.findIndex(r => r.id === dragRender.targetResourceId);
+              const leftPct = colIdx >= 0 ? (colIdx / resources.length) * 100 : 0;
+              const widthPct = 100 / resources.length;
+              const previewColor = resources[colIdx]?.color || '#666';
+              return (
+                <div
+                  className="absolute z-[1] pointer-events-none overflow-hidden rounded-r-lg transition-all duration-200 ease-out"
+                  style={{
+                    top: `${topPct}%`,
+                    height: `${heightPct}%`,
+                    left: `${leftPct}%`,
+                    width: `${widthPct}%`,
+                    minHeight: '24px',
+                    backgroundColor: `${previewColor}30`,
+                    border: `2px dashed ${previewColor}`,
+                    borderRadius: '0 0.5rem 0.5rem 0',
+                  }}
+                >
+                  <div className="px-1.5 py-1 text-[10px] font-semibold" style={{ color: `${previewColor}cc` }}>
+                    {formatMinutes(dragRender.targetStartMin)} – {formatMinutes(dragRender.targetEndMin)}
+                  </div>
+                </div>
+              );
+            })()}
+
             {resources.map((r, rIdx) => (
               <div
                 key={r.id}
@@ -695,33 +727,6 @@ export function DayPilotResourceCalendar({
               {hours.map(hour => (
                 <div key={hour} className="h-[60px] border-b border-gray-200" />
               ))}
-
-              {/* Фіча 1: Drop Preview (тінь на сітці) */}
-              {dragRender && dragRender.phase === 'dragging' && r.id === dragRender.targetResourceId && (() => {
-                const totalMinutes = (dayEndHour - dayStartHour) * 60;
-                const previewStartMin = dragRender.targetStartMin - dayStartHour * 60;
-                const previewEndMin = dragRender.targetEndMin - dayStartHour * 60;
-                const top = (previewStartMin / totalMinutes) * 100;
-                const height = ((previewEndMin - previewStartMin) / totalMinutes) * 100;
-                const previewColor = r.color || '#666';
-                return (
-                  <div
-                    className="absolute left-0 right-0.5 rounded-r-lg z-[1] pointer-events-none overflow-hidden transition-all duration-100 ease-out"
-                    style={{
-                      top: `${top}%`,
-                      height: `${height}%`,
-                      minHeight: '24px',
-                      backgroundColor: `${previewColor}30`,
-                      border: `2px dashed ${previewColor}`,
-                      borderRadius: '0 0.5rem 0.5rem 0',
-                    }}
-                  >
-                    <div className="px-1.5 py-1 text-[10px] font-semibold" style={{ color: `${previewColor}cc` }}>
-                      {formatMinutes(dragRender.targetStartMin)} – {formatMinutes(dragRender.targetEndMin)}
-                    </div>
-                  </div>
-                );
-              })()}
 
               {/* Події */}
               {filteredEvents
@@ -854,9 +859,9 @@ export function DayPilotResourceCalendar({
 
         return (
           <>
-            {/* Карточка — ВИЩЕ пальця */}
+            {/* Карточка — ВИЩЕ пальця, без transition для мгновенного слідкування */}
             <div
-              className="fixed z-[90] pointer-events-none select-none transition-[left,bottom] duration-75 ease-out"
+              className="fixed z-[90] pointer-events-none select-none animate-ghost-up"
               style={{
                 left: dragRender.ghostX - 70,
                 bottom: `calc(100vh - ${dragRender.ghostY}px + 22px)`,
@@ -883,7 +888,7 @@ export function DayPilotResourceCalendar({
 
             {/* Подпись мастера / resize — НИЖЕ пальця */}
             <div
-              className="fixed z-[90] pointer-events-none select-none transition-[left,top] duration-75 ease-out"
+              className="fixed z-[90] pointer-events-none select-none animate-ghost-down"
               style={{
                 left: dragRender.ghostX - 70,
                 top: dragRender.ghostY + 44,

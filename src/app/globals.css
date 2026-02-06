@@ -947,3 +947,34 @@ button,
   from { transform: translateX(30px); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
 }
+
+/* Drag ghost animations — разъезд от точки касания */
+@keyframes ghost-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ghost-down {
+  0% {
+    opacity: 0;
+    transform: translateY(-15px) scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-ghost-up {
+  animation: ghost-up 200ms cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+}
+
+.animate-ghost-down {
+  animation: ghost-down 200ms cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+}
