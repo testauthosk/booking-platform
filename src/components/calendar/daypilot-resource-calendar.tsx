@@ -342,55 +342,79 @@ export function DayPilotResourceCalendar({
           const selectedIdx = weekDays.findIndex(d => isSelected(d));
           const w = weekBarWidth;
           const h = 32;
-          const bump = 10;
+          const bump = 12;
           const r = 16; // радіус кутів меню (rounded-t-2xl = 16px)
-          const ir = 14; // радіус скруглення індикатора
+          const ir = 12; // радіус скруглення індикатора
           const cellW = w / 7;
           const indL = selectedIdx * cellW;
           const indR = indL + cellW;
+          const totalH = bump + h;
           
-          // Замкнутий контур: жовтий фон з вирізом для індикатора
-          const fillPath = `
-            M 0 ${bump + h}
-            L 0 ${bump + r}
-            Q 0 ${bump} ${r} ${bump}
-            L ${indL} ${bump}
-            Q ${indL} ${bump} ${indL} ${bump - Math.min(ir, bump)}
+          // Білий індикатор — тільки верх скруглений, низ прямий
+          const whitePath = `
+            M ${indL} ${totalH}
+            L ${indL} ${ir}
             Q ${indL} 0 ${indL + ir} 0
             L ${indR - ir} 0
-            Q ${indR} 0 ${indR} ${bump - Math.min(ir, bump)}
-            Q ${indR} ${bump} ${indR} ${bump}
-            L ${w - r} ${bump}
-            Q ${w} ${bump} ${w} ${bump + r}
-            L ${w} ${bump + h}
+            Q ${indR} 0 ${indR} ${ir}
+            L ${indR} ${totalH}
             Z
           `;
           
-          // Обводка — повторює контур
-          const strokePath = `
-            M 0 ${bump + h}
+          // Жовтий фон — облягає індикатор зверху
+          const yellowPath = `
+            M 0 ${totalH}
             L 0 ${bump + r}
             Q 0 ${bump} ${r} ${bump}
-            L ${indL} ${bump}
-            Q ${indL} ${bump} ${indL} ${bump - Math.min(ir, bump)}
-            Q ${indL} 0 ${indL + ir} 0
-            L ${indR - ir} 0
-            Q ${indR} 0 ${indR} ${bump - Math.min(ir, bump)}
-            Q ${indR} ${bump} ${indR} ${bump}
+            L ${indL - ir} ${bump}
+            Q ${indL} ${bump} ${indL} ${bump + ir}
+            L ${indL} ${totalH}
+            L 0 ${totalH}
+            Z
+            M ${indR} ${totalH}
+            L ${indR} ${bump + ir}
+            Q ${indR} ${bump} ${indR + ir} ${bump}
             L ${w - r} ${bump}
             Q ${w} ${bump} ${w} ${bump + r}
-            L ${w} ${bump + h}
+            L ${w} ${totalH}
+            Z
+          `;
+          
+          // Обводка — повний контур зверху
+          const strokePath = `
+            M 0 ${totalH}
+            L 0 ${bump + r}
+            Q 0 ${bump} ${r} ${bump}
+            L ${indL - ir} ${bump}
+            Q ${indL} ${bump} ${indL} ${bump + ir}
+            L ${indL} ${ir}
+            Q ${indL} 0 ${indL + ir} 0
+            L ${indR - ir} 0
+            Q ${indR} 0 ${indR} ${ir}
+            L ${indR} ${bump + ir}
+            Q ${indR} ${bump} ${indR + ir} ${bump}
+            L ${w - r} ${bump}
+            Q ${w} ${bump} ${w} ${bump + r}
+            L ${w} ${totalH}
           `;
           
           return (
             <svg 
               className="absolute pointer-events-none"
-              style={{ top: -bump, left: 0, width: w, height: h + bump, overflow: 'visible' }}
+              style={{ top: -bump, left: 0, width: w, height: totalH, overflow: 'visible' }}
             >
-              {/* Жовтий фон з вирізом */}
+              {/* Білий індикатор (нижній шар) */}
               <path
-                d={fillPath}
+                d={whitePath}
+                fill="white"
+                stroke="none"
+                className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+              />
+              {/* Жовтий фон з обтіканням */}
+              <path
+                d={yellowPath}
                 fill="#facc15"
+                fillRule="nonzero"
                 stroke="none"
                 className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
               />
@@ -400,17 +424,6 @@ export function DayPilotResourceCalendar({
                 fill="none"
                 stroke="black"
                 strokeWidth="1"
-                className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-              />
-              {/* Білий індикатор */}
-              <rect
-                x={indL + 0.5}
-                y={0}
-                width={cellW - 1}
-                height={bump + h}
-                rx={ir}
-                ry={ir}
-                fill="white"
                 className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
               />
             </svg>
