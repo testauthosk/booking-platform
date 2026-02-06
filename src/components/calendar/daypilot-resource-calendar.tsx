@@ -235,7 +235,7 @@ export function DayPilotResourceCalendar({
         </div>
 
         {/* Сітка часу */}
-        <div className="relative flex pt-1 pb-14 lg:pb-4" style={{ minHeight: `${(hours.length + 1) * 60}px` }}>
+        <div className="relative flex pb-4 lg:pb-2" style={{ minHeight: `${(hours.length + 1) * 60}px` }}>
           {/* Колонка часу */}
           <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300">
             {hours.map(hour => (
