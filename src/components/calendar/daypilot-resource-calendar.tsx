@@ -431,28 +431,37 @@ export function DayPilotResourceCalendar({
             Z
           `;
           
-          // --- Обводка (єдина лінія — однаковий path для ВСІХ позицій) ---
-          const leftEnd = sx + cr; // де закінчується Q-крива лівого кута
-          const rightStart = w - cr - sx; // де починається Q-крива правого кута
+          // --- Обводка (єдина лінія) ---
+          const leftEnd = sx + cr;
+          const rightStart = w - cr - sx;
           
-          let contour = `M ${sx} ${totalH} L ${sx} ${barTop + cr} Q ${sx} ${barTop} ${leftEnd} ${barTop}`;
+          let contour = '';
           
-          // Горизонтальна лінія до індикатора (тільки якщо вперед)
+          // Ліва частина: стінка → кут → горизонталь → підйом індикатора
           if (safeIndL > leftEnd) {
-            contour += ` L ${safeIndL} ${barTop}`;
+            // Звичайний: Q-кут + горизонталь + C-крива підйому
+            contour = `M ${sx} ${totalH} L ${sx} ${barTop + cr} Q ${sx} ${barTop} ${leftEnd} ${barTop} L ${safeIndL} ${barTop}`;
+            contour += ` C ${safeIndL} ${barTop} ${safeIndL} ${topY} ${safeIndL + curve} ${topY}`;
+          } else {
+            // Край: стінка плавно переходить в індикатор однією C-кривою
+            contour = `M ${sx} ${totalH} L ${sx} ${barTop + curve}`;
+            contour += ` C ${sx} ${barTop} ${safeIndL} ${topY} ${safeIndL + curve} ${topY}`;
           }
           
-          // C-крива підйому індикатора (ЗАВЖДИ однакова форма)
-          contour += ` C ${safeIndL} ${barTop} ${safeIndL} ${topY} ${safeIndL + curve} ${topY}`;
+          // Верх індикатора
           contour += ` L ${safeIndR - curve} ${topY}`;
-          contour += ` C ${safeIndR} ${topY} ${safeIndR} ${barTop} ${safeIndR} ${barTop}`;
           
-          // Горизонтальна лінія від індикатора (тільки якщо вперед)
+          // Права частина: спуск індикатора → горизонталь → кут → стінка
           if (safeIndR < rightStart) {
-            contour += ` L ${rightStart} ${barTop}`;
+            // Звичайний: C-крива спуску + горизонталь + Q-кут
+            contour += ` C ${safeIndR} ${topY} ${safeIndR} ${barTop} ${safeIndR} ${barTop}`;
+            contour += ` L ${rightStart} ${barTop} Q ${w - sx} ${barTop} ${w - sx} ${barTop + cr}`;
+          } else {
+            // Край: індикатор плавно переходить в стінку однією C-кривою
+            contour += ` C ${safeIndR} ${topY} ${w - sx} ${barTop} ${w - sx} ${barTop + curve}`;
           }
           
-          contour += ` Q ${w - sx} ${barTop} ${w - sx} ${barTop + cr} L ${w - sx} ${totalH}`;
+          contour += ` L ${w - sx} ${totalH}`;
           
           return (
             <svg 
