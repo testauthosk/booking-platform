@@ -310,7 +310,7 @@ export function DayPilotResourceCalendar({
         </div>
         
         {/* Кінець робочого дня - надпис */}
-        <div className="flex items-center justify-center py-3 mb-12 lg:mb-0 text-gray-400">
+        <div className="flex items-center justify-center py-2 mb-4 lg:mb-0 text-gray-400">
           <span className="text-sm">Робота закінчилась, час додому ❤️</span>
         </div>
       </div>{/* end scroll container */}
@@ -484,7 +484,7 @@ export function DayPilotResourceCalendar({
           // TODO: відкрити модалку створення запису
           alert('Додати новий запис');
         }}
-        className="fixed bottom-[120px] lg:bottom-6 right-4 w-14 h-14 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl shadow-lg flex items-center justify-center transition-all active:scale-95 z-50"
+        className="fixed bottom-[100px] lg:bottom-4 right-2 w-14 h-14 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl shadow-lg flex items-center justify-center transition-all active:scale-95 z-50"
       >
         <Plus className="w-7 h-7" strokeWidth={2} />
       </button>
