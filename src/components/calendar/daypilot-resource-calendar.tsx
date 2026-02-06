@@ -160,13 +160,9 @@ export function DayPilotResourceCalendar({
 
   return (
     <div className="flex flex-col h-full bg-white">
-      {/* Календар */}
-      <div className="flex-1 overflow-auto">
-        {/* Контейнер */}
-        <div>
-        
-        {/* Десктопна навігація по тижню */}
-        <div className="hidden lg:flex items-center justify-center gap-1 py-3 border-b border-gray-200 bg-gray-50">
+      
+      {/* Десктопна навігація по тижню - поза скролом */}
+      <div className="hidden lg:flex items-center justify-center gap-1 py-3 border-b border-gray-200 bg-gray-50">
           {weekDays.map((day, idx) => {
             const dayNum = day.getDate();
             const dayName = ukDaysShort[day.getDay()];
@@ -199,12 +195,12 @@ export function DayPilotResourceCalendar({
               </button>
             );
           })}
-        </div>
+      </div>
         
-        {/* Заголовки ресурсів */}
-        <div className="sticky top-0 z-10 flex border-b border-gray-200 bg-white">
-          {/* Кнопка додавання */}
-          <div className="w-10 lg:w-14 flex-shrink-0 flex items-center justify-center border-r border-gray-300 py-2">
+      {/* Заголовки ресурсів - поза скролом */}
+      <div className="flex border-b border-gray-200 bg-white">
+        {/* Кнопка додавання */}
+        <div className="w-10 lg:w-14 flex-shrink-0 flex items-center justify-center border-r border-gray-300 py-2">
             <button className="w-7 h-7 flex items-center justify-center text-yellow-500 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors">
               <Plus className="w-5 h-5" strokeWidth={2.5} />
             </button>
@@ -232,8 +228,10 @@ export function DayPilotResourceCalendar({
               <div className="text-[10px] font-medium text-gray-700 mt-1 truncate px-0.5">{r.name}</div>
             </div>
           ))}
-        </div>
+      </div>
 
+      {/* Скрол контейнер */}
+      <div className="flex-1 overflow-auto">
         {/* Сітка часу */}
         <div className="relative flex" style={{ minHeight: `${hours.length * 60}px` }}>
           {/* Колонка часу */}
@@ -243,7 +241,7 @@ export function DayPilotResourceCalendar({
                 key={hour}
                 className="h-[60px] flex items-start justify-end pr-1 pt-0"
               >
-                <span className="text-[9px] lg:text-xs text-gray-900 font-medium -mt-1.5">
+                <span className="text-[9px] lg:text-xs text-gray-900 font-medium">
                   {hour.toString().padStart(2, '0')}:00
                 </span>
               </div>
@@ -318,9 +316,7 @@ export function DayPilotResourceCalendar({
         <div className="flex items-center justify-center py-4 pb-20 lg:pb-4 text-gray-400">
           <span className="text-sm">Робота закінчилась, час додому ❤️</span>
         </div>
-        
-        </div>{/* end lg:max-w-4xl container */}
-      </div>
+      </div>{/* end scroll container */}
 
       {/* Навігація по тижню - жовта полоса над MobileNav */}
       <div className="lg:hidden fixed bottom-16 left-0 right-0 z-40 bg-yellow-400 h-[32px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none">
