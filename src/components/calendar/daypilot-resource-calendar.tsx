@@ -853,9 +853,11 @@ export function DayPilotResourceCalendar({
         </div>
         
         {/* Кінець робочого дня */}
-        <div className="sticky left-0 flex items-center justify-center py-3 pb-6 lg:pb-4 text-gray-400" style={{ width: '100vw', maxWidth: '100%' }}>
+        <div className="sticky left-0 flex items-center justify-center py-3 lg:pb-4 text-gray-400" style={{ width: '100vw', maxWidth: '100%' }}>
           <span className="text-sm">Робота закінчилась, час додому ❤️</span>
         </div>
+        {/* Spacer для скролу під WeekBar + MobileNav */}
+        <div className="h-[110px] lg:h-0 shrink-0" />
       </div>{/* end scroll container */}
       </div>{/* end horizontal scroll wrapper */}
 

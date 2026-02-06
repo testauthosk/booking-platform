@@ -160,9 +160,7 @@ export function WeekBar({ selectedDate, onDateChange, bottomOffset = 68, visible
             className="absolute pointer-events-none z-[2]"
             style={{ top: -(bump + pad), left: 0, width: w, height: totalH }}
           >
-            {/* Базовий жовтий фон під всім баром (закриває щілини від скруглення) */}
-            <rect x="0" y={barTop} width={w} height={barH} rx={cr} fill="#facc15" />
-            {/* Жовті секції */}
+            {/* Жовті секції (без base rect — щілини прозорі, видно контент за ними) */}
             {yellowLeft && <path d={yellowLeft} fill="#facc15" />}
             {yellowRight && <path d={yellowRight} fill="#facc15" />}
             {/* Білий індикатор */}

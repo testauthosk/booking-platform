@@ -70,7 +70,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         </div>
         
         {/* Main content */}
-        <main className="flex-1 overflow-auto overscroll-none pb-[100px] lg:pb-0">
+        <main className="flex-1 overflow-auto overscroll-none lg:pb-0">
           {children}
         </main>
       </div>
