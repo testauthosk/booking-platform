@@ -210,7 +210,17 @@ export function DayPilotResourceCalendar({
     }
   }, []);
 
+  // Чи дата в минулому (не дозволяємо drag)
+  const isPastDate = useCallback(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selected = new Date(internalDate);
+    selected.setHours(0, 0, 0, 0);
+    return selected < today;
+  }, [internalDate]);
+
   const startDrag = useCallback((event: CalendarEvent, mode: InteractionMode, clientX: number, clientY: number) => {
+    if (isPastDate()) return; // Заборона drag на минулих датах
     didDrag.current = true;
     if (navigator.vibrate) { try { navigator.vibrate(50); } catch {} }
     lockScroll();
@@ -241,7 +251,7 @@ export function DayPilotResourceCalendar({
 
     dragRef.current = state;
     setDragRender({ ...state });
-  }, [getGridPosition, getEventMinutes, lockScroll]);
+  }, [getGridPosition, getEventMinutes, lockScroll, isPastDate]);
 
   const updateDrag = useCallback((clientX: number, clientY: number) => {
     const d = dragRef.current;
@@ -631,7 +641,7 @@ export function DayPilotResourceCalendar({
           }}
         >
           {/* Колонка часу - заголовок */}
-          <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 py-2 sticky left-0 bg-white/80 backdrop-blur-md z-20">
+          <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 py-2 sticky left-0 bg-white/50 backdrop-blur-lg z-20">
           </div>
           
           <div className="flex" style={{ minWidth: resources.length > 3 ? `${resources.length * 110}px` : '100%' }}>
@@ -668,9 +678,9 @@ export function DayPilotResourceCalendar({
           }}
         >
           {/* Сітка часу */}
-          <div ref={gridRef} className="relative flex select-none" style={{ minHeight: `${hours.length * 60}px`, WebkitUserSelect: 'none', userSelect: 'none' }}>
+          <div ref={gridRef} className="relative flex select-none" style={{ minHeight: `${hours.length * 60}px`, minWidth: resources.length > 3 ? `${40 + resources.length * 110}px` : '100%', WebkitUserSelect: 'none', userSelect: 'none' }}>
             {/* Колонка часу — sticky left */}
-            <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 sticky left-0 bg-white/80 backdrop-blur-md z-20">
+            <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 sticky left-0 bg-white/50 backdrop-blur-lg z-20">
               {hours.map(hour => (
                 <div
                   key={hour}
@@ -808,10 +818,10 @@ export function DayPilotResourceCalendar({
 
             return (
               <>
-                {/* Start line — z-[25] поверх sticky time column (z-20) */}
+                {/* Start line — z-[25] поверх sticky time column (z-20), width = 100% gridRef */}
                 <div
                   className="absolute pointer-events-none z-[25]"
-                  style={{ top: `${topPercent}%`, left: 0, right: 0 }}
+                  style={{ top: `${topPercent}%`, left: 0, width: resources.length > 3 ? `${40 + resources.length * 110}px` : '100%' }}
                 >
                   <div className="absolute left-0 right-0 h-[2px] bg-black/50" />
                   <div
@@ -826,7 +836,7 @@ export function DayPilotResourceCalendar({
                 {showEndLine && (
                   <div
                     className="absolute pointer-events-none z-[25]"
-                    style={{ top: `${endTopPercent}%`, left: 0, right: 0 }}
+                    style={{ top: `${endTopPercent}%`, left: 0, width: resources.length > 3 ? `${40 + resources.length * 110}px` : '100%' }}
                   >
                     <div className="absolute left-0 right-0 h-[2px] bg-black/50" />
                     <div
