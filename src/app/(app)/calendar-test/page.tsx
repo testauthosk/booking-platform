@@ -189,7 +189,7 @@ export default function CalendarTestPage() {
   };
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-gray-50">
+    <div className="h-full flex flex-col bg-gray-50">
       {/* Header — only on mobile */}
       <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
         <button className="w-10 h-10 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50">

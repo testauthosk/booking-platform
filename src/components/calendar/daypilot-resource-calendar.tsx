@@ -313,7 +313,7 @@ export function DayPilotResourceCalendar({
         </div>
         
         {/* Кінець робочого дня - надпис */}
-        <div className="flex items-center justify-center py-4 pb-20 lg:pb-4 text-gray-400">
+        <div className="flex items-center justify-center py-3 mb-12 lg:mb-0 text-gray-400">
           <span className="text-sm">Робота закінчилась, час додому ❤️</span>
         </div>
       </div>{/* end scroll container */}
