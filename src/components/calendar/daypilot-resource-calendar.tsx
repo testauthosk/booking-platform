@@ -493,7 +493,7 @@ export function DayPilotResourceCalendar({
               {/* Білий індикатор */}
               <path d={whitePath} fill="white" />
               {/* Обводка */}
-              <path d={contour} fill="none" stroke="black" strokeWidth="1" />
+              <path d={contour} fill="none" stroke="black" strokeWidth="1.5" strokeLinejoin="round" />
             </svg>
           );
         })()}
