@@ -24,6 +24,7 @@ export function MobileNav() {
   const pathname = usePathname();
   const navRef = useRef<HTMLDivElement>(null);
   const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
+  const [animReady, setAnimReady] = useState(false);
 
   const activeIdx = navItems.findIndex(
     item => pathname === item.href || pathname.startsWith(item.href + '/')
@@ -35,9 +36,17 @@ export function MobileNav() {
     const update = () => {
       const nav = navRef.current;
       if (!nav) return;
-      const btn = nav.children[activeIdx] as HTMLElement;
+      // Шукаємо тільки <a> елементи, пропускаючи індикатор-div
+      const links = nav.querySelectorAll('a');
+      const btn = links[activeIdx] as HTMLElement;
       if (btn) {
-        setIndicator({ left: btn.offsetLeft + btn.offsetWidth / 2 - 24, width: 48 });
+        const size = 48;
+        setIndicator({
+          left: btn.offsetLeft + btn.offsetWidth / 2 - size / 2,
+          width: size,
+        });
+        // Дозволяємо анімацію після першого рендеру
+        requestAnimationFrame(() => setAnimReady(true));
       }
     };
 
@@ -53,7 +62,10 @@ export function MobileNav() {
         {/* Чорний плаваючий індикатор */}
         {indicator && activeIdx >= 0 && (
           <div
-            className="absolute h-12 rounded-2xl bg-foreground transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] pointer-events-none z-0"
+            className={cn(
+              "absolute h-12 rounded-2xl bg-foreground pointer-events-none z-0",
+              animReady && "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+            )}
             style={{
               left: indicator.left,
               width: indicator.width,
