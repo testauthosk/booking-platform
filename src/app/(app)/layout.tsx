@@ -66,7 +66,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         </div>
         
         {/* Main content with bottom padding for mobile nav */}
-        <main className="flex-1 overflow-auto overscroll-none pb-[100px] lg:pb-0 bg-gray-50">
+        <main className="flex-1 overflow-auto overscroll-none pb-[100px] lg:pb-0">
           {children}
         </main>
       </div>
