@@ -316,32 +316,20 @@ export function DayPilotResourceCalendar({
       </div>{/* end scroll container */}
 
       {/* Навігація по тижню - жовта полоса над MobileNav */}
-      <div className="lg:hidden fixed bottom-16 left-2 right-2 z-40 bg-yellow-400 h-[32px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none rounded-t-2xl">
-        <div className="relative flex items-center justify-around w-full h-[28px] px-[12px] touch-none overflow-visible">
+      <div className="lg:hidden fixed bottom-16 left-1 right-1 z-40 bg-yellow-400 h-[32px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none rounded-t-2xl">
+        <div className="relative flex items-center justify-around w-full h-[28px] px-[4px] touch-none overflow-visible">
           {/* Плаваючий індикатор — виглядає вище жовтої полоси */}
           {(() => {
             const selectedIdx = weekDays.findIndex(d => isSelected(d));
             const isFirst = selectedIdx === 0;
             const isLast = selectedIdx === 6;
-            const baseWidth = 'calc((100% - 24px) / 7)';
-            
-            // На крайніх позиціях розширюємо до краю
-            let width = baseWidth;
-            let left = `calc(12px + ${selectedIdx} * ((100% - 24px) / 7))`;
-            
-            if (isFirst) {
-              width = 'calc((100% - 24px) / 7 + 12px)';
-              left = '0px';
-            } else if (isLast) {
-              width = 'calc((100% - 24px) / 7 + 12px)';
-            }
             
             return (
               <div 
                 className="absolute bg-white transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
                 style={{
-                  width,
-                  left,
+                  width: 'calc((100% - 8px) / 7)',
+                  left: `calc(4px + ${selectedIdx} * ((100% - 8px) / 7))`,
                   top: '-7px',
                   bottom: '0px',
                   borderTopLeftRadius: isFirst ? '16px' : '16px',
