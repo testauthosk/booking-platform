@@ -706,7 +706,7 @@ export function DayPilotResourceCalendar({
                 const previewColor = r.color || '#666';
                 return (
                   <div
-                    className="absolute left-0 right-0.5 rounded-r-lg z-[1] pointer-events-none overflow-hidden"
+                    className="absolute left-0 right-0.5 rounded-r-lg z-[1] pointer-events-none overflow-hidden transition-all duration-100 ease-out"
                     style={{
                       top: `${top}%`,
                       height: `${height}%`,
@@ -734,8 +734,8 @@ export function DayPilotResourceCalendar({
                   return (
                     <div
                       key={event.id}
-                      className={`absolute left-0 right-0.5 rounded-r-lg overflow-hidden select-none ${
-                        isBeingDragged ? 'opacity-30 scale-95 transition-all' : 'cursor-grab active:scale-[0.98] transition-all'
+                      className={`absolute left-0 right-0.5 rounded-r-lg overflow-hidden select-none transition-all duration-300 ease-out ${
+                        isBeingDragged ? 'opacity-30 scale-95' : 'cursor-grab active:scale-[0.98]'
                       }`}
                       style={{
                         top: `${pos.top}%`,
@@ -803,17 +803,15 @@ export function DayPilotResourceCalendar({
 
             return (
               <>
-                {/* Start line */}
+                {/* Start line — z-[15] щоб перекрити sticky time column (z-10) */}
                 <div
-                  className="absolute left-0 right-0 pointer-events-none z-[5]"
-                  style={{ top: `${topPercent}%` }}
+                  className="absolute pointer-events-none z-[15]"
+                  style={{ top: `${topPercent}%`, left: '-40px', right: 0 }}
                 >
-                  {/* Full-width line */}
-                  <div className="absolute left-0 right-0 h-[2px] bg-black/40" />
-                  {/* Time badge in time column (sticky left) */}
+                  <div className="absolute left-0 right-0 h-[2px] bg-black/50" />
                   <div
-                    className="absolute bg-black text-white rounded px-1 py-px text-[9px] font-bold leading-tight whitespace-nowrap z-[11]"
-                    style={{ left: 0, top: '-8px' }}
+                    className="absolute bg-black text-white rounded px-1.5 py-0.5 text-[9px] font-bold leading-tight whitespace-nowrap"
+                    style={{ left: 0, top: '-10px' }}
                   >
                     {formatMinutes(dragRender.targetStartMin)}
                   </div>
@@ -822,13 +820,13 @@ export function DayPilotResourceCalendar({
                 {/* End line (only for resize-bottom) */}
                 {showEndLine && (
                   <div
-                    className="absolute left-0 right-0 pointer-events-none z-[5]"
-                    style={{ top: `${endTopPercent}%` }}
+                    className="absolute pointer-events-none z-[15]"
+                    style={{ top: `${endTopPercent}%`, left: '-40px', right: 0 }}
                   >
-                    <div className="absolute left-0 right-0 h-[2px] bg-black/40" />
+                    <div className="absolute left-0 right-0 h-[2px] bg-black/50" />
                     <div
-                      className="absolute bg-black text-white rounded px-1 py-px text-[9px] font-bold leading-tight whitespace-nowrap z-[11]"
-                      style={{ left: 0, top: '-8px' }}
+                      className="absolute bg-black text-white rounded px-1.5 py-0.5 text-[9px] font-bold leading-tight whitespace-nowrap"
+                      style={{ left: 0, top: '-10px' }}
                     >
                       {formatMinutes(dragRender.targetEndMin)}
                     </div>
@@ -858,10 +856,10 @@ export function DayPilotResourceCalendar({
           <>
             {/* Карточка — ВИЩЕ пальця */}
             <div
-              className="fixed z-[90] pointer-events-none select-none"
+              className="fixed z-[90] pointer-events-none select-none transition-[left,bottom] duration-75 ease-out"
               style={{
                 left: dragRender.ghostX - 70,
-                bottom: `calc(100vh - ${dragRender.ghostY}px + 12px)`,
+                bottom: `calc(100vh - ${dragRender.ghostY}px + 22px)`,
               }}
             >
               <div
@@ -885,10 +883,10 @@ export function DayPilotResourceCalendar({
 
             {/* Подпись мастера / resize — НИЖЕ пальця */}
             <div
-              className="fixed z-[90] pointer-events-none select-none"
+              className="fixed z-[90] pointer-events-none select-none transition-[left,top] duration-75 ease-out"
               style={{
                 left: dragRender.ghostX - 70,
-                top: dragRender.ghostY + 14,
+                top: dragRender.ghostY + 44,
               }}
             >
               {dragRender.mode === 'move' && (
