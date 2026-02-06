@@ -9,6 +9,8 @@ interface WeekBarProps {
   onDateChange: (date: Date) => void;
   /** bottom offset in px (default 68 — above MobileNav) */
   bottomOffset?: number;
+  /** whether the bar is visible (animates in/out) */
+  visible?: boolean;
 }
 
 function getWeekDays(date: Date) {
@@ -25,7 +27,7 @@ function getWeekDays(date: Date) {
   return days;
 }
 
-export function WeekBar({ selectedDate, onDateChange, bottomOffset = 68 }: WeekBarProps) {
+export function WeekBar({ selectedDate, onDateChange, bottomOffset = 68, visible = true }: WeekBarProps) {
   const weekBarRef = useRef<HTMLDivElement>(null);
   const [weekBarWidth, setWeekBarWidth] = useState(0);
   const [mounted, setMounted] = useState(false);
@@ -88,8 +90,12 @@ export function WeekBar({ selectedDate, onDateChange, bottomOffset = 68 }: WeekB
   return (
     <div
       ref={weekBarRef}
-      className="lg:hidden fixed left-[23px] right-[23px] z-40 h-[32px] flex items-end touch-none select-none overflow-visible"
-      style={{ bottom: bottomOffset, background: 'transparent' }}
+      className="lg:hidden fixed left-[23px] right-[23px] z-40 h-[32px] flex items-end touch-none select-none overflow-visible transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+      style={{
+        bottom: bottomOffset,
+        background: 'transparent',
+        transform: visible ? 'translateY(0)' : 'translateY(calc(100% + 8px))',
+      }}
     >
       {/* Єдиний SVG: жовтий фон + білий індикатор + обводка */}
       {weekBarWidth > 0 && (() => {

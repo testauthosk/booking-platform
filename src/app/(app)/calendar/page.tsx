@@ -17,6 +17,7 @@ import type { BookingEvent, Resource } from '@/components/calendar/custom-calend
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useCalendarSettings } from '@/lib/calendar-settings-context';
+import { useCalendarDate } from '@/lib/calendar-date-context';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Dynamic import — DayPilot потребує window
@@ -95,7 +96,7 @@ export default function CalendarPage() {
   const [masters, setMasters] = useState<Master[]>([]);
   const [loadingMasters, setLoadingMasters] = useState(true);
   const [rawBookings, setRawBookings] = useState<BookingFromAPI[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const { selectedDate, setSelectedDate } = useCalendarDate();
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [salonTimezone, setSalonTimezone] = useState<string>('Europe/Kiev');
   const [services, setServices] = useState<{ id: string; name: string; duration: number; price: number }[]>([]);

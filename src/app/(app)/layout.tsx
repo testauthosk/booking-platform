@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Sidebar } from '@/components/sidebar';
 import { Header } from '@/components/header';
 import { MobileNav } from '@/components/mobile-nav';
+import { WeekBar } from '@/components/calendar/week-bar';
 import { SidebarProvider, useSidebar } from '@/components/sidebar-context';
 import { CalendarSettingsProvider } from '@/lib/calendar-settings-context';
+import { CalendarDateProvider, useCalendarDate } from '@/lib/calendar-date-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
@@ -15,6 +17,10 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const { isOpen, close } = useSidebar();
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const { selectedDate, setSelectedDate } = useCalendarDate();
+
+  const isCalendar = pathname === '/calendar' || pathname.startsWith('/calendar/') || pathname === '/calendar-test';
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -23,7 +29,6 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
     }
   }, [loading, user, router]);
 
-  // Show loading while checking auth
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
@@ -32,14 +37,13 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Don't render if not authenticated
   if (!user) {
     return null;
   }
 
   return (
     <div className="h-screen flex overflow-hidden overscroll-none">
-      {/* Mobile overlay - frosted glass fade */}
+      {/* Mobile overlay */}
       <div
         className={cn(
           "fixed inset-0 bg-white/20 backdrop-blur-sm z-40 lg:hidden",
@@ -49,7 +53,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         onClick={close}
       />
       
-      {/* Desktop sidebar only */}
+      {/* Desktop sidebar */}
       <div className="hidden lg:block">
         <Sidebar isOpen={true} onClose={() => {}} />
       </div>
@@ -60,19 +64,31 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       </div>
       
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Desktop header only */}
+        {/* Desktop header */}
         <div className="hidden lg:block sticky top-0 z-30">
           <Header />
         </div>
         
-        {/* Main content with bottom padding for mobile nav */}
+        {/* Main content */}
         <main className="flex-1 overflow-auto overscroll-none pb-[100px] lg:pb-0">
           {children}
         </main>
       </div>
 
+      {/* Week Bar — завжди рендериться, анімується показ/приховування */}
+      <WeekBar
+        selectedDate={selectedDate}
+        onDateChange={(date) => {
+          setSelectedDate(date);
+          if (!isCalendar) {
+            router.push('/calendar');
+          }
+        }}
+        visible={isCalendar}
+      />
+
       {/* Mobile bottom navigation */}
-      <MobileNav />
+      <MobileNav isCalendar={isCalendar} />
     </div>
   );
 }
@@ -88,7 +104,9 @@ export default function AppLayout({
   return (
     <SidebarProvider>
       <CalendarSettingsProvider salonId={salonId}>
-        <AppLayoutInner>{children}</AppLayoutInner>
+        <CalendarDateProvider>
+          <AppLayoutInner>{children}</AppLayoutInner>
+        </CalendarDateProvider>
       </CalendarSettingsProvider>
     </SidebarProvider>
   );

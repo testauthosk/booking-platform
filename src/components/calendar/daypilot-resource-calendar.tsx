@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, X, Phone, MessageCircle, User, Clock, Scissors } from 'lucide-react';
 
 export interface CalendarEvent {
@@ -69,13 +69,7 @@ export function DayPilotResourceCalendar({
   const [mounted, setMounted] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [weekBarWidth, setWeekBarWidth] = useState(0);
-  const weekBarRef = useRef<HTMLDivElement>(null);
-  
-  // Анімована позиція індикатора (дробове число 0-6)
-  const [animatedPos, setAnimatedPos] = useState(-1);
-  const animFrameRef = useRef<number>(0);
-  const prevPosRef = useRef<number>(-1);
+  // Week bar видалено — тепер рендериться в layout.tsx
 
   // Відкрити модалку з деталями запису
   const openEventModal = (event: CalendarEvent) => {
@@ -102,19 +96,7 @@ export function DayPilotResourceCalendar({
     setInternalDate(startDate);
   }, [startDate]);
 
-  // Вимірюємо ширину жовтої полоси
-  useEffect(() => {
-    if (weekBarRef.current) {
-      setWeekBarWidth(weekBarRef.current.offsetWidth);
-      const resizeObserver = new ResizeObserver(() => {
-        if (weekBarRef.current) {
-          setWeekBarWidth(weekBarRef.current.offsetWidth);
-        }
-      });
-      resizeObserver.observe(weekBarRef.current);
-      return () => resizeObserver.disconnect();
-    }
-  }, [mounted]);
+  // weekBar resize observer видалено — тепер в layout
 
   // Генеруємо години для сітки
   const hours: number[] = [];
@@ -146,43 +128,7 @@ export function DayPilotResourceCalendar({
   const isSelected = (date: Date) => date.toDateString() === internalDate.toDateString();
   const isWeekend = (date: Date) => date.getDay() === 0 || date.getDay() === 6;
 
-  // Поточний selectedIdx
-  const selectedIdx = weekDays.findIndex(d => isSelected(d));
-  
-  // Анімація позиції індикатора через requestAnimationFrame
-  useEffect(() => {
-    if (animatedPos < 0) {
-      // Перший рендер — без анімації
-      setAnimatedPos(selectedIdx);
-      prevPosRef.current = selectedIdx;
-      return;
-    }
-    
-    if (selectedIdx === prevPosRef.current) return;
-    
-    const from = prevPosRef.current;
-    const to = selectedIdx;
-    prevPosRef.current = to;
-    const startTime = performance.now();
-    const duration = 280; // ms
-    
-    // ease-out cubic
-    const ease = (t: number) => 1 - Math.pow(1 - t, 3);
-    
-    const animate = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = ease(progress);
-      setAnimatedPos(from + (to - from) * eased);
-      if (progress < 1) {
-        animFrameRef.current = requestAnimationFrame(animate);
-      }
-    };
-    
-    cancelAnimationFrame(animFrameRef.current);
-    animFrameRef.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animFrameRef.current);
-  }, [selectedIdx]); // eslint-disable-line react-hooks/exhaustive-deps
+  // selectedIdx та анімація видалені — тепер в WeekBar (layout)
 
   const handleDateSelect = (date: Date) => {
     setInternalDate(date);
@@ -391,139 +337,7 @@ export function DayPilotResourceCalendar({
       </div>{/* end scroll container */}
       </div>{/* end horizontal scroll wrapper */}
 
-      {/* Навігація по тижню - жовта полоса над MobileNav */}
-      <div 
-        ref={weekBarRef}
-        className="lg:hidden fixed bottom-[68px] left-[23px] right-[23px] z-40 h-[32px] flex items-end touch-none select-none overflow-visible"
-        style={{ background: 'transparent' }}
-      >
-        {/* Єдиний SVG: жовтий фон + білий індикатор + чорна обводка — все синхронно */}
-        {weekBarWidth > 0 && (() => {
-          const pos = animatedPos >= 0 ? animatedPos : selectedIdx;
-          const w = weekBarWidth;
-          const barH = 32;
-          const bump = 7;
-          const cr = 16;
-          const curve = 12;
-          const cellW = w / 7;
-          const indL = pos * cellW;
-          const indR = indL + cellW;
-          const pad = 1; // padding зверху щоб stroke не обрізався
-          const topY = pad;
-          const barTop = bump + pad;
-          const totalH = bump + barH + pad;
-          const sx = 0.5;
-          
-          // Клампимо для крайніх позицій
-          const safeIndL = Math.max(0, indL);
-          const safeIndR = Math.min(w, indR);
-          
-          // --- Жовтий фон (дві частини: ліворуч і праворуч від індикатора) ---
-          const yellowLeft = safeIndL > 0 ? `
-            M 0 ${totalH}
-            L 0 ${barTop + cr}
-            Q 0 ${barTop} ${Math.min(cr, safeIndL)} ${barTop}
-            L ${safeIndL} ${barTop}
-            L ${safeIndL} ${totalH}
-            Z
-          ` : '';
-          
-          const yellowRight = safeIndR < w ? `
-            M ${safeIndR} ${totalH}
-            L ${safeIndR} ${barTop}
-            L ${Math.max(safeIndR, w - cr)} ${barTop}
-            Q ${w} ${barTop} ${w} ${barTop + cr}
-            L ${w} ${totalH}
-            Z
-          ` : '';
-          
-          // --- Білий індикатор ---
-          const whitePath = `
-            M ${safeIndL} ${totalH}
-            L ${safeIndL} ${barTop}
-            C ${safeIndL} ${barTop} ${safeIndL} ${topY} ${safeIndL + curve} ${topY}
-            L ${safeIndR - curve} ${topY}
-            C ${safeIndR} ${topY} ${safeIndR} ${barTop} ${safeIndR} ${barTop}
-            L ${safeIndR} ${totalH}
-            Z
-          `;
-          
-          // --- Обводка (єдина лінія) ---
-          const leftEnd = sx + cr;
-          const rightStart = w - cr - sx;
-          
-          let contour = '';
-          
-          // Ліва частина: стінка → кут → горизонталь → підйом індикатора
-          if (safeIndL > leftEnd) {
-            // Звичайний: Q-кут + горизонталь + C-крива підйому
-            contour = `M ${sx} ${totalH} L ${sx} ${barTop + cr} Q ${sx} ${barTop} ${leftEnd} ${barTop} L ${safeIndL} ${barTop}`;
-            contour += ` C ${safeIndL} ${barTop} ${safeIndL} ${topY} ${safeIndL + curve} ${topY}`;
-          } else {
-            // Край: стінка плавно переходить в індикатор однією C-кривою
-            contour = `M ${sx} ${totalH} L ${sx} ${barTop + curve}`;
-            contour += ` C ${sx} ${barTop} ${safeIndL} ${topY} ${safeIndL + curve} ${topY}`;
-          }
-          
-          // Верх індикатора
-          contour += ` L ${safeIndR - curve} ${topY}`;
-          
-          // Права частина: спуск індикатора → горизонталь → кут → стінка
-          if (safeIndR < rightStart) {
-            // Звичайний: C-крива спуску + горизонталь + Q-кут
-            contour += ` C ${safeIndR} ${topY} ${safeIndR} ${barTop} ${safeIndR} ${barTop}`;
-            contour += ` L ${rightStart} ${barTop} Q ${w - sx} ${barTop} ${w - sx} ${barTop + cr}`;
-          } else {
-            // Край: індикатор плавно переходить в стінку однією C-кривою
-            contour += ` C ${safeIndR} ${topY} ${w - sx} ${barTop} ${w - sx} ${barTop + curve}`;
-          }
-          
-          contour += ` L ${w - sx} ${totalH}`;
-          
-          return (
-            <svg 
-              className="absolute pointer-events-none z-[2]"
-              style={{ top: -(bump + pad), left: 0, width: w, height: totalH }}
-            >
-              {/* Жовтий фон */}
-              {yellowLeft && <path d={yellowLeft} fill="#facc15" />}
-              {yellowRight && <path d={yellowRight} fill="#facc15" />}
-              {/* Білий індикатор */}
-              <path d={whitePath} fill="white" />
-              {/* Обводка */}
-              <path d={contour} fill="none" stroke="black" strokeWidth="1" />
-            </svg>
-          );
-        })()}
-        
-        <div className="relative flex items-center justify-around w-full h-[28px] touch-none overflow-visible z-[3]">
-          {weekDays.map((day, idx) => {
-            const dayNum = day.getDate();
-            const dayName = ukDaysShort[day.getDay()];
-            const selected = isSelected(day);
-            const weekend = isWeekend(day);
-            
-            return (
-              <button
-                key={idx}
-                onClick={() => handleDateSelect(day)}
-                className="relative z-10 flex flex-col items-center justify-center flex-1 h-full"
-              >
-                <span className={`text-[9px] font-medium leading-none transition-colors duration-300 ${
-                  selected ? 'text-gray-900' : weekend ? 'text-orange-600' : 'text-gray-600'
-                }`}>
-                  {dayName}
-                </span>
-                <span className={`text-[13px] font-bold leading-none mt-0.5 transition-colors duration-300 ${
-                  selected ? 'text-gray-900' : weekend ? 'text-orange-600' : 'text-gray-800'
-                }`}>
-                  {dayNum}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {/* Week bar тепер рендериться в layout.tsx */}
 
       {/* Модалка деталей запису */}
       <div 

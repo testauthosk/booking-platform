@@ -20,7 +20,11 @@ const navItems = [
   { href: '/dashboard', icon: LayoutGrid },
 ];
 
-export function MobileNav() {
+interface MobileNavProps {
+  isCalendar?: boolean;
+}
+
+export function MobileNav({ isCalendar = false }: MobileNavProps) {
   const pathname = usePathname();
   const navRef = useRef<HTMLDivElement>(null);
   const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
@@ -36,7 +40,6 @@ export function MobileNav() {
     const update = () => {
       const nav = navRef.current;
       if (!nav) return;
-      // Шукаємо тільки <a> елементи, пропускаючи індикатор-div
       const links = nav.querySelectorAll('a');
       const btn = links[activeIdx] as HTMLElement;
       if (btn) {
@@ -45,7 +48,6 @@ export function MobileNav() {
           left: btn.offsetLeft + btn.offsetWidth / 2 - size / 2,
           width: size,
         });
-        // Дозволяємо анімацію після першого рендеру
         requestAnimationFrame(() => setAnimReady(true));
       }
     };
@@ -57,7 +59,15 @@ export function MobileNav() {
   }, [activeIdx]);
 
   return (
-    <nav className="lg:hidden fixed bottom-1 left-[23px] right-[23px] z-50 bg-background rounded-b-2xl border border-black border-t-0">
+    <nav
+      className={cn(
+        "lg:hidden fixed bottom-1 left-[23px] right-[23px] z-50 bg-background border border-black",
+        "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+        isCalendar
+          ? "rounded-b-2xl rounded-t-none border-t-0"
+          : "rounded-2xl border-t"
+      )}
+    >
       <div ref={navRef} className="relative flex items-center justify-around h-16 px-2">
         {/* Чорний плаваючий індикатор */}
         {indicator && activeIdx >= 0 && (
