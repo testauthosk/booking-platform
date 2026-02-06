@@ -230,7 +230,7 @@ export function DayPilotResourceCalendar({
       {/* Скрол контейнер */}
       <div className="flex-1 overflow-auto">
         {/* Сітка часу */}
-        <div className="relative flex" style={{ minHeight: `${hours.length * 60}px` }}>
+        <div className="relative flex pt-2" style={{ minHeight: `${hours.length * 60}px` }}>
           {/* Колонка часу */}
           <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300">
             {hours.map(hour => (
