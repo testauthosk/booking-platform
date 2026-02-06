@@ -199,12 +199,9 @@ export function DayPilotResourceCalendar({
         
       {/* Заголовки ресурсів - поза скролом */}
       <div className="flex border-b border-gray-200 bg-white">
-        {/* Кнопка додавання */}
-        <div className="w-10 lg:w-14 flex-shrink-0 flex items-center justify-center border-r border-gray-300 py-2">
-            <button className="w-7 h-7 flex items-center justify-center text-yellow-500 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors">
-              <Plus className="w-5 h-5" strokeWidth={2.5} />
-            </button>
-          </div>
+        {/* Колонка часу - заголовок */}
+        <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 py-2">
+        </div>
           
           {resources.map((r, idx) => (
             <div
@@ -480,6 +477,17 @@ export function DayPilotResourceCalendar({
           );
         })()}
       </div>
+
+      {/* FAB - кнопка додавання запису */}
+      <button
+        onClick={() => {
+          // TODO: відкрити модалку створення запису
+          alert('Додати новий запис');
+        }}
+        className="fixed bottom-[120px] lg:bottom-6 right-4 w-14 h-14 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl shadow-lg flex items-center justify-center transition-all active:scale-95 z-50"
+      >
+        <Plus className="w-7 h-7" strokeWidth={2} />
+      </button>
     </div>
   );
 }
