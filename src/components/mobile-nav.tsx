@@ -24,7 +24,10 @@ export function MobileNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="lg:hidden fixed bottom-1 left-[23px] right-[23px] z-50 bg-background rounded-b-2xl border border-black border-t-0">
+    <>
+      {/* Фоновий шар для закриття білого фону по боках */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-gray-100 z-40" />
+      <nav className="lg:hidden fixed bottom-0 left-[23px] right-[23px] z-50 bg-background rounded-b-2xl border border-black border-t-0">
       <div className="flex items-center justify-around h-16 px-2">
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
@@ -68,5 +71,6 @@ export function MobileNav() {
         })}
       </div>
     </nav>
+    </>
   );
 }
