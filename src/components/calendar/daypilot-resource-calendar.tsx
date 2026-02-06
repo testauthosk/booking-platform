@@ -348,21 +348,22 @@ export function DayPilotResourceCalendar({
           const indL = selectedIdx * cellW;
           const indR = indL + cellW;
           
+          // Координати зміщені: 0 = верх індикатора, bump = верх меню, bump+h = низ меню
           const path = `
-            M 0 ${h}
-            L 0 ${r}
-            Q 0 0 ${r} 0
-            L ${indL - cr} 0
-            Q ${indL} 0 ${indL} ${-cr}
-            L ${indL} ${-bump + cr}
-            Q ${indL} ${-bump} ${indL + cr} ${-bump}
-            L ${indR - cr} ${-bump}
-            Q ${indR} ${-bump} ${indR} ${-bump + cr}
-            L ${indR} ${-cr}
-            Q ${indR} 0 ${indR + cr} 0
-            L ${w - r} 0
-            Q ${w} 0 ${w} ${r}
-            L ${w} ${h}
+            M 0 ${bump + h}
+            L 0 ${bump + r}
+            Q 0 ${bump} ${r} ${bump}
+            L ${indL - cr} ${bump}
+            Q ${indL} ${bump} ${indL} ${bump - cr}
+            L ${indL} ${cr}
+            Q ${indL} 0 ${indL + cr} 0
+            L ${indR - cr} 0
+            Q ${indR} 0 ${indR} ${cr}
+            L ${indR} ${bump - cr}
+            Q ${indR} ${bump} ${indR + cr} ${bump}
+            L ${w - r} ${bump}
+            Q ${w} ${bump} ${w} ${bump + r}
+            L ${w} ${bump + h}
           `;
           
           return (
