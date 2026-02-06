@@ -631,7 +631,7 @@ export function DayPilotResourceCalendar({
           }}
         >
           {/* Колонка часу - заголовок */}
-          <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 py-2 sticky left-0 bg-white z-10">
+          <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 py-2 sticky left-0 bg-white/80 backdrop-blur-md z-20">
           </div>
           
           <div className="flex" style={{ minWidth: resources.length > 3 ? `${resources.length * 110}px` : '100%' }}>
@@ -670,7 +670,7 @@ export function DayPilotResourceCalendar({
           {/* Сітка часу */}
           <div ref={gridRef} className="relative flex select-none" style={{ minHeight: `${hours.length * 60}px`, WebkitUserSelect: 'none', userSelect: 'none' }}>
             {/* Колонка часу — sticky left */}
-            <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 sticky left-0 bg-white z-10">
+            <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 sticky left-0 bg-white/80 backdrop-blur-md z-20">
               {hours.map(hour => (
                 <div
                   key={hour}
@@ -808,10 +808,10 @@ export function DayPilotResourceCalendar({
 
             return (
               <>
-                {/* Start line — z-[15] щоб перекрити sticky time column (z-10) */}
+                {/* Start line — z-[25] поверх sticky time column (z-20) */}
                 <div
-                  className="absolute pointer-events-none z-[15]"
-                  style={{ top: `${topPercent}%`, left: '-40px', right: 0 }}
+                  className="absolute pointer-events-none z-[25]"
+                  style={{ top: `${topPercent}%`, left: 0, right: 0 }}
                 >
                   <div className="absolute left-0 right-0 h-[2px] bg-black/50" />
                   <div
@@ -825,8 +825,8 @@ export function DayPilotResourceCalendar({
                 {/* End line (only for resize-bottom) */}
                 {showEndLine && (
                   <div
-                    className="absolute pointer-events-none z-[15]"
-                    style={{ top: `${endTopPercent}%`, left: '-40px', right: 0 }}
+                    className="absolute pointer-events-none z-[25]"
+                    style={{ top: `${endTopPercent}%`, left: 0, right: 0 }}
                   >
                     <div className="absolute left-0 right-0 h-[2px] bg-black/50" />
                     <div
@@ -842,8 +842,8 @@ export function DayPilotResourceCalendar({
           })()}
         </div>
         
-        {/* Кінець робочого дня - надпис (внутри скрола, з відступом під week bar) */}
-        <div className="flex items-center justify-center py-3 pb-28 lg:pb-4 text-gray-400">
+        {/* Кінець робочого дня */}
+        <div className="sticky left-0 flex items-center justify-center py-3 pb-6 lg:pb-4 text-gray-400" style={{ width: '100vw', maxWidth: '100%' }}>
           <span className="text-sm">Робота закінчилась, час додому ❤️</span>
         </div>
       </div>{/* end scroll container */}
