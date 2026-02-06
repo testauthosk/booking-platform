@@ -24,7 +24,7 @@ export function MobileNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background safe-area-bottom">
+    <nav className="lg:hidden fixed bottom-0 left-[23px] right-[23px] z-50 bg-background safe-area-bottom rounded-b-2xl">
       <div className="flex items-center justify-around h-16 px-2">
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
