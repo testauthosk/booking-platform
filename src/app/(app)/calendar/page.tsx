@@ -12,6 +12,7 @@ import { BlockTimeModal } from '@/components/calendar/block-time-modal';
 import { EditBookingModal } from '@/components/calendar/edit-booking-modal';
 import { ColleagueBookingModal } from '@/components/staff/colleague-booking-modal';
 import { CustomCalendar, type BookingEvent, type Resource, type SlotMenuAction, type TimeStep } from '@/components/calendar/custom-calendar';
+import { WeekBar } from '@/components/calendar/week-bar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useCalendarSettings } from '@/lib/calendar-settings-context';
@@ -459,8 +460,8 @@ export default function CalendarPage() {
         </div>
       </header>
 
-      {/* Date Navigation */}
-      <div className="flex items-center justify-between px-4 py-2 border-b bg-background shrink-0">
+      {/* Date Navigation — desktop only */}
+      <div className="hidden lg:flex items-center justify-between px-4 py-2 border-b bg-background shrink-0">
         {/* Left side: < Сьогодні > */}
         <div className="flex items-center gap-1">
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={goToPrevDay}>
@@ -508,6 +509,9 @@ export default function CalendarPage() {
         </Popover>
       </div>
 
+      {/* Mobile Week Bar — жовта полоса з індикатором */}
+      <WeekBar selectedDate={selectedDate} onDateChange={setSelectedDate} />
+
       {/* Calendar */}
       <div className="flex-1 overflow-hidden">
         <CustomCalendar
@@ -535,9 +539,9 @@ export default function CalendarPage() {
         />
       </div>
 
-      {/* Mobile FAB - Add booking */}
+      {/* Mobile FAB - Add booking (above week bar + MobileNav) */}
       <Button 
-        className="lg:hidden fixed right-4 bottom-24 w-14 h-14 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 z-30"
+        className="lg:hidden fixed right-2 bottom-[108px] w-14 h-14 rounded-2xl shadow-lg transition-transform hover:scale-105 active:scale-95 z-50"
         size="icon"
         onClick={handleFabClick}
       >
