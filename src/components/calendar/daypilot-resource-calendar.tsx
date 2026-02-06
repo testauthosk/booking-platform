@@ -114,12 +114,13 @@ export function DayPilotResourceCalendar({
   const didDrag = useRef(false);
   const autoScrollRef = useRef<number>(0);
 
-  // Інтерпольована позиція drop preview (плавна анімація через rAF)
+  // Drop preview — rAF інтерполяція (запускається один раз, читає з refs)
   const previewRef = useRef<HTMLDivElement>(null);
-  const previewTarget = useRef({ x: 0, y: 0, h: 0 });
+  const previewTarget = useRef({ x: 0, y: 0, h: 0, active: false });
   const previewCurrent = useRef({ x: 0, y: 0, h: 0 });
   const previewAnimRef = useRef<number>(0);
   const previewColorRef = useRef<string>('#666');
+  const previewInitRef = useRef(false);
 
   // Відкрити модалку з деталями запису
   const openEventModal = (event: CalendarEvent) => {
@@ -207,7 +208,7 @@ export function DayPilotResourceCalendar({
     document.body.style.overflow = savedBodyOverflow.current;
     const sc = scrollContainerRef.current;
     if (sc) {
-      const fn = ((sc as unknown) as Record<string, unknown>).__blockScroll;
+      const fn = ((sc as unknown) as Record<string, unknown>).__blockScroll as EventListener | undefined;
       if (fn) {
         sc.removeEventListener('touchmove', fn);
         delete ((sc as unknown) as Record<string, unknown>).__blockScroll;
@@ -225,6 +226,31 @@ export function DayPilotResourceCalendar({
     selected.setHours(0, 0, 0, 0);
     return selected < today;
   }, [internalDate]);
+
+  // Оновити preview target напряму (без React re-render)
+  const updatePreviewTarget = useCallback(() => {
+    const d = dragRef.current;
+    if (!d || d.phase !== 'dragging') {
+      previewTarget.current.active = false;
+      return;
+    }
+    const totalMinutes = (dayEndHour - dayStartHour) * 60;
+    const previewStartMin = d.targetStartMin - dayStartHour * 60;
+    const previewEndMin = d.targetEndMin - dayStartHour * 60;
+    const container = gridRef.current?.querySelector('[data-resources]') as HTMLElement;
+    if (!container) return;
+    const cW = container.offsetWidth;
+    const cH = container.offsetHeight;
+    const colIdx = resources.findIndex(r => r.id === d.targetResourceId);
+    
+    previewTarget.current = {
+      x: (colIdx / resources.length) * cW,
+      y: (previewStartMin / totalMinutes) * cH,
+      h: ((previewEndMin - previewStartMin) / totalMinutes) * cH,
+      active: true,
+    };
+    previewColorRef.current = resources[colIdx]?.color || '#666';
+  }, [resources, dayStartHour, dayEndHour]);
 
   const startDrag = useCallback((event: CalendarEvent, mode: InteractionMode, clientX: number, clientY: number) => {
     if (isPastDate()) return; // Заборона drag на минулих датах
@@ -257,10 +283,11 @@ export function DayPilotResourceCalendar({
     }
 
     dragRef.current = state;
-    // Скинути інтерполяцію preview
-    previewCurrent.current = { x: 0, y: 0, h: 0 };
+    // Скинути інтерполяцію preview і встановити initial target
+    previewInitRef.current = false;
+    updatePreviewTarget();
     setDragRender({ ...state });
-  }, [getGridPosition, getEventMinutes, lockScroll, isPastDate]);
+  }, [getGridPosition, getEventMinutes, lockScroll, isPastDate, updatePreviewTarget]);
 
   const updateDrag = useCallback((clientX: number, clientY: number) => {
     const d = dragRef.current;
@@ -279,15 +306,16 @@ export function DayPilotResourceCalendar({
       d.targetStartMin = pos.startMin;
       d.targetEndMin = pos.startMin + duration;
     } else if (d.mode === 'resize-top') {
-      // Верхній handle — змінюємо старт, але не далі ніж end - 15
       d.targetStartMin = Math.min(pos.startMin, d.targetEndMin - 15);
     } else if (d.mode === 'resize-bottom') {
-      // Нижній handle — змінюємо кінець, але не менше ніж start + 15
       d.targetEndMin = Math.max(pos.startMin + 15, d.targetStartMin + 15);
     }
 
+    // Оновити preview target напряму (без setState!)
+    updatePreviewTarget();
+
     setDragRender({ ...d });
-  }, [getGridPosition]);
+  }, [getGridPosition, updatePreviewTarget]);
 
   const endDrag = useCallback((commit: boolean) => {
     if (longPressTimer.current) {
@@ -315,6 +343,7 @@ export function DayPilotResourceCalendar({
     document.body.style.cursor = '';
     dragRef.current = null;
     pendingMouseEvent.current = null;
+    previewTarget.current.active = false;
     setDragRender(null);
   }, [internalDate, onEventMove, onEventResize, unlockScroll]);
 
@@ -514,76 +543,58 @@ export function DayPilotResourceCalendar({
   }, [dragRender]);
 
   // ============================================================
-  // Drop preview інтерполяція через requestAnimationFrame
+  // Drop preview — єдиний rAF loop (запускається один раз при mount)
+  // Читає previewTarget з ref, ніяких React dependencies
   // ============================================================
   useEffect(() => {
-    if (!dragRender || dragRender.phase !== 'dragging') {
-      if (previewAnimRef.current) {
-        cancelAnimationFrame(previewAnimRef.current);
-        previewAnimRef.current = 0;
-      }
-      // Скинути позицію
-      if (previewRef.current) previewRef.current.style.opacity = '0';
-      return;
-    }
-
-    // Оновити target позицію
-    const totalMinutes = (dayEndHour - dayStartHour) * 60;
-    const previewStartMin = dragRender.targetStartMin - dayStartHour * 60;
-    const previewEndMin = dragRender.targetEndMin - dayStartHour * 60;
-    const container = gridRef.current?.querySelector('[data-resources]') as HTMLElement;
-    if (!container) return;
-    const cW = container.offsetWidth;
-    const cH = container.offsetHeight;
-    const colIdx = resources.findIndex(r => r.id === dragRender.targetResourceId);
-    
-    previewTarget.current = {
-      x: (colIdx / resources.length) * cW,
-      y: (previewStartMin / totalMinutes) * cH,
-      h: ((previewEndMin - previewStartMin) / totalMinutes) * cH,
-    };
-    previewColorRef.current = resources[colIdx]?.color || '#666';
-
-    // Якщо перший кадр — встановити initial позицію
-    if (previewCurrent.current.x === 0 && previewCurrent.current.y === 0) {
-      previewCurrent.current = { ...previewTarget.current };
-    }
-
-    const lerpSpeed = 0.18; // 0-1: більше = швидше
+    const lerpSpeed = 0.18;
 
     const tick = () => {
-      const cur = previewCurrent.current;
       const tgt = previewTarget.current;
-      cur.x += (tgt.x - cur.x) * lerpSpeed;
-      cur.y += (tgt.y - cur.y) * lerpSpeed;
-      cur.h += (tgt.h - cur.h) * lerpSpeed;
-
-      // Застосовуємо напряму до DOM (обхід React для гладкості)
+      const cur = previewCurrent.current;
       const el = previewRef.current;
-      if (el) {
-        el.style.transform = `translate(${cur.x}px, ${cur.y}px)`;
-        el.style.height = `${Math.max(24, cur.h)}px`;
-        el.style.opacity = '1';
-        el.style.backgroundColor = `${previewColorRef.current}30`;
-        el.style.borderColor = previewColorRef.current;
-        const label = el.querySelector('.preview-time-label') as HTMLElement;
-        if (label) label.style.color = `${previewColorRef.current}cc`;
+
+      if (!el) {
+        previewAnimRef.current = requestAnimationFrame(tick);
+        return;
       }
+
+      if (!tgt.active) {
+        el.style.opacity = '0';
+        previewInitRef.current = false;
+        previewAnimRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      // Перший кадр — стрибнути на target без інтерполяції
+      if (!previewInitRef.current) {
+        cur.x = tgt.x;
+        cur.y = tgt.y;
+        cur.h = tgt.h;
+        previewInitRef.current = true;
+      } else {
+        cur.x += (tgt.x - cur.x) * lerpSpeed;
+        cur.y += (tgt.y - cur.y) * lerpSpeed;
+        cur.h += (tgt.h - cur.h) * lerpSpeed;
+      }
+
+      el.style.transform = `translate(${cur.x}px, ${cur.y}px)`;
+      el.style.height = `${Math.max(24, cur.h)}px`;
+      el.style.opacity = '1';
+      el.style.backgroundColor = `${previewColorRef.current}30`;
+      el.style.borderColor = previewColorRef.current;
+      const label = el.querySelector('.preview-time-label') as HTMLElement;
+      if (label) label.style.color = `${previewColorRef.current}cc`;
 
       previewAnimRef.current = requestAnimationFrame(tick);
     };
 
-    if (!previewAnimRef.current) {
-      previewAnimRef.current = requestAnimationFrame(tick);
-    }
+    previewAnimRef.current = requestAnimationFrame(tick);
 
     return () => {
-      if (previewAnimRef.current) {
-        cancelAnimationFrame(previewAnimRef.current);
-        previewAnimRef.current = 0;
-      }
+      if (previewAnimRef.current) cancelAnimationFrame(previewAnimRef.current);
     };
-  }, [dragRender, resources, dayStartHour, dayEndHour]);
+  }, []); // Пустий deps — запускається ОДИН раз, працює вічно
 
   // ============================================================
   // Event click/tap — тільки якщо не було drag
