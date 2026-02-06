@@ -334,31 +334,49 @@ export function DayPilotResourceCalendar({
       {/* Навігація по тижню - жовта полоса над MobileNav */}
       <div 
         ref={weekBarRef}
-        className="lg:hidden fixed bottom-[68px] left-[23px] right-[23px] z-40 bg-yellow-400 h-[32px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none rounded-t-2xl overflow-visible"
+        className="lg:hidden fixed bottom-[68px] left-[23px] right-[23px] z-40 h-[32px] flex items-end touch-none select-none overflow-visible"
+        style={{ background: 'transparent' }}
       >
-        {/* SVG обводка */}
+        {/* SVG фон з вирізом під індикатор */}
         {weekBarWidth > 0 && (() => {
           const selectedIdx = weekDays.findIndex(d => isSelected(d));
           const w = weekBarWidth;
           const h = 32;
-          const bump = 7;
-          const r = 16; // радіус кутів меню
-          const ir = 16; // радіус скруглення індикатора (rounded-t-2xl)
+          const bump = 10;
+          const r = 16; // радіус кутів меню (rounded-t-2xl = 16px)
+          const ir = 14; // радіус скруглення індикатора
           const cellW = w / 7;
           const indL = selectedIdx * cellW;
           const indR = indL + cellW;
           
-          // Координати: 0 = верх SVG (= верх індикатора), bump = верх меню
-          const path = `
+          // Замкнутий контур: жовтий фон з вирізом для індикатора
+          const fillPath = `
             M 0 ${bump + h}
             L 0 ${bump + r}
             Q 0 ${bump} ${r} ${bump}
             L ${indL} ${bump}
-            L ${indL} ${ir}
+            Q ${indL} ${bump} ${indL} ${bump - Math.min(ir, bump)}
             Q ${indL} 0 ${indL + ir} 0
             L ${indR - ir} 0
-            Q ${indR} 0 ${indR} ${ir}
-            L ${indR} ${bump}
+            Q ${indR} 0 ${indR} ${bump - Math.min(ir, bump)}
+            Q ${indR} ${bump} ${indR} ${bump}
+            L ${w - r} ${bump}
+            Q ${w} ${bump} ${w} ${bump + r}
+            L ${w} ${bump + h}
+            Z
+          `;
+          
+          // Обводка — повторює контур
+          const strokePath = `
+            M 0 ${bump + h}
+            L 0 ${bump + r}
+            Q 0 ${bump} ${r} ${bump}
+            L ${indL} ${bump}
+            Q ${indL} ${bump} ${indL} ${bump - Math.min(ir, bump)}
+            Q ${indL} 0 ${indL + ir} 0
+            L ${indR - ir} 0
+            Q ${indR} 0 ${indR} ${bump - Math.min(ir, bump)}
+            Q ${indR} ${bump} ${indR} ${bump}
             L ${w - r} ${bump}
             Q ${w} ${bump} ${w} ${bump + r}
             L ${w} ${bump + h}
@@ -369,11 +387,30 @@ export function DayPilotResourceCalendar({
               className="absolute pointer-events-none"
               style={{ top: -bump, left: 0, width: w, height: h + bump, overflow: 'visible' }}
             >
+              {/* Жовтий фон з вирізом */}
               <path
-                d={path}
+                d={fillPath}
+                fill="#facc15"
+                stroke="none"
+                className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+              />
+              {/* Обводка */}
+              <path
+                d={strokePath}
                 fill="none"
                 stroke="black"
                 strokeWidth="1"
+                className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+              />
+              {/* Білий індикатор */}
+              <rect
+                x={indL + 0.5}
+                y={0}
+                width={cellW - 1}
+                height={bump + h}
+                rx={ir}
+                ry={ir}
+                fill="white"
                 className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
               />
             </svg>
@@ -381,23 +418,6 @@ export function DayPilotResourceCalendar({
         })()}
         
         <div className="relative flex items-center justify-around w-full h-[28px] touch-none overflow-visible">
-          {/* Плаваючий індикатор */}
-          {(() => {
-            const selectedIdx = weekDays.findIndex(d => isSelected(d));
-            
-            return (
-              <div 
-                className="absolute bg-white rounded-t-2xl transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
-                style={{
-                  width: 'calc(100% / 7)',
-                  left: `calc(${selectedIdx} * 100% / 7)`,
-                  top: '-7px',
-                  bottom: '0px',
-                }}
-              />
-            );
-          })()}
-          
           {weekDays.map((day, idx) => {
             const dayNum = day.getDate();
             const dayName = ukDaysShort[day.getDay()];
