@@ -256,61 +256,76 @@ export function DayPilotResourceCalendar({
           })}
       </div>
         
-      {/* Заголовки ресурсів - поза скролом */}
-      <div className="flex border-b border-gray-200 bg-white">
-        {/* Колонка часу - заголовок */}
-        <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 py-2">
-        </div>
+      {/* Горизонтальний скрол-контейнер для заголовків + сітки */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Заголовки ресурсів — sticky top, горизонтальний скрол синхронний */}
+        <div className="flex border-b border-gray-200 bg-white shrink-0 overflow-x-auto scrollbar-hide" 
+          onScroll={(e) => {
+            const grid = e.currentTarget.nextElementSibling as HTMLElement;
+            if (grid) grid.scrollLeft = e.currentTarget.scrollLeft;
+          }}
+        >
+          {/* Колонка часу - заголовок */}
+          <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 py-2 sticky left-0 bg-white z-10">
+          </div>
           
-          {resources.map((r, idx) => (
-            <div
-              key={r.id}
-              className={`flex-1 min-w-0 py-2 text-center ${idx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
-            >
-              {r.avatar ? (
-                <img
-                  src={r.avatar}
-                  alt={r.name}
-                  className="w-9 h-9 mx-auto rounded-lg object-cover border-2 border-white shadow-sm"
-                />
-              ) : (
-                <div
-                  className="w-9 h-9 mx-auto rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-sm"
-                  style={{ backgroundColor: r.color || '#9ca3af' }}
-                >
-                  {r.name.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div className="text-[10px] font-medium text-gray-700 mt-1 truncate px-0.5">{r.name}</div>
-            </div>
-          ))}
-      </div>
-
-      {/* Скрол контейнер */}
-      <div className="flex-1 overflow-auto">
-        {/* Сітка часу */}
-        <div className="relative flex" style={{ minHeight: `${hours.length * 60}px` }}>
-          {/* Колонка часу */}
-          <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300">
-            {hours.map(hour => (
+          <div className="flex" style={{ minWidth: resources.length > 4 ? `${resources.length * 80}px` : '100%' }}>
+            {resources.map((r, idx) => (
               <div
-                key={hour}
-                className="h-[60px] flex items-start justify-end pr-1 pt-0"
+                key={r.id}
+                className={`flex-1 min-w-[80px] py-2 text-center ${idx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
               >
-                <span className="text-[9px] lg:text-xs text-gray-900 font-medium">
-                  {hour.toString().padStart(2, '0')}:00
-                </span>
+                {r.avatar ? (
+                  <img
+                    src={r.avatar}
+                    alt={r.name}
+                    className="w-9 h-9 mx-auto rounded-lg object-cover border-2 border-white shadow-sm"
+                  />
+                ) : (
+                  <div
+                    className="w-9 h-9 mx-auto rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-sm"
+                    style={{ backgroundColor: r.color || '#9ca3af' }}
+                  >
+                    {r.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="text-[10px] font-medium text-gray-700 mt-1 truncate px-0.5">{r.name}</div>
               </div>
             ))}
           </div>
+        </div>
 
-          {/* Колонки ресурсів */}
-          {resources.map((r, rIdx) => (
-            <div
-              key={r.id}
-              className={`flex-1 min-w-0 relative ${rIdx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
-              style={{ backgroundColor: `${r.color}18` }}
-            >
+        {/* Скрол контейнер (вертикальний + горизонтальний) */}
+        <div className="flex-1 overflow-auto"
+          onScroll={(e) => {
+            const headers = e.currentTarget.previousElementSibling as HTMLElement;
+            if (headers) headers.scrollLeft = e.currentTarget.scrollLeft;
+          }}
+        >
+          {/* Сітка часу */}
+          <div className="relative flex" style={{ minHeight: `${hours.length * 60}px` }}>
+            {/* Колонка часу — sticky left */}
+            <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 sticky left-0 bg-white z-10">
+              {hours.map(hour => (
+                <div
+                  key={hour}
+                  className="h-[60px] flex items-start justify-end pr-1 pt-0"
+                >
+                  <span className="text-[9px] lg:text-xs text-gray-900 font-medium">
+                    {hour.toString().padStart(2, '0')}:00
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Колонки ресурсів */}
+            <div className="flex" style={{ minWidth: resources.length > 4 ? `${resources.length * 80}px` : '100%' }}>
+            {resources.map((r, rIdx) => (
+              <div
+                key={r.id}
+                className={`flex-1 min-w-[80px] relative ${rIdx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
+                style={{ backgroundColor: `${r.color}18` }}
+              >
               {/* Лінії годин */}
               {hours.map(hour => (
                 <div key={hour} className="h-[60px] border-b border-gray-200" />
@@ -366,6 +381,7 @@ export function DayPilotResourceCalendar({
                 })}
             </div>
           ))}
+          </div>{/* end resource columns flex */}
         </div>
         
         {/* Кінець робочого дня - надпис */}
@@ -373,6 +389,7 @@ export function DayPilotResourceCalendar({
           <span className="text-sm">Робота закінчилась, час додому ❤️</span>
         </div>
       </div>{/* end scroll container */}
+      </div>{/* end horizontal scroll wrapper */}
 
       {/* Навігація по тижню - жовта полоса над MobileNav */}
       <div 
