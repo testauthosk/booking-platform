@@ -316,51 +316,7 @@ export function DayPilotResourceCalendar({
       </div>{/* end scroll container */}
 
       {/* Навігація по тижню - жовта полоса над MobileNav */}
-      <div className="lg:hidden fixed bottom-[68px] left-[23px] right-[23px] z-40 bg-yellow-400 h-[32px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none rounded-t-2xl">
-        {/* SVG обводка що обтікає індикатор */}
-        {(() => {
-          const selectedIdx = weekDays.findIndex(d => isSelected(d));
-          // Працюємо в координатах viewBox (width=700, height=39)
-          const vw = 700; // viewBox width
-          const vh = 39; // viewBox height (32 + 7)
-          const cellW = vw / 7; // ширина однієї комірки
-          const r = 11; // border-radius в координатах viewBox (16px ≈ 11 в масштабі)
-          const bump = 7; // висота виступу індикатора
-          const indL = selectedIdx * cellW; // лівий край індикатора
-          const indR = indL + cellW; // правий край індикатора
-          
-          return (
-            <svg 
-              className="absolute inset-0 overflow-visible pointer-events-none"
-              style={{ top: '-7px', left: 0, right: 0, height: '39px' }}
-              viewBox={`0 0 ${vw} ${vh}`}
-              preserveAspectRatio="none"
-            >
-              <path
-                className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-                fill="none"
-                stroke="black"
-                strokeWidth="2"
-                vectorEffect="non-scaling-stroke"
-                d={`
-                  M 0 ${vh}
-                  L 0 ${bump + r}
-                  Q 0 ${bump} ${r} ${bump}
-                  L ${indL} ${bump}
-                  L ${indL} ${r}
-                  Q ${indL} 0 ${indL + r} 0
-                  L ${indR - r} 0
-                  Q ${indR} 0 ${indR} ${r}
-                  L ${indR} ${bump}
-                  L ${vw - r} ${bump}
-                  Q ${vw} ${bump} ${vw} ${bump + r}
-                  L ${vw} ${vh}
-                `}
-              />
-            </svg>
-          );
-        })()}
-        
+      <div className="lg:hidden fixed bottom-[68px] left-[23px] right-[23px] z-40 bg-yellow-400 h-[32px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none rounded-t-2xl border border-black border-b-0">
         <div className="relative flex items-center justify-around w-full h-[28px] touch-none overflow-visible">
           {/* Плаваючий індикатор */}
           {(() => {
