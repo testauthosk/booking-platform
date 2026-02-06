@@ -317,7 +317,7 @@ export function DayPilotResourceCalendar({
 
       {/* Навігація по тижню - жовта полоса над MobileNav */}
       <div className="lg:hidden fixed bottom-[68px] left-[23px] right-[23px] z-40 bg-yellow-400 h-[32px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none rounded-t-2xl overflow-visible">
-        {/* Динамічна обводка - тільки верхня лінія з обтіканням індикатора */}
+        {/* Динамічна обводка жовтого меню */}
         {(() => {
           const selectedIdx = weekDays.findIndex(d => isSelected(d));
           const indicatorWidthPercent = 100 / 7;
@@ -325,13 +325,19 @@ export function DayPilotResourceCalendar({
           
           return (
             <>
+              {/* Ліва вертикальна лінія меню */}
+              <div className="absolute left-0 bottom-0 w-px bg-black" style={{ top: '16px' }} />
+              
+              {/* Права вертикальна лінія меню */}
+              <div className="absolute right-0 bottom-0 w-px bg-black" style={{ top: '16px' }} />
+              
               {/* Верхня ліва частина (від кута до індикатора) */}
               <div 
                 className="absolute h-px bg-black transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
                 style={{ 
                   top: 0,
                   left: '16px',
-                  width: `calc(${indicatorLeftPercent}% - 16px + 1px)`,
+                  width: `calc(${indicatorLeftPercent}% - 16px)`,
                 }}
               />
               
@@ -340,15 +346,15 @@ export function DayPilotResourceCalendar({
                 className="absolute h-px bg-black transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
                 style={{ 
                   top: 0,
-                  left: `calc(${indicatorLeftPercent + indicatorWidthPercent}% - 1px)`,
+                  left: `calc(${indicatorLeftPercent + indicatorWidthPercent}%)`,
                   right: '16px',
                 }}
               />
               
-              {/* Скруглений лівий кут */}
+              {/* Скруглений лівий кут (верх + ліво) */}
               <div className="absolute top-0 left-0 w-4 h-4 border-t border-l border-black rounded-tl-2xl" />
               
-              {/* Скруглений правий кут */}
+              {/* Скруглений правий кут (верх + право) */}
               <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-black rounded-tr-2xl" />
             </>
           );
@@ -361,7 +367,7 @@ export function DayPilotResourceCalendar({
             
             return (
               <div 
-                className="absolute bg-white rounded-t-2xl border border-black border-b-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
+                className="absolute bg-white rounded-t-2xl border-t border-black transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
                 style={{
                   width: 'calc(100% / 7)',
                   left: `calc(${selectedIdx} * 100% / 7)`,
