@@ -484,7 +484,7 @@ export function DayPilotResourceCalendar({
           // TODO: відкрити модалку створення запису
           alert('Додати новий запис');
         }}
-        className="fixed bottom-[100px] lg:bottom-4 right-2 w-14 h-14 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl shadow-lg flex items-center justify-center transition-all active:scale-95 z-50"
+        className="fixed bottom-[108px] lg:bottom-4 right-2 w-14 h-14 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl shadow-lg flex items-center justify-center transition-all active:scale-95 z-50"
       >
         <Plus className="w-7 h-7" strokeWidth={2} />
       </button>
