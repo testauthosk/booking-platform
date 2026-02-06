@@ -171,10 +171,10 @@ export function DayPilotResourceCalendar({
             </button>
           </div>
           
-          {resources.map(r => (
+          {resources.map((r, idx) => (
             <div
               key={r.id}
-              className="flex-1 min-w-0 py-1 text-center"
+              className={`flex-1 min-w-0 py-1 text-center ${idx < resources.length - 1 ? 'border-r border-gray-200' : ''}`}
             >
               {r.avatar ? (
                 <img
@@ -196,7 +196,7 @@ export function DayPilotResourceCalendar({
         </div>
 
         {/* Сітка часу */}
-        <div className="relative flex" style={{ minHeight: `${hours.length * 60}px` }}>
+        <div className="relative flex pt-2" style={{ minHeight: `${hours.length * 60}px` }}>
           {/* Колонка часу */}
           <div className="w-10 flex-shrink-0">
             {hours.map(hour => (
@@ -204,7 +204,7 @@ export function DayPilotResourceCalendar({
                 key={hour}
                 className="h-[60px] flex items-start justify-end pr-1 pt-0"
               >
-                <span className="text-[9px] text-gray-400 font-medium -mt-1.5">
+                <span className="text-[9px] text-gray-900 font-medium -mt-1.5">
                   {hour.toString().padStart(2, '0')}:00
                 </span>
               </div>
@@ -220,7 +220,7 @@ export function DayPilotResourceCalendar({
             >
               {/* Лінії годин */}
               {hours.map(hour => (
-                <div key={hour} className="h-[60px] border-b border-gray-100" />
+                <div key={hour} className="h-[60px] border-b border-gray-200" />
               ))}
 
               {/* Події */}
@@ -233,7 +233,7 @@ export function DayPilotResourceCalendar({
                   return (
                     <div
                       key={event.id}
-                      className="absolute left-0.5 right-0.5 rounded-lg cursor-pointer overflow-hidden transition-all active:scale-[0.98]"
+                      className="absolute left-0.5 right-0.5 rounded-r-lg cursor-pointer overflow-hidden transition-all active:scale-[0.98]"
                       style={{
                         top: `${pos.top}%`,
                         height: `${pos.height}%`,
