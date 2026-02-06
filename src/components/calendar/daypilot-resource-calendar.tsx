@@ -172,6 +172,15 @@ export function DayPilotResourceCalendar({
     // Заборонити скрол body
     savedBodyOverflow.current = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    // Блокуємо скрол на scroll container через passive: false listener
+    const sc = scrollContainerRef.current;
+    if (sc) {
+      const blockScroll = (ev: TouchEvent) => { ev.preventDefault(); };
+      sc.addEventListener('touchmove', blockScroll, { passive: false });
+      (sc as any).__blockScroll = blockScroll;
+      sc.style.overflowY = 'hidden';
+      sc.style.overflowX = 'hidden';
+    }
     // Cursor
     document.body.style.cursor = 'grabbing';
 
@@ -219,6 +228,17 @@ export function DayPilotResourceCalendar({
 
     // Restore
     document.body.style.overflow = savedBodyOverflow.current;
+    // Розблокуємо скрол на scroll container
+    const sc = scrollContainerRef.current;
+    if (sc) {
+      const blockScroll = (sc as any).__blockScroll;
+      if (blockScroll) {
+        sc.removeEventListener('touchmove', blockScroll);
+        delete (sc as any).__blockScroll;
+      }
+      sc.style.overflowY = '';
+      sc.style.overflowX = '';
+    }
     document.body.style.cursor = '';
     dragRef.current = null;
     pendingMouseEvent.current = null;
@@ -242,39 +262,54 @@ export function DayPilotResourceCalendar({
     }, LONG_PRESS_MS);
   }, [startDrag]);
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    const dx = Math.abs(touch.clientX - touchStartPos.current.x);
-    const dy = Math.abs(touch.clientY - touchStartPos.current.y);
-
-    // Якщо ще не drag — перевіряємо чи рухнулись (скасовуємо long press)
-    if (!dragRef.current || dragRef.current.phase !== 'dragging') {
-      if (dx > TOUCH_MOVE_THRESHOLD || dy > TOUCH_MOVE_THRESHOLD) {
+  // Touch move обробляється через native listener (passive: false)
+  // щоб preventDefault() працював і блокував скрол
+  useEffect(() => {
+    const handler = (e: TouchEvent) => {
+      if (!dragRef.current || dragRef.current.phase !== 'dragging') {
+        // Перевіряємо long press threshold
         if (longPressTimer.current) {
-          clearTimeout(longPressTimer.current);
-          longPressTimer.current = null;
+          const touch = e.touches[0];
+          const dx = Math.abs(touch.clientX - touchStartPos.current.x);
+          const dy = Math.abs(touch.clientY - touchStartPos.current.y);
+          if (dx > TOUCH_MOVE_THRESHOLD || dy > TOUCH_MOVE_THRESHOLD) {
+            clearTimeout(longPressTimer.current);
+            longPressTimer.current = null;
+          }
         }
+        return;
       }
-      return;
-    }
+      // Drag активний — блокуємо ВСЕ скроли
+      e.preventDefault();
+      e.stopPropagation();
+      const touch = e.touches[0];
+      updateDrag(touch.clientX, touch.clientY);
+    };
+    
+    const endHandler = () => {
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
+      }
+      if (dragRef.current && dragRef.current.phase === 'dragging') {
+        endDrag(true);
+      } else {
+        dragRef.current = null;
+        setDragRender(null);
+      }
+    };
+    
+    document.addEventListener('touchmove', handler, { passive: false });
+    document.addEventListener('touchend', endHandler);
+    document.addEventListener('touchcancel', endHandler);
+    return () => {
+      document.removeEventListener('touchmove', handler);
+      document.removeEventListener('touchend', endHandler);
+      document.removeEventListener('touchcancel', endHandler);
+    };
+  }, [updateDrag, endDrag]);
 
-    // Вже drag — preventDefault щоб не скролити, оновити позицію
-    e.preventDefault();
-    updateDrag(touch.clientX, touch.clientY);
-  }, [updateDrag]);
-
-  const handleTouchEnd = useCallback(() => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-    if (dragRef.current && dragRef.current.phase === 'dragging') {
-      endDrag(true);
-    } else {
-      dragRef.current = null;
-      setDragRender(null);
-    }
-  }, [endDrag]);
+  // handleTouchEnd тепер через document listener вище
 
   // ============================================================
   // Mouse handlers (desktop)
@@ -564,8 +599,6 @@ export function DayPilotResourceCalendar({
                       onClick={() => handleEventClick(event)}
                       onContextMenu={(e) => e.preventDefault()}
                       onTouchStart={(e) => handleTouchStart(event, e)}
-                      onTouchMove={handleTouchMove}
-                      onTouchEnd={handleTouchEnd}
                       onMouseDown={(e) => handleMouseDown(event, e)}
                     >
                       <div className="h-full p-1.5 text-white relative flex flex-col justify-center pointer-events-none">
