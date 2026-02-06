@@ -202,9 +202,9 @@ export function DayPilotResourceCalendar({
         </div>
         
         {/* Заголовки ресурсів */}
-        <div className="sticky top-0 z-10 flex border-b border-gray-200 bg-white py-1.5">
+        <div className="sticky top-0 z-10 flex border-b border-gray-200 bg-white">
           {/* Кнопка додавання */}
-          <div className="w-10 lg:w-14 flex-shrink-0 flex items-center justify-center">
+          <div className="w-10 lg:w-14 flex-shrink-0 flex items-center justify-center border-r border-gray-300 py-2">
             <button className="w-7 h-7 flex items-center justify-center text-yellow-500 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors">
               <Plus className="w-5 h-5" strokeWidth={2.5} />
             </button>
@@ -213,7 +213,7 @@ export function DayPilotResourceCalendar({
           {resources.map((r, idx) => (
             <div
               key={r.id}
-              className={`flex-1 min-w-0 lg:max-w-[200px] py-1 text-center ${idx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
+              className={`flex-1 min-w-0 lg:max-w-[200px] py-2 text-center ${idx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
             >
               {r.avatar ? (
                 <img
@@ -235,7 +235,7 @@ export function DayPilotResourceCalendar({
         </div>
 
         {/* Сітка часу */}
-        <div className="relative flex pt-2 pb-28 lg:pb-8" style={{ minHeight: `${(hours.length + 1) * 60}px` }}>
+        <div className="relative flex pb-28 lg:pb-8" style={{ minHeight: `${(hours.length + 1) * 60}px` }}>
           {/* Колонка часу */}
           <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300">
             {hours.map(hour => (
