@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Plus, X, Phone, MessageCircle, User, Clock, Scissors } from 'lucide-react';
 
 export interface CalendarEvent {
@@ -71,6 +71,11 @@ export function DayPilotResourceCalendar({
   const [modalOpen, setModalOpen] = useState(false);
   const [weekBarWidth, setWeekBarWidth] = useState(0);
   const weekBarRef = useRef<HTMLDivElement>(null);
+  
+  // Анімована позиція індикатора (дробове число 0-6)
+  const [animatedPos, setAnimatedPos] = useState(-1);
+  const animFrameRef = useRef<number>(0);
+  const prevPosRef = useRef<number>(-1);
 
   // Відкрити модалку з деталями запису
   const openEventModal = (event: CalendarEvent) => {
@@ -140,6 +145,44 @@ export function DayPilotResourceCalendar({
   };
   const isSelected = (date: Date) => date.toDateString() === internalDate.toDateString();
   const isWeekend = (date: Date) => date.getDay() === 0 || date.getDay() === 6;
+
+  // Поточний selectedIdx
+  const selectedIdx = weekDays.findIndex(d => isSelected(d));
+  
+  // Анімація позиції індикатора через requestAnimationFrame
+  useEffect(() => {
+    if (animatedPos < 0) {
+      // Перший рендер — без анімації
+      setAnimatedPos(selectedIdx);
+      prevPosRef.current = selectedIdx;
+      return;
+    }
+    
+    if (selectedIdx === prevPosRef.current) return;
+    
+    const from = prevPosRef.current;
+    const to = selectedIdx;
+    prevPosRef.current = to;
+    const startTime = performance.now();
+    const duration = 280; // ms
+    
+    // ease-out cubic
+    const ease = (t: number) => 1 - Math.pow(1 - t, 3);
+    
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = ease(progress);
+      setAnimatedPos(from + (to - from) * eased);
+      if (progress < 1) {
+        animFrameRef.current = requestAnimationFrame(animate);
+      }
+    };
+    
+    cancelAnimationFrame(animFrameRef.current);
+    animFrameRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animFrameRef.current);
+  }, [selectedIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDateSelect = (date: Date) => {
     setInternalDate(date);
@@ -337,85 +380,102 @@ export function DayPilotResourceCalendar({
         className="lg:hidden fixed bottom-[68px] left-[23px] right-[23px] z-40 h-[32px] flex items-end touch-none select-none overflow-visible"
         style={{ background: 'transparent' }}
       >
-        {/* Жовтий фон */}
-        <div className="absolute inset-0 bg-yellow-400 rounded-t-2xl" />
-        
-        {/* Білий індикатор з CSS transition (плавний перехід) */}
-        {(() => {
-          const selectedIdx = weekDays.findIndex(d => isSelected(d));
-          const isFirst = selectedIdx === 0;
-          const isLast = selectedIdx === 6;
-          return (
-            <div 
-              className="absolute bg-white z-[1] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-              style={{
-                width: 'calc(100% / 7)',
-                left: `calc(${selectedIdx} * 100% / 7)`,
-                top: '-7px',
-                bottom: 0,
-                borderRadius: '16px 16px 0 0',
-              }}
-            />
-          );
-        })()}
-        
-        {/* SVG обводка — єдина чорна лінія що обтікає індикатор */}
+        {/* Єдиний SVG: жовтий фон + білий індикатор + чорна обводка — все синхронно */}
         {weekBarWidth > 0 && (() => {
-          const selectedIdx = weekDays.findIndex(d => isSelected(d));
+          const pos = animatedPos >= 0 ? animatedPos : selectedIdx;
           const w = weekBarWidth;
           const barH = 32;
-          const bump = 7; // #4: висота виступу зменшена на 50%
-          const cr = 16; // радіус кутів полоси
-          const curve = 12; // радіус обтікання
+          const bump = 7;
+          const cr = 16;
+          const curve = 12;
           const cellW = w / 7;
-          const indL = selectedIdx * cellW;
+          const indL = pos * cellW;
           const indR = indL + cellW;
           const topY = 0;
           const barTop = bump;
           const totalH = bump + barH;
-          const isFirst = selectedIdx === 0;
-          const isLast = selectedIdx === 6;
+          const sx = 0.5;
           
-          // #1 + #3: обробка крайніх позицій та вирівнювання з MobileNav border
-          // strokeWidth=1, зміщуємо на 0.5px всередину для точного збігу з border MobileNav
-          const sx = 0.5; // stroke offset
+          // Клампимо для крайніх позицій
+          const safeIndL = Math.max(0, indL);
+          const safeIndR = Math.min(w, indR);
+          const isAtLeft = safeIndL < cr;
+          const isAtRight = safeIndR > w - cr;
           
+          // --- Жовтий фон (дві частини: ліворуч і праворуч від індикатора) ---
+          const yellowLeft = safeIndL > 0 ? `
+            M 0 ${totalH}
+            L 0 ${barTop + cr}
+            Q 0 ${barTop} ${Math.min(cr, safeIndL)} ${barTop}
+            L ${safeIndL} ${barTop}
+            L ${safeIndL} ${totalH}
+            Z
+          ` : '';
+          
+          const yellowRight = safeIndR < w ? `
+            M ${safeIndR} ${totalH}
+            L ${safeIndR} ${barTop}
+            L ${Math.max(safeIndR, w - cr)} ${barTop}
+            Q ${w} ${barTop} ${w} ${barTop + cr}
+            L ${w} ${totalH}
+            Z
+          ` : '';
+          
+          // --- Білий індикатор ---
+          const whitePath = `
+            M ${safeIndL} ${totalH}
+            L ${safeIndL} ${barTop}
+            C ${safeIndL} ${barTop} ${safeIndL} ${topY} ${safeIndL + curve} ${topY}
+            L ${safeIndR - curve} ${topY}
+            C ${safeIndR} ${topY} ${safeIndR} ${barTop} ${safeIndR} ${barTop}
+            L ${safeIndR} ${totalH}
+            Z
+          `;
+          
+          // --- Обводка (єдина лінія) ---
           let contour = '';
           
-          if (isFirst) {
-            // Індикатор зліва — ліва стінка одразу піднімається до верху індикатора
+          if (isAtLeft && isAtRight) {
+            // Дуже широкий індикатор або повна ширина
             contour = `
               M ${sx} ${totalH}
               L ${sx} ${topY + cr}
               Q ${sx} ${topY} ${cr} ${topY}
-              L ${indR - curve} ${topY}
-              C ${indR} ${topY} ${indR} ${barTop} ${indR} ${barTop}
-              L ${w - cr - sx} ${barTop}
+              L ${w - cr} ${topY}
+              Q ${w - sx} ${topY} ${w - sx} ${topY + cr}
+              L ${w - sx} ${totalH}
+            `;
+          } else if (isAtLeft) {
+            contour = `
+              M ${sx} ${totalH}
+              L ${sx} ${topY + cr}
+              Q ${sx} ${topY} ${sx + cr} ${topY}
+              L ${safeIndR - curve} ${topY}
+              C ${safeIndR} ${topY} ${safeIndR} ${barTop} ${safeIndR} ${barTop}
+              L ${w - cr} ${barTop}
               Q ${w - sx} ${barTop} ${w - sx} ${barTop + cr}
               L ${w - sx} ${totalH}
             `;
-          } else if (isLast) {
-            // Індикатор справа — права стінка одразу піднімається до верху індикатора
+          } else if (isAtRight) {
             contour = `
               M ${sx} ${totalH}
               L ${sx} ${barTop + cr}
-              Q ${sx} ${barTop} ${cr} ${barTop}
-              L ${indL} ${barTop}
-              C ${indL} ${barTop} ${indL} ${topY} ${indL + curve} ${topY}
+              Q ${sx} ${barTop} ${sx + cr} ${barTop}
+              L ${safeIndL} ${barTop}
+              C ${safeIndL} ${barTop} ${safeIndL} ${topY} ${safeIndL + curve} ${topY}
               L ${w - cr - sx} ${topY}
               Q ${w - sx} ${topY} ${w - sx} ${topY + cr}
               L ${w - sx} ${totalH}
             `;
           } else {
-            // Індикатор посередині — стандартна обводка
             contour = `
               M ${sx} ${totalH}
               L ${sx} ${barTop + cr}
-              Q ${sx} ${barTop} ${cr} ${barTop}
-              L ${indL} ${barTop}
-              C ${indL} ${barTop} ${indL} ${topY} ${indL + curve} ${topY}
-              L ${indR - curve} ${topY}
-              C ${indR} ${topY} ${indR} ${barTop} ${indR} ${barTop}
+              Q ${sx} ${barTop} ${sx + cr} ${barTop}
+              L ${safeIndL} ${barTop}
+              C ${safeIndL} ${barTop} ${safeIndL} ${topY} ${safeIndL + curve} ${topY}
+              L ${safeIndR - curve} ${topY}
+              C ${safeIndR} ${topY} ${safeIndR} ${barTop} ${safeIndR} ${barTop}
               L ${w - cr - sx} ${barTop}
               Q ${w - sx} ${barTop} ${w - sx} ${barTop + cr}
               L ${w - sx} ${totalH}
@@ -427,13 +487,13 @@ export function DayPilotResourceCalendar({
               className="absolute pointer-events-none z-[2]"
               style={{ top: -bump, left: 0, width: w, height: totalH }}
             >
-              <path
-                d={contour}
-                fill="none"
-                stroke="black"
-                strokeWidth="1"
-                style={{ transition: 'd 300ms cubic-bezier(0.4, 0, 0.2, 1)' }}
-              />
+              {/* Жовтий фон */}
+              {yellowLeft && <path d={yellowLeft} fill="#facc15" />}
+              {yellowRight && <path d={yellowRight} fill="#facc15" />}
+              {/* Білий індикатор */}
+              <path d={whitePath} fill="white" />
+              {/* Обводка */}
+              <path d={contour} fill="none" stroke="black" strokeWidth="1" />
             </svg>
           );
         })()}
