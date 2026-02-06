@@ -114,6 +114,13 @@ export function DayPilotResourceCalendar({
   const didDrag = useRef(false);
   const autoScrollRef = useRef<number>(0);
 
+  // Інтерпольована позиція drop preview (плавна анімація через rAF)
+  const previewRef = useRef<HTMLDivElement>(null);
+  const previewTarget = useRef({ x: 0, y: 0, h: 0 });
+  const previewCurrent = useRef({ x: 0, y: 0, h: 0 });
+  const previewAnimRef = useRef<number>(0);
+  const previewColorRef = useRef<string>('#666');
+
   // Відкрити модалку з деталями запису
   const openEventModal = (event: CalendarEvent) => {
     setSelectedEvent(event);
@@ -250,6 +257,8 @@ export function DayPilotResourceCalendar({
     }
 
     dragRef.current = state;
+    // Скинути інтерполяцію preview
+    previewCurrent.current = { x: 0, y: 0, h: 0 };
     setDragRender({ ...state });
   }, [getGridPosition, getEventMinutes, lockScroll, isPastDate]);
 
@@ -505,6 +514,76 @@ export function DayPilotResourceCalendar({
   }, [dragRender]);
 
   // ============================================================
+  // Drop preview інтерполяція через requestAnimationFrame
+  // ============================================================
+  useEffect(() => {
+    if (!dragRender || dragRender.phase !== 'dragging') {
+      if (previewAnimRef.current) {
+        cancelAnimationFrame(previewAnimRef.current);
+        previewAnimRef.current = 0;
+      }
+      // Скинути позицію
+      if (previewRef.current) previewRef.current.style.opacity = '0';
+      return;
+    }
+
+    // Оновити target позицію
+    const totalMinutes = (dayEndHour - dayStartHour) * 60;
+    const previewStartMin = dragRender.targetStartMin - dayStartHour * 60;
+    const previewEndMin = dragRender.targetEndMin - dayStartHour * 60;
+    const container = gridRef.current?.querySelector('[data-resources]') as HTMLElement;
+    if (!container) return;
+    const cW = container.offsetWidth;
+    const cH = container.offsetHeight;
+    const colIdx = resources.findIndex(r => r.id === dragRender.targetResourceId);
+    
+    previewTarget.current = {
+      x: (colIdx / resources.length) * cW,
+      y: (previewStartMin / totalMinutes) * cH,
+      h: ((previewEndMin - previewStartMin) / totalMinutes) * cH,
+    };
+    previewColorRef.current = resources[colIdx]?.color || '#666';
+
+    // Якщо перший кадр — встановити initial позицію
+    if (previewCurrent.current.x === 0 && previewCurrent.current.y === 0) {
+      previewCurrent.current = { ...previewTarget.current };
+    }
+
+    const lerpSpeed = 0.18; // 0-1: більше = швидше
+
+    const tick = () => {
+      const cur = previewCurrent.current;
+      const tgt = previewTarget.current;
+      cur.x += (tgt.x - cur.x) * lerpSpeed;
+      cur.y += (tgt.y - cur.y) * lerpSpeed;
+      cur.h += (tgt.h - cur.h) * lerpSpeed;
+
+      // Застосовуємо напряму до DOM (обхід React для гладкості)
+      const el = previewRef.current;
+      if (el) {
+        el.style.transform = `translate(${cur.x}px, ${cur.y}px)`;
+        el.style.height = `${Math.max(24, cur.h)}px`;
+        el.style.opacity = '1';
+        el.style.backgroundColor = `${previewColorRef.current}30`;
+        el.style.borderColor = previewColorRef.current;
+      }
+
+      previewAnimRef.current = requestAnimationFrame(tick);
+    };
+
+    if (!previewAnimRef.current) {
+      previewAnimRef.current = requestAnimationFrame(tick);
+    }
+
+    return () => {
+      if (previewAnimRef.current) {
+        cancelAnimationFrame(previewAnimRef.current);
+        previewAnimRef.current = 0;
+      }
+    };
+  }, [dragRender, resources, dayStartHour, dayEndHour]);
+
+  // ============================================================
   // Event click/tap — тільки якщо не було drag
   // ============================================================
   const handleEventClick = useCallback((event: CalendarEvent) => {
@@ -695,47 +774,27 @@ export function DayPilotResourceCalendar({
 
             {/* Колонки ресурсів */}
             <div data-resources className="flex relative" style={{ minWidth: resources.length > 3 ? `${resources.length * 110}px` : '100%' }}>
-            {/* Drop Preview — transform-based для гарантовано плавних переходів */}
-            {dragRender && dragRender.phase === 'dragging' && (() => {
-              const totalMinutes = (dayEndHour - dayStartHour) * 60;
-              const previewStartMin = dragRender.targetStartMin - dayStartHour * 60;
-              const previewEndMin = dragRender.targetEndMin - dayStartHour * 60;
-              const topPct = (previewStartMin / totalMinutes) * 100;
-              const heightPct = ((previewEndMin - previewStartMin) / totalMinutes) * 100;
-              const colIdx = resources.findIndex(r => r.id === dragRender.targetResourceId);
-              const widthPct = 100 / resources.length;
-              const previewColor = resources[colIdx]?.color || '#666';
-              
-              // Розраховуємо позицію в пікселях для transform
-              const container = gridRef.current?.querySelector('[data-resources]') as HTMLElement;
-              const containerW = container?.offsetWidth || 0;
-              const containerH = container?.offsetHeight || 0;
-              const leftPx = containerW > 0 ? (colIdx / resources.length) * containerW : 0;
-              const topPx = containerH > 0 ? (topPct / 100) * containerH : 0;
-              
-              return (
-                <div
-                  className="absolute z-[1] pointer-events-none overflow-hidden"
-                  style={{
-                    top: 0,
-                    left: 0,
-                    width: `${widthPct}%`,
-                    height: `${heightPct}%`,
-                    minHeight: '24px',
-                    transform: `translate(${leftPx}px, ${topPx}px)`,
-                    transition: 'transform 180ms cubic-bezier(0.25, 0.1, 0.25, 1), height 180ms ease-out, background-color 180ms ease-out, border-color 180ms ease-out',
-                    willChange: 'transform',
-                    backgroundColor: `${previewColor}30`,
-                    border: `2px dashed ${previewColor}`,
-                    borderRadius: '0 0.5rem 0.5rem 0',
-                  }}
-                >
-                  <div className="px-1.5 py-1 text-[10px] font-semibold" style={{ color: `${previewColor}cc` }}>
-                    {formatMinutes(dragRender.targetStartMin)} – {formatMinutes(dragRender.targetEndMin)}
-                  </div>
+            {/* Drop Preview — позиція через rAF lerp (обхід React для гладкості) */}
+            <div
+              ref={previewRef}
+              className="absolute z-[1] pointer-events-none overflow-hidden"
+              style={{
+                top: 0,
+                left: 0,
+                width: `${100 / resources.length}%`,
+                height: '24px',
+                opacity: 0,
+                border: '2px dashed #666',
+                borderRadius: '0 0.5rem 0.5rem 0',
+                willChange: 'transform',
+              }}
+            >
+              {dragRender && dragRender.phase === 'dragging' && (
+                <div className="px-1.5 py-1 text-[10px] font-semibold" style={{ color: `${previewColorRef.current}cc` }}>
+                  {formatMinutes(dragRender.targetStartMin)} – {formatMinutes(dragRender.targetEndMin)}
                 </div>
-              );
-            })()}
+              )}
+            </div>
 
             {resources.map((r, rIdx) => (
               <div
