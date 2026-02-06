@@ -331,7 +331,7 @@ export function DayPilotResourceCalendar({
               {/* Права вертикальна лінія меню */}
               <div className="absolute right-0 bottom-0 w-px bg-black" style={{ top: '16px' }} />
               
-              {/* Верхня ліва частина (від кута до індикатора) */}
+              {/* Верхня ліва частина (від кута до з'єднання з індикатором) */}
               <div 
                 className="absolute h-px bg-black transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
                 style={{ 
@@ -341,7 +341,27 @@ export function DayPilotResourceCalendar({
                 }}
               />
               
-              {/* Верхня права частина (від індикатора до кута) */}
+              {/* Лівий з'єднувач (від лінії меню вгору до індикатора) */}
+              <div 
+                className="absolute w-px bg-black transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+                style={{ 
+                  top: '-7px',
+                  left: `calc(${indicatorLeftPercent}%)`,
+                  height: '7px',
+                }}
+              />
+              
+              {/* Правий з'єднувач (від індикатора вниз до лінії меню) */}
+              <div 
+                className="absolute w-px bg-black transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+                style={{ 
+                  top: '-7px',
+                  left: `calc(${indicatorLeftPercent + indicatorWidthPercent}% - 1px)`,
+                  height: '7px',
+                }}
+              />
+              
+              {/* Верхня права частина (від з'єднання з індикатором до кута) */}
               <div 
                 className="absolute h-px bg-black transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
                 style={{ 
