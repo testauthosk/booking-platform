@@ -711,8 +711,8 @@ export function DayPilotResourceCalendar({
                       top: `${top}%`,
                       height: `${height}%`,
                       minHeight: '24px',
-                      backgroundColor: `${previewColor}40`,
-                      border: `2px dashed ${previewColor}80`,
+                      backgroundColor: `${previewColor}30`,
+                      border: `2px dashed ${previewColor}`,
                       borderRadius: '0 0.5rem 0.5rem 0',
                     }}
                   >
@@ -858,12 +858,12 @@ export function DayPilotResourceCalendar({
           <div
             className="fixed z-[90] pointer-events-none select-none"
             style={{
-              left: dragRender.ghostX - 60,
-              top: dragRender.ghostY - (isResize ? 15 : 30),
+              left: dragRender.ghostX - 70,
+              top: dragRender.ghostY + 25,
             }}
           >
             <div
-              className="w-[130px] rounded-xl px-2.5 py-1.5 text-white text-[10px] font-semibold shadow-2xl"
+              className="w-[140px] rounded-xl px-3 py-2 text-white text-[11px] font-semibold shadow-2xl"
               style={{
                 background: `linear-gradient(160deg, ${ghostColor} 0%, ${darkenColor(ghostColor, 15)} 100%)`,
                 opacity: 0.95,
