@@ -337,65 +337,61 @@ export function DayPilotResourceCalendar({
         className="lg:hidden fixed bottom-[68px] left-[23px] right-[23px] z-40 h-[32px] flex items-end touch-none select-none overflow-visible"
         style={{ background: 'transparent' }}
       >
-        {/* SVG фон з вирізом під індикатор */}
+        {/* SVG фон з обтіканням індикатора */}
         {weekBarWidth > 0 && (() => {
           const selectedIdx = weekDays.findIndex(d => isSelected(d));
           const w = weekBarWidth;
-          const h = 32;
-          const bump = 12;
-          const r = 16; // радіус кутів меню (rounded-t-2xl = 16px)
-          const ir = 12; // радіус скруглення індикатора
+          const barH = 32; // висота жовтої полоси
+          const bump = 14; // наскільки індикатор піднімається над полосою
+          const cr = 16; // радіус кутів полоси (rounded-t-2xl)
+          const curve = 14; // радіус плавного переходу (обтікання)
           const cellW = w / 7;
           const indL = selectedIdx * cellW;
           const indR = indL + cellW;
-          const totalH = bump + h;
+          const topY = 0; // верх індикатора
+          const barTop = bump; // верх жовтої полоси
+          const totalH = bump + barH;
           
-          // Білий індикатор — тільки верх скруглений, низ прямий
-          const whitePath = `
-            M ${indL} ${totalH}
-            L ${indL} ${ir}
-            Q ${indL} 0 ${indL + ir} 0
-            L ${indR - ir} 0
-            Q ${indR} 0 ${indR} ${ir}
-            L ${indR} ${totalH}
-            Z
+          // Єдиний контур: чорна рамка як гнучка стрічка
+          // Ліва стінка → верх жовтої → плавний підйом до індикатора → верх індикатора → плавний спуск → верх жовтої → права стінка
+          const contour = `
+            M 0 ${totalH}
+            L 0 ${barTop + cr}
+            Q 0 ${barTop} ${cr} ${barTop}
+            L ${indL} ${barTop}
+            C ${indL} ${barTop} ${indL} ${topY} ${indL + curve} ${topY}
+            L ${indR - curve} ${topY}
+            C ${indR} ${topY} ${indR} ${barTop} ${indR} ${barTop}
+            L ${w - cr} ${barTop}
+            Q ${w} ${barTop} ${w} ${barTop + cr}
+            L ${w} ${totalH}
           `;
           
-          // Жовтий фон — облягає індикатор зверху
-          const yellowPath = `
+          // Жовтий фон — замкнутий контур під стрічкою (без індикатора)
+          const yellowFill = `
             M 0 ${totalH}
-            L 0 ${bump + r}
-            Q 0 ${bump} ${r} ${bump}
-            L ${indL - ir} ${bump}
-            Q ${indL} ${bump} ${indL} ${bump + ir}
+            L 0 ${barTop + cr}
+            Q 0 ${barTop} ${cr} ${barTop}
+            L ${indL} ${barTop}
             L ${indL} ${totalH}
-            L 0 ${totalH}
             Z
             M ${indR} ${totalH}
-            L ${indR} ${bump + ir}
-            Q ${indR} ${bump} ${indR + ir} ${bump}
-            L ${w - r} ${bump}
-            Q ${w} ${bump} ${w} ${bump + r}
+            L ${indR} ${barTop}
+            L ${w - cr} ${barTop}
+            Q ${w} ${barTop} ${w} ${barTop + cr}
             L ${w} ${totalH}
             Z
           `;
           
-          // Обводка — повний контур зверху
-          const strokePath = `
-            M 0 ${totalH}
-            L 0 ${bump + r}
-            Q 0 ${bump} ${r} ${bump}
-            L ${indL - ir} ${bump}
-            Q ${indL} ${bump} ${indL} ${bump + ir}
-            L ${indL} ${ir}
-            Q ${indL} 0 ${indL + ir} 0
-            L ${indR - ir} 0
-            Q ${indR} 0 ${indR} ${ir}
-            L ${indR} ${bump + ir}
-            Q ${indR} ${bump} ${indR + ir} ${bump}
-            L ${w - r} ${bump}
-            Q ${w} ${bump} ${w} ${bump + r}
-            L ${w} ${totalH}
+          // Білий індикатор — під обводкою, плавна форма
+          const whiteFill = `
+            M ${indL} ${barTop}
+            C ${indL} ${barTop} ${indL} ${topY} ${indL + curve} ${topY}
+            L ${indR - curve} ${topY}
+            C ${indR} ${topY} ${indR} ${barTop} ${indR} ${barTop}
+            L ${indR} ${totalH}
+            L ${indL} ${totalH}
+            Z
           `;
           
           return (
@@ -403,24 +399,21 @@ export function DayPilotResourceCalendar({
               className="absolute pointer-events-none"
               style={{ top: -bump, left: 0, width: w, height: totalH, overflow: 'visible' }}
             >
-              {/* Білий індикатор (нижній шар) */}
+              {/* 1. Білий індикатор */}
               <path
-                d={whitePath}
+                d={whiteFill}
                 fill="white"
-                stroke="none"
                 className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
               />
-              {/* Жовтий фон з обтіканням */}
+              {/* 2. Жовтий фон ліворуч і праворуч від індикатора */}
               <path
-                d={yellowPath}
+                d={yellowFill}
                 fill="#facc15"
-                fillRule="nonzero"
-                stroke="none"
                 className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
               />
-              {/* Обводка */}
+              {/* 3. Єдина чорна обводка — обтікає індикатор */}
               <path
-                d={strokePath}
+                d={contour}
                 fill="none"
                 stroke="black"
                 strokeWidth="1"
