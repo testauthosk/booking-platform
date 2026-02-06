@@ -235,7 +235,7 @@ export function DayPilotResourceCalendar({
         </div>
 
         {/* Сітка часу */}
-        <div className="relative flex pb-4 lg:pb-2" style={{ minHeight: `${(hours.length + 1) * 60}px` }}>
+        <div className="relative flex" style={{ minHeight: `${hours.length * 60}px` }}>
           {/* Колонка часу */}
           <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300">
             {hours.map(hour => (
@@ -248,12 +248,6 @@ export function DayPilotResourceCalendar({
                 </span>
               </div>
             ))}
-            {/* Кінець робочого дня */}
-            <div className="h-[60px] flex items-start justify-end pr-1 pt-0">
-              <span className="text-[9px] lg:text-xs text-gray-400 font-medium -mt-1.5">
-                {dayEndHour.toString().padStart(2, '0')}:00
-              </span>
-            </div>
           </div>
 
           {/* Колонки ресурсів */}
@@ -267,8 +261,6 @@ export function DayPilotResourceCalendar({
               {hours.map(hour => (
                 <div key={hour} className="h-[60px] border-b border-gray-200" />
               ))}
-              {/* Кінець робочого дня */}
-              <div className="h-[60px] border-b border-gray-200" />
 
               {/* Події */}
               {filteredEvents
@@ -323,7 +315,7 @@ export function DayPilotResourceCalendar({
         </div>
         
         {/* Кінець робочого дня - надпис */}
-        <div className="flex items-center justify-center py-6 text-gray-400">
+        <div className="flex items-center justify-center py-4 pb-20 lg:pb-4 text-gray-400">
           <span className="text-sm">Робота закінчилась, час додому ❤️</span>
         </div>
         
