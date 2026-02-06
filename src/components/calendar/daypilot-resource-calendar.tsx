@@ -162,10 +162,49 @@ export function DayPilotResourceCalendar({
     <div className="flex flex-col h-full bg-white">
       {/* Календар */}
       <div className="flex-1 overflow-auto">
+        {/* Контейнер з обмеженою шириною на десктопі */}
+        <div className="lg:max-w-4xl lg:mx-auto">
+        
+        {/* Десктопна навігація по тижню */}
+        <div className="hidden lg:flex items-center justify-center gap-1 py-3 border-b border-gray-200 bg-gray-50">
+          {weekDays.map((day, idx) => {
+            const dayNum = day.getDate();
+            const dayName = ukDaysShort[day.getDay()];
+            const selected = isSelected(day);
+            const weekend = isWeekend(day);
+            const todayClass = isToday(day);
+            
+            return (
+              <button
+                key={idx}
+                onClick={() => handleDateSelect(day)}
+                className={`flex flex-col items-center justify-center px-4 py-2 rounded-xl transition-all ${
+                  selected 
+                    ? 'bg-yellow-400 text-gray-900 shadow-md' 
+                    : todayClass
+                      ? 'bg-yellow-100 text-gray-900 hover:bg-yellow-200'
+                      : 'hover:bg-gray-100'
+                }`}
+              >
+                <span className={`text-xs font-medium ${
+                  selected ? 'text-gray-900' : weekend ? 'text-orange-600' : 'text-gray-500'
+                }`}>
+                  {dayName}
+                </span>
+                <span className={`text-lg font-bold ${
+                  selected ? 'text-gray-900' : weekend ? 'text-orange-600' : 'text-gray-800'
+                }`}>
+                  {dayNum}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        
         {/* Заголовки ресурсів */}
-        <div className="sticky top-0 z-10 flex border-b border-gray-100 bg-white py-1.5">
+        <div className="sticky top-0 z-10 flex border-b border-gray-200 bg-white py-1.5">
           {/* Кнопка додавання */}
-          <div className="w-10 flex-shrink-0 flex items-center justify-center">
+          <div className="w-10 lg:w-14 flex-shrink-0 flex items-center justify-center">
             <button className="w-7 h-7 flex items-center justify-center text-yellow-500 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors">
               <Plus className="w-5 h-5" strokeWidth={2.5} />
             </button>
@@ -174,7 +213,7 @@ export function DayPilotResourceCalendar({
           {resources.map((r, idx) => (
             <div
               key={r.id}
-              className={`flex-1 min-w-0 py-1 text-center ${idx < resources.length - 1 ? 'border-r border-gray-200' : ''}`}
+              className={`flex-1 min-w-0 lg:max-w-[200px] py-1 text-center ${idx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
             >
               {r.avatar ? (
                 <img
@@ -198,13 +237,13 @@ export function DayPilotResourceCalendar({
         {/* Сітка часу */}
         <div className="relative flex pt-2" style={{ minHeight: `${hours.length * 60}px` }}>
           {/* Колонка часу */}
-          <div className="w-10 flex-shrink-0">
+          <div className="w-10 lg:w-14 flex-shrink-0">
             {hours.map(hour => (
               <div
                 key={hour}
                 className="h-[60px] flex items-start justify-end pr-1 pt-0"
               >
-                <span className="text-[9px] text-gray-900 font-medium -mt-1.5">
+                <span className="text-[9px] lg:text-xs text-gray-900 font-medium -mt-1.5">
                   {hour.toString().padStart(2, '0')}:00
                 </span>
               </div>
@@ -215,8 +254,8 @@ export function DayPilotResourceCalendar({
           {resources.map((r, rIdx) => (
             <div
               key={r.id}
-              className={`flex-1 min-w-0 relative ${rIdx < resources.length - 1 ? 'border-r border-gray-100' : ''}`}
-              style={{ backgroundColor: `${r.color}08` }}
+              className={`flex-1 min-w-0 lg:max-w-[200px] relative ${rIdx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
+              style={{ backgroundColor: `${r.color}18` }}
             >
               {/* Лінії годин */}
               {hours.map(hour => (
@@ -274,6 +313,7 @@ export function DayPilotResourceCalendar({
             </div>
           ))}
         </div>
+        </div>{/* end lg:max-w-4xl container */}
       </div>
 
       {/* Навігація по тижню - жовта полоса над MobileNav */}
