@@ -337,26 +337,28 @@ export function DayPilotResourceCalendar({
                 style={{ 
                   top: 0,
                   left: '16px',
-                  width: `calc(${indicatorLeftPercent}% - 16px)`,
+                  width: `calc(${indicatorLeftPercent}% - 16px - 7px)`,
                 }}
               />
               
-              {/* Лівий з'єднувач (від лінії меню вгору до індикатора) */}
+              {/* Лівий з'єднувач - скруглений перехід */}
               <div 
-                className="absolute w-px bg-black transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+                className="absolute border-b border-r border-black rounded-br-lg transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
                 style={{ 
                   top: '-7px',
-                  left: `calc(${indicatorLeftPercent}%)`,
+                  left: `calc(${indicatorLeftPercent}% - 7px)`,
+                  width: '7px',
                   height: '7px',
                 }}
               />
               
-              {/* Правий з'єднувач (від індикатора вниз до лінії меню) */}
+              {/* Правий з'єднувач - скруглений перехід */}
               <div 
-                className="absolute w-px bg-black transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+                className="absolute border-b border-l border-black rounded-bl-lg transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
                 style={{ 
                   top: '-7px',
-                  left: `calc(${indicatorLeftPercent + indicatorWidthPercent}% - 1px)`,
+                  left: `calc(${indicatorLeftPercent + indicatorWidthPercent}%)`,
+                  width: '7px',
                   height: '7px',
                 }}
               />
@@ -366,7 +368,7 @@ export function DayPilotResourceCalendar({
                 className="absolute h-px bg-black transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
                 style={{ 
                   top: 0,
-                  left: `calc(${indicatorLeftPercent + indicatorWidthPercent}%)`,
+                  left: `calc(${indicatorLeftPercent + indicatorWidthPercent}% + 7px)`,
                   right: '16px',
                 }}
               />
