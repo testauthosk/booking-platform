@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, X, Phone, MessageCircle, User, Clock, Scissors } from 'lucide-react';
 
 export interface CalendarEvent {
@@ -69,6 +69,8 @@ export function DayPilotResourceCalendar({
   const [mounted, setMounted] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [weekBarWidth, setWeekBarWidth] = useState(0);
+  const weekBarRef = useRef<HTMLDivElement>(null);
 
   // Відкрити модалку з деталями запису
   const openEventModal = (event: CalendarEvent) => {
@@ -94,6 +96,20 @@ export function DayPilotResourceCalendar({
   useEffect(() => {
     setInternalDate(startDate);
   }, [startDate]);
+
+  // Вимірюємо ширину жовтої полоси
+  useEffect(() => {
+    if (weekBarRef.current) {
+      setWeekBarWidth(weekBarRef.current.offsetWidth);
+      const resizeObserver = new ResizeObserver(() => {
+        if (weekBarRef.current) {
+          setWeekBarWidth(weekBarRef.current.offsetWidth);
+        }
+      });
+      resizeObserver.observe(weekBarRef.current);
+      return () => resizeObserver.disconnect();
+    }
+  }, [mounted]);
 
   // Генеруємо години для сітки
   const hours: number[] = [];
@@ -316,80 +332,63 @@ export function DayPilotResourceCalendar({
       </div>{/* end scroll container */}
 
       {/* Навігація по тижню - жовта полоса над MobileNav */}
-      <div className="lg:hidden fixed bottom-[68px] left-[23px] right-[23px] z-40 bg-yellow-400 h-[32px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none rounded-t-2xl overflow-visible">
-        {/* Динамічна обводка жовтого меню */}
-        {(() => {
+      <div 
+        ref={weekBarRef}
+        className="lg:hidden fixed bottom-[68px] left-[23px] right-[23px] z-40 bg-yellow-400 h-[32px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none rounded-t-2xl overflow-visible"
+      >
+        {/* SVG обводка */}
+        {weekBarWidth > 0 && (() => {
           const selectedIdx = weekDays.findIndex(d => isSelected(d));
-          const indicatorWidthPercent = 100 / 7;
-          const indicatorLeftPercent = selectedIdx * indicatorWidthPercent;
+          const w = weekBarWidth;
+          const h = 32;
+          const bump = 7;
+          const r = 16; // радіус кутів меню
+          const cr = 7; // радіус з'єднувача
+          const cellW = w / 7;
+          const indL = selectedIdx * cellW;
+          const indR = indL + cellW;
+          
+          const path = `
+            M 0 ${h}
+            L 0 ${r}
+            Q 0 0 ${r} 0
+            L ${indL - cr} 0
+            Q ${indL} 0 ${indL} ${-cr}
+            L ${indL} ${-bump + cr}
+            Q ${indL} ${-bump} ${indL + cr} ${-bump}
+            L ${indR - cr} ${-bump}
+            Q ${indR} ${-bump} ${indR} ${-bump + cr}
+            L ${indR} ${-cr}
+            Q ${indR} 0 ${indR + cr} 0
+            L ${w - r} 0
+            Q ${w} 0 ${w} ${r}
+            L ${w} ${h}
+          `;
           
           return (
-            <>
-              {/* Ліва вертикальна лінія меню */}
-              <div className="absolute left-0 bottom-0 w-px bg-black" style={{ top: '16px' }} />
-              
-              {/* Права вертикальна лінія меню */}
-              <div className="absolute right-0 bottom-0 w-px bg-black" style={{ top: '16px' }} />
-              
-              {/* Верхня ліва частина (від кута до з'єднання з індикатором) */}
-              <div 
-                className="absolute h-px bg-black transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-                style={{ 
-                  top: 0,
-                  left: '16px',
-                  width: `calc(${indicatorLeftPercent}% - 16px - 7px)`,
-                }}
+            <svg 
+              className="absolute pointer-events-none"
+              style={{ top: -bump, left: 0, width: w, height: h + bump, overflow: 'visible' }}
+            >
+              <path
+                d={path}
+                fill="none"
+                stroke="black"
+                strokeWidth="1"
+                className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
               />
-              
-              {/* Лівий з'єднувач - скруглений перехід */}
-              <div 
-                className="absolute border-b border-r border-black rounded-br-lg transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-                style={{ 
-                  top: '-7px',
-                  left: `calc(${indicatorLeftPercent}% - 7px)`,
-                  width: '7px',
-                  height: '7px',
-                }}
-              />
-              
-              {/* Правий з'єднувач - скруглений перехід */}
-              <div 
-                className="absolute border-b border-l border-black rounded-bl-lg transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-                style={{ 
-                  top: '-7px',
-                  left: `calc(${indicatorLeftPercent + indicatorWidthPercent}%)`,
-                  width: '7px',
-                  height: '7px',
-                }}
-              />
-              
-              {/* Верхня права частина (від з'єднання з індикатором до кута) */}
-              <div 
-                className="absolute h-px bg-black transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-                style={{ 
-                  top: 0,
-                  left: `calc(${indicatorLeftPercent + indicatorWidthPercent}% + 7px)`,
-                  right: '16px',
-                }}
-              />
-              
-              {/* Скруглений лівий кут (верх + ліво) */}
-              <div className="absolute top-0 left-0 w-4 h-4 border-t border-l border-black rounded-tl-2xl" />
-              
-              {/* Скруглений правий кут (верх + право) */}
-              <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-black rounded-tr-2xl" />
-            </>
+            </svg>
           );
         })()}
         
         <div className="relative flex items-center justify-around w-full h-[28px] touch-none overflow-visible">
-          {/* Плаваючий індикатор з обводкою */}
+          {/* Плаваючий індикатор */}
           {(() => {
             const selectedIdx = weekDays.findIndex(d => isSelected(d));
             
             return (
               <div 
-                className="absolute bg-white rounded-t-2xl border-t border-black transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
+                className="absolute bg-white rounded-t-2xl transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
                 style={{
                   width: 'calc(100% / 7)',
                   left: `calc(${selectedIdx} * 100% / 7)`,
