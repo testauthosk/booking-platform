@@ -69,7 +69,14 @@ export function DayPilotResourceCalendar({
   const [mounted, setMounted] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  // Week bar видалено — тепер рендериться в layout.tsx
+  
+  // Drag & drop state
+  const [dragEvent, setDragEvent] = useState<CalendarEvent | null>(null);
+  const [dragGhost, setDragGhost] = useState<{ x: number; y: number; resourceId: string; startMin: number } | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchStartPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const gridRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
 
   // Відкрити модалку з деталями запису
   const openEventModal = (event: CalendarEvent) => {
@@ -86,6 +93,110 @@ export function DayPilotResourceCalendar({
   // Отримати ресурс (майстра) за id
   const getResourceById = (resourceId: string) => {
     return resources.find(r => r.id === resourceId);
+  };
+
+  // --- Drag & Drop через long press ---
+  const LONG_PRESS_MS = 400;
+  const MOVE_THRESHOLD = 10; // px до скасування long press
+
+  const getGridPosition = (clientX: number, clientY: number) => {
+    if (!gridRef.current) return null;
+    const grid = gridRef.current;
+    const rect = grid.getBoundingClientRect();
+    const scrollLeft = grid.parentElement?.scrollLeft || 0;
+    const scrollTop = grid.parentElement?.scrollTop || 0;
+
+    // Знаходимо колонку ресурсу
+    const timeColWidth = 40; // w-10
+    const resourcesContainer = grid.querySelector('[data-resources]') as HTMLElement;
+    if (!resourcesContainer) return null;
+
+    const relX = clientX - rect.left + scrollLeft - timeColWidth;
+    const relY = clientY - rect.top + scrollTop;
+
+    const cellW = resourcesContainer.offsetWidth / resources.length;
+    const resourceIdx = Math.max(0, Math.min(resources.length - 1, Math.floor(relX / cellW)));
+    const resourceId = resources[resourceIdx]?.id || '';
+
+    // Розрахунок часу
+    const totalMinutes = (dayEndHour - dayStartHour) * 60;
+    const gridHeight = grid.offsetHeight;
+    const minutes = Math.round((relY / gridHeight) * totalMinutes / 15) * 15; // snap to 15min
+    const startMin = dayStartHour * 60 + Math.max(0, Math.min(totalMinutes, minutes));
+
+    return { resourceId, startMin, resourceIdx };
+  };
+
+  const handleTouchStart = (event: CalendarEvent, e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+    isDragging.current = false;
+
+    longPressTimer.current = setTimeout(() => {
+      isDragging.current = true;
+      setDragEvent(event);
+      // Вібрація для тактильного фідбеку
+      if (navigator.vibrate) navigator.vibrate(50);
+
+      const pos = getGridPosition(touch.clientX, touch.clientY);
+      if (pos) {
+        setDragGhost({ x: touch.clientX, y: touch.clientY, resourceId: pos.resourceId, startMin: pos.startMin });
+      }
+    }, LONG_PRESS_MS);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    const dx = Math.abs(touch.clientX - touchStartPos.current.x);
+    const dy = Math.abs(touch.clientY - touchStartPos.current.y);
+
+    // Якщо рухнулись до long press — скасувати
+    if (!isDragging.current && (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD)) {
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
+      }
+      return;
+    }
+
+    // Якщо вже драгаємо — оновити позицію
+    if (isDragging.current && dragEvent) {
+      e.preventDefault();
+      const pos = getGridPosition(touch.clientX, touch.clientY);
+      if (pos) {
+        setDragGhost({ x: touch.clientX, y: touch.clientY, resourceId: pos.resourceId, startMin: pos.startMin });
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+
+    if (isDragging.current && dragEvent && dragGhost && onEventMove) {
+      // Розрахунок нового часу
+      const duration = (new Date(dragEvent.end).getTime() - new Date(dragEvent.start).getTime()) / 60000;
+      const newStartH = Math.floor(dragGhost.startMin / 60);
+      const newStartM = dragGhost.startMin % 60;
+      const dateStr = internalDate.toISOString().split('T')[0];
+      const newStart = new Date(`${dateStr}T${String(newStartH).padStart(2, '0')}:${String(newStartM).padStart(2, '0')}:00`);
+      const newEnd = new Date(newStart.getTime() + duration * 60000);
+
+      onEventMove(dragEvent.id, newStart, newEnd, dragGhost.resourceId);
+    }
+
+    isDragging.current = false;
+    setDragEvent(null);
+    setDragGhost(null);
+  };
+
+  const handleEventTap = (event: CalendarEvent) => {
+    // Тільки якщо не драгали
+    if (!isDragging.current) {
+      openEventModal(event);
+    }
   };
 
   useEffect(() => {
@@ -215,11 +326,11 @@ export function DayPilotResourceCalendar({
           <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 py-2 sticky left-0 bg-white z-10">
           </div>
           
-          <div className="flex" style={{ minWidth: resources.length > 4 ? `${resources.length * 80}px` : '100%' }}>
+          <div className="flex" style={{ minWidth: resources.length > 3 ? `${resources.length * 110}px` : '100%' }}>
             {resources.map((r, idx) => (
               <div
                 key={r.id}
-                className={`flex-1 min-w-[80px] py-2 text-center ${idx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
+                className={`flex-1 min-w-[110px] py-2 text-center ${idx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
               >
                 {r.avatar ? (
                   <img
@@ -249,7 +360,7 @@ export function DayPilotResourceCalendar({
           }}
         >
           {/* Сітка часу */}
-          <div className="relative flex" style={{ minHeight: `${hours.length * 60}px` }}>
+          <div ref={gridRef} className="relative flex" style={{ minHeight: `${hours.length * 60}px` }}>
             {/* Колонка часу — sticky left */}
             <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 sticky left-0 bg-white z-10">
               {hours.map(hour => (
@@ -265,11 +376,11 @@ export function DayPilotResourceCalendar({
             </div>
 
             {/* Колонки ресурсів */}
-            <div className="flex" style={{ minWidth: resources.length > 4 ? `${resources.length * 80}px` : '100%' }}>
+            <div data-resources className="flex" style={{ minWidth: resources.length > 3 ? `${resources.length * 110}px` : '100%' }}>
             {resources.map((r, rIdx) => (
               <div
                 key={r.id}
-                className={`flex-1 min-w-[80px] relative ${rIdx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
+                className={`flex-1 min-w-[110px] relative ${rIdx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
                 style={{ backgroundColor: `${r.color}18` }}
               >
               {/* Лінії годин */}
@@ -287,7 +398,9 @@ export function DayPilotResourceCalendar({
                   return (
                     <div
                       key={event.id}
-                      className="absolute left-0 right-0.5 rounded-r-lg cursor-pointer overflow-hidden transition-all active:scale-[0.98]"
+                      className={`absolute left-0 right-0.5 rounded-r-lg cursor-pointer overflow-hidden transition-all ${
+                        dragEvent?.id === event.id ? 'opacity-40 scale-95' : 'active:scale-[0.98]'
+                      }`}
                       style={{
                         top: `${pos.top}%`,
                         height: `${pos.height}%`,
@@ -299,7 +412,10 @@ export function DayPilotResourceCalendar({
                         borderRight: `1px solid ${borderColor}`,
                         borderBottom: `1px solid ${borderColor}`,
                       }}
-                      onClick={() => openEventModal(event)}
+                      onClick={() => handleEventTap(event)}
+                      onTouchStart={(e) => handleTouchStart(event, e)}
+                      onTouchMove={handleTouchMove}
+                      onTouchEnd={handleTouchEnd}
                     >
                       <div className="h-full p-1.5 text-white relative flex flex-col justify-center">
                         {/* Час */}
@@ -337,7 +453,31 @@ export function DayPilotResourceCalendar({
       </div>{/* end scroll container */}
       </div>{/* end horizontal scroll wrapper */}
 
-      {/* Week bar тепер рендериться в layout.tsx */}
+      {/* Drag ghost overlay */}
+      {dragEvent && dragGhost && (
+        <div
+          className="fixed z-[90] pointer-events-none"
+          style={{
+            left: dragGhost.x - 50,
+            top: dragGhost.y - 20,
+          }}
+        >
+          <div
+            className="w-[100px] rounded-lg px-2 py-1 text-white text-[10px] font-semibold shadow-2xl opacity-90"
+            style={{
+              background: resources.find(r => r.id === dragGhost.resourceId)?.color || '#666',
+            }}
+          >
+            <div>{formatTime(dragEvent.start)}</div>
+            <div className="truncate">{dragEvent.clientName || dragEvent.text}</div>
+          </div>
+          <div className="text-center text-[9px] text-gray-600 mt-1 bg-white/90 rounded px-1">
+            {String(Math.floor(dragGhost.startMin / 60)).padStart(2, '0')}:{String(dragGhost.startMin % 60).padStart(2, '0')}
+            {' → '}
+            {resources.find(r => r.id === dragGhost.resourceId)?.name}
+          </div>
+        </div>
+      )}
 
       {/* Модалка деталей запису */}
       <div 
