@@ -695,7 +695,7 @@ export function DayPilotResourceCalendar({
 
             {/* Колонки ресурсів */}
             <div data-resources className="flex relative" style={{ minWidth: resources.length > 3 ? `${resources.length * 110}px` : '100%' }}>
-            {/* Drop Preview — єдиний елемент з transition для плавного переходу між колонками */}
+            {/* Drop Preview — transform-based для гарантовано плавних переходів */}
             {dragRender && dragRender.phase === 'dragging' && (() => {
               const totalMinutes = (dayEndHour - dayStartHour) * 60;
               const previewStartMin = dragRender.targetStartMin - dayStartHour * 60;
@@ -703,18 +703,28 @@ export function DayPilotResourceCalendar({
               const topPct = (previewStartMin / totalMinutes) * 100;
               const heightPct = ((previewEndMin - previewStartMin) / totalMinutes) * 100;
               const colIdx = resources.findIndex(r => r.id === dragRender.targetResourceId);
-              const leftPct = colIdx >= 0 ? (colIdx / resources.length) * 100 : 0;
               const widthPct = 100 / resources.length;
               const previewColor = resources[colIdx]?.color || '#666';
+              
+              // Розраховуємо позицію в пікселях для transform
+              const container = gridRef.current?.querySelector('[data-resources]') as HTMLElement;
+              const containerW = container?.offsetWidth || 0;
+              const containerH = container?.offsetHeight || 0;
+              const leftPx = containerW > 0 ? (colIdx / resources.length) * containerW : 0;
+              const topPx = containerH > 0 ? (topPct / 100) * containerH : 0;
+              
               return (
                 <div
-                  className="absolute z-[1] pointer-events-none overflow-hidden rounded-r-lg transition-all duration-200 ease-out"
+                  className="absolute z-[1] pointer-events-none overflow-hidden"
                   style={{
-                    top: `${topPct}%`,
-                    height: `${heightPct}%`,
-                    left: `${leftPct}%`,
+                    top: 0,
+                    left: 0,
                     width: `${widthPct}%`,
+                    height: `${heightPct}%`,
                     minHeight: '24px',
+                    transform: `translate(${leftPx}px, ${topPx}px)`,
+                    transition: 'transform 180ms cubic-bezier(0.25, 0.1, 0.25, 1), height 180ms ease-out, background-color 180ms ease-out, border-color 180ms ease-out',
+                    willChange: 'transform',
                     backgroundColor: `${previewColor}30`,
                     border: `2px dashed ${previewColor}`,
                     borderRadius: '0 0.5rem 0.5rem 0',
