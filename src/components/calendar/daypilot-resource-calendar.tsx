@@ -235,9 +235,9 @@ export function DayPilotResourceCalendar({
         </div>
 
         {/* Сітка часу */}
-        <div className="relative flex pt-2" style={{ minHeight: `${hours.length * 60}px` }}>
+        <div className="relative flex pt-2 pb-28 lg:pb-8" style={{ minHeight: `${(hours.length + 1) * 60}px` }}>
           {/* Колонка часу */}
-          <div className="w-10 lg:w-14 flex-shrink-0">
+          <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300">
             {hours.map(hour => (
               <div
                 key={hour}
@@ -248,6 +248,12 @@ export function DayPilotResourceCalendar({
                 </span>
               </div>
             ))}
+            {/* Кінець робочого дня */}
+            <div className="h-[60px] flex items-start justify-end pr-1 pt-0">
+              <span className="text-[9px] lg:text-xs text-gray-400 font-medium -mt-1.5">
+                {dayEndHour.toString().padStart(2, '0')}:00
+              </span>
+            </div>
           </div>
 
           {/* Колонки ресурсів */}
@@ -261,6 +267,8 @@ export function DayPilotResourceCalendar({
               {hours.map(hour => (
                 <div key={hour} className="h-[60px] border-b border-gray-200" />
               ))}
+              {/* Кінець робочого дня */}
+              <div className="h-[60px] border-b border-gray-200" />
 
               {/* Події */}
               {filteredEvents
@@ -272,7 +280,7 @@ export function DayPilotResourceCalendar({
                   return (
                     <div
                       key={event.id}
-                      className="absolute left-0.5 right-0.5 rounded-r-lg cursor-pointer overflow-hidden transition-all active:scale-[0.98]"
+                      className="absolute left-0 right-0.5 rounded-r-lg cursor-pointer overflow-hidden transition-all active:scale-[0.98]"
                       style={{
                         top: `${pos.top}%`,
                         height: `${pos.height}%`,
@@ -313,11 +321,17 @@ export function DayPilotResourceCalendar({
             </div>
           ))}
         </div>
+        
+        {/* Кінець робочого дня - надпис */}
+        <div className="flex items-center justify-center py-6 text-gray-400">
+          <span className="text-sm">Робота закінчилась, час додому ❤️</span>
+        </div>
+        
         </div>{/* end lg:max-w-4xl container */}
       </div>
 
       {/* Навігація по тижню - жовта полоса над MobileNav */}
-      <div className="lg:hidden sticky bottom-16 z-40 bg-yellow-400 h-[32px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none overscroll-visible overflow-visible">
+      <div className="lg:hidden fixed bottom-16 left-0 right-0 z-40 bg-yellow-400 h-[32px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none">
         <div className="relative flex items-center justify-around w-full h-[28px] px-[23px] touch-none overflow-visible">
           {/* Плаваючий індикатор — виглядає вище жовтої полоси */}
           <div 
