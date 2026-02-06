@@ -112,6 +112,7 @@ export function DayPilotResourceCalendar({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const savedBodyOverflow = useRef<string>('');
   const didDrag = useRef(false);
+  const autoScrollRef = useRef<number>(0);
 
   // Відкрити модалку з деталями запису
   const openEventModal = (event: CalendarEvent) => {
@@ -431,6 +432,69 @@ export function DayPilotResourceCalendar({
   }, [startDrag, updateDrag, endDrag, cancelDrag]);
 
   // ============================================================
+  // Фіча 3: Auto-scroll при drag до країв
+  // ============================================================
+  useEffect(() => {
+    if (!dragRender || dragRender.phase !== 'dragging') {
+      if (autoScrollRef.current) {
+        cancelAnimationFrame(autoScrollRef.current);
+        autoScrollRef.current = 0;
+      }
+      return;
+    }
+
+    const tick = () => {
+      const d = dragRef.current;
+      const sc = scrollContainerRef.current;
+      if (!d || d.phase !== 'dragging' || !sc) {
+        autoScrollRef.current = 0;
+        return;
+      }
+
+      const rect = sc.getBoundingClientRect();
+      const edgeZone = 40;
+      const { ghostX, ghostY } = d;
+
+      let dx = 0;
+      let dy = 0;
+
+      // Horizontal
+      if (ghostX < rect.left + edgeZone) {
+        const dist = Math.max(1, rect.left + edgeZone - ghostX);
+        dx = -Math.round(3 + (dist / edgeZone) * 5);
+      } else if (ghostX > rect.right - edgeZone) {
+        const dist = Math.max(1, ghostX - (rect.right - edgeZone));
+        dx = Math.round(3 + (dist / edgeZone) * 5);
+      }
+
+      // Vertical
+      if (ghostY < rect.top + edgeZone) {
+        const dist = Math.max(1, rect.top + edgeZone - ghostY);
+        dy = -Math.round(3 + (dist / edgeZone) * 5);
+      } else if (ghostY > rect.bottom - edgeZone) {
+        const dist = Math.max(1, ghostY - (rect.bottom - edgeZone));
+        dy = Math.round(3 + (dist / edgeZone) * 5);
+      }
+
+      if (dx !== 0 || dy !== 0) {
+        sc.scrollLeft += dx;
+        sc.scrollTop += dy;
+      }
+
+      autoScrollRef.current = requestAnimationFrame(tick);
+    };
+
+    autoScrollRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (autoScrollRef.current) {
+        cancelAnimationFrame(autoScrollRef.current);
+        autoScrollRef.current = 0;
+      }
+    };
+  }, [dragRender]);
+
+  // ============================================================
   // Event click/tap — тільки якщо не було drag
   // ============================================================
   const handleEventClick = useCallback((event: CalendarEvent) => {
@@ -632,6 +696,33 @@ export function DayPilotResourceCalendar({
                 <div key={hour} className="h-[60px] border-b border-gray-200" />
               ))}
 
+              {/* Фіча 1: Drop Preview (тінь на сітці) */}
+              {dragRender && dragRender.phase === 'dragging' && r.id === dragRender.targetResourceId && (() => {
+                const totalMinutes = (dayEndHour - dayStartHour) * 60;
+                const previewStartMin = dragRender.targetStartMin - dayStartHour * 60;
+                const previewEndMin = dragRender.targetEndMin - dayStartHour * 60;
+                const top = (previewStartMin / totalMinutes) * 100;
+                const height = ((previewEndMin - previewStartMin) / totalMinutes) * 100;
+                const previewColor = r.color || '#666';
+                return (
+                  <div
+                    className="absolute left-0 right-0.5 rounded-r-lg z-[1] pointer-events-none overflow-hidden"
+                    style={{
+                      top: `${top}%`,
+                      height: `${height}%`,
+                      minHeight: '24px',
+                      backgroundColor: `${previewColor}40`,
+                      border: `2px dashed ${previewColor}80`,
+                      borderRadius: '0 0.5rem 0.5rem 0',
+                    }}
+                  >
+                    <div className="px-1.5 py-1 text-[10px] font-semibold" style={{ color: `${previewColor}cc` }}>
+                      {formatMinutes(dragRender.targetStartMin)} – {formatMinutes(dragRender.targetEndMin)}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Події */}
               {filteredEvents
                 .filter(e => e.resource === r.id)
@@ -700,6 +791,52 @@ export function DayPilotResourceCalendar({
             </div>
           ))}
           </div>{/* end resource columns flex */}
+
+          {/* Фіча 2: Горизонтальна лінія-вказівник + час зліва */}
+          {dragRender && dragRender.phase === 'dragging' && (() => {
+            const totalMinutes = (dayEndHour - dayStartHour) * 60;
+            const topPercent = ((dragRender.targetStartMin - dayStartHour * 60) / totalMinutes) * 100;
+            const showEndLine = dragRender.mode === 'resize-bottom';
+            const endTopPercent = showEndLine
+              ? ((dragRender.targetEndMin - dayStartHour * 60) / totalMinutes) * 100
+              : 0;
+
+            return (
+              <>
+                {/* Start line */}
+                <div
+                  className="absolute left-0 right-0 pointer-events-none z-[5]"
+                  style={{ top: `${topPercent}%` }}
+                >
+                  {/* Full-width line */}
+                  <div className="absolute left-0 right-0 h-[2px] bg-black/40" />
+                  {/* Time badge in time column (sticky left) */}
+                  <div
+                    className="absolute bg-black text-white rounded px-1 py-px text-[9px] font-bold leading-tight whitespace-nowrap z-[11]"
+                    style={{ left: 0, top: '-8px' }}
+                  >
+                    {formatMinutes(dragRender.targetStartMin)}
+                  </div>
+                </div>
+
+                {/* End line (only for resize-bottom) */}
+                {showEndLine && (
+                  <div
+                    className="absolute left-0 right-0 pointer-events-none z-[5]"
+                    style={{ top: `${endTopPercent}%` }}
+                  >
+                    <div className="absolute left-0 right-0 h-[2px] bg-black/40" />
+                    <div
+                      className="absolute bg-black text-white rounded px-1 py-px text-[9px] font-bold leading-tight whitespace-nowrap z-[11]"
+                      style={{ left: 0, top: '-8px' }}
+                    >
+                      {formatMinutes(dragRender.targetEndMin)}
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
         
         {/* Кінець робочого дня - надпис (внутри скрола, з відступом під week bar) */}
