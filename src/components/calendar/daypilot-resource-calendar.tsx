@@ -316,15 +316,57 @@ export function DayPilotResourceCalendar({
       </div>{/* end scroll container */}
 
       {/* Навігація по тижню - жовта полоса над MobileNav */}
-      <div className="lg:hidden fixed bottom-[68px] left-[23px] right-[23px] z-40 bg-yellow-400 h-[32px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none rounded-t-2xl border border-black border-b-0">
+      <div className="lg:hidden fixed bottom-[68px] left-[23px] right-[23px] z-40 bg-yellow-400 h-[32px] flex items-end shadow-[0_-2px_8px_rgba(0,0,0,0.1)] touch-none select-none rounded-t-2xl overflow-visible">
+        {/* Динамічна обводка */}
+        {(() => {
+          const selectedIdx = weekDays.findIndex(d => isSelected(d));
+          const indicatorWidthPercent = 100 / 7;
+          const indicatorLeftPercent = selectedIdx * indicatorWidthPercent;
+          
+          return (
+            <>
+              {/* Ліва вертикальна лінія */}
+              <div className="absolute left-0 top-0 bottom-0 w-px bg-black rounded-tl-2xl" style={{ borderTopLeftRadius: '16px' }} />
+              <div className="absolute left-0 bottom-0 w-px bg-black" style={{ top: '16px' }} />
+              
+              {/* Права вертикальна лінія */}
+              <div className="absolute right-0 bottom-0 w-px bg-black" style={{ top: '16px' }} />
+              
+              {/* Верхня ліва частина (до індикатора) */}
+              <div 
+                className="absolute h-px bg-black transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+                style={{ 
+                  top: 0,
+                  left: '16px',
+                  width: `calc(${indicatorLeftPercent}% - 16px)`,
+                }}
+              />
+              
+              {/* Верхня права частина (після індикатора) */}
+              <div 
+                className="absolute h-px bg-black transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+                style={{ 
+                  top: 0,
+                  left: `calc(${indicatorLeftPercent + indicatorWidthPercent}%)`,
+                  right: '16px',
+                }}
+              />
+              
+              {/* Скруглені кути зверху */}
+              <div className="absolute top-0 left-0 w-4 h-4 border-t border-l border-black rounded-tl-2xl" />
+              <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-black rounded-tr-2xl" />
+            </>
+          );
+        })()}
+        
         <div className="relative flex items-center justify-around w-full h-[28px] touch-none overflow-visible">
-          {/* Плаваючий індикатор */}
+          {/* Плаваючий індикатор з обводкою */}
           {(() => {
             const selectedIdx = weekDays.findIndex(d => isSelected(d));
             
             return (
               <div 
-                className="absolute bg-white rounded-t-2xl transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
+                className="absolute bg-white rounded-t-2xl border border-black border-b-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
                 style={{
                   width: 'calc(100% / 7)',
                   left: `calc(${selectedIdx} * 100% / 7)`,
