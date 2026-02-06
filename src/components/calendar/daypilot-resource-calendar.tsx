@@ -337,93 +337,108 @@ export function DayPilotResourceCalendar({
         className="lg:hidden fixed bottom-[68px] left-[23px] right-[23px] z-40 h-[32px] flex items-end touch-none select-none overflow-visible"
         style={{ background: 'transparent' }}
       >
-        {/* SVG фон з обтіканням індикатора */}
+        {/* Жовтий фон */}
+        <div className="absolute inset-0 bg-yellow-400 rounded-t-2xl" />
+        
+        {/* Білий індикатор з CSS transition (плавний перехід) */}
+        {(() => {
+          const selectedIdx = weekDays.findIndex(d => isSelected(d));
+          const isFirst = selectedIdx === 0;
+          const isLast = selectedIdx === 6;
+          return (
+            <div 
+              className="absolute bg-white z-[1] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+              style={{
+                width: 'calc(100% / 7)',
+                left: `calc(${selectedIdx} * 100% / 7)`,
+                top: '-7px',
+                bottom: 0,
+                borderRadius: '16px 16px 0 0',
+              }}
+            />
+          );
+        })()}
+        
+        {/* SVG обводка — єдина чорна лінія що обтікає індикатор */}
         {weekBarWidth > 0 && (() => {
           const selectedIdx = weekDays.findIndex(d => isSelected(d));
           const w = weekBarWidth;
-          const barH = 32; // висота жовтої полоси
-          const bump = 14; // наскільки індикатор піднімається над полосою
-          const cr = 16; // радіус кутів полоси (rounded-t-2xl)
-          const curve = 14; // радіус плавного переходу (обтікання)
+          const barH = 32;
+          const bump = 7; // #4: висота виступу зменшена на 50%
+          const cr = 16; // радіус кутів полоси
+          const curve = 12; // радіус обтікання
           const cellW = w / 7;
           const indL = selectedIdx * cellW;
           const indR = indL + cellW;
-          const topY = 0; // верх індикатора
-          const barTop = bump; // верх жовтої полоси
+          const topY = 0;
+          const barTop = bump;
           const totalH = bump + barH;
+          const isFirst = selectedIdx === 0;
+          const isLast = selectedIdx === 6;
           
-          // Єдиний контур: чорна рамка як гнучка стрічка
-          // Ліва стінка → верх жовтої → плавний підйом до індикатора → верх індикатора → плавний спуск → верх жовтої → права стінка
-          const contour = `
-            M 0 ${totalH}
-            L 0 ${barTop + cr}
-            Q 0 ${barTop} ${cr} ${barTop}
-            L ${indL} ${barTop}
-            C ${indL} ${barTop} ${indL} ${topY} ${indL + curve} ${topY}
-            L ${indR - curve} ${topY}
-            C ${indR} ${topY} ${indR} ${barTop} ${indR} ${barTop}
-            L ${w - cr} ${barTop}
-            Q ${w} ${barTop} ${w} ${barTop + cr}
-            L ${w} ${totalH}
-          `;
+          // #1 + #3: обробка крайніх позицій та вирівнювання з MobileNav border
+          // strokeWidth=1, зміщуємо на 0.5px всередину для точного збігу з border MobileNav
+          const sx = 0.5; // stroke offset
           
-          // Жовтий фон — замкнутий контур під стрічкою (без індикатора)
-          const yellowFill = `
-            M 0 ${totalH}
-            L 0 ${barTop + cr}
-            Q 0 ${barTop} ${cr} ${barTop}
-            L ${indL} ${barTop}
-            L ${indL} ${totalH}
-            Z
-            M ${indR} ${totalH}
-            L ${indR} ${barTop}
-            L ${w - cr} ${barTop}
-            Q ${w} ${barTop} ${w} ${barTop + cr}
-            L ${w} ${totalH}
-            Z
-          `;
+          let contour = '';
           
-          // Білий індикатор — під обводкою, плавна форма
-          const whiteFill = `
-            M ${indL} ${barTop}
-            C ${indL} ${barTop} ${indL} ${topY} ${indL + curve} ${topY}
-            L ${indR - curve} ${topY}
-            C ${indR} ${topY} ${indR} ${barTop} ${indR} ${barTop}
-            L ${indR} ${totalH}
-            L ${indL} ${totalH}
-            Z
-          `;
+          if (isFirst) {
+            // Індикатор зліва — ліва стінка одразу піднімається до верху індикатора
+            contour = `
+              M ${sx} ${totalH}
+              L ${sx} ${topY + cr}
+              Q ${sx} ${topY} ${cr} ${topY}
+              L ${indR - curve} ${topY}
+              C ${indR} ${topY} ${indR} ${barTop} ${indR} ${barTop}
+              L ${w - cr - sx} ${barTop}
+              Q ${w - sx} ${barTop} ${w - sx} ${barTop + cr}
+              L ${w - sx} ${totalH}
+            `;
+          } else if (isLast) {
+            // Індикатор справа — права стінка одразу піднімається до верху індикатора
+            contour = `
+              M ${sx} ${totalH}
+              L ${sx} ${barTop + cr}
+              Q ${sx} ${barTop} ${cr} ${barTop}
+              L ${indL} ${barTop}
+              C ${indL} ${barTop} ${indL} ${topY} ${indL + curve} ${topY}
+              L ${w - cr - sx} ${topY}
+              Q ${w - sx} ${topY} ${w - sx} ${topY + cr}
+              L ${w - sx} ${totalH}
+            `;
+          } else {
+            // Індикатор посередині — стандартна обводка
+            contour = `
+              M ${sx} ${totalH}
+              L ${sx} ${barTop + cr}
+              Q ${sx} ${barTop} ${cr} ${barTop}
+              L ${indL} ${barTop}
+              C ${indL} ${barTop} ${indL} ${topY} ${indL + curve} ${topY}
+              L ${indR - curve} ${topY}
+              C ${indR} ${topY} ${indR} ${barTop} ${indR} ${barTop}
+              L ${w - cr - sx} ${barTop}
+              Q ${w - sx} ${barTop} ${w - sx} ${barTop + cr}
+              L ${w - sx} ${totalH}
+            `;
+          }
           
           return (
             <svg 
-              className="absolute pointer-events-none"
-              style={{ top: -bump, left: 0, width: w, height: totalH, overflow: 'visible' }}
+              className="absolute pointer-events-none z-[2]"
+              style={{ top: -bump, left: 0, width: w, height: totalH }}
             >
-              {/* 1. Білий індикатор */}
-              <path
-                d={whiteFill}
-                fill="white"
-                className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-              />
-              {/* 2. Жовтий фон ліворуч і праворуч від індикатора */}
-              <path
-                d={yellowFill}
-                fill="#facc15"
-                className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-              />
-              {/* 3. Єдина чорна обводка — обтікає індикатор */}
               <path
                 d={contour}
                 fill="none"
                 stroke="black"
                 strokeWidth="1"
-                className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+                style={{ transition: 'd 300ms cubic-bezier(0.4, 0, 0.2, 1)' }}
               />
             </svg>
           );
         })()}
         
-        <div className="relative flex items-center justify-around w-full h-[28px] touch-none overflow-visible">
+        <div className="relative flex items-center justify-around w-full h-[28px] touch-none overflow-visible z-[3]">
           {weekDays.map((day, idx) => {
             const dayNum = day.getDate();
             const dayName = ukDaysShort[day.getDay()];
