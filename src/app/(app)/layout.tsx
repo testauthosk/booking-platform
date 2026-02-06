@@ -38,7 +38,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="h-screen flex bg-background overflow-hidden overscroll-none">
+    <div className="h-screen flex overflow-hidden overscroll-none">
       {/* Mobile overlay - frosted glass fade */}
       <div
         className={cn(
