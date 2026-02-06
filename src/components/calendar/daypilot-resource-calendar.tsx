@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Plus, X, Phone, MessageCircle, User, Clock, Scissors } from 'lucide-react';
 
 export interface CalendarEvent {
@@ -55,12 +55,35 @@ function formatTime(dateStr: string): string {
   return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 }
 
+function formatMinutes(totalMin: number): string {
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+// ============================================================
+// Drag & Drop — типи та константи
+// ============================================================
+interface DragState {
+  event: CalendarEvent;
+  ghostX: number;
+  ghostY: number;
+  targetResourceId: string;
+  targetStartMin: number;
+  phase: 'pending' | 'dragging'; // pending = ще не розпочався (mouse threshold / long press)
+}
+
+const LONG_PRESS_MS = 400;
+const TOUCH_MOVE_THRESHOLD = 10; // px — скасування long press
+const MOUSE_MOVE_THRESHOLD = 5;  // px — поріг початку mouse drag
+
 export function DayPilotResourceCalendar({
   resources,
   events,
   startDate,
   onDateChange,
   onEventClick,
+  onEventMove,
   onTimeRangeSelect,
   dayStartHour = 8,
   dayEndHour = 21,
@@ -69,14 +92,19 @@ export function DayPilotResourceCalendar({
   const [mounted, setMounted] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  
-  // Drag & drop state
-  const [dragEvent, setDragEvent] = useState<CalendarEvent | null>(null);
-  const [dragGhost, setDragGhost] = useState<{ x: number; y: number; resourceId: string; startMin: number } | null>(null);
+
+  // Drag & drop state (в ref для eventListeners, в state для рендеру ghost)
+  const dragRef = useRef<DragState | null>(null);
+  const [dragRender, setDragRender] = useState<DragState | null>(null);
+
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchStartPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const mouseStartPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const pendingMouseEvent = useRef<CalendarEvent | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
-  const isDragging = useRef(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const savedBodyOverflow = useRef<string>('');
+  const didDrag = useRef(false); // true якщо був drag (для відрізнення від кліку)
 
   // Відкрити модалку з деталями запису
   const openEventModal = (event: CalendarEvent) => {
@@ -95,109 +123,226 @@ export function DayPilotResourceCalendar({
     return resources.find(r => r.id === resourceId);
   };
 
-  // --- Drag & Drop через long press ---
-  const LONG_PRESS_MS = 400;
-  const MOVE_THRESHOLD = 10; // px до скасування long press
-
-  const getGridPosition = (clientX: number, clientY: number) => {
+  // ============================================================
+  // getGridPosition — з урахуванням скролів і sticky time column
+  // ============================================================
+  const getGridPosition = useCallback((clientX: number, clientY: number) => {
     if (!gridRef.current) return null;
     const grid = gridRef.current;
-    const rect = grid.getBoundingClientRect();
-    const scrollLeft = grid.parentElement?.scrollLeft || 0;
-    const scrollTop = grid.parentElement?.scrollTop || 0;
 
-    // Знаходимо колонку ресурсу
-    const timeColWidth = 40; // w-10
+    // Scroll container (вертикальний + горизонтальний скрол)
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return null;
+
     const resourcesContainer = grid.querySelector('[data-resources]') as HTMLElement;
     if (!resourcesContainer) return null;
 
-    const relX = clientX - rect.left + scrollLeft - timeColWidth;
-    const relY = clientY - rect.top + scrollTop;
+    // Позиція resources container відносно viewport
+    const rcRect = resourcesContainer.getBoundingClientRect();
 
+    // Відносні координати всередині resources container (вже враховує скрол бо getBoundingClientRect повертає viewport coords)
+    const relX = clientX - rcRect.left;
+    const relY = clientY - rcRect.top;
+
+    // Ширина однієї колонки ресурсу
     const cellW = resourcesContainer.offsetWidth / resources.length;
     const resourceIdx = Math.max(0, Math.min(resources.length - 1, Math.floor(relX / cellW)));
     const resourceId = resources[resourceIdx]?.id || '';
 
-    // Розрахунок часу
+    // Розрахунок часу — grid height = hours.length * 60px
     const totalMinutes = (dayEndHour - dayStartHour) * 60;
-    const gridHeight = grid.offsetHeight;
-    const minutes = Math.round((relY / gridHeight) * totalMinutes / 15) * 15; // snap to 15min
-    const startMin = dayStartHour * 60 + Math.max(0, Math.min(totalMinutes, minutes));
+    const gridHeight = resourcesContainer.offsetHeight;
+    // relY може бути від'ємним якщо курсор над grid — clamp
+    const clampedY = Math.max(0, Math.min(gridHeight, relY));
+    const minutes = Math.round((clampedY / gridHeight) * totalMinutes / 15) * 15; // snap to 15min
+    const startMin = dayStartHour * 60 + Math.max(0, Math.min(totalMinutes - 15, minutes));
 
     return { resourceId, startMin, resourceIdx };
-  };
+  }, [resources, dayStartHour, dayEndHour]);
 
-  const handleTouchStart = (event: CalendarEvent, e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    touchStartPos.current = { x: touch.clientX, y: touch.clientY };
-    isDragging.current = false;
-
-    longPressTimer.current = setTimeout(() => {
-      isDragging.current = true;
-      setDragEvent(event);
-      // Вібрація для тактильного фідбеку
-      if (navigator.vibrate) navigator.vibrate(50);
-
-      const pos = getGridPosition(touch.clientX, touch.clientY);
-      if (pos) {
-        setDragGhost({ x: touch.clientX, y: touch.clientY, resourceId: pos.resourceId, startMin: pos.startMin });
-      }
-    }, LONG_PRESS_MS);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    const dx = Math.abs(touch.clientX - touchStartPos.current.x);
-    const dy = Math.abs(touch.clientY - touchStartPos.current.y);
-
-    // Якщо рухнулись до long press — скасувати
-    if (!isDragging.current && (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD)) {
-      if (longPressTimer.current) {
-        clearTimeout(longPressTimer.current);
-        longPressTimer.current = null;
-      }
-      return;
+  // ============================================================
+  // Drag lifecycle helpers
+  // ============================================================
+  const startDrag = useCallback((event: CalendarEvent, clientX: number, clientY: number) => {
+    didDrag.current = true;
+    // Вібрація (mobile)
+    if (navigator.vibrate) {
+      try { navigator.vibrate(50); } catch {}
     }
+    // Заборонити скрол body
+    savedBodyOverflow.current = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    // Cursor
+    document.body.style.cursor = 'grabbing';
 
-    // Якщо вже драгаємо — оновити позицію
-    if (isDragging.current && dragEvent) {
-      e.preventDefault();
-      const pos = getGridPosition(touch.clientX, touch.clientY);
-      if (pos) {
-        setDragGhost({ x: touch.clientX, y: touch.clientY, resourceId: pos.resourceId, startMin: pos.startMin });
-      }
+    const pos = getGridPosition(clientX, clientY);
+    const state: DragState = {
+      event,
+      ghostX: clientX,
+      ghostY: clientY,
+      targetResourceId: pos?.resourceId || event.resource,
+      targetStartMin: pos?.startMin || 0,
+      phase: 'dragging',
+    };
+    dragRef.current = state;
+    setDragRender({ ...state });
+  }, [getGridPosition]);
+
+  const updateDrag = useCallback((clientX: number, clientY: number) => {
+    if (!dragRef.current || dragRef.current.phase !== 'dragging') return;
+    const pos = getGridPosition(clientX, clientY);
+    if (pos) {
+      dragRef.current.ghostX = clientX;
+      dragRef.current.ghostY = clientY;
+      dragRef.current.targetResourceId = pos.resourceId;
+      dragRef.current.targetStartMin = pos.startMin;
+      setDragRender({ ...dragRef.current });
     }
-  };
+  }, [getGridPosition]);
 
-  const handleTouchEnd = () => {
+  const endDrag = useCallback((commit: boolean) => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
 
-    if (isDragging.current && dragEvent && dragGhost && onEventMove) {
-      // Розрахунок нового часу
-      const duration = (new Date(dragEvent.end).getTime() - new Date(dragEvent.start).getTime()) / 60000;
-      const newStartH = Math.floor(dragGhost.startMin / 60);
-      const newStartM = dragGhost.startMin % 60;
-      const dateStr = internalDate.toISOString().split('T')[0];
-      const newStart = new Date(`${dateStr}T${String(newStartH).padStart(2, '0')}:${String(newStartM).padStart(2, '0')}:00`);
+    const state = dragRef.current;
+    if (state && state.phase === 'dragging' && commit && onEventMove) {
+      const duration = (new Date(state.event.end).getTime() - new Date(state.event.start).getTime()) / 60000;
+      const newStartH = Math.floor(state.targetStartMin / 60);
+      const newStartM = state.targetStartMin % 60;
+      const dStr = internalDate.toISOString().split('T')[0];
+      const newStart = new Date(`${dStr}T${String(newStartH).padStart(2, '0')}:${String(newStartM).padStart(2, '0')}:00`);
       const newEnd = new Date(newStart.getTime() + duration * 60000);
-
-      onEventMove(dragEvent.id, newStart, newEnd, dragGhost.resourceId);
+      onEventMove(state.event.id, newStart, newEnd, state.targetResourceId);
     }
 
-    isDragging.current = false;
-    setDragEvent(null);
-    setDragGhost(null);
-  };
+    // Restore
+    document.body.style.overflow = savedBodyOverflow.current;
+    document.body.style.cursor = '';
+    dragRef.current = null;
+    pendingMouseEvent.current = null;
+    setDragRender(null);
+  }, [internalDate, onEventMove]);
 
-  const handleEventTap = (event: CalendarEvent) => {
-    // Тільки якщо не драгали
-    if (!isDragging.current) {
-      openEventModal(event);
+  const cancelDrag = useCallback(() => {
+    endDrag(false);
+  }, [endDrag]);
+
+  // ============================================================
+  // Touch handlers
+  // ============================================================
+  const handleTouchStart = useCallback((event: CalendarEvent, e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+    didDrag.current = false;
+
+    longPressTimer.current = setTimeout(() => {
+      startDrag(event, touch.clientX, touch.clientY);
+    }, LONG_PRESS_MS);
+  }, [startDrag]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    const dx = Math.abs(touch.clientX - touchStartPos.current.x);
+    const dy = Math.abs(touch.clientY - touchStartPos.current.y);
+
+    // Якщо ще не drag — перевіряємо чи рухнулись (скасовуємо long press)
+    if (!dragRef.current || dragRef.current.phase !== 'dragging') {
+      if (dx > TOUCH_MOVE_THRESHOLD || dy > TOUCH_MOVE_THRESHOLD) {
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+        }
+      }
+      return;
     }
-  };
+
+    // Вже drag — preventDefault щоб не скролити, оновити позицію
+    e.preventDefault();
+    updateDrag(touch.clientX, touch.clientY);
+  }, [updateDrag]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    if (dragRef.current && dragRef.current.phase === 'dragging') {
+      endDrag(true);
+    } else {
+      dragRef.current = null;
+      setDragRender(null);
+    }
+  }, [endDrag]);
+
+  // ============================================================
+  // Mouse handlers (desktop)
+  // ============================================================
+  const handleMouseDown = useCallback((event: CalendarEvent, e: React.MouseEvent) => {
+    if (e.button !== 0) return; // тільки ліва кнопка
+    e.preventDefault();
+    mouseStartPos.current = { x: e.clientX, y: e.clientY };
+    pendingMouseEvent.current = event;
+    didDrag.current = false;
+  }, []);
+
+  // Global mousemove / mouseup — через useEffect
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      // Phase: pending — чекаємо порогу
+      if (pendingMouseEvent.current && (!dragRef.current || dragRef.current.phase === 'pending')) {
+        const dx = Math.abs(e.clientX - mouseStartPos.current.x);
+        const dy = Math.abs(e.clientY - mouseStartPos.current.y);
+        if (dx > MOUSE_MOVE_THRESHOLD || dy > MOUSE_MOVE_THRESHOLD) {
+          startDrag(pendingMouseEvent.current, e.clientX, e.clientY);
+          pendingMouseEvent.current = null;
+        }
+        return;
+      }
+      // Phase: dragging
+      if (dragRef.current && dragRef.current.phase === 'dragging') {
+        updateDrag(e.clientX, e.clientY);
+      }
+    };
+
+    const onMouseUp = () => {
+      if (dragRef.current && dragRef.current.phase === 'dragging') {
+        endDrag(true);
+      } else {
+        pendingMouseEvent.current = null;
+      }
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        cancelDrag();
+      }
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [startDrag, updateDrag, endDrag, cancelDrag]);
+
+  // ============================================================
+  // Event click/tap — тільки якщо не було drag
+  // ============================================================
+  const handleEventClick = useCallback((event: CalendarEvent) => {
+    // Невеликий таймаут щоб didDrag встиг оновитись
+    setTimeout(() => {
+      if (!didDrag.current) {
+        openEventModal(event);
+      }
+      didDrag.current = false;
+    }, 10);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -353,14 +498,14 @@ export function DayPilotResourceCalendar({
         </div>
 
         {/* Скрол контейнер (вертикальний + горизонтальний) */}
-        <div className="flex-1 overflow-auto"
+        <div ref={scrollContainerRef} className="flex-1 overflow-auto"
           onScroll={(e) => {
             const headers = e.currentTarget.previousElementSibling as HTMLElement;
             if (headers) headers.scrollLeft = e.currentTarget.scrollLeft;
           }}
         >
           {/* Сітка часу */}
-          <div ref={gridRef} className="relative flex" style={{ minHeight: `${hours.length * 60}px` }}>
+          <div ref={gridRef} className="relative flex select-none" style={{ minHeight: `${hours.length * 60}px`, WebkitUserSelect: 'none', userSelect: 'none' }}>
             {/* Колонка часу — sticky left */}
             <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 sticky left-0 bg-white z-10">
               {hours.map(hour => (
@@ -395,11 +540,12 @@ export function DayPilotResourceCalendar({
                   const pos = getEventPosition(event);
                   const bgColor = event.backColor || r.color || '#22c55e';
                   const borderColor = darkenColor(bgColor, 25);
+                  const isBeingDragged = dragRender?.event.id === event.id;
                   return (
                     <div
                       key={event.id}
-                      className={`absolute left-0 right-0.5 rounded-r-lg cursor-pointer overflow-hidden transition-all ${
-                        dragEvent?.id === event.id ? 'opacity-40 scale-95' : 'active:scale-[0.98]'
+                      className={`absolute left-0 right-0.5 rounded-r-lg overflow-hidden transition-all select-none ${
+                        isBeingDragged ? 'opacity-30 scale-95' : 'cursor-pointer active:scale-[0.98]'
                       }`}
                       style={{
                         top: `${pos.top}%`,
@@ -411,13 +557,18 @@ export function DayPilotResourceCalendar({
                         borderTop: `1px solid ${borderColor}`,
                         borderRight: `1px solid ${borderColor}`,
                         borderBottom: `1px solid ${borderColor}`,
-                      }}
-                      onClick={() => handleEventTap(event)}
+                        WebkitUserSelect: 'none',
+                        userSelect: 'none',
+                        WebkitTouchCallout: 'none',
+                      } as React.CSSProperties}
+                      onClick={() => handleEventClick(event)}
+                      onContextMenu={(e) => e.preventDefault()}
                       onTouchStart={(e) => handleTouchStart(event, e)}
                       onTouchMove={handleTouchMove}
                       onTouchEnd={handleTouchEnd}
+                      onMouseDown={(e) => handleMouseDown(event, e)}
                     >
-                      <div className="h-full p-1.5 text-white relative flex flex-col justify-center">
+                      <div className="h-full p-1.5 text-white relative flex flex-col justify-center pointer-events-none">
                         {/* Час */}
                         <div className="text-[10px] font-bold leading-tight opacity-90">
                           {formatTime(event.start)}
@@ -454,30 +605,37 @@ export function DayPilotResourceCalendar({
       </div>{/* end horizontal scroll wrapper */}
 
       {/* Drag ghost overlay */}
-      {dragEvent && dragGhost && (
-        <div
-          className="fixed z-[90] pointer-events-none"
-          style={{
-            left: dragGhost.x - 50,
-            top: dragGhost.y - 20,
-          }}
-        >
+      {dragRender && dragRender.phase === 'dragging' && (() => {
+        const ev = dragRender.event;
+        const targetResource = resources.find(r => r.id === dragRender.targetResourceId);
+        const ghostColor = targetResource?.color || ev.backColor || '#666';
+        const duration = (new Date(ev.end).getTime() - new Date(ev.start).getTime()) / 60000;
+        const endMin = dragRender.targetStartMin + duration;
+        return (
           <div
-            className="w-[100px] rounded-lg px-2 py-1 text-white text-[10px] font-semibold shadow-2xl opacity-90"
+            className="fixed z-[90] pointer-events-none select-none"
             style={{
-              background: resources.find(r => r.id === dragGhost.resourceId)?.color || '#666',
+              left: dragRender.ghostX - 60,
+              top: dragRender.ghostY - 30,
             }}
           >
-            <div>{formatTime(dragEvent.start)}</div>
-            <div className="truncate">{dragEvent.clientName || dragEvent.text}</div>
+            <div
+              className="w-[120px] rounded-xl px-2.5 py-1.5 text-white text-[10px] font-semibold shadow-2xl"
+              style={{
+                background: `linear-gradient(160deg, ${ghostColor} 0%, ${darkenColor(ghostColor, 15)} 100%)`,
+                opacity: 0.95,
+              }}
+            >
+              <div className="font-bold text-[11px]">{formatMinutes(dragRender.targetStartMin)} – {formatMinutes(endMin)}</div>
+              <div className="truncate opacity-90">{ev.clientName || ev.text}</div>
+              {ev.serviceName && <div className="truncate text-[8px] opacity-70">{ev.serviceName}</div>}
+            </div>
+            <div className="text-center text-[10px] text-gray-700 mt-1 bg-white/95 rounded-lg px-2 py-0.5 shadow-sm font-medium">
+              → {targetResource?.name || '?'}
+            </div>
           </div>
-          <div className="text-center text-[9px] text-gray-600 mt-1 bg-white/90 rounded px-1">
-            {String(Math.floor(dragGhost.startMin / 60)).padStart(2, '0')}:{String(dragGhost.startMin % 60).padStart(2, '0')}
-            {' → '}
-            {resources.find(r => r.id === dragGhost.resourceId)?.name}
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Модалка деталей запису */}
       <div 
