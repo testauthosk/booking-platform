@@ -321,15 +321,36 @@ export function DayPilotResourceCalendar({
           {/* Плаваючий індикатор — виглядає вище жовтої полоси */}
           {(() => {
             const selectedIdx = weekDays.findIndex(d => isSelected(d));
+            const isFirst = selectedIdx === 0;
+            const isLast = selectedIdx === 6;
+            
+            // Базова ширина і позиція
+            const baseWidth = '(100% - 46px) / 7';
+            let width = `calc(${baseWidth})`;
+            let left = `calc(23px + ${selectedIdx} * (${baseWidth}))`;
+            let right = 'auto';
+            
+            // На крайніх позиціях розширюємо до краю
+            if (isFirst) {
+              width = `calc(${baseWidth} + 23px)`;
+              left = '0px';
+            } else if (isLast) {
+              width = `calc(${baseWidth} + 23px)`;
+              left = 'auto';
+              right = '0px';
+            }
             
             return (
               <div 
-                className="absolute bg-white rounded-t-2xl transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
+                className="absolute bg-white transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
                 style={{
-                  width: 'calc((100% - 46px) / 7)',
-                  left: `calc(23px + ${selectedIdx} * ((100% - 46px) / 7))`,
+                  width,
+                  left,
+                  right,
                   top: '-7px',
                   bottom: '0px',
+                  borderTopLeftRadius: '16px',
+                  borderTopRightRadius: '16px',
                 }}
               />
             );
