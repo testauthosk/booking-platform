@@ -11,8 +11,10 @@ export interface CalendarEvent {
   resource: string;
   backColor?: string;
   barColor?: string;
+  clientId?: string;
   clientName?: string;
   clientPhone?: string;
+  serviceId?: string;
   serviceName?: string;
   isNewClient?: boolean;
   status?: string;
@@ -934,11 +936,16 @@ export function DayPilotResourceCalendar({
     // Невеликий таймаут щоб didDrag встиг оновитись
     setTimeout(() => {
       if (!didDrag.current) {
-        openEventModal(event);
+        // Якщо є зовнішній обробник — використовуємо його (EventModal в page.tsx)
+        if (onEventClick) {
+          onEventClick(event);
+        } else {
+          openEventModal(event);
+        }
       }
       didDrag.current = false;
     }, 10);
-  }, []);
+  }, [onEventClick]);
 
   useEffect(() => {
     setMounted(true);

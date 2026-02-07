@@ -28,11 +28,14 @@ export interface BookingEvent {
   end: Date;
   resourceId?: string;
   backgroundColor?: string;
+  clientId?: string;
   clientName?: string;
   clientPhone?: string;
+  serviceId?: string;
   serviceName?: string;
   masterName?: string;
   status?: string;
+  isNewClient?: boolean;
 }
 
 export interface Resource {

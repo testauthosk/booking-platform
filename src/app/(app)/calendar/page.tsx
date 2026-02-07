@@ -201,8 +201,10 @@ export default function CalendarPage() {
         start: startStr,
         end: endStr,
         resource: b.masterId || '',
+        clientId: b.clientId || undefined,
         clientName: b.clientName,
         clientPhone: b.clientPhone,
+        serviceId: b.serviceId || undefined,
         serviceName: b.serviceName || undefined,
         isNewClient: b.isNewClient || false,
         status: b.status?.toLowerCase(),
@@ -265,14 +267,15 @@ export default function CalendarPage() {
       start,
       end,
       resourceId: ce.resource,
+      clientId: ce.clientId,
       clientName: ce.clientName,
       clientPhone: ce.clientPhone,
+      serviceId: ce.serviceId,
       serviceName: ce.serviceName,
       masterName: master?.name,
       status: ce.status || 'confirmed',
       isNewClient: ce.isNewClient,
       backgroundColor: eventColors[ce.resource],
-      type: 'booking',
     };
   };
 
