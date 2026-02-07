@@ -490,34 +490,28 @@ export default function CalendarPage() {
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Mobile header */}
-      <header className="lg:hidden flex items-center justify-between px-3 h-14 bg-white border-b border-gray-200 shrink-0 z-40">
-        {/* Left: menu + view toggle */}
-        <div className="flex items-center gap-2">
-          <button
-            className="h-10 w-10 rounded-xl bg-gray-100 border border-black/40 flex items-center justify-center active:bg-gray-200 transition-colors shrink-0"
-            onClick={openSidebar}
-          >
-            <Menu className="h-[18px] w-[18px] text-gray-700" />
-          </button>
-          {/* Segment control with sliding indicator */}
-          <ViewModeSegment viewMode={viewMode} onChange={setViewMode} />
-        </div>
-        {/* Right: today + bell + avatar */}
-        <div className="flex items-center gap-2">
-          <button
-            className="h-10 px-3.5 rounded-xl bg-gray-100 border border-black/40 text-[13px] font-semibold text-gray-700 active:bg-gray-200 transition-colors whitespace-nowrap"
-            onClick={goToToday}
-          >
-            Сьогодні
-          </button>
-          <NotificationBell />
-          <button
-            className="h-10 w-10 rounded-xl bg-orange-500 flex items-center justify-center text-white font-bold text-sm shrink-0 active:opacity-80 transition-opacity"
-            onClick={() => {/* TODO: open profile */}}
-          >
-            {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-          </button>
-        </div>
+      <header className="lg:hidden flex items-center gap-2 px-3 h-14 bg-white border-b border-gray-200 shrink-0 z-40">
+        <button
+          className="h-10 w-10 rounded-xl bg-gray-100 border border-black/40 flex items-center justify-center active:bg-gray-200 transition-colors shrink-0"
+          onClick={openSidebar}
+        >
+          <Menu className="h-[18px] w-[18px] text-gray-700" />
+        </button>
+        <ViewModeSegment viewMode={viewMode} onChange={setViewMode} />
+        <div className="flex-1" />
+        <button
+          className="h-10 px-3.5 rounded-xl bg-gray-100 border border-black/40 text-[13px] font-semibold text-gray-700 active:bg-gray-200 transition-colors whitespace-nowrap shrink-0"
+          onClick={goToToday}
+        >
+          Сьогодні
+        </button>
+        <NotificationBell />
+        <button
+          className="h-10 w-10 rounded-xl bg-orange-500 flex items-center justify-center text-white font-bold text-sm shrink-0 active:opacity-80 transition-opacity"
+          onClick={() => {/* TODO: open profile */}}
+        >
+          {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+        </button>
       </header>
 
       {/* Desktop date navigation */}
