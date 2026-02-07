@@ -221,42 +221,29 @@ export function ClientCardPanel({
       >
         {client && (
           <>
-            {/* Header with gradient */}
-            <div className="relative bg-gradient-to-br from-primary/20 via-primary/10 to-background p-6 pb-4">
-              <button
-                onClick={onClose}
-                className="absolute top-4 right-4 h-8 w-8 rounded-xl bg-white/80 hover:bg-white shadow-md border border-gray-200 flex items-center justify-center transition-colors"
-              >
-                <X className="h-4 w-4 text-gray-700" />
-              </button>
-
-              <div className="flex items-start gap-4">
+            {/* Header — clean */}
+            <div className="flex items-center justify-between px-5 py-4 border-b">
+              <div className="flex items-center gap-4">
                 <div className={cn(
-                  "h-16 w-16 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg",
+                  "h-12 w-12 rounded-full flex items-center justify-center text-white text-lg font-semibold",
                   getAvatarColor(client.name)
                 )}>
                   {getInitials(client.name)}
                 </div>
-                
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   {isEditing ? (
                     <Input
                       value={editForm.name}
                       onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                      className="text-xl font-bold h-auto py-1 px-2"
+                      className="text-lg font-semibold h-auto py-1 px-2"
                     />
                   ) : (
-                    <h2 className="text-xl font-bold">{client.name}</h2>
+                    <h2 className="text-lg font-semibold tracking-tight">{client.name}</h2>
                   )}
-                  
-                  {/* Tags */}
                   {tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-2">
+                    <div className="flex flex-wrap gap-1 mt-1">
                       {tags.map((tag, idx) => (
-                        <span 
-                          key={idx}
-                          className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium", tag.color)}
-                        >
+                        <span key={idx} className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                           {tag.label}
                         </span>
                       ))}
@@ -264,49 +251,52 @@ export function ClientCardPanel({
                   )}
                 </div>
               </div>
-
-              {/* Quick actions */}
-              <div className="flex gap-2 mt-4">
-                <Button 
-                  size="sm" 
-                  className="flex-1 gap-2 bg-emerald-500 hover:bg-emerald-600 text-white"
-                  onClick={() => window.open(`tel:${client.phone}`)}
-                >
-                  <Phone className="h-4 w-4" />
-                  Зателефонувати
-                </Button>
-                <Button 
-                  size="sm" 
-                  className="flex-1 gap-2 bg-sky-500 hover:bg-sky-600 text-white"
-                  onClick={() => {
-                    if (client.telegramUsername) {
-                      window.open(`https://t.me/${client.telegramUsername}`);
-                    } else if (client.telegramChatId) {
-                      window.open(`tg://user?id=${client.telegramChatId}`);
-                    } else {
-                      alert('У клієнта немає Telegram');
-                    }
-                  }}
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  Telegram
-                </Button>
-              </div>
+              <button
+                onClick={onClose}
+                className="h-8 w-8 rounded-full hover:bg-muted flex items-center justify-center transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-3 px-4 py-3 border-b">
-              <div className="text-center">
-                <p className="text-2xl font-bold">{client.visitsWithMaster || 0}</p>
-                <p className="text-xs text-muted-foreground">у вас</p>
-              </div>
-              <div className="text-center border-x">
-                <p className="text-2xl font-bold">{(client.spentWithMaster || 0).toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">₴ у вас</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold">{client.visitsCount || 0}</p>
-                <p className="text-xs text-muted-foreground">всього</p>
+            {/* Contact actions — neutral */}
+            <div className="flex gap-2 px-5 py-3 border-b">
+              <button
+                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl border hover:bg-muted transition-colors text-sm font-medium"
+                onClick={() => window.open(`tel:${client.phone}`)}
+              >
+                <Phone className="h-4 w-4" />
+                Зателефонувати
+              </button>
+              <button
+                className="flex items-center justify-center w-10 h-10 rounded-xl border hover:bg-muted transition-colors"
+                onClick={() => {
+                  if (client.telegramUsername) {
+                    window.open(`https://t.me/${client.telegramUsername}`);
+                  } else if (client.telegramChatId) {
+                    window.open(`tg://user?id=${client.telegramChatId}`);
+                  }
+                }}
+              >
+                <MessageCircle className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Stats — monochrome dividers */}
+            <div className="px-5 py-4 border-b">
+              <div className="grid grid-cols-3 divide-x">
+                <div className="text-center pr-3">
+                  <p className="text-2xl font-bold tracking-tight">{client.visitsWithMaster || 0}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">у вас</p>
+                </div>
+                <div className="text-center px-3">
+                  <p className="text-2xl font-bold tracking-tight">{(client.spentWithMaster || 0).toLocaleString()}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">₴ у вас</p>
+                </div>
+                <div className="text-center pl-3">
+                  <p className="text-2xl font-bold tracking-tight">{client.visitsCount || 0}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">всього</p>
+                </div>
               </div>
             </div>
 
