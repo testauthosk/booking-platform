@@ -63,8 +63,6 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
   }, [isOpen, event]);
 
   // Native touch listeners + rAF
-  const startHeight = useRef(0);
-
   useEffect(() => {
     const handle = handleRef.current;
     const sheet = sheetRef.current;
