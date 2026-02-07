@@ -100,36 +100,35 @@ const formatDateUk = (date: Date) => {
 };
 
 function ViewModeSegment({ viewMode, onChange }: { viewMode: 'day' | 'week'; onChange: (v: 'day' | 'week') => void }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const dayRef = useRef<HTMLButtonElement>(null);
-  const weekRef = useRef<HTMLButtonElement>(null);
-  const [ind, setInd] = useState<{ left: number; width: number }>({ left: 4, width: 44 });
-
-  useEffect(() => {
-    const container = containerRef.current;
-    const btn = viewMode === 'day' ? dayRef.current : weekRef.current;
-    if (!container || !btn) return;
-    const cRect = container.getBoundingClientRect();
-    const bRect = btn.getBoundingClientRect();
-    setInd({ left: bRect.left - cRect.left, width: bRect.width });
-  }, [viewMode]);
+  // Два варианта: 'day' idx=0, 'week' idx=1
+  const idx = viewMode === 'day' ? 0 : 1;
 
   return (
-    <div ref={containerRef} className="relative flex h-10 items-center bg-gray-100 border border-black/40 rounded-xl px-1">
+    <div
+      className="relative flex h-10 bg-gray-100 border border-black/40 rounded-xl overflow-hidden shrink-0"
+      style={{ padding: '3px' }}
+    >
+      {/* Sliding white pill */}
       <div
-        className="absolute top-[3px] bottom-[3px] rounded-lg bg-white shadow-sm pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-        style={{ left: ind.left, width: ind.width }}
+        className="absolute rounded-[9px] bg-white shadow-sm pointer-events-none transition-transform duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
+        style={{
+          top: '3px',
+          bottom: '3px',
+          width: 'calc(50% - 3px)',
+          left: '3px',
+          transform: `translateX(${idx * 100}%)`,
+        }}
       />
       <button
-        ref={dayRef}
-        className={`relative z-10 h-8 px-3.5 text-[13px] font-semibold rounded-lg transition-colors duration-200 whitespace-nowrap ${viewMode === 'day' ? 'text-gray-900' : 'text-gray-500'}`}
+        className={`relative z-10 flex-1 flex items-center justify-center text-[13px] font-semibold transition-colors duration-200 whitespace-nowrap ${viewMode === 'day' ? 'text-gray-900' : 'text-gray-500'}`}
+        style={{ minWidth: '48px', height: '100%' }}
         onClick={() => onChange('day')}
       >
         День
       </button>
       <button
-        ref={weekRef}
-        className={`relative z-10 h-8 px-3.5 text-[13px] font-semibold rounded-lg transition-colors duration-200 whitespace-nowrap ${viewMode === 'week' ? 'text-gray-900' : 'text-gray-500'}`}
+        className={`relative z-10 flex-1 flex items-center justify-center text-[13px] font-semibold transition-colors duration-200 whitespace-nowrap ${viewMode === 'week' ? 'text-gray-900' : 'text-gray-500'}`}
+        style={{ minWidth: '70px', height: '100%' }}
         onClick={() => onChange('week')}
       >
         Тиждень
@@ -490,25 +489,42 @@ export default function CalendarPage() {
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Mobile header */}
-      <header className="lg:hidden flex items-center gap-2 px-3 h-14 bg-white border-b border-gray-200 shrink-0 z-40">
+      <header
+        className="lg:hidden bg-white border-b border-gray-200 shrink-0 z-40"
+        style={{ height: '56px', padding: '0 12px', display: 'flex', alignItems: 'center', gap: '8px' }}
+      >
+        {/* Burger */}
         <button
-          className="h-10 w-10 rounded-xl bg-gray-100 border border-black/40 flex items-center justify-center active:bg-gray-200 transition-colors shrink-0"
           onClick={openSidebar}
+          className="shrink-0 active:bg-gray-200 transition-colors"
+          style={{ width: '40px', height: '40px', borderRadius: '12px', backgroundColor: '#f3f4f6', border: '1px solid rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          <Menu className="h-[18px] w-[18px] text-gray-700" />
+          <Menu className="text-gray-700" style={{ width: '18px', height: '18px' }} />
         </button>
+
+        {/* Day/Week segment */}
         <ViewModeSegment viewMode={viewMode} onChange={setViewMode} />
-        <div className="flex-1" />
+
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
+
+        {/* Today */}
         <button
-          className="h-10 px-3.5 rounded-xl bg-gray-100 border border-black/40 text-[13px] font-semibold text-gray-700 active:bg-gray-200 transition-colors whitespace-nowrap shrink-0"
           onClick={goToToday}
+          className="shrink-0 active:bg-gray-200 transition-colors"
+          style={{ height: '40px', padding: '0 14px', borderRadius: '12px', backgroundColor: '#f3f4f6', border: '1px solid rgba(0,0,0,0.4)', fontSize: '13px', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}
         >
           Сьогодні
         </button>
+
+        {/* Notifications */}
         <NotificationBell />
+
+        {/* Avatar */}
         <button
-          className="h-10 w-10 rounded-xl bg-orange-500 flex items-center justify-center text-white font-bold text-sm shrink-0 active:opacity-80 transition-opacity"
-          onClick={() => {/* TODO: open profile */}}
+          onClick={() => {/* TODO: profile */}}
+          className="shrink-0 active:opacity-80 transition-opacity"
+          style={{ width: '40px', height: '40px', borderRadius: '12px', backgroundColor: '#f97316', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: '14px' }}
         >
           {user?.name?.charAt(0)?.toUpperCase() || 'U'}
         </button>
