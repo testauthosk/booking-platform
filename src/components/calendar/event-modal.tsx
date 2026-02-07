@@ -24,6 +24,8 @@ interface EventModalProps {
 export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend, onOpenClient, onOpenMaster, onChangeMaster, onChangeClient, isEditOpen }: EventModalProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Swipe down to close — тільки вниз, без expand
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -45,6 +47,8 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
       });
     } else {
       setIsAnimating(false);
+      setShowDeleteConfirm(false);
+      setIsDeleting(false);
       const timer = setTimeout(() => setIsVisible(false), 500);
       return () => clearTimeout(timer);
     }
@@ -272,7 +276,42 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
             </div>
           </div>
 
+        {/* Delete Confirmation */}
+        {showDeleteConfirm && (
+          <div className="px-4 py-3 bg-red-50 border-t border-red-200">
+            <p className="text-sm font-medium text-red-700 mb-2">
+              Видалити запис {event.clientName}?
+            </p>
+            <p className="text-xs text-red-600 mb-3">
+              {event.serviceName} · {format(event.start, "d MMMM 'о' HH:mm", { locale: uk })}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1 h-9 text-sm"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Скасувати
+              </Button>
+              <Button
+                className="flex-1 h-9 text-sm bg-red-600 hover:bg-red-700 text-white"
+                disabled={isDeleting}
+                onClick={async () => {
+                  setIsDeleting(true);
+                  try {
+                    await onDelete?.(event);
+                  } catch {}
+                  setIsDeleting(false);
+                }}
+              >
+                {isDeleting ? 'Видалення...' : 'Так, видалити'}
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Actions */}
+        {!showDeleteConfirm && (
           <div className="p-4 border-t flex gap-2 pb-8 shrink-0">
             {!isPast && (
               <Button
@@ -287,11 +326,12 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
             <Button
               variant="outline"
               className="h-11 text-red-600 hover:text-red-700 hover:bg-red-50"
-              onClick={() => onDelete?.(event)}
+              onClick={() => setShowDeleteConfirm(true)}
             >
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
+        )}
       </div>
     </>
   );

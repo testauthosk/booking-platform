@@ -576,11 +576,9 @@ export default function CalendarPage() {
         onClose={() => setIsEventModalOpen(false)}
         onEdit={() => { setIsEditModalOpen(true); }}
         onDelete={handleDeleteEvent}
-        onOpenClient={(_clientId, clientPhone) => {
-          if (clientPhone) {
-            setClientCardPhone(clientPhone);
-            setIsClientCardOpen(true);
-          }
+        onOpenClient={(clientId, clientPhone) => {
+          setClientCardPhone(clientPhone || selectedEvent?.clientPhone || '');
+          setIsClientCardOpen(true);
         }}
         onOpenMaster={(masterId) => {
           setMasterCardId(masterId);
