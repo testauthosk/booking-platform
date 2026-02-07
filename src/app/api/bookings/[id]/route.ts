@@ -53,7 +53,7 @@ export async function PATCH(
     });
 
     const body = await request.json();
-    const { clientId, clientName, clientPhone, serviceId, date, time, duration, extraTime, status } = body;
+    const { clientId, clientName, clientPhone, serviceId, masterId, date, time, duration, extraTime, status } = body;
 
     // Отримати поточне бронювання
     const existing = await prisma.booking.findUnique({
@@ -100,6 +100,7 @@ export async function PATCH(
     if (duration !== undefined) updateData.duration = duration;
     if (extraTime !== undefined) updateData.extraTime = extraTime;
     if (status !== undefined) updateData.status = status;
+    if (masterId !== undefined) updateData.masterId = masterId;
 
     // Якщо змінився клієнт
     if (clientId !== undefined && clientId !== existing.clientId) {

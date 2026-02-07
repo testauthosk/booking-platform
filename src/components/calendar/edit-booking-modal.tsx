@@ -656,7 +656,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
           <Button 
             className="flex-1 h-11" 
             onClick={handleSave}
-            disabled={!selectedTime || !hasChanges || isSaving}
+            disabled={!selectedTime || isSaving}
           >
             {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Зберегти

@@ -164,9 +164,8 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
           </button>
         </div>
 
-        {/* Content — scrollable (hidden when edit is open) */}
-        {!isEditOpen && (
-          <div className="p-4 space-y-4 overflow-y-auto flex-1">
+        {/* Content — scrollable */}
+        <div className="p-4 space-y-4 overflow-y-auto flex-1">
             {/* Status */}
             {event.status && (
               <div className="flex items-center gap-2">
@@ -290,10 +289,9 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
               </div>
             </div>
           </div>
-        )}
 
         {/* Quick extend buttons */}
-        {onExtend && event.status !== 'cancelled' && !isEditOpen && (
+        {onExtend && event.status !== 'cancelled' && (
           <div className="px-4 py-2 border-t flex gap-2 shrink-0">
             <span className="text-sm text-muted-foreground self-center">Продовжити:</span>
             {[10, 15, 30].map((mins) => (
@@ -309,7 +307,6 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
         )}
 
         {/* Actions */}
-        {!isEditOpen && (
           <div className="p-4 border-t flex gap-2 pb-8 shrink-0">
             <Button
               variant="outline"
@@ -327,7 +324,6 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
-        )}
       </div>
     </>
   );
