@@ -14,11 +14,13 @@ interface EventModalProps {
   onEdit?: (event: BookingEvent) => void;
   onDelete?: (event: BookingEvent) => void;
   onExtend?: (event: BookingEvent, minutes: number) => void;
-  onOpenClient?: (clientId: string) => void;
+  onOpenClient?: (clientId: string, clientPhone?: string) => void;
   onOpenMaster?: (masterId: string) => void;
+  onChangeMaster?: (bookingId: string, currentMasterId?: string) => void;
+  onChangeClient?: (bookingId: string, currentClientId?: string) => void;
 }
 
-export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend, onOpenClient, onOpenMaster }: EventModalProps) {
+export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend, onOpenClient, onOpenMaster, onChangeMaster, onChangeClient }: EventModalProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -51,14 +53,14 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
     <>
       {/* Backdrop */}
       <div 
-        className={`fixed inset-0 bg-black/50 z-50 transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/50 z-[100] transition-opacity duration-300 ${
           isAnimating ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={onClose}
       />
       
       {/* Modal */}
-      <div className={`fixed inset-x-4 bottom-24 lg:inset-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-md bg-background rounded-2xl shadow-xl z-50 transition-all duration-300 ${
+      <div className={`fixed inset-x-4 bottom-4 lg:inset-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-md bg-background rounded-2xl shadow-xl z-[101] max-h-[85vh] overflow-hidden flex flex-col transition-all duration-300 ${
         isAnimating 
           ? 'opacity-100 translate-y-0 lg:scale-100' 
           : 'opacity-0 translate-y-8 lg:translate-y-0 lg:scale-95'
@@ -69,10 +71,10 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
           style={{ backgroundColor: event.backgroundColor || '#8b5cf6' }}
         >
           <div className="pr-10">
-            <h2 className="text-lg font-semibold text-white">{event.title}</h2>
-            <p className="text-white/80 text-sm mt-1">
-              {format(event.start, 'HH:mm')} - {format(event.end, 'HH:mm')}
+            <p className="text-2xl font-bold text-white tracking-tight">
+              {format(event.start, 'HH:mm')} – {format(event.end, 'HH:mm')}
             </p>
+            <h2 className="text-sm font-medium text-white/80 mt-0.5">{event.title}</h2>
           </div>
           <button 
             onClick={onClose}
@@ -82,8 +84,8 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-4 space-y-4">
+        {/* Content — scrollable */}
+        <div className="p-4 space-y-4 overflow-y-auto flex-1">
           {/* Status */}
           {event.status && (
             <div className="flex items-center gap-2">
@@ -97,21 +99,29 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
           <div className="space-y-3">
             {/* Клієнт — кликабельний */}
             {event.clientName && (
-              <button
-                className="flex items-center gap-3 w-full text-left rounded-xl p-2 -mx-2 hover:bg-muted/50 transition-colors group"
-                onClick={() => event.clientId && onOpenClient?.(event.clientId)}
-              >
-                <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-muted-foreground">Клієнт</p>
-                  <p className="font-medium truncate">{event.clientName}</p>
-                </div>
-                {event.clientId && onOpenClient && (
+              <div className="flex items-center gap-2">
+                <button
+                  className="flex items-center gap-3 flex-1 min-w-0 text-left rounded-xl p-2 -ml-2 hover:bg-muted/50 transition-colors group"
+                  onClick={() => onOpenClient?.(event.clientId || '', event.clientPhone)}
+                >
+                  <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] text-muted-foreground">Клієнт</p>
+                    <p className="font-medium text-sm truncate">{event.clientName}</p>
+                  </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                </button>
+                {onChangeClient && (
+                  <button
+                    className="text-xs text-primary font-medium px-2 py-1 rounded-lg hover:bg-primary/5 transition-colors shrink-0"
+                    onClick={() => onChangeClient(event.id, event.clientId)}
+                  >
+                    Змінити
+                  </button>
                 )}
-              </button>
+              </div>
             )}
 
             {/* Швидкі кнопки зв'язку */}
@@ -158,23 +168,31 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
 
             {/* Майстер — кликабельний */}
             {event.masterName && (
-              <button
-                className="flex items-center gap-3 w-full text-left rounded-xl p-2 -mx-2 hover:bg-muted/50 transition-colors group"
-                onClick={() => event.resourceId && onOpenMaster?.(event.resourceId)}
-              >
-                <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: event.backgroundColor || '#8b5cf6' }}
+              <div className="flex items-center gap-2">
+                <button
+                  className="flex items-center gap-3 flex-1 min-w-0 text-left rounded-xl p-2 -ml-2 hover:bg-muted/50 transition-colors group"
+                  onClick={() => event.resourceId && onOpenMaster?.(event.resourceId)}
                 >
-                  <span className="text-white text-sm font-bold">{event.masterName.charAt(0).toUpperCase()}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-muted-foreground">Майстер</p>
-                  <p className="font-medium truncate">{event.masterName}</p>
-                </div>
-                {event.resourceId && onOpenMaster && (
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: event.backgroundColor || '#8b5cf6' }}
+                  >
+                    <span className="text-white text-sm font-bold">{event.masterName.charAt(0).toUpperCase()}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] text-muted-foreground">Майстер</p>
+                    <p className="font-medium text-sm truncate">{event.masterName}</p>
+                  </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                </button>
+                {onChangeMaster && (
+                  <button
+                    className="text-xs text-primary font-medium px-2 py-1 rounded-lg hover:bg-primary/5 transition-colors shrink-0"
+                    onClick={() => onChangeMaster(event.id, event.resourceId)}
+                  >
+                    Змінити
+                  </button>
                 )}
-              </button>
+              </div>
             )}
 
             {/* Дата і час */}

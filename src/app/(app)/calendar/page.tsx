@@ -11,6 +11,7 @@ import { NewBookingModal } from '@/components/calendar/new-booking-modal';
 import { BlockTimeModal } from '@/components/calendar/block-time-modal';
 import { EditBookingModal } from '@/components/calendar/edit-booking-modal';
 import { ColleagueBookingModal } from '@/components/staff/colleague-booking-modal';
+import { ClientCardPanel } from '@/components/staff/client-card-panel';
 import dynamic from 'next/dynamic';
 import type { CalendarEvent, CalendarResource } from '@/components/calendar/daypilot-resource-calendar';
 import type { BookingEvent, Resource } from '@/components/calendar/custom-calendar';
@@ -255,6 +256,8 @@ export default function CalendarPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isColleagueBookingOpen, setIsColleagueBookingOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date; resourceId?: string } | null>(null);
+  const [clientCardPhone, setClientCardPhone] = useState<string>('');
+  const [isClientCardOpen, setIsClientCardOpen] = useState(false);
 
   // Конвертуємо CalendarEvent → BookingEvent для модалок
   const calEventToBookingEvent = (ce: CalendarEvent): BookingEvent => {
@@ -557,6 +560,15 @@ export default function CalendarPage() {
         onClose={() => setIsEventModalOpen(false)}
         onEdit={() => { setIsEventModalOpen(false); setIsEditModalOpen(true); }}
         onDelete={handleDeleteEvent}
+        onOpenClient={(_clientId, clientPhone) => {
+          if (clientPhone) {
+            setClientCardPhone(clientPhone);
+            setIsClientCardOpen(true);
+          }
+        }}
+        onOpenMaster={(masterId) => {
+          // TODO: MasterCardPanel
+        }}
         onExtend={async (event, minutes) => {
           try {
             const currentDuration = Math.round((event.end.getTime() - event.start.getTime()) / 60000);
@@ -639,6 +651,17 @@ export default function CalendarPage() {
           onSuccess={loadBookings}
         />
       )}
+
+      {/* Client Card Sidebar */}
+      <ClientCardPanel
+        isOpen={isClientCardOpen}
+        onClose={() => setIsClientCardOpen(false)}
+        clientPhone={clientCardPhone}
+        clientName={selectedEvent?.clientName || ''}
+        masterId={selectedEvent?.resourceId || ''}
+        salonId={user?.salonId || ''}
+        editable
+      />
     </div>
   );
 }
