@@ -439,6 +439,9 @@ export default function CalendarPage() {
             </Button>
           )}
           <NotificationBell />
+          <div className="h-9 w-9 rounded-xl bg-orange-500 flex items-center justify-center text-white font-bold text-sm">
+            {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+          </div>
         </div>
       </header>
 
