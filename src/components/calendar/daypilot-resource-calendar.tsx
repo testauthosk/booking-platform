@@ -245,6 +245,13 @@ export function DayPilotResourceCalendar({
       gc.style.opacity = '1';
       const timeEl = gc.querySelector('[data-ghost-time]');
       if (timeEl) timeEl.textContent = `${formatMinutes(d.targetStartMin)} – ${formatMinutes(d.targetEndMin)}`;
+      const nameEl = gc.querySelector('[data-ghost-name]');
+      if (nameEl) nameEl.textContent = d.event.clientName || d.event.text;
+      // Колір ghost = колір цільового ресурсу
+      const targetRes = resources.find(r => r.id === d.targetResourceId);
+      const ghostColor = targetRes?.color || d.event.backColor || '#666';
+      const cardInner = gc.querySelector('[data-ghost-card]') as HTMLElement;
+      if (cardInner) cardInner.style.background = `linear-gradient(160deg, ${ghostColor} 0%, ${darkenColor(ghostColor, 15)} 100%)`;
     }
 
     const gl = ghostLabelRef.current;
@@ -965,8 +972,9 @@ export function DayPilotResourceCalendar({
         className="fixed z-[90] pointer-events-none select-none"
         style={{ opacity: 0, left: 0, bottom: 0 }}
       >
-        <div className="w-[140px] rounded-xl px-3 py-2 text-white text-[11px] font-semibold shadow-2xl bg-gray-600" style={{ opacity: 0.95 }}>
+        <div data-ghost-card className="w-[140px] rounded-xl px-3 py-2 text-white text-[11px] font-semibold shadow-2xl bg-gray-600" style={{ opacity: 0.95 }}>
           <div className="font-bold text-[12px]" data-ghost-time />
+          <div className="truncate opacity-90" data-ghost-name />
         </div>
       </div>
 
