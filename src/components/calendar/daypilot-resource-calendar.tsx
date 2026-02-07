@@ -1207,7 +1207,7 @@ export function DayPilotResourceCalendar({
                         height: `${pos.height}%`,
                         minHeight: '36px',
                         opacity: isBeingDragged ? 0.3 : flipHiddenId === event.id ? 0 : 1,
-                        transition: 'transform 300ms ease-out',
+                        transition: 'transform 300ms ease-out, top 300ms ease-out, height 300ms ease-out',
                         background: `linear-gradient(160deg, ${bgColor} 0%, ${bgColor}e0 100%)`,
                         boxShadow: `0 1px 4px ${bgColor}50, 0 2px 6px rgba(0,0,0,0.08)`,
                         borderLeft: `3px solid ${borderColor}`,
