@@ -225,7 +225,6 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
     <Drawer.Root
       open={isOpen}
       onOpenChange={(open) => { if (!open) onClose(); }}
-      nested
     >
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 bg-black/40 z-[115]" />

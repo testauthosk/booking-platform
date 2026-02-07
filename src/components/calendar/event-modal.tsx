@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Drawer } from 'vaul';
 import { BookingEvent } from './booking-calendar';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,12 @@ interface EventModalProps {
 }
 
 export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend, onOpenClient, onOpenMaster, onChangeMaster, onChangeClient, isEditOpen }: EventModalProps) {
-  const [snap, setSnap] = useState<number | string | null>(0.6);
+  const [snap, setSnap] = useState<number | string | null>(0.85);
+
+  // Скидати snap при відкритті
+  useEffect(() => {
+    if (isOpen) setSnap(0.85);
+  }, [isOpen]);
 
   if (!event) return null;
 
@@ -43,16 +48,17 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
     <Drawer.Root
       open={isOpen}
       onOpenChange={(open) => { if (!open) onClose(); }}
-      snapPoints={[0.6, 1]}
+      snapPoints={[0.85, 1]}
       activeSnapPoint={snap}
       setActiveSnapPoint={setSnap}
-      modal={!isEditOpen}
     >
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]" />
         <Drawer.Content
-          className="fixed inset-x-0 bottom-0 z-[110] flex flex-col bg-background rounded-t-3xl outline-none"
-          style={{ maxHeight: '95vh' }}
+          className={`fixed inset-x-0 bottom-0 z-[110] flex flex-col bg-background outline-none ${
+            snap === 1 ? 'rounded-none' : 'rounded-t-3xl'
+          }`}
+          style={{ maxHeight: '100vh' }}
         >
           {/* Colored header with drag handle */}
           <div
