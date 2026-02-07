@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { Drawer } from 'vaul';
 import { Button } from '@/components/ui/button';
 import { X, Clock, Calendar, Scissors, Plus, Minus, ChevronLeft, ChevronRight, Loader2, User, Lock, Search } from 'lucide-react';
 import { format, addDays, isSameDay } from 'date-fns';
@@ -54,17 +55,9 @@ interface EditBookingModalProps {
 }
 
 export function EditBookingModal({ isOpen, onClose, booking, services, salonId, onSave }: EditBookingModalProps) {
-  const [isVisible, setIsVisible] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [masterServices, setMasterServices] = useState<Service[]>([]);
   const [masterName, setMasterName] = useState<string>('');
-  const [dragY, setDragY] = useState(0);
-  const isDraggingRef = useRef(false);
-  const dragStartY = useRef(0);
-  const dragCurrentY = useRef(0);
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
 
   // Form state
   const [selectedClientId, setSelectedClientId] = useState<string>('');
@@ -150,57 +143,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
     }
   }, [isOpen, booking]);
 
-  useEffect(() => {
-    if (isOpen) {
-      setIsVisible(true);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setIsAnimating(true);
-        });
-      });
-    } else {
-      setIsAnimating(false);
-      const timer = setTimeout(() => setIsVisible(false), 500);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen]);
-
-  // Drag-to-dismiss
-  const handleDragStart = useCallback((clientY: number) => {
-    dragStartY.current = clientY;
-    dragCurrentY.current = 0;
-    isDraggingRef.current = true;
-    setDragY(0);
-  }, []);
-
-  const handleDragMove = useCallback((clientY: number) => {
-    if (!isDraggingRef.current) return;
-    const delta = clientY - dragStartY.current;
-    dragCurrentY.current = delta;
-    setDragY(delta);
-  }, []);
-
-  const handleDragEnd = useCallback(() => {
-    if (!isDraggingRef.current) return;
-    isDraggingRef.current = false;
-    if (dragCurrentY.current > 120) {
-      onCloseRef.current();
-    }
-    setDragY(0);
-  }, []);
-
-  useEffect(() => {
-    const onMove = (e: MouseEvent) => handleDragMove(e.clientY);
-    const onUp = () => handleDragEnd();
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-    return () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    };
-  }, [handleDragMove, handleDragEnd]);
-
-  if (!isVisible || !booking) return null;
+  if (!booking) return null;
 
   const allServices = masterServices.length > 0 ? masterServices : services;
   const selectedService = allServices.find(s => s.id === selectedServiceId);
@@ -279,45 +222,28 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
     extraTime !== (booking.extraTime || 0);
 
   return (
-    <>
-      {/* Прозорий backdrop — нижче за EditModal (z-109 < z-110) */}
-      <div 
-        className="fixed inset-0 z-[109]"
-        onClick={onClose}
-      />
-      
-      {/* Edit sheet — стикується знизу до EventModal header, без скруглень */}
-      <div 
-        className="fixed inset-x-0 bottom-0 bg-background rounded-t-3xl shadow-xl z-[110] overflow-hidden flex flex-col"
-        style={{
-          transform: isAnimating
-            ? `translateY(${dragY > 0 ? dragY : 0}px)`
-            : 'translateY(100%)',
-          transition: dragY !== 0 ? 'none' : 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)',
-          maxHeight: '92vh',
-        }}
-      >
-        {/* Drag handle */}
-        <div
-          className="flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing"
-          onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
-          onTouchMove={(e) => handleDragMove(e.touches[0].clientY)}
-          onTouchEnd={handleDragEnd}
-          onMouseDown={(e) => { e.preventDefault(); handleDragStart(e.clientY); }}
+    <Drawer.Root
+      open={isOpen}
+      onOpenChange={(open) => { if (!open) onClose(); }}
+      nested
+    >
+      <Drawer.Portal>
+        <Drawer.Overlay className="fixed inset-0 bg-black/40 z-[115]" />
+        <Drawer.Content
+          className="fixed inset-x-0 bottom-0 z-[120] flex flex-col bg-background rounded-t-3xl outline-none"
+          style={{ maxHeight: '92vh' }}
         >
-          <div className="w-10 h-1 rounded-full bg-gray-300" />
-        </div>
+          <Drawer.Handle className="mt-2 mb-1" />
 
-        {/* Header */}
-        <div className="px-4 pt-2 pb-3 border-b flex items-center justify-between shrink-0">
-          <h2 className="text-lg font-semibold">Редагувати запис</h2>
-          <button 
-            onClick={onClose}
-            className="w-8 h-8 rounded-xl bg-white/80 hover:bg-white shadow-md border border-gray-200 text-gray-700 flex items-center justify-center transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+          {/* Header */}
+          <div className="px-4 pt-1 pb-3 border-b flex items-center justify-between shrink-0">
+            <Drawer.Title className="text-lg font-semibold">Редагувати запис</Drawer.Title>
+            <Drawer.Close asChild>
+              <button className="w-8 h-8 rounded-xl bg-white/80 hover:bg-white shadow-md border border-gray-200 text-gray-700 flex items-center justify-center transition-colors">
+                <X className="h-4 w-4" />
+              </button>
+            </Drawer.Close>
+          </div>
 
         {/* Content */}
         <div className="p-4 space-y-5 overflow-y-auto flex-1">
@@ -573,7 +499,8 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
             Зберегти
           </Button>
         </div>
-      </div>
-    </>
+        </Drawer.Content>
+      </Drawer.Portal>
+    </Drawer.Root>
   );
 }
