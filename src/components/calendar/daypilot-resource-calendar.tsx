@@ -71,6 +71,7 @@ interface DragState {
   mode: InteractionMode;
   ghostX: number;
   ghostY: number;
+  grabOffsetY: number;
   targetResourceId: string;
   targetStartMin: number;
   targetEndMin: number;
@@ -250,7 +251,8 @@ export function DayPilotResourceCalendar({
 
     const gc = ghostCardRef.current;
     if (gc) {
-      gc.style.transform = `translate3d(${d.ghostX - 70}px, ${d.ghostY - gc.offsetHeight - 22}px, 0)`;
+      const offsetY = d.mode === 'move' ? d.grabOffsetY : gc.offsetHeight + 22;
+      gc.style.transform = `translate3d(${d.ghostX - 70}px, ${d.ghostY - offsetY}px, 0)`;
       gc.style.opacity = '1';
       const timeEl = gc.querySelector('[data-ghost-time]');
       if (timeEl) timeEl.textContent = `${formatMinutes(d.targetStartMin)} – ${formatMinutes(d.targetEndMin)}`;
@@ -324,11 +326,16 @@ export function DayPilotResourceCalendar({
     const pos = getGridPosition(clientX, clientY);
     const { startMin, endMin } = getEventMinutes(event);
 
+    const el = document.querySelector(`[data-event-id="${event.id}"]`) as HTMLElement | null;
+    const rect = el?.getBoundingClientRect();
+    const grabOffsetY = rect ? (clientY - rect.top) : 0;
+
     const state: DragState = {
       event,
       mode,
       ghostX: clientX,
       ghostY: clientY,
+      grabOffsetY,
       targetResourceId: mode === 'move' ? event.resource : (pos?.resourceId || event.resource),
       targetStartMin: mode === 'move' ? startMin : startMin,
       targetEndMin: mode === 'move' ? endMin : endMin,
@@ -791,7 +798,7 @@ export function DayPilotResourceCalendar({
         const dy = to.top - from.top;
         const sx = from.width ? to.width / from.width : 1;
         const sy = from.height ? to.height / from.height : 1;
-        clone.style.transition = 'transform 1300ms cubic-bezier(0.2, 0.9, 0.3, 1), opacity 1300ms cubic-bezier(0.2, 0.9, 0.3, 1)';
+        clone.style.transition = 'transform 300ms ease-out, opacity 300ms ease-out';
         clone.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${sx}, ${sy})`;
         clone.style.opacity = '1';
       });
@@ -803,7 +810,7 @@ export function DayPilotResourceCalendar({
       flipRef.current = null;
     };
 
-    const t = window.setTimeout(cleanup, 1400);
+    const t = window.setTimeout(cleanup, 350);
     return () => window.clearTimeout(t);
   }, [events]);
 
