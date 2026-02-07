@@ -111,7 +111,7 @@ export function NotificationBell() {
           "relative h-10 w-10 flex items-center justify-center cursor-pointer select-none rounded-xl transition-colors",
           open 
             ? "bg-card rounded-b-none border border-border border-b-transparent z-[60]" 
-            : "bg-gray-100 active:bg-gray-200"
+            : "bg-gray-100 border border-black/60 active:bg-gray-200"
         )}
       >
         <Bell className="h-[18px] w-[18px] text-gray-700 pointer-events-none" />
