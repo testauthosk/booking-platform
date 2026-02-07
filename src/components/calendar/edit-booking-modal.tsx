@@ -186,11 +186,11 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
       });
     } else {
       setIsAnimating(false);
-      // Скинути DOM стилі після expand
       if (sheetRef.current) {
         sheetRef.current.style.height = '';
         sheetRef.current.style.maxHeight = '';
       }
+      isExpandedRef.current = false;
       const timer = setTimeout(() => {
         setIsVisible(false);
         setIsExpanded(false);
@@ -201,6 +201,8 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
 
   // Native touch listeners + rAF
   const startHeight = useRef(0);
+  const originalHeight = useRef(0);
+  const isExpandedRef = useRef(false);
 
   useEffect(() => {
     const handle = handleRef.current;
@@ -227,6 +229,9 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
       deltaY.current = 0;
       isDragging.current = true;
       startHeight.current = sheet.offsetHeight;
+      if (!isExpandedRef.current) {
+        originalHeight.current = sheet.offsetHeight;
+      }
       sheet.style.transition = 'none';
       rafId.current = requestAnimationFrame(applyFrame);
     };
@@ -248,20 +253,31 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
       const currentH = sheet.offsetHeight;
       sheet.style.height = `${currentH}px`;
 
-      if (d > 100) {
+      if (d > 100 && isExpandedRef.current) {
+        // Expanded + свайп вниз → повернути до оригінальної висоти
+        sheet.style.transform = 'translate3d(0,0,0)';
+        sheet.style.height = `${originalHeight.current}px`;
+        sheet.style.maxHeight = 'none';
+        isExpandedRef.current = false;
+        setIsExpanded(false);
+        setTimeout(() => {
+          if (sheet) { sheet.style.height = ''; sheet.style.maxHeight = ''; }
+        }, 650);
+      } else if (d > 100) {
+        // Звичайна позиція + свайп вниз → закрити
         sheet.style.transform = 'translate3d(0,100%,0)';
         setTimeout(() => onCloseRef.current(), 100);
       } else if (d < -60) {
-        // Розгорнути — анімація px → px (не vh!)
+        // Свайп вгору → розгорнути
         sheet.style.transform = 'translate3d(0,0,0)';
         sheet.style.height = `${window.innerHeight}px`;
         sheet.style.maxHeight = 'none';
+        isExpandedRef.current = true;
         setIsExpanded(true);
       } else {
-        // Повернути до авто
+        // Повернути на місце
         sheet.style.height = `${startHeight.current}px`;
         sheet.style.maxHeight = 'none';
-        // Після анімації скинути на auto
         setTimeout(() => {
           if (sheet) { sheet.style.height = ''; sheet.style.maxHeight = ''; }
         }, 650);
@@ -376,10 +392,9 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
         ref={sheetRef}
         className={`fixed inset-x-0 bottom-0 bg-background shadow-xl z-[120] overflow-hidden flex flex-col ${isExpanded ? 'rounded-none' : 'rounded-t-3xl'}`}
         style={{
-          maxHeight: isExpanded ? 'none' : '92vh',
-          height: isExpanded ? '100vh' : 'auto',
+          maxHeight: '92vh',
           transform: isAnimating ? 'translate3d(0,0,0)' : 'translate3d(0,100%,0)',
-          transition: 'transform 600ms cubic-bezier(0.32, 0.72, 0, 1), height 600ms cubic-bezier(0.32, 0.72, 0, 1)',
+          transition: 'transform 600ms cubic-bezier(0.32, 0.72, 0, 1)',
           willChange: 'transform',
         }}
       >
@@ -405,7 +420,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
         </div>
 
         {/* Content */}
-        <div className="p-4 space-y-5 overflow-y-auto flex-1">
+        <div className="p-4 space-y-5 overflow-y-auto flex-1" onScroll={() => showMasterPicker && setShowMasterPicker(false)}>
           {/* Попередження якщо запис вже почався */}
           {hasStarted && (
             <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-2">
@@ -522,7 +537,6 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
                       onClick={() => {
                         setSelectedMasterId(m.id);
                         setSelectedServiceId('');
-                        setShowMasterPicker(false);
                       }}
                       className={cn(
                         "shrink-0 px-3 py-2 rounded-xl border text-sm font-medium transition-all duration-300 flex items-center gap-1.5",

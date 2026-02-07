@@ -32,6 +32,9 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
   const deltaY = useRef(0);
   const isDragging = useRef(false);
   const rafId = useRef(0);
+  const startHeight = useRef(0);
+  const originalHeight = useRef(0);
+  const isExpandedRef = useRef(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -50,6 +53,7 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
         sheetRef.current.style.height = '';
         sheetRef.current.style.maxHeight = '';
       }
+      isExpandedRef.current = false;
       const timer = setTimeout(() => {
         setIsVisible(false);
         setIsExpanded(false);
@@ -88,6 +92,9 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
       deltaY.current = 0;
       isDragging.current = true;
       startHeight.current = sheet.offsetHeight;
+      if (!isExpandedRef.current) {
+        originalHeight.current = sheet.offsetHeight;
+      }
       sheet.style.transition = 'none';
       rafId.current = requestAnimationFrame(applyFrame);
     };
@@ -108,14 +115,26 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
       const currentH = sheet.offsetHeight;
       sheet.style.height = `${currentH}px`;
 
-      if (d > 100) {
+      if (d > 100 && isExpandedRef.current) {
+        // Expanded → повернути до оригіналу
+        sheet.style.transform = 'translate3d(0,0,0)';
+        sheet.style.height = `${originalHeight.current}px`;
+        sheet.style.maxHeight = 'none';
+        isExpandedRef.current = false;
+        setIsExpanded(false);
+        setTimeout(() => {
+          if (sheet) { sheet.style.height = ''; sheet.style.maxHeight = ''; }
+        }, 650);
+      } else if (d > 100) {
+        // Звичайна → закрити
         sheet.style.transform = 'translate3d(0,100%,0)';
         setTimeout(() => onCloseRef.current(), 100);
       } else if (d < -60) {
-        // px → px анімація (не vh — браузер не інтерполює)
+        // Розгорнути
         sheet.style.transform = 'translate3d(0,0,0)';
         sheet.style.height = `${window.innerHeight}px`;
         sheet.style.maxHeight = 'none';
+        isExpandedRef.current = true;
         setIsExpanded(true);
       } else {
         sheet.style.height = `${startHeight.current}px`;
@@ -168,10 +187,9 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
         ref={sheetRef}
         className={`fixed inset-x-0 bottom-0 bg-background shadow-xl z-[110] overflow-hidden flex flex-col ${isExpanded ? 'rounded-none' : 'rounded-t-3xl'}`}
         style={{
-          maxHeight: isExpanded ? 'none' : '85vh',
-          height: isExpanded ? '100vh' : 'auto',
+          maxHeight: '85vh',
           transform: isAnimating ? 'translate3d(0,0,0)' : 'translate3d(0,100%,0)',
-          transition: 'transform 600ms cubic-bezier(0.32, 0.72, 0, 1), height 600ms cubic-bezier(0.32, 0.72, 0, 1)',
+          transition: 'transform 600ms cubic-bezier(0.32, 0.72, 0, 1)',
           willChange: 'transform',
         }}
       >
