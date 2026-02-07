@@ -12,7 +12,7 @@ import { BlockTimeModal } from '@/components/calendar/block-time-modal';
 import { EditBookingModal } from '@/components/calendar/edit-booking-modal';
 import { ColleagueBookingModal } from '@/components/staff/colleague-booking-modal';
 import { ClientCardPanel } from '@/components/staff/client-card-panel';
-import { useRouter } from 'next/navigation';
+import { MasterCardPanel } from '@/components/staff/master-card-panel';
 import dynamic from 'next/dynamic';
 import type { CalendarEvent, CalendarResource } from '@/components/calendar/daypilot-resource-calendar';
 import type { BookingEvent, Resource } from '@/components/calendar/custom-calendar';
@@ -262,7 +262,7 @@ export default function CalendarPage() {
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date; resourceId?: string } | null>(null);
   const [clientCardPhone, setClientCardPhone] = useState<string>('');
   const [isClientCardOpen, setIsClientCardOpen] = useState(false);
-  // master card removed — navigate to /team instead
+  const [selectedMasterForCard, setSelectedMasterForCard] = useState<{ id: string; name: string; email?: string; role?: string; color?: string } | null>(null);
 
   // Конвертуємо CalendarEvent → BookingEvent для модалок
   const calEventToBookingEvent = (ce: CalendarEvent): BookingEvent => {
@@ -581,7 +581,8 @@ export default function CalendarPage() {
           setIsClientCardOpen(true);
         }}
         onOpenMaster={(masterId) => {
-          router.push(`/team?master=${masterId}`);
+          const m = masters.find(m => m.id === masterId);
+          if (m) setSelectedMasterForCard({ id: m.id, name: m.name, email: m.email, role: m.role, color: m.color });
         }}
         onExtend={async (event, minutes) => {
           try {
@@ -680,7 +681,12 @@ export default function CalendarPage() {
         editable
       />
 
-      {/* Master → /team page */}
+      {/* Master Card — same as /team */}
+      <MasterCardPanel
+        isOpen={!!selectedMasterForCard}
+        onClose={() => setSelectedMasterForCard(null)}
+        master={selectedMasterForCard}
+      />
     </div>
   );
 }
