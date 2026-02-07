@@ -506,9 +506,9 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
             {hasStarted ? (
               // Заблоковано після початку запису
               <div className="p-3 rounded-xl bg-muted/50 border border-border">
-                <p className="font-medium">{selectedService?.name || booking.serviceName || 'Невідома послуга'}</p>
+                <p className="font-medium">{selectedServices[0]?.name || booking.serviceName || 'Невідома послуга'}</p>
                 <p className="text-sm text-muted-foreground">
-                  {selectedService?.duration || booking.duration} хв · {selectedService?.price || '—'} ₴
+                  {selectedServices[0]?.duration || booking.duration} хв · {selectedServices[0]?.price || '—'} ₴
                 </p>
               </div>
             ) : (
@@ -645,7 +645,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
             <div className="p-3 rounded-xl bg-muted/50">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Послуга:</span>
-                <span className="font-medium">{selectedService?.name || booking.serviceName}</span>
+                <span className="font-medium">{selectedServices.map(s => s.name).join(', ') || booking.serviceName}</span>
               </div>
               <div className="flex justify-between text-sm mt-1">
                 <span className="text-muted-foreground">Час:</span>
