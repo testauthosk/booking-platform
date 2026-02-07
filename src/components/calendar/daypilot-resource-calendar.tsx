@@ -131,6 +131,10 @@ export function DayPilotResourceCalendar({
   const pendingColorRef = useRef<string>('#666');
   const appliedColorRef = useRef<string>('#666');
   const appliedNameRef = useRef<string>('?');
+  const resourcesCountRef = useRef(resources.length);
+
+  // Тримаємо кількість ресурсів в ref для rAF loop
+  useEffect(() => { resourcesCountRef.current = resources.length; }, [resources.length]);
 
   // Відкрити модалку з деталями запису
   const openEventModal = (event: CalendarEvent) => {
@@ -291,16 +295,19 @@ export function DayPilotResourceCalendar({
     const totalMinutes = (dayEndHour - dayStartHour) * 60;
     const previewStartMin = d.targetStartMin - dayStartHour * 60;
     const previewEndMin = d.targetEndMin - dayStartHour * 60;
-    const container = gridRef.current?.querySelector('[data-resources]') as HTMLElement;
-    if (!container) return;
-    const cW = container.offsetWidth;
-    const cH = container.offsetHeight;
+    const grid = gridRef.current;
+    if (!grid) return;
+    const gridH = grid.offsetHeight;
     const colIdx = resources.findIndex(r => r.id === d.targetResourceId);
+    // X в координатах gridRef: 40px (time column) + colIdx * colWidth
+    const timeColW = 40;
+    const container = grid.querySelector('[data-resources]') as HTMLElement;
+    const colWidth = container ? container.offsetWidth / resources.length : 110;
     
     previewTarget.current = {
-      x: (colIdx / resources.length) * cW,
-      y: (previewStartMin / totalMinutes) * cH,
-      h: ((previewEndMin - previewStartMin) / totalMinutes) * cH,
+      x: timeColW + colIdx * colWidth,
+      y: (previewStartMin / totalMinutes) * gridH,
+      h: ((previewEndMin - previewStartMin) / totalMinutes) * gridH,
       active: true,
     };
     // Pending — застосується коли preview доїде по X
@@ -676,7 +683,12 @@ export function DayPilotResourceCalendar({
         }
       }
 
-      el.style.transform = `translate(${cur.x}px, ${cur.y}px)`;
+      // Ширина колонки — беремо з DOM
+      const resContainer = gridRef.current?.querySelector('[data-resources]') as HTMLElement | null;
+      const rc = resourcesCountRef.current || 1;
+      const cw = resContainer ? resContainer.offsetWidth / rc : 110;
+      el.style.width = `${cw}px`;
+      el.style.transform = `translate3d(${cur.x}px, ${cur.y}px, 0)`;
       el.style.height = `${Math.max(24, cur.h)}px`;
       el.style.opacity = '1';
       el.style.backgroundColor = `${previewColorRef.current}30`;
@@ -885,25 +897,6 @@ export function DayPilotResourceCalendar({
 
             {/* Колонки ресурсів */}
             <div data-resources className="flex relative" style={{ minWidth: resources.length > 3 ? `${resources.length * 110}px` : '100%' }}>
-            {/* Drop Preview — позиція через rAF lerp (обхід React для гладкості) */}
-            <div
-              ref={previewRef}
-              className="absolute z-[1] pointer-events-none overflow-hidden"
-              style={{
-                top: 0,
-                left: 0,
-                width: `${100 / resources.length}%`,
-                height: '24px',
-                opacity: 0,
-                border: '2px dashed #666',
-                borderRadius: '0 0.5rem 0.5rem 0',
-                willChange: 'transform',
-                transition: 'background-color 150ms ease, border-color 150ms ease',
-              }}
-            >
-              <div className="px-1.5 py-1 text-[10px] font-semibold preview-time-label" style={{ transition: 'color 150ms ease' }} />
-            </div>
-
             {resources.map((r, rIdx) => (
               <div
                 key={r.id}
@@ -983,6 +976,25 @@ export function DayPilotResourceCalendar({
             </div>
           ))}
           </div>{/* end resource columns flex */}
+
+          {/* Drop Preview — OVERLAY поверх усього gridRef, не всередині data-resources */}
+          <div
+            ref={previewRef}
+            className="absolute pointer-events-none overflow-hidden z-[2]"
+            style={{
+              top: 0,
+              left: 0,
+              width: '110px',
+              height: '24px',
+              opacity: 0,
+              border: '2px dashed #666',
+              borderRadius: '0.5rem',
+              willChange: 'transform',
+              transition: 'background-color 150ms ease, border-color 150ms ease',
+            }}
+          >
+            <div className="px-1.5 py-1 text-[10px] font-semibold preview-time-label" style={{ transition: 'color 150ms ease' }} />
+          </div>
 
           {/* Time indicator line — static DOM, позиція через ref */}
           <div
