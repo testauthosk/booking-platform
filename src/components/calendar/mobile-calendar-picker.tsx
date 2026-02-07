@@ -64,6 +64,7 @@ export function MobileCalendarPicker({ isOpen, onClose, selected, onSelect }: Mo
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
   const [slideDir, setSlideDir] = useState<'left' | 'right' | null>(null);
   const [isMonthTransitioning, setIsMonthTransitioning] = useState(false);
+  const [pendingDate, setPendingDate] = useState<Date>(selected);
   
   // Selection indicator animation
   const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; top: number } | null>(null);
@@ -101,9 +102,9 @@ export function MobileCalendarPicker({ isOpen, onClose, selected, onSelect }: Mo
 
   useEffect(() => {
     if (isVisible && !isMonthTransitioning) {
-      requestAnimationFrame(() => updateIndicator(selected));
+      requestAnimationFrame(() => updateIndicator(pendingDate));
     }
-  }, [isVisible, selected, viewMonth, viewYear, isMonthTransitioning, updateIndicator]);
+  }, [isVisible, pendingDate, viewMonth, viewYear, isMonthTransitioning, updateIndicator]);
 
   const handleClose = useCallback(() => {
     setIsVisible(false);
@@ -114,13 +115,19 @@ export function MobileCalendarPicker({ isOpen, onClose, selected, onSelect }: Mo
     }, 400);
   }, [onClose]);
 
-  const handleSelect = useCallback((year: number, month: number, day: number) => {
+  useEffect(() => {
+    if (isOpen) setPendingDate(selected);
+  }, [isOpen]);
+
+  const handleCellTap = useCallback((year: number, month: number, day: number) => {
     const date = new Date(year, month, day);
-    onSelect(date);
-    // Animate indicator then close
-    updateIndicator(date);
-    setTimeout(() => handleClose(), 200);
-  }, [onSelect, updateIndicator, handleClose]);
+    setPendingDate(date);
+  }, []);
+
+  const handleConfirm = useCallback(() => {
+    onSelect(pendingDate);
+    handleClose();
+  }, [pendingDate, onSelect, handleClose]);
 
   const goToPrevMonth = useCallback(() => {
     setSlideDir('right');
@@ -240,7 +247,7 @@ export function MobileCalendarPicker({ isOpen, onClose, selected, onSelect }: Mo
 
           {cells.map((cell, i) => {
             const cellDate = new Date(cell.year, cell.month, cell.day);
-            const isSelected = isSameDay(cellDate, selected);
+            const isSelected = isSameDay(cellDate, pendingDate);
             const isToday = isSameDay(cellDate, today);
             const key = `${cell.year}-${cell.month}-${cell.day}`;
 
@@ -248,7 +255,7 @@ export function MobileCalendarPicker({ isOpen, onClose, selected, onSelect }: Mo
               <button
                 key={i}
                 ref={(el) => { if (el) cellRefs.current.set(key, el); }}
-                onClick={() => handleSelect(cell.year, cell.month, cell.day)}
+                onClick={() => handleCellTap(cell.year, cell.month, cell.day)}
                 className={`relative z-10 flex items-center justify-center h-11 transition-colors duration-150 ${
                   !cell.isCurrentMonth ? 'text-gray-300' : ''
                 }`}
@@ -263,6 +270,16 @@ export function MobileCalendarPicker({ isOpen, onClose, selected, onSelect }: Mo
               </button>
             );
           })}
+        </div>
+
+        {/* Confirm button */}
+        <div className="px-5 pb-8 pt-2">
+          <button
+            onClick={handleConfirm}
+            className="w-full py-3.5 rounded-2xl bg-gray-900 text-white text-sm font-semibold active:scale-[0.98] transition-transform"
+          >
+            Поїхали
+          </button>
         </div>
       </div>
     </div>
