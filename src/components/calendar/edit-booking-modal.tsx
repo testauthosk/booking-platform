@@ -177,9 +177,10 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
   const onTouchMove = useCallback((e: React.TouchEvent) => {
     if (!isDragging.current) return;
     const delta = e.touches[0].clientY - touchStartY.current;
+    const translateY = delta > 0 ? delta : delta * 0.3;
     currentTranslateY.current = delta;
     if (sheetRef.current) {
-      sheetRef.current.style.transform = `translateY(${Math.max(0, delta)}px)`;
+      sheetRef.current.style.transform = `translate3d(0,${translateY}px,0)`;
     }
   }, []);
 
@@ -188,11 +189,10 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
     isDragging.current = false;
     if (sheetRef.current) {
       sheetRef.current.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
+      sheetRef.current.style.transform = 'translate3d(0,0,0)';
     }
     if (currentTranslateY.current > 100) {
       onClose();
-    } else if (sheetRef.current) {
-      sheetRef.current.style.transform = 'translateY(0)';
     }
   }, [onClose]);
 
@@ -291,29 +291,31 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
         ref={sheetRef}
         className="fixed inset-x-0 bottom-0 bg-background rounded-t-3xl shadow-xl z-[120] max-h-[92vh] overflow-hidden flex flex-col"
         style={{
-          transform: isAnimating ? 'translateY(0)' : 'translateY(100%)',
+          transform: isAnimating ? 'translate3d(0,0,0)' : 'translate3d(0,100%,0)',
           transition: 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)',
+          willChange: 'transform',
         }}
       >
-        {/* Swipe handle */}
+        {/* Header — вся область для свайпу */}
         <div
-          className="flex justify-center pt-3 pb-1"
+          className="px-4 pt-3 pb-3 border-b flex flex-col shrink-0"
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
         >
-          <div className="w-10 h-1 rounded-full bg-gray-300" />
-        </div>
-
-        {/* Header */}
-        <div className="px-4 pt-1 pb-3 border-b flex items-center justify-between shrink-0">
-          <h2 className="text-lg font-semibold">Редагувати запис</h2>
-          <button 
-            onClick={onClose}
-            className="w-8 h-8 rounded-xl bg-white/80 hover:bg-white shadow-md border border-gray-200 text-gray-700 flex items-center justify-center transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          {/* Drag handle pill */}
+          <div className="flex justify-center mb-3">
+            <div className="w-10 h-1 rounded-full bg-gray-300" />
+          </div>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Редагувати запис</h2>
+            <button 
+              onClick={onClose}
+              className="w-8 h-8 rounded-xl bg-white/80 hover:bg-white shadow-md border border-gray-200 text-gray-700 flex items-center justify-center transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}

@@ -60,11 +60,11 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
   const onTouchMove = useCallback((e: React.TouchEvent) => {
     if (!isDragging.current) return;
     const delta = e.touches[0].clientY - touchStartY.current;
-    // Тільки вниз (delta > 0), з damping для тяги вгору
-    const translateY = delta > 0 ? delta : delta * 0.2;
-    currentTranslateY.current = translateY;
+    // Вниз — вільно, вгору — damping (гумка)
+    const translateY = delta > 0 ? delta : delta * 0.3;
+    currentTranslateY.current = delta;
     if (sheetRef.current) {
-      sheetRef.current.style.transform = `translateY(${Math.max(0, translateY)}px)`;
+      sheetRef.current.style.transform = `translate3d(0,${translateY}px,0)`;
     }
   }, []);
 
@@ -73,15 +73,10 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
     isDragging.current = false;
     if (sheetRef.current) {
       sheetRef.current.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
+      sheetRef.current.style.transform = 'translate3d(0,0,0)';
     }
     if (currentTranslateY.current > 100) {
-      // Свайп вниз — закрити
       onClose();
-    } else {
-      // Повернути на місце
-      if (sheetRef.current) {
-        sheetRef.current.style.transform = 'translateY(0)';
-      }
     }
   }, [onClose]);
 
@@ -116,8 +111,9 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
         ref={sheetRef}
         className="fixed inset-x-0 bottom-0 bg-background rounded-t-3xl shadow-xl z-[110] max-h-[85vh] overflow-hidden flex flex-col"
         style={{
-          transform: isAnimating ? 'translateY(0)' : 'translateY(100%)',
+          transform: isAnimating ? 'translate3d(0,0,0)' : 'translate3d(0,100%,0)',
           transition: 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)',
+          willChange: 'transform',
         }}
       >
         {/* Colored header with swipe handle */}
