@@ -60,11 +60,16 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
   const [masterServices, setMasterServices] = useState<Service[]>([]);
   const [masterName, setMasterName] = useState<string>('');
 
-  // Swipe-to-dismiss
+  // Swipe dismiss + expand
   const sheetRef = useRef<HTMLDivElement>(null);
+  const handleRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
-  const currentTranslateY = useRef(0);
+  const deltaY = useRef(0);
   const isDragging = useRef(false);
+  const rafId = useRef(0);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   // Form state
   const [selectedClientId, setSelectedClientId] = useState<string>('');
@@ -150,51 +155,87 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
     }
   }, [isOpen, booking]);
 
-  // Анімація (копія з кабінету мастера)
+  // Анімація
   useEffect(() => {
     if (isOpen && booking) {
       setIsVisible(true);
+      setIsExpanded(false);
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setIsAnimating(true);
-        });
+        requestAnimationFrame(() => setIsAnimating(true));
       });
     } else {
       setIsAnimating(false);
-      const timer = setTimeout(() => setIsVisible(false), 500);
+      const timer = setTimeout(() => {
+        setIsVisible(false);
+        setIsExpanded(false);
+      }, 500);
       return () => clearTimeout(timer);
     }
   }, [isOpen, booking]);
 
-  // Touch handlers
-  const onTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
-    currentTranslateY.current = 0;
-    isDragging.current = true;
-    if (sheetRef.current) sheetRef.current.style.transition = 'none';
-  }, []);
+  // Native touch listeners + rAF
+  useEffect(() => {
+    const handle = handleRef.current;
+    const sheet = sheetRef.current;
+    if (!handle || !sheet) return;
 
-  const onTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!isDragging.current) return;
-    const delta = e.touches[0].clientY - touchStartY.current;
-    const translateY = delta > 0 ? delta : delta * 0.3;
-    currentTranslateY.current = delta;
-    if (sheetRef.current) {
-      sheetRef.current.style.transform = `translate3d(0,${translateY}px,0)`;
-    }
-  }, []);
+    const applyFrame = () => {
+      if (!isDragging.current) return;
+      const d = deltaY.current;
+      if (d > 0) {
+        sheet.style.transform = `translate3d(0,${d}px,0)`;
+      } else {
+        const extra = Math.min(Math.abs(d), window.innerHeight * 0.08);
+        sheet.style.maxHeight = `calc(92vh + ${extra}px)`;
+        sheet.style.transform = 'translate3d(0,0,0)';
+      }
+      rafId.current = requestAnimationFrame(applyFrame);
+    };
 
-  const onTouchEnd = useCallback(() => {
-    if (!isDragging.current) return;
-    isDragging.current = false;
-    if (sheetRef.current) {
-      sheetRef.current.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
-      sheetRef.current.style.transform = 'translate3d(0,0,0)';
-    }
-    if (currentTranslateY.current > 100) {
-      onClose();
-    }
-  }, [onClose]);
+    const onStart = (e: TouchEvent) => {
+      touchStartY.current = e.touches[0].clientY;
+      deltaY.current = 0;
+      isDragging.current = true;
+      sheet.style.transition = 'none';
+      rafId.current = requestAnimationFrame(applyFrame);
+    };
+
+    const onMove = (e: TouchEvent) => {
+      if (!isDragging.current) return;
+      deltaY.current = e.touches[0].clientY - touchStartY.current;
+    };
+
+    const onEnd = () => {
+      if (!isDragging.current) return;
+      isDragging.current = false;
+      cancelAnimationFrame(rafId.current);
+
+      const d = deltaY.current;
+      sheet.style.transition = 'transform 500ms cubic-bezier(0.32,0.72,0,1), max-height 500ms cubic-bezier(0.32,0.72,0,1)';
+
+      if (d > 100) {
+        sheet.style.transform = 'translate3d(0,100%,0)';
+        setTimeout(() => onCloseRef.current(), 100);
+      } else if (d < -60) {
+        sheet.style.transform = 'translate3d(0,0,0)';
+        sheet.style.maxHeight = '100vh';
+        setIsExpanded(true);
+      } else {
+        sheet.style.transform = 'translate3d(0,0,0)';
+        sheet.style.maxHeight = '92vh';
+      }
+    };
+
+    handle.addEventListener('touchstart', onStart, { passive: true });
+    handle.addEventListener('touchmove', onMove, { passive: true });
+    handle.addEventListener('touchend', onEnd, { passive: true });
+    return () => {
+      handle.removeEventListener('touchstart', onStart);
+      handle.removeEventListener('touchmove', onMove);
+      handle.removeEventListener('touchend', onEnd);
+      cancelAnimationFrame(rafId.current);
+    };
+  }, [isVisible]);
 
   if (!isVisible || !booking) return null;
 
@@ -289,19 +330,19 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
       {/* Bottom Sheet */}
       <div 
         ref={sheetRef}
-        className="fixed inset-x-0 bottom-0 bg-background rounded-t-3xl shadow-xl z-[120] max-h-[92vh] overflow-hidden flex flex-col"
+        className={`fixed inset-x-0 bottom-0 bg-background shadow-xl z-[120] overflow-hidden flex flex-col ${isExpanded ? 'rounded-none' : 'rounded-t-3xl'}`}
         style={{
+          maxHeight: isExpanded ? '100vh' : '92vh',
           transform: isAnimating ? 'translate3d(0,0,0)' : 'translate3d(0,100%,0)',
-          transition: 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)',
+          transition: 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1), max-height 500ms cubic-bezier(0.32, 0.72, 0, 1)',
           willChange: 'transform',
         }}
       >
-        {/* Header — вся область для свайпу */}
+        {/* Header — вся область для свайпу (native listeners via ref) */}
         <div
+          ref={handleRef}
           className="px-4 pt-3 pb-3 border-b flex flex-col shrink-0"
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
+          style={{ touchAction: 'none' }}
         >
           {/* Drag handle pill */}
           <div className="flex justify-center mb-3">
