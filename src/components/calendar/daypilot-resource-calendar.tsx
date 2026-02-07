@@ -99,9 +99,9 @@ export function DayPilotResourceCalendar({
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Drag & drop + resize state
+  // Drag state — dragActive (boolean) для React, все координати через refs + DOM
   const dragRef = useRef<DragState | null>(null);
-  const [dragRender, setDragRender] = useState<DragState | null>(null);
+  const [dragActive, setDragActive] = useState<{ eventId: string; mode: InteractionMode } | null>(null);
 
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchStartPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -114,7 +114,13 @@ export function DayPilotResourceCalendar({
   const didDrag = useRef(false);
   const autoScrollRef = useRef<number>(0);
 
-  // Drop preview — rAF інтерполяція (запускається один раз, читає з refs)
+  // Ghost refs (оновлюються через DOM, не React)
+  const ghostCardRef = useRef<HTMLDivElement>(null);
+  const ghostLabelRef = useRef<HTMLDivElement>(null);
+  const timeLineRef = useRef<HTMLDivElement>(null);
+  const timeLineBadgeRef = useRef<HTMLDivElement>(null);
+
+  // Drop preview — rAF інтерполяція
   const previewRef = useRef<HTMLDivElement>(null);
   const previewTarget = useRef({ x: 0, y: 0, h: 0, active: false });
   const previewCurrent = useRef({ x: 0, y: 0, h: 0 });
@@ -227,6 +233,45 @@ export function DayPilotResourceCalendar({
     return selected < today;
   }, [internalDate]);
 
+  // Оновити ghost + time line через DOM (без React re-render)
+  const updateGhostDOM = useCallback(() => {
+    const d = dragRef.current;
+    if (!d || d.phase !== 'dragging') return;
+
+    const gc = ghostCardRef.current;
+    if (gc) {
+      gc.style.left = `${d.ghostX - 70}px`;
+      gc.style.bottom = `calc(100vh - ${d.ghostY}px + 22px)`;
+      gc.style.opacity = '1';
+      const timeEl = gc.querySelector('[data-ghost-time]');
+      if (timeEl) timeEl.textContent = `${formatMinutes(d.targetStartMin)} – ${formatMinutes(d.targetEndMin)}`;
+    }
+
+    const gl = ghostLabelRef.current;
+    if (gl) {
+      gl.style.left = `${d.ghostX - 70}px`;
+      gl.style.top = `${d.ghostY + 44}px`;
+      gl.style.opacity = '1';
+      const labelText = gl.querySelector('[data-ghost-label]');
+      if (labelText) {
+        const targetRes = resources.find(r => r.id === d.targetResourceId);
+        labelText.textContent = d.mode === 'move'
+          ? `→ ${targetRes?.name || '?'}`
+          : `↕ ${d.mode === 'resize-top' ? 'початок' : 'кінець'}`;
+      }
+    }
+
+    const tl = timeLineRef.current;
+    const tb = timeLineBadgeRef.current;
+    if (tl) {
+      const totalMinutes = (dayEndHour - dayStartHour) * 60;
+      const topPct = ((d.targetStartMin - dayStartHour * 60) / totalMinutes) * 100;
+      tl.style.top = `${topPct}%`;
+      tl.style.opacity = '1';
+    }
+    if (tb) tb.textContent = formatMinutes(d.targetStartMin);
+  }, [resources, dayStartHour, dayEndHour]);
+
   // Оновити preview target напряму (без React re-render)
   const updatePreviewTarget = useCallback(() => {
     const d = dragRef.current;
@@ -283,11 +328,12 @@ export function DayPilotResourceCalendar({
     }
 
     dragRef.current = state;
-    // Скинути інтерполяцію preview і встановити initial target
     previewInitRef.current = false;
     updatePreviewTarget();
-    setDragRender({ ...state });
-  }, [getGridPosition, getEventMinutes, lockScroll, isPastDate, updatePreviewTarget]);
+    updateGhostDOM();
+    // setState тільки для boolean flag (1 раз при старті)
+    setDragActive({ eventId: event.id, mode });
+  }, [getGridPosition, getEventMinutes, lockScroll, isPastDate, updatePreviewTarget, updateGhostDOM]);
 
   const updateDrag = useCallback((clientX: number, clientY: number) => {
     const d = dragRef.current;
@@ -311,11 +357,10 @@ export function DayPilotResourceCalendar({
       d.targetEndMin = Math.max(pos.startMin + 15, d.targetStartMin + 15);
     }
 
-    // Оновити preview target напряму (без setState!)
+    // Оновити preview target і ghost через DOM (без setState!)
     updatePreviewTarget();
-
-    setDragRender({ ...d });
-  }, [getGridPosition, updatePreviewTarget]);
+    updateGhostDOM();
+  }, [getGridPosition, updatePreviewTarget, updateGhostDOM]);
 
   const endDrag = useCallback((commit: boolean) => {
     if (longPressTimer.current) {
@@ -344,7 +389,12 @@ export function DayPilotResourceCalendar({
     dragRef.current = null;
     pendingMouseEvent.current = null;
     previewTarget.current.active = false;
-    setDragRender(null);
+    // Сховати ghost через DOM
+    if (ghostCardRef.current) ghostCardRef.current.style.opacity = '0';
+    if (ghostLabelRef.current) ghostLabelRef.current.style.opacity = '0';
+    if (timeLineRef.current) timeLineRef.current.style.opacity = '0';
+    // setState тільки для boolean flag (1 раз при закінченні)
+    setDragActive(null);
   }, [internalDate, onEventMove, onEventResize, unlockScroll]);
 
   const cancelDrag = useCallback(() => {
@@ -411,7 +461,7 @@ export function DayPilotResourceCalendar({
         endDrag(true);
       } else {
         dragRef.current = null;
-        setDragRender(null);
+        setDragActive(null);
       }
     };
     
@@ -483,7 +533,7 @@ export function DayPilotResourceCalendar({
   // Фіча 3: Auto-scroll при drag до країв
   // ============================================================
   useEffect(() => {
-    if (!dragRender || dragRender.phase !== 'dragging') {
+    if (!dragActive) {
       if (autoScrollRef.current) {
         cancelAnimationFrame(autoScrollRef.current);
         autoScrollRef.current = 0;
@@ -540,7 +590,7 @@ export function DayPilotResourceCalendar({
         autoScrollRef.current = 0;
       }
     };
-  }, [dragRender]);
+  }, [dragActive]);
 
   // ============================================================
   // Drop preview — єдиний rAF loop (запускається один раз при mount)
@@ -802,11 +852,7 @@ export function DayPilotResourceCalendar({
                 willChange: 'transform',
               }}
             >
-              {dragRender && dragRender.phase === 'dragging' && (
-                <div className="px-1.5 py-1 text-[10px] font-semibold preview-time-label">
-                  {formatMinutes(dragRender.targetStartMin)} – {formatMinutes(dragRender.targetEndMin)}
-                </div>
-              )}
+              <div className="px-1.5 py-1 text-[10px] font-semibold preview-time-label" />
             </div>
 
             {resources.map((r, rIdx) => (
@@ -827,7 +873,7 @@ export function DayPilotResourceCalendar({
                   const pos = getEventPosition(event);
                   const bgColor = event.backColor || r.color || '#22c55e';
                   const borderColor = darkenColor(bgColor, 25);
-                  const isBeingDragged = dragRender?.event.id === event.id;
+                  const isBeingDragged = dragActive?.eventId === event.id;
                   return (
                     <div
                       key={event.id}
@@ -889,49 +935,19 @@ export function DayPilotResourceCalendar({
           ))}
           </div>{/* end resource columns flex */}
 
-          {/* Фіча 2: Горизонтальна лінія-вказівник + час зліва */}
-          {dragRender && dragRender.phase === 'dragging' && (() => {
-            const totalMinutes = (dayEndHour - dayStartHour) * 60;
-            const topPercent = ((dragRender.targetStartMin - dayStartHour * 60) / totalMinutes) * 100;
-            const showEndLine = dragRender.mode === 'resize-bottom';
-            const endTopPercent = showEndLine
-              ? ((dragRender.targetEndMin - dayStartHour * 60) / totalMinutes) * 100
-              : 0;
-
-            return (
-              <>
-                {/* Start line — z-[25] поверх sticky time column (z-20), width = 100% gridRef */}
-                <div
-                  className="absolute pointer-events-none z-[25]"
-                  style={{ top: `${topPercent}%`, left: 0, width: resources.length > 3 ? `${40 + resources.length * 110}px` : '100%' }}
-                >
-                  <div className="absolute left-0 right-0 h-[2px] bg-black/50" />
-                  <div
-                    className="absolute bg-black text-white rounded px-1.5 py-0.5 text-[9px] font-bold leading-tight whitespace-nowrap"
-                    style={{ left: 0, top: '-10px' }}
-                  >
-                    {formatMinutes(dragRender.targetStartMin)}
-                  </div>
-                </div>
-
-                {/* End line (only for resize-bottom) */}
-                {showEndLine && (
-                  <div
-                    className="absolute pointer-events-none z-[25]"
-                    style={{ top: `${endTopPercent}%`, left: 0, width: resources.length > 3 ? `${40 + resources.length * 110}px` : '100%' }}
-                  >
-                    <div className="absolute left-0 right-0 h-[2px] bg-black/50" />
-                    <div
-                      className="absolute bg-black text-white rounded px-1.5 py-0.5 text-[9px] font-bold leading-tight whitespace-nowrap"
-                      style={{ left: 0, top: '-10px' }}
-                    >
-                      {formatMinutes(dragRender.targetEndMin)}
-                    </div>
-                  </div>
-                )}
-              </>
-            );
-          })()}
+          {/* Time indicator line — static DOM, позиція через ref */}
+          <div
+            ref={timeLineRef}
+            className="absolute pointer-events-none z-[25]"
+            style={{ top: 0, left: 0, opacity: 0, width: resources.length > 3 ? `${40 + resources.length * 110}px` : '100%' }}
+          >
+            <div className="absolute left-0 right-0 h-[2px] bg-black/50" />
+            <div
+              ref={timeLineBadgeRef}
+              className="absolute bg-black text-white rounded px-1.5 py-0.5 text-[9px] font-bold leading-tight whitespace-nowrap"
+              style={{ left: 0, top: '-10px' }}
+            />
+          </div>
         </div>
         
         {/* Кінець робочого дня */}
@@ -943,65 +959,25 @@ export function DayPilotResourceCalendar({
       </div>{/* end scroll container */}
       </div>{/* end horizontal scroll wrapper */}
 
-      {/* Drag / Resize ghost overlay */}
-      {dragRender && dragRender.phase === 'dragging' && (() => {
-        const ev = dragRender.event;
-        const targetResource = resources.find(r => r.id === dragRender.targetResourceId);
-        const ghostColor = targetResource?.color || ev.backColor || '#666';
-        const isResize = dragRender.mode === 'resize-top' || dragRender.mode === 'resize-bottom';
-        const durationMin = dragRender.targetEndMin - dragRender.targetStartMin;
+      {/* Ghost card — static DOM, позиція через ref */}
+      <div
+        ref={ghostCardRef}
+        className="fixed z-[90] pointer-events-none select-none"
+        style={{ opacity: 0, left: 0, bottom: 0 }}
+      >
+        <div className="w-[140px] rounded-xl px-3 py-2 text-white text-[11px] font-semibold shadow-2xl bg-gray-600" style={{ opacity: 0.95 }}>
+          <div className="font-bold text-[12px]" data-ghost-time />
+        </div>
+      </div>
 
-        return (
-          <>
-            {/* Карточка — ВИЩЕ пальця, без transition для мгновенного слідкування */}
-            <div
-              className="fixed z-[90] pointer-events-none select-none animate-ghost-up"
-              style={{
-                left: dragRender.ghostX - 70,
-                bottom: `calc(100vh - ${dragRender.ghostY}px + 22px)`,
-              }}
-            >
-              <div
-                className="w-[140px] rounded-xl px-3 py-2 text-white text-[11px] font-semibold shadow-2xl"
-                style={{
-                  background: `linear-gradient(160deg, ${ghostColor} 0%, ${darkenColor(ghostColor, 15)} 100%)`,
-                  opacity: 0.95,
-                }}
-              >
-                <div className="font-bold text-[12px]">
-                  {formatMinutes(dragRender.targetStartMin)} – {formatMinutes(dragRender.targetEndMin)}
-                </div>
-                <div className="truncate opacity-90">{ev.clientName || ev.text}</div>
-                {isResize && (
-                  <div className="text-[9px] opacity-70 mt-0.5">
-                    ⏱ {durationMin} хв
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Подпись мастера / resize — НИЖЕ пальця */}
-            <div
-              className="fixed z-[90] pointer-events-none select-none animate-ghost-down"
-              style={{
-                left: dragRender.ghostX - 70,
-                top: dragRender.ghostY + 44,
-              }}
-            >
-              {dragRender.mode === 'move' && (
-                <div className="text-center text-[11px] text-gray-700 bg-white/95 rounded-lg px-3 py-1 shadow-md font-semibold">
-                  → {targetResource?.name || '?'}
-                </div>
-              )}
-              {isResize && (
-                <div className="text-center text-[11px] text-gray-700 bg-white/95 rounded-lg px-3 py-1 shadow-md font-semibold">
-                  ↕ {dragRender.mode === 'resize-top' ? 'початок' : 'кінець'}
-                </div>
-              )}
-            </div>
-          </>
-        );
-      })()}
+      {/* Ghost label — static DOM, позиція через ref */}
+      <div
+        ref={ghostLabelRef}
+        className="fixed z-[90] pointer-events-none select-none"
+        style={{ opacity: 0, left: 0, top: 0 }}
+      >
+        <div className="text-center text-[11px] text-gray-700 bg-white/95 rounded-lg px-3 py-1 shadow-md font-semibold" data-ghost-label />
+      </div>
 
       {/* Модалка деталей запису */}
       <div 
