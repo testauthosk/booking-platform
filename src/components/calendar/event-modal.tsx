@@ -46,10 +46,14 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
       });
     } else {
       setIsAnimating(false);
+      if (sheetRef.current) {
+        sheetRef.current.style.height = '';
+        sheetRef.current.style.maxHeight = '';
+      }
       const timer = setTimeout(() => {
         setIsVisible(false);
         setIsExpanded(false);
-      }, 500);
+      }, 650);
       return () => clearTimeout(timer);
     }
   }, [isOpen, event]);

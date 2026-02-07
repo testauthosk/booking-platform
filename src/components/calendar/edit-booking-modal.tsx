@@ -186,6 +186,11 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
       });
     } else {
       setIsAnimating(false);
+      // Скинути DOM стилі після expand
+      if (sheetRef.current) {
+        sheetRef.current.style.height = '';
+        sheetRef.current.style.maxHeight = '';
+      }
       const timer = setTimeout(() => {
         setIsVisible(false);
         setIsExpanded(false);
@@ -528,8 +533,8 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
               </div>
             ) : (
               // Можна змінити до початку — послуги мастера з кастомними цінами
-              <div className="relative">
-                <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pb-1">
+              <div className="relative rounded-xl border border-border p-2 bg-muted/20">
+                <div className="grid grid-cols-2 gap-2 max-h-44 overflow-y-auto">
                   {(masterServices.length > 0 ? masterServices : services).map((service) => (
                     <button
                       key={service.id}
