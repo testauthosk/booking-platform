@@ -455,12 +455,12 @@ export default function CalendarPage() {
         {/* Left: menu + view toggle */}
         <div className="flex items-center gap-2">
           <button
-            className="h-9 w-9 rounded-xl bg-gray-100 flex items-center justify-center active:bg-gray-200 transition-colors"
+            className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center active:bg-gray-200 transition-colors"
             onClick={openSidebar}
           >
             <Menu className="h-4 w-4 text-gray-700" />
           </button>
-          <div className="flex h-9 bg-gray-100 rounded-xl p-0.5">
+          <div className="flex h-10 bg-gray-100 rounded-xl p-0.5">
             <button
               className={`px-3 text-xs font-medium rounded-[10px] transition-all ${viewMode === 'day' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
               onClick={() => setViewMode('day')}
@@ -476,23 +476,23 @@ export default function CalendarPage() {
           </div>
         </div>
         {/* Right: today + add + bell + avatar */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <button
-            className={`h-9 px-3 rounded-xl text-xs font-medium transition-colors ${isToday ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 active:bg-gray-200'}`}
+            className={`h-10 px-4 rounded-xl text-xs font-semibold transition-colors ${isToday ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 active:bg-gray-200'}`}
             onClick={goToToday}
           >
             Сьогодні
           </button>
           {(user?.role === 'OWNER' || user?.role === 'ADMIN') && (
             <button
-              className="h-9 w-9 rounded-xl bg-gray-100 flex items-center justify-center active:bg-gray-200 transition-colors"
+              className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center active:bg-gray-200 transition-colors"
               onClick={() => setIsColleagueBookingOpen(true)}
             >
               <Plus className="h-4 w-4 text-gray-700" />
             </button>
           )}
           <NotificationBell />
-          <div className="h-9 w-9 rounded-xl bg-orange-500 flex items-center justify-center text-white font-bold text-sm">
+          <div className="h-10 w-10 rounded-xl bg-orange-500 flex items-center justify-center text-white font-bold text-sm">
             {user?.name?.charAt(0)?.toUpperCase() || 'U'}
           </div>
         </div>
