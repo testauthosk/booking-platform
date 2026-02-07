@@ -247,11 +247,11 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
       
       {/* Edit sheet — стикується знизу до EventModal header, без скруглень */}
       <div 
-        className="fixed inset-x-0 bottom-0 bg-background z-[105] overflow-hidden flex flex-col"
+        className="fixed inset-x-0 bottom-0 bg-background z-[110] overflow-hidden flex flex-col"
         style={{
-          top: '5rem',
           transform: isAnimating ? 'translateY(0)' : 'translateY(100%)',
           transition: 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)',
+          maxHeight: '85vh',
         }}
       >
 
