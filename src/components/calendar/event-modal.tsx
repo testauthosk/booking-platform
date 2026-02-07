@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Drawer } from 'vaul';
 import { BookingEvent } from './booking-calendar';
 import { Button } from '@/components/ui/button';
@@ -23,12 +23,16 @@ interface EventModalProps {
 }
 
 export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend, onOpenClient, onOpenMaster, onChangeMaster, onChangeClient, isEditOpen }: EventModalProps) {
-  const [snap, setSnap] = useState<number | string | null>(0.85);
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
-  // Скидати snap при відкритті
+  // Reset on open/close
   useEffect(() => {
-    if (isOpen) setSnap(0.85);
+    if (!isOpen) setIsFullScreen(false);
   }, [isOpen]);
+
+  const handleSnapChange = useCallback((snap: number | string | null) => {
+    setIsFullScreen(snap === 1);
+  }, []);
 
   if (!event) return null;
 
@@ -49,16 +53,15 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
       open={isOpen}
       onOpenChange={(open) => { if (!open) onClose(); }}
       snapPoints={[0.85, 1]}
-      activeSnapPoint={snap}
-      setActiveSnapPoint={setSnap}
+      setActiveSnapPoint={handleSnapChange}
+      fadeFromIndex={0}
     >
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]" />
         <Drawer.Content
           className={`fixed inset-x-0 bottom-0 z-[110] flex flex-col bg-background outline-none ${
-            snap === 1 ? 'rounded-none' : 'rounded-t-3xl'
+            isFullScreen ? 'rounded-none' : 'rounded-t-3xl'
           }`}
-          style={{ maxHeight: '100vh' }}
         >
           {/* Colored header with drag handle */}
           <div
