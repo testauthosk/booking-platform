@@ -934,36 +934,46 @@ export function DayPilotResourceCalendar({
     clone.style.transition = 'none';
     clone.style.pointerEvents = 'none';
     clone.style.zIndex = '200';
-    clone.style.willChange = 'transform';
     clone.style.opacity = '1';
 
     document.body.appendChild(clone);
 
+    const dx = to.left - from.left;
+    const dy = to.top - from.top;
+
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        const dx = to.left - from.left;
-        const dy = to.top - from.top;
-        const sx = from.width ? to.width / from.width : 1;
-        const sy = from.height ? to.height / from.height : 1;
-        clone.style.transition = 'transform 300ms ease-out, opacity 300ms ease-out';
-        clone.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${sx}, ${sy})`;
-        clone.style.opacity = '1';
+        // Тільки translate, без scale — колонки однакової ширини,
+        // scale псує антиалізинг тексту через GPU compositing
+        clone.style.transition = 'transform 300ms ease-out';
+        clone.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
       });
     });
 
     const cleanup = () => {
-      // Спочатку показуємо реальну карточку (clone на z-200 перекриває)
-      setFlipHiddenId(null);
-      flipRef.current = null;
-      // Видаляємо clone тільки після того як React відрендерить реальну карточку
+      // De-promote clone з GPU шару — текст рендериться CPU,
+      // ідентично реальній карточці (без різниці в антиалізингу)
+      clone.style.transition = 'none';
+      clone.style.transform = 'none';
+      clone.style.left = `${to.left}px`;
+      clone.style.top = `${to.top}px`;
+      clone.style.width = `${to.width}px`;
+      clone.style.height = `${to.height}px`;
+
+      // Через 1 кадр — clone перерисовується CPU, потім показуємо реальну карточку
       requestAnimationFrame(() => {
+        setFlipHiddenId(null);
+        flipRef.current = null;
+        // Ще 2 кадри — React рендерить реальну карточку, потім видаляємо clone
         requestAnimationFrame(() => {
-          clone.remove();
+          requestAnimationFrame(() => {
+            clone.remove();
+          });
         });
       });
     };
 
-    const t = window.setTimeout(cleanup, 350);
+    const t = window.setTimeout(cleanup, 320);
     return () => {
       window.clearTimeout(t);
       clone.remove();
