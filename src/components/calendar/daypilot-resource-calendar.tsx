@@ -250,7 +250,7 @@ export function DayPilotResourceCalendar({
 
     const gc = ghostCardRef.current;
     if (gc) {
-      gc.style.transform = `translate3d(${d.ghostX - 70}px, ${d.ghostY - gc.offsetHeight - 22}px, 0)`;
+      gc.style.transform = `translate3d(${d.ghostX - 70}px, ${d.ghostY - 22}px, 0)`;
       gc.style.opacity = '1';
       const timeEl = gc.querySelector('[data-ghost-time]');
       if (timeEl) timeEl.textContent = `${formatMinutes(d.targetStartMin)} – ${formatMinutes(d.targetEndMin)}`;
