@@ -940,34 +940,26 @@ export function DayPilotResourceCalendar({
 
     const dx = to.left - from.left;
     const dy = to.top - from.top;
-    const sx = from.width ? to.width / from.width : 1;
-    const sy = from.height ? to.height / from.height : 1;
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        clone.style.transition = 'transform 300ms ease-out';
-        clone.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${sx}, ${sy})`;
+        // translate3d для позиції (GPU, плавно)
+        // width/height для розміру (без scale — текст не спотворюється)
+        clone.style.transition = 'transform 300ms ease-out, width 300ms ease-out, height 300ms ease-out';
+        clone.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+        clone.style.width = `${to.width}px`;
+        clone.style.height = `${to.height}px`;
       });
     });
 
     const cleanup = () => {
-      // De-promote: скидаємо transform, ставимо реальні координати "to"
-      // Clone перерисовується CPU — текст ідентичний реальній карточці
-      clone.style.transition = 'none';
-      clone.style.transform = 'none';
-      clone.style.left = `${to.left}px`;
-      clone.style.top = `${to.top}px`;
-      clone.style.width = `${to.width}px`;
-      clone.style.height = `${to.height}px`;
-
+      // Показуємо реальну карточку (clone на z-200 перекриває)
+      setFlipHiddenId(null);
+      flipRef.current = null;
+      // Видаляємо clone після React рендеру реальної карточки
       requestAnimationFrame(() => {
-        // Clone вже CPU-rendered, показуємо реальну карточку
-        setFlipHiddenId(null);
-        flipRef.current = null;
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            clone.remove();
-          });
+          clone.remove();
         });
       });
     };
