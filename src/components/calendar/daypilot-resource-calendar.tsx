@@ -248,8 +248,7 @@ export function DayPilotResourceCalendar({
 
     const gc = ghostCardRef.current;
     if (gc) {
-      gc.style.left = `${d.ghostX - 70}px`;
-      gc.style.bottom = `calc(100vh - ${d.ghostY}px + 22px)`;
+      gc.style.transform = `translate3d(${d.ghostX - 70}px, ${d.ghostY - gc.offsetHeight - 22}px, 0)`;
       gc.style.opacity = '1';
       const timeEl = gc.querySelector('[data-ghost-time]');
       if (timeEl) timeEl.textContent = `${formatMinutes(d.targetStartMin)} – ${formatMinutes(d.targetEndMin)}`;
@@ -263,8 +262,7 @@ export function DayPilotResourceCalendar({
 
     const gl = ghostLabelRef.current;
     if (gl) {
-      gl.style.left = `${d.ghostX - 70}px`;
-      gl.style.top = `${d.ghostY + 44}px`;
+      gl.style.transform = `translate3d(${d.ghostX - 70}px, ${d.ghostY + 44}px, 0)`;
       gl.style.opacity = '1';
       const labelText = gl.querySelector('[data-ghost-label]');
       if (labelText) {
@@ -1024,7 +1022,7 @@ export function DayPilotResourceCalendar({
       <div
         ref={ghostCardRef}
         className="fixed z-[90] pointer-events-none select-none"
-        style={{ opacity: 0, left: 0, bottom: 0 }}
+        style={{ opacity: 0, top: 0, left: 0, willChange: 'transform' }}
       >
         <div data-ghost-card className="w-[140px] rounded-xl px-3 py-2 text-white text-[11px] font-semibold shadow-2xl bg-gray-600" style={{ opacity: 0.95, transition: 'background 200ms ease' }}>
           <div className="font-bold text-[12px]" data-ghost-time />
@@ -1036,7 +1034,7 @@ export function DayPilotResourceCalendar({
       <div
         ref={ghostLabelRef}
         className="fixed z-[90] pointer-events-none select-none"
-        style={{ opacity: 0, left: 0, top: 0 }}
+        style={{ opacity: 0, top: 0, left: 0, willChange: 'transform' }}
       >
         <div className="text-center text-[11px] text-gray-700 bg-white/95 rounded-lg px-3 py-1 shadow-md font-semibold" data-ghost-label />
       </div>
