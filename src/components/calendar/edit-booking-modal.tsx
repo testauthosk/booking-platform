@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { X, Clock, Calendar, Scissors, Plus, Minus, ChevronLeft, ChevronRight, Loader2, User, Lock, Search } from 'lucide-react';
+import { X, Clock, Calendar, Scissors, Plus, Minus, ChevronLeft, ChevronRight, Loader2, User, Lock, Search, Pencil, Check } from 'lucide-react';
 import { format, addDays, isSameDay } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -46,6 +46,7 @@ interface EditBookingModalProps {
     clientName?: string;
     clientPhone?: string;
     serviceId?: string;
+    masterId?: string;
     date: string;
     time: string;
     duration: number;
@@ -59,6 +60,9 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
   const [isSaving, setIsSaving] = useState(false);
   const [masterServices, setMasterServices] = useState<Service[]>([]);
   const [masterName, setMasterName] = useState<string>('');
+  const [selectedMasterId, setSelectedMasterId] = useState<string>('');
+  const [masters, setMasters] = useState<{ id: string; name: string }[]>([]);
+  const [showMasterPicker, setShowMasterPicker] = useState(false);
 
   // Swipe dismiss + expand
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -118,10 +122,30 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
     }
   }, [isOpen, salonId]);
 
-  // Load master's services (custom prices/durations)
+  // Load masters list
   useEffect(() => {
-    if (isOpen && booking?.masterId) {
-      fetch(`/api/staff/services?masterId=${booking.masterId}`)
+    if (isOpen && salonId) {
+      fetch(`/api/masters?salonId=${salonId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setMasters(data.map((m: any) => ({ id: m.id, name: m.name })));
+            // Set initial master name
+            if (booking?.masterId) {
+              const master = data.find((m: any) => m.id === booking.masterId);
+              setMasterName(master?.name || '');
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isOpen, salonId, booking?.masterId]);
+
+  // Load services for selected master (reloads when master changes)
+  useEffect(() => {
+    const masterId = selectedMasterId || booking?.masterId;
+    if (isOpen && masterId) {
+      fetch(`/api/staff/services?masterId=${masterId}`)
         .then(res => res.json())
         .then(data => {
           if (Array.isArray(data) && data.length > 0) {
@@ -131,16 +155,11 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
           }
         })
         .catch(() => setMasterServices([]));
-      // Fetch master name
-      fetch(`/api/masters?salonId=${salonId}`)
-        .then(res => res.json())
-        .then(data => {
-          const master = data.find((m: any) => m.id === booking.masterId);
-          setMasterName(master?.name || '');
-        })
-        .catch(() => {});
+      // Update master name
+      const master = masters.find(m => m.id === masterId);
+      if (master) setMasterName(master.name);
     }
-  }, [isOpen, booking?.masterId, salonId]);
+  }, [isOpen, selectedMasterId, booking?.masterId, masters]);
 
   // Ініціалізація при відкритті
   useEffect(() => {
@@ -149,9 +168,11 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
       setSelectedClientName(booking.clientName || '');
       setSelectedClientPhone(booking.clientPhone || '');
       setSelectedServiceId(booking.serviceId || '');
+      setSelectedMasterId(booking.masterId || '');
       setSelectedDate(new Date(booking.date));
       setSelectedTime(booking.time);
       setExtraTime(booking.extraTime || 0);
+      setShowMasterPicker(false);
     }
   }, [isOpen, booking]);
 
@@ -286,6 +307,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
         clientName: selectedClientName || undefined,
         clientPhone: selectedClientPhone || undefined,
         serviceId: selectedServiceId || undefined,
+        masterId: selectedMasterId || booking.masterId || undefined,
         date: format(selectedDate, 'yyyy-MM-dd'),
         time: selectedTime,
         duration: totalDuration,
@@ -318,6 +340,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
   const hasChanges = 
     selectedClientId !== (booking.clientId || '') ||
     selectedServiceId !== (booking.serviceId || '') ||
+    (selectedMasterId && selectedMasterId !== (booking.masterId || '')) ||
     !isSameDay(selectedDate, new Date(booking.date)) ||
     selectedTime !== booking.time ||
     extraTime !== (booking.extraTime || 0);
@@ -452,13 +475,49 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
             )}
           </div>
 
-          {/* Послуга */}
+          {/* Послуга + вибір майстра */}
           <div>
-            <label className="text-sm font-medium flex items-center gap-2 mb-2">
-              <Scissors className="h-4 w-4 text-muted-foreground" />
-              {masterName ? `Послуги ${masterName}` : 'Послуга'}
-              {hasStarted && <Lock className="h-3 w-3 text-muted-foreground" />}
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium flex items-center gap-2">
+                <Scissors className="h-4 w-4 text-muted-foreground" />
+                {masterName ? `Послуги ${masterName}` : 'Послуга'}
+                {hasStarted && <Lock className="h-3 w-3 text-muted-foreground" />}
+              </label>
+              {!hasStarted && (
+                <button
+                  onClick={() => setShowMasterPicker(!showMasterPicker)}
+                  className="flex items-center gap-1 text-xs text-primary font-medium px-2 py-1 rounded-lg hover:bg-primary/5 transition-colors"
+                >
+                  <Pencil className="h-3 w-3" />
+                  Змінити майстра
+                </button>
+              )}
+            </div>
+
+            {/* Master picker */}
+            {showMasterPicker && (
+              <div className="flex gap-2 overflow-x-auto pb-2 mb-2">
+                {masters.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      setSelectedMasterId(m.id);
+                      setSelectedServiceId('');
+                      setShowMasterPicker(false);
+                    }}
+                    className={cn(
+                      "shrink-0 px-3 py-2 rounded-xl border text-sm font-medium transition-all flex items-center gap-1.5",
+                      (selectedMasterId || booking?.masterId) === m.id
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border hover:border-primary/50'
+                    )}
+                  >
+                    {(selectedMasterId || booking?.masterId) === m.id && <Check className="h-3 w-3" />}
+                    {m.name}
+                  </button>
+                ))}
+              </div>
+            )}
             {hasStarted ? (
               // Заблоковано після початку запису
               <div className="p-3 rounded-xl bg-muted/50 border border-border">
@@ -469,24 +528,28 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
               </div>
             ) : (
               // Можна змінити до початку — послуги мастера з кастомними цінами
-              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-                {(masterServices.length > 0 ? masterServices : services).map((service) => (
-                  <button
-                    key={service.id}
-                    onClick={() => setSelectedServiceId(service.id)}
-                    className={cn(
-                      "p-2 rounded-xl border text-left transition-all text-sm",
-                      selectedServiceId === service.id
-                        ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                        : 'border-border hover:border-primary/50'
-                    )}
-                  >
-                  <p className="font-medium truncate">{service.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {service.duration} хв · {service.price} ₴
-                    </p>
-                  </button>
-                ))}
+              <div className="relative">
+                <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pb-1">
+                  {(masterServices.length > 0 ? masterServices : services).map((service) => (
+                    <button
+                      key={service.id}
+                      onClick={() => setSelectedServiceId(service.id)}
+                      className={cn(
+                        "p-2.5 rounded-xl border text-left transition-all text-sm",
+                        selectedServiceId === service.id
+                          ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                          : 'border-border hover:border-primary/50'
+                      )}
+                    >
+                      <p className="font-medium truncate">{service.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {service.duration} хв · {service.price} ₴
+                      </p>
+                    </button>
+                  ))}
+                </div>
+                {/* Gradient hint — показує що можна скролити */}
+                <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-background to-transparent pointer-events-none" />
               </div>
             )}
           </div>
