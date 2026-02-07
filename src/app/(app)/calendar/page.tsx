@@ -153,16 +153,18 @@ export default function CalendarPage() {
     }
   };
 
-  const loadBookings = async () => {
+  const loadBookings = async (): Promise<BookingFromAPI[]> => {
     try {
       const res = await fetch('/api/booking');
       if (res.ok) {
         const data: BookingFromAPI[] = await res.json();
         setRawBookings(data);
+        return data;
       }
     } catch (error) {
       console.error('Load bookings error:', error);
     }
+    return [];
   };
 
   // Resources для DayPilot
@@ -281,6 +283,16 @@ export default function CalendarPage() {
       backgroundColor: eventColors[ce.resource],
     };
   };
+
+  // Автооновлення selectedEvent при зміні calendarEvents (після loadBookings)
+  useEffect(() => {
+    if (selectedEvent && isEventModalOpen) {
+      const updated = calendarEvents.find(ce => ce.id === selectedEvent.id);
+      if (updated) {
+        setSelectedEvent(calEventToBookingEvent(updated));
+      }
+    }
+  }, [calendarEvents]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Callbacks для DayPilot
   const handleEventClick = (event: CalendarEvent) => {
@@ -615,7 +627,7 @@ export default function CalendarPage() {
       {/* Edit Booking Modal */}
       <EditBookingModal
         isOpen={isEditModalOpen}
-        onClose={() => { setIsEditModalOpen(false); setIsEventModalOpen(false); }}
+        onClose={() => { setIsEditModalOpen(false); }}
         booking={selectedEvent ? {
           id: selectedEvent.id,
           clientId: selectedEvent.clientId,
