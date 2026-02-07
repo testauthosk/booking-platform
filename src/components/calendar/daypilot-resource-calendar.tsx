@@ -72,6 +72,7 @@ interface DragState {
   ghostX: number;
   ghostY: number;
   grabOffsetY: number;
+  grabOffsetMin: number;
   targetResourceId: string;
   targetStartMin: number;
   targetEndMin: number;
@@ -329,6 +330,13 @@ export function DayPilotResourceCalendar({
     const el = document.querySelector(`[data-event-id="${event.id}"]`) as HTMLElement | null;
     const rect = el?.getBoundingClientRect();
     const grabOffsetY = rect ? (clientY - rect.top) : 0;
+    let grabOffsetMin = 0;
+    if (gridRef.current) {
+      const totalMinutes = (dayEndHour - dayStartHour) * 60;
+      const gridH = gridRef.current.offsetHeight || 1;
+      const minutesPerPx = totalMinutes / gridH;
+      grabOffsetMin = Math.round((grabOffsetY * minutesPerPx) / 15) * 15;
+    }
 
     const state: DragState = {
       event,
@@ -336,6 +344,7 @@ export function DayPilotResourceCalendar({
       ghostX: clientX,
       ghostY: clientY,
       grabOffsetY,
+      grabOffsetMin,
       targetResourceId: mode === 'move' ? event.resource : (pos?.resourceId || event.resource),
       targetStartMin: mode === 'move' ? startMin : startMin,
       targetEndMin: mode === 'move' ? endMin : endMin,
@@ -399,8 +408,12 @@ export function DayPilotResourceCalendar({
         (new Date(d.event.end).getTime() - new Date(d.event.start).getTime()) / 60000
       );
       d.targetResourceId = pos.resourceId;
-      d.targetStartMin = pos.startMin;
-      d.targetEndMin = pos.startMin + duration;
+      let start = pos.startMin - d.grabOffsetMin;
+      const dayMin = dayStartHour * 60;
+      const dayMax = dayEndHour * 60 - 15;
+      start = Math.max(dayMin, Math.min(dayMax, start));
+      d.targetStartMin = start;
+      d.targetEndMin = start + duration;
     } else if (d.mode === 'resize-top') {
       d.targetStartMin = Math.min(pos.startMin, d.targetEndMin - 15);
     } else if (d.mode === 'resize-bottom') {
