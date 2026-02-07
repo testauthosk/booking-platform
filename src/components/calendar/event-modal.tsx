@@ -66,10 +66,14 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
       if (d > 0) {
         // Вниз — translateY
         sheet.style.transform = `translate3d(0,${d}px,0)`;
+        sheet.style.maxHeight = '85vh';
       } else {
-        // Вгору — збільшити maxHeight (розтягнути)
-        const extra = Math.min(Math.abs(d), window.innerHeight * 0.15);
-        sheet.style.maxHeight = `calc(85vh + ${extra}px)`;
+        // Вгору — збільшити maxHeight від 85vh до 100vh
+        const absDelta = Math.abs(d);
+        const maxExtra = window.innerHeight * 0.15; // 15vh gap
+        const progress = Math.min(absDelta / 150, 1); // 150px drag = full expand
+        const newMaxH = 85 + (15 * progress); // 85vh → 100vh
+        sheet.style.maxHeight = `${newMaxH}vh`;
         sheet.style.transform = 'translate3d(0,0,0)';
       }
       rafId.current = requestAnimationFrame(applyFrame);
@@ -94,7 +98,7 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
       cancelAnimationFrame(rafId.current);
 
       const d = deltaY.current;
-      sheet.style.transition = 'transform 500ms cubic-bezier(0.32,0.72,0,1), max-height 500ms cubic-bezier(0.32,0.72,0,1)';
+      sheet.style.transition = 'transform 600ms cubic-bezier(0.32,0.72,0,1), max-height 600ms cubic-bezier(0.32,0.72,0,1)';
 
       if (d > 100) {
         // Свайп вниз → закрити
@@ -144,7 +148,7 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
         style={{
           opacity: isAnimating ? 1 : 0,
-          transition: 'opacity 400ms ease-out',
+          transition: 'opacity 500ms ease-out',
         }}
         onClick={onClose}
       />
@@ -156,7 +160,7 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
         style={{
           maxHeight: isExpanded ? '100vh' : '85vh',
           transform: isAnimating ? 'translate3d(0,0,0)' : 'translate3d(0,100%,0)',
-          transition: 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1), max-height 500ms cubic-bezier(0.32, 0.72, 0, 1)',
+          transition: 'transform 600ms cubic-bezier(0.32, 0.72, 0, 1), max-height 600ms cubic-bezier(0.32, 0.72, 0, 1)',
           willChange: 'transform',
         }}
       >

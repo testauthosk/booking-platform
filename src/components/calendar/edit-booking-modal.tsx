@@ -168,7 +168,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
       const timer = setTimeout(() => {
         setIsVisible(false);
         setIsExpanded(false);
-      }, 500);
+      }, 650);
       return () => clearTimeout(timer);
     }
   }, [isOpen, booking]);
@@ -211,7 +211,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
       cancelAnimationFrame(rafId.current);
 
       const d = deltaY.current;
-      sheet.style.transition = 'transform 500ms cubic-bezier(0.32,0.72,0,1), max-height 500ms cubic-bezier(0.32,0.72,0,1)';
+      sheet.style.transition = 'transform 600ms cubic-bezier(0.32,0.72,0,1), max-height 600ms cubic-bezier(0.32,0.72,0,1)';
 
       if (d > 100) {
         sheet.style.transform = 'translate3d(0,100%,0)';
@@ -322,7 +322,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[115]"
         style={{
           opacity: isAnimating ? 1 : 0,
-          transition: 'opacity 400ms ease-out',
+          transition: 'opacity 500ms ease-out',
         }}
         onClick={onClose}
       />
@@ -334,7 +334,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
         style={{
           maxHeight: isExpanded ? '100vh' : '92vh',
           transform: isAnimating ? 'translate3d(0,0,0)' : 'translate3d(0,100%,0)',
-          transition: 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1), max-height 500ms cubic-bezier(0.32, 0.72, 0, 1)',
+          transition: 'transform 600ms cubic-bezier(0.32, 0.72, 0, 1), max-height 600ms cubic-bezier(0.32, 0.72, 0, 1)',
           willChange: 'transform',
         }}
       >
