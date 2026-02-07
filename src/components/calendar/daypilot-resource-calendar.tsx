@@ -1191,10 +1191,10 @@ export function DayPilotResourceCalendar({
                 );
               })}
 
-              {/* Червоний бейдж поточного часу — обводка з'єднана з лінією */}
+              {/* Червоний бейдж поточного часу — текст вирівняний зі стандартними лейблами */}
               {isToday_ && nowMinutes !== null && nowMinutes >= dayStartHour * 60 && nowMinutes <= dayEndHour * 60 && (
                 <span
-                  className="absolute right-0 z-30 pointer-events-none text-[9px] lg:text-xs font-medium text-red-500 bg-white border border-red-500 px-[3px] py-[1px] rounded-l-[3px] border-r-0"
+                  className="absolute right-0 z-30 pointer-events-none text-[9px] lg:text-xs font-medium bg-red-500 text-white pr-1 pl-[3px] py-[1px] rounded-l-[3px]"
                   style={{
                     top: `${((nowMinutes - dayStartHour * 60 + timeStep) / totalMinutes) * 100}%`,
                     transform: 'translateY(-50%)',
