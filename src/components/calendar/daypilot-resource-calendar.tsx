@@ -34,6 +34,8 @@ interface DayPilotResourceCalendarProps {
   onEventMove?: (eventId: string, newStart: Date, newEnd: Date, newResourceId: string) => void;
   onEventResize?: (eventId: string, newStart: Date, newEnd: Date) => void;
   onTimeRangeSelect?: (start: Date, end: Date, resourceId: string) => void;
+  onEmptySlotMenu?: (x: number, y: number) => void;
+  timeStep?: 5 | 15 | 30;
   dayStartHour?: number;
   dayEndHour?: number;
 }
@@ -93,6 +95,8 @@ export function DayPilotResourceCalendar({
   onEventMove,
   onEventResize,
   onTimeRangeSelect,
+  onEmptySlotMenu,
+  timeStep = 15,
   dayStartHour = 8,
   dayEndHour = 21,
 }: DayPilotResourceCalendarProps) {
@@ -188,11 +192,11 @@ export function DayPilotResourceCalendar({
     const gridHeight = resourcesContainer.offsetHeight;
     // relY може бути від'ємним якщо курсор над grid — clamp
     const clampedY = Math.max(0, Math.min(gridHeight, relY));
-    const minutes = Math.round((clampedY / gridHeight) * totalMinutes / 15) * 15; // snap to 15min
-    const startMin = dayStartHour * 60 + Math.max(0, Math.min(totalMinutes - 15, minutes));
+    const minutes = Math.round((clampedY / gridHeight) * totalMinutes / timeStep) * timeStep; // snap
+    const startMin = dayStartHour * 60 + Math.max(0, Math.min(totalMinutes - timeStep, minutes));
 
     return { resourceId, startMin, resourceIdx };
-  }, [resources, dayStartHour, dayEndHour]);
+  }, [resources, dayStartHour, dayEndHour, timeStep]);
 
   // ============================================================
   // Helpers: event → minutes
@@ -335,7 +339,7 @@ export function DayPilotResourceCalendar({
       const totalMinutes = (dayEndHour - dayStartHour) * 60;
       const gridH = gridRef.current.offsetHeight || 1;
       const minutesPerPx = totalMinutes / gridH;
-      grabOffsetMin = Math.round((grabOffsetY * minutesPerPx) / 15) * 15;
+      grabOffsetMin = Math.round((grabOffsetY * minutesPerPx) / timeStep) * timeStep;
     }
 
     const state: DragState = {
@@ -357,7 +361,7 @@ export function DayPilotResourceCalendar({
       state.targetEndMin = endMin;
     } else if (mode === 'resize-bottom') {
       state.targetStartMin = startMin;
-      state.targetEndMin = pos?.startMin ? pos.startMin + 15 : endMin;
+      state.targetEndMin = pos?.startMin ? pos.startMin + timeStep : endMin;
     }
 
     dragRef.current = state;
@@ -392,7 +396,7 @@ export function DayPilotResourceCalendar({
 
     // setState тільки для boolean flag (1 раз при старті)
     setDragActive({ eventId: event.id, mode });
-  }, [getGridPosition, getEventMinutes, lockScroll, isPastDate, updatePreviewTarget, updateGhostDOM]);
+  }, [getGridPosition, getEventMinutes, lockScroll, isPastDate, updatePreviewTarget, updateGhostDOM, timeStep, dayStartHour, dayEndHour]);
 
   const updateDrag = useCallback((clientX: number, clientY: number) => {
     const d = dragRef.current;
@@ -410,20 +414,20 @@ export function DayPilotResourceCalendar({
       d.targetResourceId = pos.resourceId;
       let start = pos.startMin - d.grabOffsetMin;
       const dayMin = dayStartHour * 60;
-      const dayMax = dayEndHour * 60 - 15;
+      const dayMax = dayEndHour * 60 - timeStep;
       start = Math.max(dayMin, Math.min(dayMax, start));
       d.targetStartMin = start;
       d.targetEndMin = start + duration;
     } else if (d.mode === 'resize-top') {
-      d.targetStartMin = Math.min(pos.startMin, d.targetEndMin - 15);
+      d.targetStartMin = Math.min(pos.startMin, d.targetEndMin - timeStep);
     } else if (d.mode === 'resize-bottom') {
-      d.targetEndMin = Math.max(pos.startMin + 15, d.targetStartMin + 15);
+      d.targetEndMin = Math.max(pos.startMin + timeStep, d.targetStartMin + timeStep);
     }
 
     // Оновити preview target і ghost через DOM (без setState!)
     updatePreviewTarget();
     updateGhostDOM();
-  }, [getGridPosition, updatePreviewTarget, updateGhostDOM]);
+  }, [getGridPosition, updatePreviewTarget, updateGhostDOM, timeStep, dayStartHour, dayEndHour]);
 
   const endDrag = useCallback((commit: boolean) => {
     if (longPressTimer.current) {
@@ -829,11 +833,11 @@ export function DayPilotResourceCalendar({
 
   // weekBar resize observer видалено — тепер в layout
 
-  // Генеруємо години для сітки
-  const hours: number[] = [];
-  for (let h = dayStartHour; h < dayEndHour; h++) {
-    hours.push(h);
-  }
+  // Генеруємо кроки для сітки
+  const totalMinutes = (dayEndHour - dayStartHour) * 60;
+  const stepCount = Math.ceil(totalMinutes / timeStep);
+  const steps = Array.from({ length: stepCount }, (_, i) => i);
+  const stepHeight = 60 * (timeStep / 60); // 60px per hour
 
   // Отримуємо дні тижня для навігації
   const getWeekDays = (date: Date) => {
@@ -980,23 +984,45 @@ export function DayPilotResourceCalendar({
           }}
         >
           {/* Сітка часу */}
-          <div ref={gridRef} className="relative flex select-none" style={{ minHeight: `${hours.length * 60}px`, minWidth: resources.length > 3 ? `${40 + resources.length * 110}px` : '100%', WebkitUserSelect: 'none', userSelect: 'none' }}>
+          <div ref={gridRef} className="relative flex select-none" style={{ minHeight: `${totalMinutes}px`, minWidth: resources.length > 3 ? `${40 + resources.length * 110}px` : '100%', WebkitUserSelect: 'none', userSelect: 'none' }}>
             {/* Колонка часу — sticky left */}
             <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 sticky left-0 bg-white/50 backdrop-blur-lg z-20">
-              {hours.map(hour => (
-                <div
-                  key={hour}
-                  className="h-[60px] flex items-start justify-end pr-1 pt-0"
-                >
-                  <span className="text-[9px] lg:text-xs text-gray-900 font-medium">
-                    {hour.toString().padStart(2, '0')}:00
-                  </span>
-                </div>
-              ))}
+              {steps.map((i) => {
+                const minutesFromStart = i * timeStep;
+                const absoluteMin = dayStartHour * 60 + minutesFromStart;
+                const h = Math.floor(absoluteMin / 60);
+                const m = absoluteMin % 60;
+                const isHour = m === 0;
+                const isHalf = m === 30;
+                const label = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+
+                return (
+                  <div key={i} className="relative" style={{ height: `${stepHeight}px` }}>
+                    {(isHour || isHalf) && (
+                      <span
+                        className={`absolute right-1 ${isHalf ? 'text-[7px] lg:text-[9px] opacity-60' : 'text-[9px] lg:text-xs font-medium'} text-gray-900`}
+                        style={{ top: '100%', transform: 'translateY(-50%)' }}
+                      >
+                        {label}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Колонки ресурсів */}
-            <div data-resources className="flex relative" style={{ minWidth: resources.length > 3 ? `${resources.length * 110}px` : '100%' }}>
+            <div
+              data-resources
+              className="flex relative"
+              style={{ minWidth: resources.length > 3 ? `${resources.length * 110}px` : '100%' }}
+              onClick={(e) => {
+                if (!onEmptySlotMenu) return;
+                const target = e.target as HTMLElement;
+                if (target.closest('[data-event-id]')) return;
+                onEmptySlotMenu(e.clientX, e.clientY);
+              }}
+            >
             {resources.map((r, rIdx) => (
               <div
                 key={r.id}
@@ -1004,9 +1030,18 @@ export function DayPilotResourceCalendar({
                 style={{ backgroundColor: `${r.color}18` }}
               >
               {/* Лінії годин */}
-              {hours.map(hour => (
-                <div key={hour} className="h-[60px] border-b border-gray-200" />
-              ))}
+              {steps.map((i) => {
+                const minutesFromStart = i * timeStep;
+                const absoluteMin = dayStartHour * 60 + minutesFromStart;
+                const isHour = absoluteMin % 60 === 0;
+                return (
+                  <div
+                    key={i}
+                    className={`border-b ${isHour ? 'border-gray-300' : 'border-gray-200'}`}
+                    style={{ height: `${stepHeight}px` }}
+                  />
+                );
+              })}
 
               {/* Події */}
               {filteredEvents

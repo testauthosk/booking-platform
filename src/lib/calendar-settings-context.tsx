@@ -6,11 +6,13 @@ import { DEFAULT_PALETTE_ID, getPaletteColors } from './color-palettes';
 interface CalendarSettings {
   paletteId: string;
   colors: string[];
+  gridStep: 5 | 15 | 30;
 }
 
 interface CalendarSettingsContextType {
   settings: CalendarSettings;
   setPaletteId: (id: string) => void;
+  setGridStep: (step: 5 | 15 | 30) => void;
   getColorForIndex: (index: number) => string;
 }
 
@@ -27,6 +29,7 @@ export function CalendarSettingsProvider({ children, salonId }: ProviderProps) {
   const [settings, setSettings] = useState<CalendarSettings>({
     paletteId: DEFAULT_PALETTE_ID,
     colors: getPaletteColors(DEFAULT_PALETTE_ID),
+    gridStep: 15,
   });
 
   // Load palette from DB (if salonId) or localStorage
@@ -42,6 +45,7 @@ export function CalendarSettingsProvider({ children, salonId }: ProviderProps) {
               setSettings({
                 paletteId: data.paletteId,
                 colors: getPaletteColors(data.paletteId),
+                gridStep: 15,
               });
               return;
             }
@@ -56,10 +60,11 @@ export function CalendarSettingsProvider({ children, salonId }: ProviderProps) {
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
-          if (parsed.paletteId) {
+          if (parsed.paletteId || parsed.gridStep) {
             setSettings({
-              paletteId: parsed.paletteId,
-              colors: getPaletteColors(parsed.paletteId),
+              paletteId: parsed.paletteId || DEFAULT_PALETTE_ID,
+              colors: getPaletteColors(parsed.paletteId || DEFAULT_PALETTE_ID),
+              gridStep: parsed.gridStep || 15,
             });
           }
         } catch (e) {
@@ -92,7 +97,17 @@ export function CalendarSettingsProvider({ children, salonId }: ProviderProps) {
     }
     
     // Also save to localStorage as backup
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ paletteId: id }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ paletteId: id, gridStep: settings.gridStep }));
+  };
+
+  const setGridStep = (step: 5 | 15 | 30) => {
+    const newSettings = {
+      paletteId: settings.paletteId,
+      colors: settings.colors,
+      gridStep: step,
+    };
+    setSettings(newSettings);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ paletteId: settings.paletteId, gridStep: step }));
   };
 
   const getColorForIndex = (index: number): string => {
@@ -100,7 +115,7 @@ export function CalendarSettingsProvider({ children, salonId }: ProviderProps) {
   };
 
   return (
-    <CalendarSettingsContext.Provider value={{ settings, setPaletteId, getColorForIndex }}>
+    <CalendarSettingsContext.Provider value={{ settings, setPaletteId, setGridStep, getColorForIndex }}>
       {children}
     </CalendarSettingsContext.Provider>
   );
