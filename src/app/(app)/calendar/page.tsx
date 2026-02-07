@@ -100,7 +100,8 @@ export default function CalendarPage() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [salonTimezone, setSalonTimezone] = useState<string>('Europe/Kiev');
   const [services, setServices] = useState<{ id: string; name: string; duration: number; price: number }[]>([]);
-  const [settingsMenu, setSettingsMenu] = useState<{ open: boolean; x: number; y: number }>({ open: false, x: 0, y: 0 });
+  const [settingsMenu, setSettingsMenu] = useState<{ open: boolean; x: number; y: number; startMin?: number; resourceId?: string }>({ open: false, x: 0, y: 0 });
+  const [menuAnimating, setMenuAnimating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Load data from API
@@ -440,7 +441,10 @@ export default function CalendarPage() {
           onEventMove={handleEventMove}
           onEventResize={handleEventResize}
           onTimeRangeSelect={handleTimeRangeSelect}
-          onEmptySlotMenu={(x, y) => setSettingsMenu({ open: true, x, y })}
+          onEmptySlotMenu={(x, y, slotInfo) => {
+            setSettingsMenu({ open: true, x, y, startMin: slotInfo?.startMin, resourceId: slotInfo?.resourceId });
+            requestAnimationFrame(() => setMenuAnimating(true));
+          }}
           timeStep={settings.gridStep}
           dayStartHour={8}
           dayEndHour={21}
@@ -449,19 +453,45 @@ export default function CalendarPage() {
 
       {/* Контекстне меню (порожній слот) */}
       {settingsMenu.open && (
-        <div className="fixed inset-0 z-[60]" onClick={() => setSettingsMenu({ open: false, x: 0, y: 0 })}>
+        <div className="fixed inset-0 z-[60]" onClick={() => {
+          setMenuAnimating(false);
+          setTimeout(() => setSettingsMenu({ open: false, x: 0, y: 0 }), 200);
+        }}>
           <div
-            className="absolute bg-white border border-gray-200 rounded-xl shadow-lg p-2"
+            className={`absolute bg-white border border-gray-200 rounded-xl shadow-xl p-1.5 min-w-[200px] transition-all duration-200 origin-top-left ${
+              menuAnimating ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
+            }`}
             style={{ left: settingsMenu.x, top: settingsMenu.y }}
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              className="px-3 py-2 text-sm font-medium hover:bg-gray-50 rounded-lg w-full text-left"
+              className="px-3 py-2.5 text-sm font-medium hover:bg-gray-50 rounded-lg w-full text-left flex items-center gap-2.5 transition-colors"
               onClick={() => {
-                setSettingsMenu({ open: false, x: 0, y: 0 });
+                setMenuAnimating(false);
+                setTimeout(() => setSettingsMenu({ open: false, x: 0, y: 0 }), 150);
+                // Створюємо слот з позиції кліку
+                const startMin = settingsMenu.startMin ?? 10 * 60;
+                const h = Math.floor(startMin / 60);
+                const m = startMin % 60;
+                const slotStart = new Date(selectedDate);
+                slotStart.setHours(h, m, 0, 0);
+                const slotEnd = new Date(slotStart.getTime() + 60 * 60000);
+                setSelectedSlot({ start: slotStart, end: slotEnd, resourceId: settingsMenu.resourceId || resources[0]?.id || '' });
+                setIsNewBookingModalOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4 text-gray-500" />
+              Додати запис
+            </button>
+            <button
+              className="px-3 py-2.5 text-sm font-medium hover:bg-gray-50 rounded-lg w-full text-left flex items-center gap-2.5 transition-colors"
+              onClick={() => {
+                setMenuAnimating(false);
+                setTimeout(() => setSettingsMenu({ open: false, x: 0, y: 0 }), 150);
                 setSettingsOpen(true);
               }}
             >
+              <CalendarIcon className="h-4 w-4 text-gray-500" />
               Налаштування календаря
             </button>
           </div>

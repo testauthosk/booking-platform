@@ -34,7 +34,7 @@ interface DayPilotResourceCalendarProps {
   onEventMove?: (eventId: string, newStart: Date, newEnd: Date, newResourceId: string) => void;
   onEventResize?: (eventId: string, newStart: Date, newEnd: Date) => void;
   onTimeRangeSelect?: (start: Date, end: Date, resourceId: string) => void;
-  onEmptySlotMenu?: (x: number, y: number) => void;
+  onEmptySlotMenu?: (x: number, y: number, slotInfo: { startMin: number; resourceId: string }) => void;
   timeStep?: 5 | 15 | 30;
   dayStartHour?: number;
   dayEndHour?: number;
@@ -79,6 +79,7 @@ interface DragState {
   targetStartMin: number;
   targetEndMin: number;
   phase: 'pending' | 'dragging';
+  isPhantom?: boolean; // створення нового запису з пустого місця
 }
 
 const LONG_PRESS_MS = 400;
@@ -140,6 +141,10 @@ export function DayPilotResourceCalendar({
   const appliedNameRef = useRef<string>('?');
   const resourcesCountRef = useRef(resources.length);
   const flipRef = useRef<{ eventId: string; from: DOMRect } | null>(null);
+
+  // Long press on empty space refs
+  const emptyLongPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const emptyTouchStartPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // Тримаємо кількість ресурсів в ref для rAF loop
   useEffect(() => { resourcesCountRef.current = resources.length; }, [resources.length]);
@@ -262,7 +267,7 @@ export function DayPilotResourceCalendar({
       const timeEl = gc.querySelector('[data-ghost-time]');
       if (timeEl) timeEl.textContent = `${formatMinutes(d.targetStartMin)} – ${formatMinutes(d.targetEndMin)}`;
       const nameEl = gc.querySelector('[data-ghost-name]');
-      if (nameEl) nameEl.textContent = d.event.clientName || d.event.text;
+      if (nameEl) nameEl.textContent = d.isPhantom ? 'Новий запис' : (d.event.clientName || d.event.text);
       // Колір ghost = applied (не target!) — міняється в rAF коли preview доїде
       const ghostColor = appliedColorRef.current;
       const cardInner = gc.querySelector('[data-ghost-card]') as HTMLElement;
@@ -275,9 +280,13 @@ export function DayPilotResourceCalendar({
       gl.style.opacity = '1';
       const labelText = gl.querySelector('[data-ghost-label]');
       if (labelText) {
-        labelText.textContent = d.mode === 'move'
-          ? `→ ${appliedNameRef.current}`
-          : `↕ ${d.mode === 'resize-top' ? 'початок' : 'кінець'}`;
+        if (d.isPhantom) {
+          labelText.textContent = `✚ ${appliedNameRef.current}`;
+        } else {
+          labelText.textContent = d.mode === 'move'
+            ? `→ ${appliedNameRef.current}`
+            : `↕ ${d.mode === 'resize-top' ? 'початок' : 'кінець'}`;
+        }
       }
     }
 
@@ -434,6 +443,10 @@ export function DayPilotResourceCalendar({
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
+    if (emptyLongPressTimer.current) {
+      clearTimeout(emptyLongPressTimer.current);
+      emptyLongPressTimer.current = null;
+    }
 
     const state = dragRef.current;
     if (state && state.phase === 'dragging' && commit) {
@@ -444,7 +457,12 @@ export function DayPilotResourceCalendar({
         return new Date(`${dStr}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`);
       };
 
-      if (state.mode === 'move' && onEventMove) {
+      if (state.isPhantom) {
+        // Phantom drag — створення нового запису
+        if (onTimeRangeSelect) {
+          onTimeRangeSelect(makeDate(state.targetStartMin), makeDate(state.targetEndMin), state.targetResourceId);
+        }
+      } else if (state.mode === 'move' && onEventMove) {
         if (state.event.resource !== state.targetResourceId) {
           const el = document.querySelector(`[data-event-id="${state.event.id}"]`) as HTMLElement | null;
           if (el) {
@@ -469,7 +487,7 @@ export function DayPilotResourceCalendar({
     if (timeLineRef.current) timeLineRef.current.style.opacity = '0';
     // setState тільки для boolean flag (1 раз при закінченні)
     setDragActive(null);
-  }, [internalDate, onEventMove, onEventResize, unlockScroll]);
+  }, [internalDate, onEventMove, onEventResize, onTimeRangeSelect, unlockScroll]);
 
   const cancelDrag = useCallback(() => {
     endDrag(false);
@@ -484,6 +502,114 @@ export function DayPilotResourceCalendar({
     if (relY <= RESIZE_HANDLE_HEIGHT) return 'resize-top';
     if (relY >= rect.height - RESIZE_HANDLE_HEIGHT) return 'resize-bottom';
     return 'move';
+  }, []);
+
+  // ============================================================
+  // Phantom drag — long press на порожньому місці
+  // ============================================================
+  const startPhantomDrag = useCallback((clientX: number, clientY: number) => {
+    if (isPastDate()) return;
+    const pos = getGridPosition(clientX, clientY);
+    if (!pos) return;
+
+    didDrag.current = true;
+    if (navigator.vibrate) { try { navigator.vibrate(50); } catch {} }
+    lockScroll();
+    document.body.style.cursor = 'grabbing';
+
+    const phantomEvent: CalendarEvent = {
+      id: '__phantom__',
+      text: 'Новий запис',
+      start: '',
+      end: '',
+      resource: pos.resourceId,
+    };
+
+    const startMin = pos.startMin;
+    const endMin = startMin + 60; // 1 година за замовчуванням
+
+    const state: DragState = {
+      event: phantomEvent,
+      mode: 'move',
+      ghostX: clientX,
+      ghostY: clientY,
+      grabOffsetY: 30,
+      grabOffsetMin: 0,
+      targetResourceId: pos.resourceId,
+      targetStartMin: startMin,
+      targetEndMin: endMin,
+      phase: 'dragging',
+      isPhantom: true,
+    };
+
+    dragRef.current = state;
+    previewInitRef.current = false;
+    appliedResourceRef.current = state.targetResourceId;
+    const startRes = resources.find(r => r.id === state.targetResourceId);
+    appliedColorRef.current = startRes?.color || '#666';
+    appliedNameRef.current = startRes?.name || '?';
+    pendingColorRef.current = appliedColorRef.current;
+    previewColorRef.current = appliedColorRef.current;
+    updatePreviewTarget();
+    updateGhostDOM();
+
+    if (ghostCardRef.current) {
+      const inner = ghostCardRef.current.querySelector('[data-ghost-card]') as HTMLElement | null;
+      if (inner) {
+        inner.classList.remove('animate-ghost-up');
+        void inner.offsetWidth;
+        inner.classList.add('animate-ghost-up');
+      }
+    }
+    if (ghostLabelRef.current) {
+      const inner = ghostLabelRef.current.querySelector('[data-ghost-label]') as HTMLElement | null;
+      if (inner) {
+        inner.classList.remove('animate-ghost-down');
+        void inner.offsetWidth;
+        inner.classList.add('animate-ghost-down');
+      }
+    }
+
+    setDragActive({ eventId: '__phantom__', mode: 'move' });
+  }, [getGridPosition, isPastDate, lockScroll, resources, updatePreviewTarget, updateGhostDOM]);
+
+  const handleEmptyTouchStart = useCallback((e: React.TouchEvent) => {
+    // Не запускати якщо тикнули по event
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-event-id]')) return;
+
+    const touch = e.touches[0];
+    emptyTouchStartPos.current = { x: touch.clientX, y: touch.clientY };
+
+    emptyLongPressTimer.current = setTimeout(() => {
+      startPhantomDrag(touch.clientX, touch.clientY);
+    }, LONG_PRESS_MS);
+  }, [startPhantomDrag]);
+
+  const handleEmptyMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-event-id]')) return;
+
+    emptyTouchStartPos.current = { x: e.clientX, y: e.clientY };
+    // Для desktop — починаємо phantom drag тільки після перетягування (не long press)
+    // Це дозволяє зберегти клік для контекстного меню
+  }, []);
+
+  // Скасувати empty long press при русі
+  useEffect(() => {
+    const handler = (e: TouchEvent) => {
+      if (!emptyLongPressTimer.current) return;
+      const touch = e.touches[0];
+      const dx = Math.abs(touch.clientX - emptyTouchStartPos.current.x);
+      const dy = Math.abs(touch.clientY - emptyTouchStartPos.current.y);
+      if (dx > TOUCH_MOVE_THRESHOLD || dy > TOUCH_MOVE_THRESHOLD) {
+        clearTimeout(emptyLongPressTimer.current);
+        emptyLongPressTimer.current = null;
+      }
+    };
+    document.addEventListener('touchmove', handler, { passive: true });
+    return () => document.removeEventListener('touchmove', handler);
   }, []);
 
   // ============================================================
@@ -530,6 +656,10 @@ export function DayPilotResourceCalendar({
       if (longPressTimer.current) {
         clearTimeout(longPressTimer.current);
         longPressTimer.current = null;
+      }
+      if (emptyLongPressTimer.current) {
+        clearTimeout(emptyLongPressTimer.current);
+        emptyLongPressTimer.current = null;
       }
       if (dragRef.current && dragRef.current.phase === 'dragging') {
         endDrag(true);
@@ -1016,11 +1146,15 @@ export function DayPilotResourceCalendar({
               data-resources
               className="flex relative"
               style={{ minWidth: resources.length > 3 ? `${resources.length * 110}px` : '100%' }}
+              onTouchStart={handleEmptyTouchStart}
               onClick={(e) => {
                 if (!onEmptySlotMenu) return;
                 const target = e.target as HTMLElement;
                 if (target.closest('[data-event-id]')) return;
-                onEmptySlotMenu(e.clientX, e.clientY);
+                // Не відкривати меню якщо тільки що був drag
+                if (didDrag.current) { didDrag.current = false; return; }
+                const pos = getGridPosition(e.clientX, e.clientY);
+                onEmptySlotMenu(e.clientX, e.clientY, { startMin: pos?.startMin ?? dayStartHour * 60, resourceId: pos?.resourceId ?? '' });
               }}
             >
             {resources.map((r, rIdx) => (
