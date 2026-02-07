@@ -460,15 +460,15 @@ export default function CalendarPage() {
           >
             <Menu className="h-4 w-4 text-gray-700" />
           </button>
-          <div className="flex h-10 bg-gray-100 rounded-xl p-0.5">
+          <div className="flex h-10 items-center bg-gray-100 rounded-xl p-1">
             <button
-              className={`px-3 text-xs font-medium rounded-[10px] transition-all ${viewMode === 'day' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
+              className={`h-8 px-3 text-xs font-semibold rounded-lg transition-all ${viewMode === 'day' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
               onClick={() => setViewMode('day')}
             >
               День
             </button>
             <button
-              className={`px-3 text-xs font-medium rounded-[10px] transition-all ${viewMode === 'week' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
+              className={`h-8 px-3 text-xs font-semibold rounded-lg transition-all ${viewMode === 'week' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
               onClick={() => setViewMode('week')}
             >
               Тиждень
@@ -478,7 +478,7 @@ export default function CalendarPage() {
         {/* Right: today + add + bell + avatar */}
         <div className="flex items-center gap-2">
           <button
-            className={`h-10 px-4 rounded-xl text-xs font-semibold transition-colors ${isToday ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 active:bg-gray-200'}`}
+            className={`h-10 px-3 rounded-xl text-xs font-semibold transition-colors ${isToday ? 'bg-gray-200 text-gray-900' : 'bg-gray-100 text-gray-700 active:bg-gray-200'}`}
             onClick={goToToday}
           >
             Сьогодні
