@@ -233,8 +233,10 @@ export function DayPilotResourceCalendar({
     const gridHeight = resourcesContainer.offsetHeight;
     // relY може бути від'ємним якщо курсор над grid — clamp
     const clampedY = Math.max(0, Math.min(gridHeight, relY));
-    const minutes = Math.round((clampedY / gridHeight) * totalMinutes / timeStep) * timeStep; // snap
-    const startMin = dayStartHour * 60 + Math.max(0, Math.min(totalMinutes - timeStep, minutes));
+    const rawMinutes = Math.round((clampedY / gridHeight) * totalMinutes / timeStep) * timeStep; // snap
+    // Компенсація зміщення: events/мітки зміщені на +timeStep, тому віднімаємо
+    const minutes = Math.max(0, rawMinutes - timeStep);
+    const startMin = dayStartHour * 60 + Math.min(totalMinutes - timeStep, minutes);
 
     return { resourceId, startMin, resourceIdx };
   }, [resources, dayStartHour, dayEndHour, timeStep]);
@@ -1070,8 +1072,9 @@ export function DayPilotResourceCalendar({
     const endMinutes = end.getHours() * 60 + end.getMinutes() - dayStartHour * 60;
     const totalMinutes = (dayEndHour - dayStartHour) * 60;
     
+    // +timeStep — мітки часу зміщені на 1 step (top:100% в step div)
     return {
-      top: (startMinutes / totalMinutes) * 100,
+      top: ((startMinutes + timeStep) / totalMinutes) * 100,
       height: ((endMinutes - startMinutes) / totalMinutes) * 100,
     };
   };
