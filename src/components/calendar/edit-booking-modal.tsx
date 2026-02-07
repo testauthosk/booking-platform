@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, Clock, Calendar, Scissors, Plus, Minus, ChevronLeft, ChevronRight, Loader2, User, Lock, Search } from 'lucide-react';
 import { format, addDays, isSameDay } from 'date-fns';
@@ -59,6 +59,12 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
   const [isSaving, setIsSaving] = useState(false);
   const [masterServices, setMasterServices] = useState<Service[]>([]);
   const [masterName, setMasterName] = useState<string>('');
+  const [dragY, setDragY] = useState(0);
+  const isDraggingRef = useRef(false);
+  const dragStartY = useRef(0);
+  const dragCurrentY = useRef(0);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   // Form state
   const [selectedClientId, setSelectedClientId] = useState<string>('');
@@ -159,6 +165,41 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
     }
   }, [isOpen]);
 
+  // Drag-to-dismiss
+  const handleDragStart = useCallback((clientY: number) => {
+    dragStartY.current = clientY;
+    dragCurrentY.current = 0;
+    isDraggingRef.current = true;
+    setDragY(0);
+  }, []);
+
+  const handleDragMove = useCallback((clientY: number) => {
+    if (!isDraggingRef.current) return;
+    const delta = clientY - dragStartY.current;
+    dragCurrentY.current = delta;
+    setDragY(delta);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    if (!isDraggingRef.current) return;
+    isDraggingRef.current = false;
+    if (dragCurrentY.current > 120) {
+      onCloseRef.current();
+    }
+    setDragY(0);
+  }, []);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => handleDragMove(e.clientY);
+    const onUp = () => handleDragEnd();
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    return () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+  }, [handleDragMove, handleDragEnd]);
+
   if (!isVisible || !booking) return null;
 
   const allServices = masterServices.length > 0 ? masterServices : services;
@@ -239,24 +280,36 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
 
   return (
     <>
-      {/* Прозорий backdrop для перехоплення кліків */}
+      {/* Прозорий backdrop — нижче за EditModal (z-109 < z-110) */}
       <div 
-        className="fixed inset-0 z-[115]"
+        className="fixed inset-0 z-[109]"
         onClick={onClose}
       />
       
       {/* Edit sheet — стикується знизу до EventModal header, без скруглень */}
       <div 
-        className="fixed inset-x-0 bottom-0 bg-background z-[110] overflow-hidden flex flex-col"
+        className="fixed inset-x-0 bottom-0 bg-background rounded-t-3xl shadow-xl z-[110] overflow-hidden flex flex-col"
         style={{
-          transform: isAnimating ? 'translateY(0)' : 'translateY(100%)',
-          transition: 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)',
-          maxHeight: '85vh',
+          transform: isAnimating
+            ? `translateY(${dragY > 0 ? dragY : 0}px)`
+            : 'translateY(100%)',
+          transition: dragY !== 0 ? 'none' : 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)',
+          maxHeight: '92vh',
         }}
       >
+        {/* Drag handle */}
+        <div
+          className="flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing"
+          onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
+          onTouchMove={(e) => handleDragMove(e.touches[0].clientY)}
+          onTouchEnd={handleDragEnd}
+          onMouseDown={(e) => { e.preventDefault(); handleDragStart(e.clientY); }}
+        >
+          <div className="w-10 h-1 rounded-full bg-gray-300" />
+        </div>
 
         {/* Header */}
-        <div className="px-4 pt-3 pb-3 border-b flex items-center justify-between shrink-0">
+        <div className="px-4 pt-2 pb-3 border-b flex items-center justify-between shrink-0">
           <h2 className="text-lg font-semibold">Редагувати запис</h2>
           <button 
             onClick={onClose}

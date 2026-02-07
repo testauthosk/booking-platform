@@ -26,8 +26,9 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
   const [isAnimating, setIsAnimating] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [dragY, setDragY] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
+  const isDraggingRef = useRef(false);
   const dragStartY = useRef(0);
+  const dragCurrentY = useRef(0);
   const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -50,21 +51,38 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
     }
   }, [isOpen]);
 
-  // Drag-to-dismiss / expand
+  // Drag-to-dismiss / expand (ref-based — no stale closures)
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   const handleDragStart = useCallback((clientY: number) => {
     dragStartY.current = clientY;
-    setIsDragging(true);
+    dragCurrentY.current = 0;
+    isDraggingRef.current = true;
+    setDragY(0);
   }, []);
 
   const handleDragMove = useCallback((clientY: number) => {
-    if (!isDragging) return;
+    if (!isDraggingRef.current) return;
     const delta = clientY - dragStartY.current;
+    dragCurrentY.current = delta;
     setDragY(delta);
-  }, [isDragging]);
+  }, []);
 
-  // Mouse drag (desktop)
+  const handleDragEnd = useCallback(() => {
+    if (!isDraggingRef.current) return;
+    isDraggingRef.current = false;
+    const delta = dragCurrentY.current;
+    if (delta > 100) {
+      onCloseRef.current();
+    } else if (delta < -80) {
+      setIsExpanded(true);
+    }
+    setDragY(0);
+  }, []);
+
+  // Global mouse events for desktop drag
   useEffect(() => {
-    if (!isDragging) return;
     const onMove = (e: MouseEvent) => handleDragMove(e.clientY);
     const onUp = () => handleDragEnd();
     document.addEventListener('mousemove', onMove);
@@ -73,19 +91,7 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
     };
-  }, [isDragging]);
-
-  const handleDragEnd = useCallback(() => {
-    setIsDragging(false);
-    if (dragY > 100) {
-      // Свайп вниз → закрити
-      onClose();
-    } else if (dragY < -80) {
-      // Свайп вверх → розгорнути на весь екран
-      setIsExpanded(true);
-    }
-    setDragY(0);
-  }, [dragY, onClose]);
+  }, [handleDragMove, handleDragEnd]);
 
   if (!isVisible || !event) return null;
 
@@ -122,9 +128,9 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
         style={{
           maxHeight: isExpanded ? '100vh' : '85vh',
           transform: isAnimating
-            ? `translateY(${isDragging ? Math.max(0, dragY) : 0}px)`
+            ? `translateY(${dragY !== 0 ? Math.max(0, dragY) : 0}px)`
             : 'translateY(100%)',
-          transition: isDragging ? 'none' : 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1), max-height 400ms ease-out, border-radius 300ms ease',
+          transition: dragY !== 0 ? 'none' : 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1), max-height 400ms ease-out, border-radius 300ms ease',
         }}
       >
         {/* Header з drag handle */}
