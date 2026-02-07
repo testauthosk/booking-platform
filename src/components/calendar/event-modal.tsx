@@ -27,10 +27,14 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
   useEffect(() => {
     if (isOpen) {
       setIsVisible(true);
-      requestAnimationFrame(() => setIsAnimating(true));
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setIsAnimating(true);
+        });
+      });
     } else {
       setIsAnimating(false);
-      const timer = setTimeout(() => setIsVisible(false), 300);
+      const timer = setTimeout(() => setIsVisible(false), 500);
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
@@ -53,23 +57,31 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
     <>
       {/* Backdrop */}
       <div 
-        className={`fixed inset-0 bg-black/50 z-[100] transition-opacity duration-300 ${
-          isAnimating ? 'opacity-100' : 'opacity-0'
-        }`}
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+        style={{
+          opacity: isAnimating ? 1 : 0,
+          transition: 'opacity 400ms ease-out',
+        }}
         onClick={onClose}
       />
       
-      {/* Modal */}
-      <div className={`fixed inset-x-4 bottom-4 lg:inset-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-md bg-background rounded-2xl shadow-xl z-[101] max-h-[85vh] overflow-hidden flex flex-col transition-all duration-300 ${
-        isAnimating 
-          ? 'opacity-100 translate-y-0 lg:scale-100' 
-          : 'opacity-0 translate-y-8 lg:translate-y-0 lg:scale-95'
-      }`}>
-        {/* Header */}
+      {/* Bottom Sheet */}
+      <div 
+        className="fixed inset-x-0 bottom-0 bg-background rounded-t-3xl shadow-xl z-[110] max-h-[85vh] overflow-hidden flex flex-col"
+        style={{
+          transform: isAnimating ? 'translateY(0)' : 'translateY(100%)',
+          transition: 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)',
+        }}
+      >
+        {/* Header з drag handle */}
         <div 
-          className="p-4 rounded-t-2xl relative"
+          className="px-4 pb-3 pt-2 rounded-t-3xl relative"
           style={{ backgroundColor: event.backgroundColor || '#8b5cf6' }}
         >
+          {/* Drag handle */}
+          <div className="flex justify-center mb-3">
+            <div className="w-10 h-1 rounded-full bg-white/30" />
+          </div>
           <div className="pr-10">
             <p className="text-2xl font-bold text-white tracking-tight">
               {format(event.start, 'HH:mm')} – {format(event.end, 'HH:mm')}
@@ -78,7 +90,7 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
           </div>
           <button 
             onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors flex items-center justify-center"
+            className="absolute top-3 right-4 w-8 h-8 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors flex items-center justify-center"
           >
             <X className="h-4 w-4" />
           </button>
@@ -227,7 +239,7 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
         )}
 
         {/* Actions */}
-        <div className="p-4 border-t flex gap-2 pb-6 lg:pb-4">
+        <div className="p-4 border-t flex gap-2 pb-8 shrink-0">
           <Button 
             variant="outline" 
             className="flex-1 h-11"
