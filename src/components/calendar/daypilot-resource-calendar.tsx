@@ -1118,52 +1118,40 @@ export function DayPilotResourceCalendar({
           })}
       </div>
         
-      {/* Горизонтальний скрол-контейнер для заголовків + сітки */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Заголовки ресурсів — sticky top, горизонтальний скрол синхронний */}
-        <div className="flex border-b border-gray-200 bg-white shrink-0 overflow-x-auto scrollbar-hide" 
-          onScroll={(e) => {
-            const grid = e.currentTarget.nextElementSibling as HTMLElement;
-            if (grid) grid.scrollLeft = e.currentTarget.scrollLeft;
-          }}
-        >
-          {/* Колонка часу - заголовок */}
-          <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 py-2 sticky left-0 bg-white/50 backdrop-blur-lg z-20">
+      {/* Єдиний скрол-контейнер (header sticky top, нативний скрол, 60fps) */}
+      <div className="flex-1 overflow-hidden">
+        <div ref={scrollContainerRef} className="h-full overflow-auto">
+          {/* Заголовки ресурсів — sticky top, скролиться разом з grid */}
+          <div className="flex border-b border-gray-200 bg-white sticky top-0 z-30" style={{ minWidth: resources.length > 3 ? `${40 + resources.length * 110}px` : '100%' }}>
+            {/* Колонка часу - заголовок */}
+            <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 py-2 sticky left-0 bg-white z-40">
+            </div>
+            
+            <div className="flex flex-1" style={{ minWidth: resources.length > 3 ? `${resources.length * 110}px` : undefined }}>
+              {resources.map((r, idx) => (
+                <div
+                  key={r.id}
+                  className={`flex-1 min-w-[110px] py-2 text-center ${idx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
+                >
+                  {r.avatar ? (
+                    <img
+                      src={r.avatar}
+                      alt={r.name}
+                      className="w-9 h-9 mx-auto rounded-lg object-cover border-2 border-white shadow-sm"
+                    />
+                  ) : (
+                    <div
+                      className="w-9 h-9 mx-auto rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-sm"
+                      style={{ backgroundColor: r.color || '#9ca3af' }}
+                    >
+                      {r.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="text-[10px] font-medium text-gray-700 mt-1 truncate px-0.5" data-resource-name data-resource-id={r.id}>{r.name}</div>
+                </div>
+              ))}
+            </div>
           </div>
-          
-          <div className="flex" style={{ minWidth: resources.length > 3 ? `${resources.length * 110}px` : '100%' }}>
-            {resources.map((r, idx) => (
-              <div
-                key={r.id}
-                className={`flex-1 min-w-[110px] py-2 text-center ${idx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
-              >
-                {r.avatar ? (
-                  <img
-                    src={r.avatar}
-                    alt={r.name}
-                    className="w-9 h-9 mx-auto rounded-lg object-cover border-2 border-white shadow-sm"
-                  />
-                ) : (
-                  <div
-                    className="w-9 h-9 mx-auto rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-sm"
-                    style={{ backgroundColor: r.color || '#9ca3af' }}
-                  >
-                    {r.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <div className="text-[10px] font-medium text-gray-700 mt-1 truncate px-0.5" data-resource-name data-resource-id={r.id}>{r.name}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Скрол контейнер (вертикальний + горизонтальний) */}
-        <div ref={scrollContainerRef} className="flex-1 overflow-auto"
-          onScroll={(e) => {
-            const headers = e.currentTarget.previousElementSibling as HTMLElement;
-            if (headers) headers.scrollLeft = e.currentTarget.scrollLeft;
-          }}
-        >
           {/* Сітка часу */}
           <div ref={gridRef} className="relative flex select-none" style={{ minHeight: `${totalMinutes}px`, minWidth: resources.length > 3 ? `${40 + resources.length * 110}px` : '100%', WebkitUserSelect: 'none', userSelect: 'none' }}>
             {/* Колонка часу — sticky left */}
@@ -1369,7 +1357,7 @@ export function DayPilotResourceCalendar({
         {/* Spacer для скролу під WeekBar + MobileNav */}
         <div className="h-[110px] lg:h-0 shrink-0" />
       </div>{/* end scroll container */}
-      </div>{/* end horizontal scroll wrapper */}
+      </div>{/* end overflow-hidden wrapper */}
 
       {/* Ghost card — static DOM, позиція через ref */}
       <div
