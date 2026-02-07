@@ -305,6 +305,31 @@ export default function CalendarPage() {
     }
   };
 
+  const handleEventResize = async (eventId: string, newStart: Date, newEnd: Date) => {
+    const newDate = `${newStart.getFullYear()}-${String(newStart.getMonth() + 1).padStart(2, '0')}-${String(newStart.getDate()).padStart(2, '0')}`;
+    const newTime = `${String(newStart.getHours()).padStart(2, '0')}:${String(newStart.getMinutes()).padStart(2, '0')}`;
+    const newTimeEnd = `${String(newEnd.getHours()).padStart(2, '0')}:${String(newEnd.getMinutes()).padStart(2, '0')}`;
+    const newDuration = Math.round((newEnd.getTime() - newStart.getTime()) / 60000);
+
+    try {
+      await fetch('/api/booking', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: eventId,
+          date: newDate,
+          time: newTime,
+          timeEnd: newTimeEnd,
+          duration: newDuration,
+        })
+      });
+      await loadBookings();
+    } catch (error) {
+      console.error('Failed to resize booking:', error);
+      await loadBookings();
+    }
+  };
+
   const handleTimeRangeSelect = (start: Date, end: Date, resourceId: string) => {
     setSelectedSlot({ start, end, resourceId });
     setIsNewBookingModalOpen(true);
@@ -411,6 +436,7 @@ export default function CalendarPage() {
           onDateChange={setSelectedDate}
           onEventClick={handleEventClick}
           onEventMove={handleEventMove}
+          onEventResize={handleEventResize}
           onTimeRangeSelect={handleTimeRangeSelect}
           dayStartHour={8}
           dayEndHour={21}
