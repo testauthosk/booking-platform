@@ -18,9 +18,10 @@ interface EventModalProps {
   onOpenMaster?: (masterId: string) => void;
   onChangeMaster?: (bookingId: string, currentMasterId?: string) => void;
   onChangeClient?: (bookingId: string, currentClientId?: string) => void;
+  isEditOpen?: boolean;
 }
 
-export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend, onOpenClient, onOpenMaster, onChangeMaster, onChangeClient }: EventModalProps) {
+export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend, onOpenClient, onOpenMaster, onChangeMaster, onChangeClient, isEditOpen }: EventModalProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -115,9 +116,9 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
       {/* Bottom Sheet */}
       <div 
         ref={sheetRef}
-        className={`fixed inset-x-0 bottom-0 bg-background shadow-xl z-[110] overflow-hidden flex flex-col ${isExpanded ? 'rounded-none' : 'rounded-t-3xl'}`}
+        className={`fixed inset-x-0 bottom-0 bg-background shadow-xl z-[110] overflow-hidden flex flex-col ${(isExpanded || isEditOpen) ? 'rounded-none' : 'rounded-t-3xl'}`}
         style={{
-          maxHeight: isExpanded ? '100vh' : '85vh',
+          maxHeight: isExpanded ? '100vh' : isEditOpen ? '100vh' : '85vh',
           transform: isAnimating
             ? `translateY(${isDragging ? Math.max(0, dragY) : 0}px)`
             : 'translateY(100%)',

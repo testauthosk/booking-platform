@@ -557,8 +557,9 @@ export default function CalendarPage() {
       <EventModal
         event={selectedEvent}
         isOpen={isEventModalOpen}
+        isEditOpen={isEditModalOpen}
         onClose={() => setIsEventModalOpen(false)}
-        onEdit={() => { setIsEventModalOpen(false); setIsEditModalOpen(true); }}
+        onEdit={() => { setIsEditModalOpen(true); }}
         onDelete={handleDeleteEvent}
         onOpenClient={(_clientId, clientPhone) => {
           if (clientPhone) {
@@ -614,7 +615,7 @@ export default function CalendarPage() {
       {/* Edit Booking Modal */}
       <EditBookingModal
         isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
+        onClose={() => { setIsEditModalOpen(false); setIsEventModalOpen(false); }}
         booking={selectedEvent ? {
           id: selectedEvent.id,
           clientId: selectedEvent.clientId,

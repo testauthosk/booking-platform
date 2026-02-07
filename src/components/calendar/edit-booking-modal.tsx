@@ -239,19 +239,19 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop — поверх EventModal */}
       <div 
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+        className="fixed inset-0 bg-black/20 z-[115]"
         style={{
           opacity: isAnimating ? 1 : 0,
-          transition: 'opacity 400ms ease-out',
+          transition: 'opacity 300ms ease-out',
         }}
         onClick={onClose}
       />
       
-      {/* Full-screen bottom sheet */}
+      {/* Full-screen bottom sheet — поверх EventModal (z-120 > z-110) */}
       <div 
-        className="fixed inset-x-0 bottom-0 bg-background rounded-t-3xl shadow-xl z-[110] max-h-[92vh] overflow-hidden flex flex-col"
+        className="fixed inset-x-0 bottom-0 bg-background rounded-t-3xl shadow-xl z-[120] max-h-[95vh] overflow-hidden flex flex-col"
         style={{
           transform: isAnimating ? 'translateY(0)' : 'translateY(100%)',
           transition: 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)',
