@@ -121,10 +121,14 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
   useEffect(() => {
     if (isOpen) {
       setIsVisible(true);
-      requestAnimationFrame(() => setIsAnimating(true));
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setIsAnimating(true);
+        });
+      });
     } else {
       setIsAnimating(false);
-      const timer = setTimeout(() => setIsVisible(false), 300);
+      const timer = setTimeout(() => setIsVisible(false), 500);
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
@@ -210,25 +214,29 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
     <>
       {/* Backdrop */}
       <div 
-        className={cn(
-          "fixed inset-0 bg-black/50 z-50 transition-opacity duration-300",
-          isAnimating ? 'opacity-100' : 'opacity-0'
-        )}
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+        style={{
+          opacity: isAnimating ? 1 : 0,
+          transition: 'opacity 400ms ease-out',
+        }}
         onClick={onClose}
       />
       
-      {/* Modal */}
-      <div className={cn(
-        "fixed inset-x-4 bottom-24 lg:inset-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2",
-        "lg:w-full lg:max-w-md bg-background rounded-2xl shadow-xl z-50",
-        "max-h-[80vh] overflow-hidden flex flex-col",
-        "transition-all duration-300",
-        isAnimating 
-          ? 'opacity-100 translate-y-0 lg:scale-100' 
-          : 'opacity-0 translate-y-8 lg:translate-y-0 lg:scale-95'
-      )}>
+      {/* Full-screen bottom sheet */}
+      <div 
+        className="fixed inset-x-0 bottom-0 bg-background rounded-t-3xl shadow-xl z-[110] max-h-[92vh] overflow-hidden flex flex-col"
+        style={{
+          transform: isAnimating ? 'translateY(0)' : 'translateY(100%)',
+          transition: 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)',
+        }}
+      >
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3">
+          <div className="w-10 h-1 rounded-full bg-gray-300" />
+        </div>
+
         {/* Header */}
-        <div className="p-4 border-b flex items-center justify-between shrink-0">
+        <div className="px-4 pt-3 pb-3 border-b flex items-center justify-between shrink-0">
           <h2 className="text-lg font-semibold">Редагувати запис</h2>
           <button 
             onClick={onClose}
@@ -479,7 +487,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
         </div>
 
         {/* Actions */}
-        <div className="p-4 border-t flex gap-2 shrink-0 pb-6 lg:pb-4">
+        <div className="p-4 border-t flex gap-2 shrink-0 pb-8">
           <Button variant="outline" className="flex-1 h-11" onClick={onClose}>
             Скасувати
           </Button>
