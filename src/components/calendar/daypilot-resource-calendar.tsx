@@ -952,13 +952,22 @@ export function DayPilotResourceCalendar({
     });
 
     const cleanup = () => {
-      clone.remove();
+      // Спочатку показуємо реальну карточку (clone на z-200 перекриває)
       setFlipHiddenId(null);
       flipRef.current = null;
+      // Видаляємо clone тільки після того як React відрендерить реальну карточку
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          clone.remove();
+        });
+      });
     };
 
     const t = window.setTimeout(cleanup, 350);
-    return () => window.clearTimeout(t);
+    return () => {
+      window.clearTimeout(t);
+      clone.remove();
+    };
   }, [events]);
 
   // weekBar resize observer видалено — тепер в layout
