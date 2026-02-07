@@ -1120,9 +1120,9 @@ export function DayPilotResourceCalendar({
         
       {/* Єдиний скрол-контейнер (header sticky top, нативний скрол, 60fps) */}
       <div className="flex-1 overflow-hidden">
-        <div ref={scrollContainerRef} className="h-full overflow-auto">
+        <div ref={scrollContainerRef} className="h-full overflow-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
           {/* Заголовки ресурсів — sticky top, скролиться разом з grid */}
-          <div className="flex border-b border-gray-200 bg-white sticky top-0 z-30" style={{ minWidth: resources.length > 3 ? `${40 + resources.length * 110}px` : '100%' }}>
+          <div className="flex border-b border-gray-200 bg-white sticky top-0 z-30" style={{ minWidth: resources.length > 3 ? `${40 + resources.length * 110}px` : '100%', transform: 'translateZ(0)', willChange: 'transform' }}>
             {/* Колонка часу - заголовок */}
             <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 py-2 sticky left-0 bg-white z-40">
             </div>
