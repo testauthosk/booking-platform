@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { BookingEvent } from './booking-calendar';
 import { Button } from '@/components/ui/button';
 import { X, Clock, User, Phone, Scissors, Calendar, Edit, Trash2, Timer, MessageCircle, ChevronRight } from 'lucide-react';
@@ -23,10 +23,17 @@ interface EventModalProps {
 export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend, onOpenClient, onOpenMaster, onChangeMaster, onChangeClient }: EventModalProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartY = useRef(0);
+  const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
       setIsVisible(true);
+      setIsExpanded(false);
+      setDragY(0);
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setIsAnimating(true);
@@ -34,10 +41,50 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
       });
     } else {
       setIsAnimating(false);
-      const timer = setTimeout(() => setIsVisible(false), 500);
+      const timer = setTimeout(() => {
+        setIsVisible(false);
+        setIsExpanded(false);
+      }, 500);
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
+
+  // Drag-to-dismiss / expand
+  const handleDragStart = useCallback((clientY: number) => {
+    dragStartY.current = clientY;
+    setIsDragging(true);
+  }, []);
+
+  const handleDragMove = useCallback((clientY: number) => {
+    if (!isDragging) return;
+    const delta = clientY - dragStartY.current;
+    setDragY(delta);
+  }, [isDragging]);
+
+  // Mouse drag (desktop)
+  useEffect(() => {
+    if (!isDragging) return;
+    const onMove = (e: MouseEvent) => handleDragMove(e.clientY);
+    const onUp = () => handleDragEnd();
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    return () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+  }, [isDragging]);
+
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+    if (dragY > 100) {
+      // Свайп вниз → закрити
+      onClose();
+    } else if (dragY < -80) {
+      // Свайп вверх → розгорнути на весь екран
+      setIsExpanded(true);
+    }
+    setDragY(0);
+  }, [dragY, onClose]);
 
   if (!isVisible || !event) return null;
 
@@ -67,10 +114,14 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
       
       {/* Bottom Sheet */}
       <div 
-        className="fixed inset-x-0 bottom-0 bg-background rounded-t-3xl shadow-xl z-[110] max-h-[85vh] overflow-hidden flex flex-col"
+        ref={sheetRef}
+        className={`fixed inset-x-0 bottom-0 bg-background shadow-xl z-[110] overflow-hidden flex flex-col ${isExpanded ? 'rounded-none' : 'rounded-t-3xl'}`}
         style={{
-          transform: isAnimating ? 'translateY(0)' : 'translateY(100%)',
-          transition: 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)',
+          maxHeight: isExpanded ? '100vh' : '85vh',
+          transform: isAnimating
+            ? `translateY(${isDragging ? Math.max(0, dragY) : 0}px)`
+            : 'translateY(100%)',
+          transition: isDragging ? 'none' : 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1), max-height 400ms ease-out, border-radius 300ms ease',
         }}
       >
         {/* Header з drag handle */}
@@ -78,8 +129,14 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
           className="px-4 pb-3 pt-2 rounded-t-3xl relative"
           style={{ backgroundColor: event.backgroundColor || '#8b5cf6' }}
         >
-          {/* Drag handle */}
-          <div className="flex justify-center mb-3">
+          {/* Drag handle — swipe up/down */}
+          <div 
+            className="flex justify-center mb-3 cursor-grab active:cursor-grabbing py-1 -my-1"
+            onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
+            onTouchMove={(e) => handleDragMove(e.touches[0].clientY)}
+            onTouchEnd={handleDragEnd}
+            onMouseDown={(e) => { e.preventDefault(); handleDragStart(e.clientY); }}
+          >
             <div className="w-10 h-1 rounded-full bg-white/30" />
           </div>
           <div className="pr-10">
@@ -90,7 +147,7 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
           </div>
           <button 
             onClick={onClose}
-            className="absolute top-3 right-4 w-8 h-8 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors flex items-center justify-center"
+            className="absolute top-3 right-4 w-8 h-8 rounded-xl bg-white/80 hover:bg-white shadow-md border border-gray-200 text-gray-700 flex items-center justify-center transition-colors"
           >
             <X className="h-4 w-4" />
           </button>

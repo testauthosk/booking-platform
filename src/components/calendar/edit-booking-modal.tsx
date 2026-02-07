@@ -57,6 +57,8 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [masterServices, setMasterServices] = useState<Service[]>([]);
+  const [masterName, setMasterName] = useState<string>('');
 
   // Form state
   const [selectedClientId, setSelectedClientId] = useState<string>('');
@@ -105,6 +107,30 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
     }
   }, [isOpen, salonId]);
 
+  // Load master's services (custom prices/durations)
+  useEffect(() => {
+    if (isOpen && booking?.masterId) {
+      fetch(`/api/staff/services?masterId=${booking.masterId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data) && data.length > 0) {
+            setMasterServices(data.map((s: any) => ({ id: s.id, name: s.name, duration: s.duration, price: s.price })));
+          } else {
+            setMasterServices([]);
+          }
+        })
+        .catch(() => setMasterServices([]));
+      // Fetch master name
+      fetch(`/api/masters?salonId=${salonId}`)
+        .then(res => res.json())
+        .then(data => {
+          const master = data.find((m: any) => m.id === booking.masterId);
+          setMasterName(master?.name || '');
+        })
+        .catch(() => {});
+    }
+  }, [isOpen, booking?.masterId, salonId]);
+
   // Ініціалізація при відкритті
   useEffect(() => {
     if (isOpen && booking) {
@@ -135,7 +161,8 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
 
   if (!isVisible || !booking) return null;
 
-  const selectedService = services.find(s => s.id === selectedServiceId);
+  const allServices = masterServices.length > 0 ? masterServices : services;
+  const selectedService = allServices.find(s => s.id === selectedServiceId);
   const baseDuration = selectedService?.duration || booking.duration;
   const totalDuration = baseDuration + extraTime;
 
@@ -335,7 +362,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
           <div>
             <label className="text-sm font-medium flex items-center gap-2 mb-2">
               <Scissors className="h-4 w-4 text-muted-foreground" />
-              Послуга
+              {masterName ? `Послуги ${masterName}` : 'Послуга'}
               {hasStarted && <Lock className="h-3 w-3 text-muted-foreground" />}
             </label>
             {hasStarted ? (
@@ -347,9 +374,9 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
                 </p>
               </div>
             ) : (
-              // Можна змінити до початку
+              // Можна змінити до початку — послуги мастера з кастомними цінами
               <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-                {services.map((service) => (
+                {(masterServices.length > 0 ? masterServices : services).map((service) => (
                   <button
                     key={service.id}
                     onClick={() => setSelectedServiceId(service.id)}
