@@ -1189,7 +1189,7 @@ export function DayPilotResourceCalendar({
                     <div
                       key={event.id}
                       data-event-id={event.id}
-                      className={`absolute left-0 right-0.5 rounded-r-lg overflow-hidden select-none transition-all duration-300 ease-out ${
+                      className={`absolute left-0 right-0.5 rounded-r-lg overflow-hidden select-none ${
                         isBeingDragged ? 'opacity-30 scale-95' : 'cursor-grab active:scale-[0.98]'
                       }`}
                       style={{
@@ -1197,6 +1197,7 @@ export function DayPilotResourceCalendar({
                         height: `${pos.height}%`,
                         minHeight: '36px',
                         opacity: isBeingDragged ? 0.3 : flipHiddenId === event.id ? 0 : 1,
+                        transition: 'transform 300ms ease-out',
                         background: `linear-gradient(160deg, ${bgColor} 0%, ${bgColor}e0 100%)`,
                         boxShadow: `0 1px 4px ${bgColor}50, 0 2px 6px rgba(0,0,0,0.08)`,
                         borderLeft: `3px solid ${borderColor}`,
