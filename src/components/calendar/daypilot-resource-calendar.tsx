@@ -127,6 +127,8 @@ export function DayPilotResourceCalendar({
   const previewAnimRef = useRef<number>(0);
   const previewColorRef = useRef<string>('#666');
   const previewInitRef = useRef(false);
+  const appliedResourceRef = useRef<string | null>(null);
+  const pendingColorRef = useRef<string>('#666');
 
   // Відкрити модалку з деталями запису
   const openEventModal = (event: CalendarEvent) => {
@@ -301,7 +303,8 @@ export function DayPilotResourceCalendar({
       h: ((previewEndMin - previewStartMin) / totalMinutes) * cH,
       active: true,
     };
-    previewColorRef.current = resources[colIdx]?.color || '#666';
+    // Цвет в pending — застосується коли preview доїде по X
+    pendingColorRef.current = resources[colIdx]?.color || '#666';
   }, [resources, dayStartHour, dayEndHour]);
 
   const startDrag = useCallback((event: CalendarEvent, mode: InteractionMode, clientX: number, clientY: number) => {
@@ -336,6 +339,7 @@ export function DayPilotResourceCalendar({
 
     dragRef.current = state;
     previewInitRef.current = false;
+    appliedResourceRef.current = null;
     updatePreviewTarget();
     updateGhostDOM();
     // setState тільки для boolean flag (1 раз при старті)
@@ -629,10 +633,17 @@ export function DayPilotResourceCalendar({
         cur.y = tgt.y;
         cur.h = tgt.h;
         previewInitRef.current = true;
+        // Перший кадр — застосувати колір одразу
+        previewColorRef.current = pendingColorRef.current;
       } else {
         cur.x += (tgt.x - cur.x) * lerpSpeed;
         cur.y += (tgt.y - cur.y) * lerpSpeed;
         cur.h += (tgt.h - cur.h) * lerpSpeed;
+      }
+
+      // Колір/label міняються тільки коли preview доїхав по X (< 5px)
+      if (Math.abs(cur.x - tgt.x) < 5 && previewColorRef.current !== pendingColorRef.current) {
+        previewColorRef.current = pendingColorRef.current;
       }
 
       el.style.transform = `translate(${cur.x}px, ${cur.y}px)`;
@@ -857,9 +868,10 @@ export function DayPilotResourceCalendar({
                 border: '2px dashed #666',
                 borderRadius: '0 0.5rem 0.5rem 0',
                 willChange: 'transform',
+                transition: 'background-color 150ms ease, border-color 150ms ease',
               }}
             >
-              <div className="px-1.5 py-1 text-[10px] font-semibold preview-time-label" />
+              <div className="px-1.5 py-1 text-[10px] font-semibold preview-time-label" style={{ transition: 'color 150ms ease' }} />
             </div>
 
             {resources.map((r, rIdx) => (
