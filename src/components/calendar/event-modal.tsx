@@ -105,21 +105,24 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
       const d = deltaY.current;
       sheet.style.transition = 'transform 600ms cubic-bezier(0.32,0.72,0,1), height 600ms cubic-bezier(0.32,0.72,0,1)';
 
+      const currentH = sheet.offsetHeight;
+      sheet.style.height = `${currentH}px`;
+
       if (d > 100) {
-        // Свайп вниз → закрити
         sheet.style.transform = 'translate3d(0,100%,0)';
         setTimeout(() => onCloseRef.current(), 100);
       } else if (d < -60) {
-        // Свайп вгору → розгорнути
+        // px → px анімація (не vh — браузер не інтерполює)
         sheet.style.transform = 'translate3d(0,0,0)';
-        sheet.style.height = '100vh';
+        sheet.style.height = `${window.innerHeight}px`;
         sheet.style.maxHeight = 'none';
         setIsExpanded(true);
       } else {
-        // Повернути
-        sheet.style.transform = 'translate3d(0,0,0)';
-        sheet.style.height = '';
-        sheet.style.maxHeight = '';
+        sheet.style.height = `${startHeight.current}px`;
+        sheet.style.maxHeight = 'none';
+        setTimeout(() => {
+          if (sheet) { sheet.style.height = ''; sheet.style.maxHeight = ''; }
+        }, 650);
       }
     };
 

@@ -244,18 +244,27 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
       const d = deltaY.current;
       sheet.style.transition = 'transform 600ms cubic-bezier(0.32,0.72,0,1), height 600ms cubic-bezier(0.32,0.72,0,1)';
 
+      // Зафіксувати поточну висоту в px для анімації
+      const currentH = sheet.offsetHeight;
+      sheet.style.height = `${currentH}px`;
+
       if (d > 100) {
         sheet.style.transform = 'translate3d(0,100%,0)';
         setTimeout(() => onCloseRef.current(), 100);
       } else if (d < -60) {
+        // Розгорнути — анімація px → px (не vh!)
         sheet.style.transform = 'translate3d(0,0,0)';
-        sheet.style.height = '100vh';
+        sheet.style.height = `${window.innerHeight}px`;
         sheet.style.maxHeight = 'none';
         setIsExpanded(true);
       } else {
-        sheet.style.transform = 'translate3d(0,0,0)';
-        sheet.style.height = '';
-        sheet.style.maxHeight = '';
+        // Повернути до авто
+        sheet.style.height = `${startHeight.current}px`;
+        sheet.style.maxHeight = 'none';
+        // Після анімації скинути на auto
+        setTimeout(() => {
+          if (sheet) { sheet.style.height = ''; sheet.style.maxHeight = ''; }
+        }, 650);
       }
     };
 
@@ -499,30 +508,36 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
               )}
             </div>
 
-            {/* Master picker */}
-            {showMasterPicker && (
+            {/* Master picker — плавна анімація */}
+            <div
+              className="overflow-hidden transition-all duration-300 ease-out"
+              style={{ maxHeight: showMasterPicker ? '60px' : '0', opacity: showMasterPicker ? 1 : 0 }}
+            >
               <div className="flex gap-2 overflow-x-auto pb-2 mb-2">
-                {masters.map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => {
-                      setSelectedMasterId(m.id);
-                      setSelectedServiceId('');
-                      setShowMasterPicker(false);
-                    }}
-                    className={cn(
-                      "shrink-0 px-3 py-2 rounded-xl border text-sm font-medium transition-all flex items-center gap-1.5",
-                      (selectedMasterId || booking?.masterId) === m.id
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border hover:border-primary/50'
-                    )}
-                  >
-                    {(selectedMasterId || booking?.masterId) === m.id && <Check className="h-3 w-3" />}
-                    {m.name}
-                  </button>
-                ))}
+                {masters.map((m) => {
+                  const isActive = (selectedMasterId || booking?.masterId) === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() => {
+                        setSelectedMasterId(m.id);
+                        setSelectedServiceId('');
+                        setShowMasterPicker(false);
+                      }}
+                      className={cn(
+                        "shrink-0 px-3 py-2 rounded-xl border text-sm font-medium transition-all duration-300 flex items-center gap-1.5",
+                        isActive
+                          ? 'border-primary bg-primary text-primary-foreground shadow-md scale-105'
+                          : 'border-border hover:border-primary/50'
+                      )}
+                    >
+                      {isActive && <Check className="h-3 w-3" />}
+                      {m.name}
+                    </button>
+                  );
+                })}
               </div>
-            )}
+            </div>
             {hasStarted ? (
               // Заблоковано після початку запису
               <div className="p-3 rounded-xl bg-muted/50 border border-border">
@@ -554,7 +569,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
                   ))}
                 </div>
                 {/* Gradient hint — показує що можна скролити */}
-                <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+                <div className="absolute bottom-0 left-2 right-2 h-8 bg-gradient-to-t from-muted/80 to-transparent pointer-events-none rounded-b-lg" />
               </div>
             )}
           </div>
