@@ -121,7 +121,7 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
       {/* Backdrop */}
       <div
         ref={backdropRef}
-        className="fixed inset-0 bg-black/60 z-[100]"
+        className="fixed inset-0 bg-black/80 z-[100]"
         style={{
           opacity: isAnimating ? 1 : 0,
           transition: 'opacity 500ms ease-out',

@@ -649,7 +649,10 @@ export default function CalendarPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
           });
-          if (!res.ok) throw new Error('Failed to update');
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || `Помилка ${res.status}`);
+          }
           await loadBookings();
         }}
       />

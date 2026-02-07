@@ -78,7 +78,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const [selectedClientName, setSelectedClientName] = useState<string>('');
   const [selectedClientPhone, setSelectedClientPhone] = useState<string>('');
-  const [selectedServiceId, setSelectedServiceId] = useState<string>('');
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [extraTime, setExtraTime] = useState<number>(0); // Додатковий час в хвилинах
@@ -101,7 +101,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
     setSelectedClientId('');
     setSelectedClientName('');
     setSelectedClientPhone('');
-    setSelectedServiceId('');
+    setSelectedServiceIds([]);
     setSelectedDate(new Date());
     setSelectedTime('');
     setExtraTime(0);
@@ -166,7 +166,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
       setSelectedClientId(booking.clientId || '');
       setSelectedClientName(booking.clientName || '');
       setSelectedClientPhone(booking.clientPhone || '');
-      setSelectedServiceId(booking.serviceId || '');
+      setSelectedServiceIds(booking.serviceId ? [booking.serviceId] : []);
       setSelectedMasterId(booking.masterId || '');
       setSelectedDate(new Date(booking.date));
       setSelectedTime(booking.time);
@@ -243,8 +243,11 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
   if (!isVisible || !booking) return null;
 
   const allServices = masterServices.length > 0 ? masterServices : services;
-  const selectedService = allServices.find(s => s.id === selectedServiceId);
-  const baseDuration = selectedService?.duration || booking.duration;
+  const selectedServices = allServices.filter(s => selectedServiceIds.includes(s.id));
+  const baseDuration = selectedServices.length > 0
+    ? selectedServices.reduce((sum, s) => sum + s.duration, 0)
+    : booking.duration;
+  const totalPrice = selectedServices.reduce((sum, s) => sum + s.price, 0);
   const totalDuration = baseDuration + extraTime;
 
   // Генерація 7 днів
@@ -271,17 +274,20 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
     return `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
   };
 
+  const [saveError, setSaveError] = useState('');
+
   const handleSave = async () => {
     if (!selectedTime) return;
     
     setIsSaving(true);
+    setSaveError('');
     try {
       await onSave({
         id: booking.id,
         clientId: selectedClientId || undefined,
         clientName: selectedClientName || undefined,
         clientPhone: selectedClientPhone || undefined,
-        serviceId: selectedServiceId || undefined,
+        serviceId: selectedServiceIds.length > 0 ? selectedServiceIds[0] : undefined,
         masterId: selectedMasterId || booking.masterId || undefined,
         date: format(selectedDate, 'yyyy-MM-dd'),
         time: selectedTime,
@@ -289,8 +295,9 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
         extraTime,
       });
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Save error:', error);
+      setSaveError(error?.message || 'Помилка збереження');
     } finally {
       setIsSaving(false);
     }
@@ -314,7 +321,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
   // Чи є зміни
   const hasChanges = 
     selectedClientId !== (booking.clientId || '') ||
-    selectedServiceId !== (booking.serviceId || '') ||
+    JSON.stringify(selectedServiceIds) !== JSON.stringify(booking.serviceId ? [booking.serviceId] : []) ||
     (selectedMasterId && selectedMasterId !== (booking.masterId || '')) ||
     !isSameDay(selectedDate, new Date(booking.date)) ||
     selectedTime !== booking.time ||
@@ -324,7 +331,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 z-[115]"
+        className="fixed inset-0 bg-black/80 z-[115]"
         style={{
           opacity: isAnimating ? 1 : 0,
           transition: 'opacity 500ms ease-out',
@@ -480,7 +487,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
                       key={m.id}
                       onClick={() => {
                         setSelectedMasterId(m.id);
-                        setSelectedServiceId('');
+                        setSelectedServiceIds([]);
                       }}
                       className={cn(
                         "shrink-0 px-3 py-2 rounded-xl border text-sm font-medium transition-all duration-300 flex items-center gap-1.5",
@@ -508,13 +515,19 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
               // Можна змінити до початку — послуги мастера з кастомними цінами
               <div className="relative rounded-xl border border-border p-2 bg-muted/20">
                 <div className="grid grid-cols-2 gap-2 max-h-44 overflow-y-auto">
-                  {(masterServices.length > 0 ? masterServices : services).map((service) => (
+                  {(masterServices.length > 0 ? masterServices : services).map((service) => {
+                    const isSelected = selectedServiceIds.includes(service.id);
+                    return (
                     <button
                       key={service.id}
-                      onClick={() => setSelectedServiceId(service.id)}
+                      onClick={() => setSelectedServiceIds(prev => 
+                        prev.includes(service.id) 
+                          ? prev.filter(id => id !== service.id)
+                          : [...prev, service.id]
+                      )}
                       className={cn(
                         "p-2.5 rounded-xl border text-left transition-all text-sm",
-                        selectedServiceId === service.id
+                        isSelected
                           ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
                           : 'border-border hover:border-primary/50'
                       )}
@@ -524,7 +537,8 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
                         {service.duration} хв · {service.price} ₴
                       </p>
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
                 {/* Gradient hint — показує що можна скролити */}
                 <div className="absolute bottom-0 left-2 right-2 h-8 bg-gradient-to-t from-muted/80 to-transparent pointer-events-none rounded-b-lg" />
@@ -644,9 +658,26 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
                   {extraTime > 0 && <span className="text-violet-600"> +{extraTime} хв</span>}
                 </span>
               </div>
+              {totalPrice > 0 && (
+                <div className="flex justify-between text-sm mt-1">
+                  <span className="text-muted-foreground">Вартість:</span>
+                  <span className="font-semibold">{totalPrice} ₴</span>
+                </div>
+              )}
+              {selectedServices.length > 1 && (
+                <div className="flex justify-between text-sm mt-1">
+                  <span className="text-muted-foreground">Послуги:</span>
+                  <span className="font-medium text-right text-xs">{selectedServices.map(s => s.name).join(', ')}</span>
+                </div>
+              )}
             </div>
           )}
         </div>
+
+        {/* Error */}
+        {saveError && (
+          <div className="px-4 py-2 bg-red-50 text-red-600 text-sm">{saveError}</div>
+        )}
 
         {/* Actions */}
         <div className="p-4 border-t flex gap-2 shrink-0 pb-8">
