@@ -99,6 +99,45 @@ const formatDateUk = (date: Date) => {
   return `${day}, ${dayNum} ${month}`;
 };
 
+function ViewModeSegment({ viewMode, onChange }: { viewMode: 'day' | 'week'; onChange: (v: 'day' | 'week') => void }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dayRef = useRef<HTMLButtonElement>(null);
+  const weekRef = useRef<HTMLButtonElement>(null);
+  const [ind, setInd] = useState<{ left: number; width: number }>({ left: 4, width: 44 });
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const btn = viewMode === 'day' ? dayRef.current : weekRef.current;
+    if (!container || !btn) return;
+    const cRect = container.getBoundingClientRect();
+    const bRect = btn.getBoundingClientRect();
+    setInd({ left: bRect.left - cRect.left, width: bRect.width });
+  }, [viewMode]);
+
+  return (
+    <div ref={containerRef} className="relative flex h-10 items-center bg-gray-100 rounded-xl p-1">
+      <div
+        className="absolute top-1 bottom-1 rounded-lg bg-white shadow-sm pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+        style={{ left: ind.left, width: ind.width }}
+      />
+      <button
+        ref={dayRef}
+        className={`relative z-10 h-8 px-3.5 text-[13px] font-semibold rounded-lg transition-colors duration-200 whitespace-nowrap ${viewMode === 'day' ? 'text-gray-900' : 'text-gray-500'}`}
+        onClick={() => onChange('day')}
+      >
+        День
+      </button>
+      <button
+        ref={weekRef}
+        className={`relative z-10 h-8 px-3.5 text-[13px] font-semibold rounded-lg transition-colors duration-200 whitespace-nowrap ${viewMode === 'week' ? 'text-gray-900' : 'text-gray-500'}`}
+        onClick={() => onChange('week')}
+      >
+        Тиждень
+      </button>
+    </div>
+  );
+}
+
 export default function CalendarPage() {
   const { open: openSidebar } = useSidebar();
   const { getColorForIndex, settings, setGridStep } = useCalendarSettings();
@@ -461,29 +500,7 @@ export default function CalendarPage() {
             <Menu className="h-[18px] w-[18px] text-gray-700" />
           </button>
           {/* Segment control with sliding indicator */}
-          <div className="relative grid grid-cols-2 h-10 bg-gray-100 rounded-xl p-1 gap-0.5">
-            {/* Animated indicator */}
-            <div
-              className="absolute top-1 bottom-1 rounded-lg bg-white shadow-sm pointer-events-none transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-              style={{
-                width: 'calc(50% - 3px)',
-                left: '4px',
-                transform: viewMode === 'day' ? 'translateX(0)' : 'translateX(calc(100% + 2px))',
-              }}
-            />
-            <button
-              className={`relative z-10 h-8 px-3.5 text-[13px] font-semibold rounded-lg transition-colors duration-200 whitespace-nowrap ${viewMode === 'day' ? 'text-gray-900' : 'text-gray-500'}`}
-              onClick={() => setViewMode('day')}
-            >
-              День
-            </button>
-            <button
-              className={`relative z-10 h-8 px-3.5 text-[13px] font-semibold rounded-lg transition-colors duration-200 whitespace-nowrap ${viewMode === 'week' ? 'text-gray-900' : 'text-gray-500'}`}
-              onClick={() => setViewMode('week')}
-            >
-              Тиждень
-            </button>
-          </div>
+          <ViewModeSegment viewMode={viewMode} onChange={setViewMode} />
         </div>
         {/* Right: today + bell + avatar */}
         <div className="flex items-center gap-2">
