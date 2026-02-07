@@ -463,12 +463,12 @@ export function DayPilotResourceCalendar({
           onTimeRangeSelect(makeDate(state.targetStartMin), makeDate(state.targetEndMin), state.targetResourceId);
         }
       } else if (state.mode === 'move' && onEventMove) {
-        if (state.event.resource !== state.targetResourceId) {
-          const el = document.querySelector(`[data-event-id="${state.event.id}"]`) as HTMLElement | null;
-          if (el) {
-            flipRef.current = { eventId: state.event.id, from: el.getBoundingClientRect() };
-            setFlipHiddenId(state.event.id);
-          }
+        // FLIP для ВСІХ переміщень (і вертикальних, і між колонками)
+        // translate3d = GPU compositor = 60fps завжди
+        const el = document.querySelector(`[data-event-id="${state.event.id}"]`) as HTMLElement | null;
+        if (el) {
+          flipRef.current = { eventId: state.event.id, from: el.getBoundingClientRect() };
+          setFlipHiddenId(state.event.id);
         }
         onEventMove(state.event.id, makeDate(state.targetStartMin), makeDate(state.targetEndMin), state.targetResourceId);
       } else if ((state.mode === 'resize-top' || state.mode === 'resize-bottom') && onEventResize) {
@@ -1223,8 +1223,10 @@ export function DayPilotResourceCalendar({
                       onTouchStart={(e) => handleTouchStart(event, e)}
                       onMouseDown={(e) => handleMouseDown(event, e)}
                     >
-                      {/* Resize handle top — desktop only visible, mobile через long press */}
-                      <div className="absolute top-0 left-0 right-0 h-3 cursor-ns-resize z-10 lg:hover:bg-white/20 transition-colors" />
+                      {/* Resize handle top */}
+                      <div className="absolute top-0 left-0 right-0 h-3 cursor-ns-resize z-10 lg:hover:bg-white/20 transition-colors">
+                        <div className="absolute top-[3px] left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-white/40" />
+                      </div>
                       
                       <div className="h-full p-1.5 text-white relative flex flex-col justify-center pointer-events-none">
                         {/* Час */}
@@ -1248,9 +1250,9 @@ export function DayPilotResourceCalendar({
                         )}
                       </div>
                       
-                      {/* Resize handle bottom — desktop visible, mobile через long press */}
+                      {/* Resize handle bottom */}
                       <div className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize z-10 lg:hover:bg-white/20 transition-colors">
-                        <div className="hidden lg:flex absolute bottom-1 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full bg-white/50" />
+                        <div className="absolute bottom-[3px] left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-white/40" />
                       </div>
                     </div>
                   );
