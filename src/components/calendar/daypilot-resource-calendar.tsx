@@ -467,7 +467,14 @@ export function DayPilotResourceCalendar({
         // translate3d = GPU compositor = 60fps завжди
         const el = document.querySelector(`[data-event-id="${state.event.id}"]`) as HTMLElement | null;
         if (el) {
-          flipRef.current = { eventId: state.event.id, from: el.getBoundingClientRect() };
+          // Захоплюємо rect без scale-95 (drag state)
+          // Інакше from rect на 5% менший → "стрибок" на старті анімації
+          el.style.transition = 'none';
+          el.style.transform = 'none';
+          const from = el.getBoundingClientRect();
+          el.style.transform = '';
+          el.style.transition = '';
+          flipRef.current = { eventId: state.event.id, from };
           setFlipHiddenId(state.event.id);
         }
         onEventMove(state.event.id, makeDate(state.targetStartMin), makeDate(state.targetEndMin), state.targetResourceId);
