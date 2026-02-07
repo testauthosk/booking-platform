@@ -288,6 +288,13 @@ export default function CalendarPage() {
     const newTimeEnd = `${String(newEnd.getHours()).padStart(2, '0')}:${String(newEnd.getMinutes()).padStart(2, '0')}`;
     const newDuration = Math.round((newEnd.getTime() - newStart.getTime()) / 60000);
 
+    // Optimistic update — оновлюємо стан миттєво, не чекаючи API
+    setRawBookings(prev => prev.map(b =>
+      b.id === eventId
+        ? { ...b, date: newDate, time: newTime, timeEnd: newTimeEnd, duration: newDuration, masterId: newResourceId }
+        : b
+    ));
+
     try {
       await fetch('/api/booking', {
         method: 'PUT',
@@ -301,10 +308,12 @@ export default function CalendarPage() {
           masterId: newResourceId,
         })
       });
-      await loadBookings();
+      // Тиха синхронізація з сервером (без візуального ефекту)
+      loadBookings();
     } catch (error) {
       console.error('Failed to move booking:', error);
-      await loadBookings();
+      // Відкат — повертаємо актуальний стан з сервера
+      loadBookings();
     }
   };
 
@@ -313,6 +322,13 @@ export default function CalendarPage() {
     const newTime = `${String(newStart.getHours()).padStart(2, '0')}:${String(newStart.getMinutes()).padStart(2, '0')}`;
     const newTimeEnd = `${String(newEnd.getHours()).padStart(2, '0')}:${String(newEnd.getMinutes()).padStart(2, '0')}`;
     const newDuration = Math.round((newEnd.getTime() - newStart.getTime()) / 60000);
+
+    // Optimistic update
+    setRawBookings(prev => prev.map(b =>
+      b.id === eventId
+        ? { ...b, date: newDate, time: newTime, timeEnd: newTimeEnd, duration: newDuration }
+        : b
+    ));
 
     try {
       await fetch('/api/booking', {
@@ -326,10 +342,10 @@ export default function CalendarPage() {
           duration: newDuration,
         })
       });
-      await loadBookings();
+      loadBookings();
     } catch (error) {
       console.error('Failed to resize booking:', error);
-      await loadBookings();
+      loadBookings();
     }
   };
 
