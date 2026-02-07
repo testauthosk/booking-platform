@@ -225,13 +225,11 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
     <Drawer.Root
       open={isOpen}
       onOpenChange={(open) => { if (!open) onClose(); }}
-      snapPoints={[0.92, 1]}
-      fadeFromIndex={0}
     >
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 bg-black/40 z-[115]" />
         <Drawer.Content
-          className="fixed inset-x-0 bottom-0 z-[120] flex flex-col bg-background rounded-t-3xl outline-none"
+          className="fixed inset-x-0 bottom-0 z-[120] flex flex-col bg-background rounded-t-3xl outline-none max-h-[95vh]"
         >
           <Drawer.Handle className="mt-2 mb-1" />
 

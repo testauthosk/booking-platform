@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { Drawer } from 'vaul';
 import { BookingEvent } from './booking-calendar';
 import { Button } from '@/components/ui/button';
@@ -23,17 +23,6 @@ interface EventModalProps {
 }
 
 export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend, onOpenClient, onOpenMaster, onChangeMaster, onChangeClient, isEditOpen }: EventModalProps) {
-  const [isFullScreen, setIsFullScreen] = useState(false);
-
-  // Reset on open/close
-  useEffect(() => {
-    if (!isOpen) setIsFullScreen(false);
-  }, [isOpen]);
-
-  const handleSnapChange = useCallback((snap: number | string | null) => {
-    setIsFullScreen(snap === 1);
-  }, []);
-
   if (!event) return null;
 
   const statusColors: Record<string, string> = {
@@ -52,16 +41,11 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
     <Drawer.Root
       open={isOpen}
       onOpenChange={(open) => { if (!open) onClose(); }}
-      snapPoints={[0.85, 1]}
-      setActiveSnapPoint={handleSnapChange}
-      fadeFromIndex={0}
     >
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]" />
         <Drawer.Content
-          className={`fixed inset-x-0 bottom-0 z-[110] flex flex-col bg-background outline-none ${
-            isFullScreen ? 'rounded-none' : 'rounded-t-3xl'
-          }`}
+          className="fixed inset-x-0 bottom-0 z-[110] flex flex-col bg-background rounded-t-3xl outline-none max-h-[95vh]"
         >
           {/* Colored header with drag handle */}
           <div
