@@ -12,7 +12,7 @@ import { BlockTimeModal } from '@/components/calendar/block-time-modal';
 import { EditBookingModal } from '@/components/calendar/edit-booking-modal';
 import { ColleagueBookingModal } from '@/components/staff/colleague-booking-modal';
 import { ClientCardPanel } from '@/components/staff/client-card-panel';
-import { MasterCardPanel } from '@/components/calendar/master-card-panel';
+import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import type { CalendarEvent, CalendarResource } from '@/components/calendar/daypilot-resource-calendar';
 import type { BookingEvent, Resource } from '@/components/calendar/custom-calendar';
@@ -91,6 +91,7 @@ const formatDateUk = (date: Date) => {
 };
 
 export default function CalendarPage() {
+  const router = useRouter();
   const { open: openSidebar } = useSidebar();
   const { getColorForIndex, settings, setGridStep } = useCalendarSettings();
   const { user } = useAuth();
@@ -261,8 +262,7 @@ export default function CalendarPage() {
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date; resourceId?: string } | null>(null);
   const [clientCardPhone, setClientCardPhone] = useState<string>('');
   const [isClientCardOpen, setIsClientCardOpen] = useState(false);
-  const [masterCardId, setMasterCardId] = useState<string>('');
-  const [isMasterCardOpen, setIsMasterCardOpen] = useState(false);
+  // master card removed — navigate to /team instead
 
   // Конвертуємо CalendarEvent → BookingEvent для модалок
   const calEventToBookingEvent = (ce: CalendarEvent): BookingEvent => {
@@ -581,8 +581,7 @@ export default function CalendarPage() {
           setIsClientCardOpen(true);
         }}
         onOpenMaster={(masterId) => {
-          setMasterCardId(masterId);
-          setIsMasterCardOpen(true);
+          router.push(`/team?master=${masterId}`);
         }}
         onExtend={async (event, minutes) => {
           try {
@@ -681,13 +680,7 @@ export default function CalendarPage() {
         editable
       />
 
-      {/* Master Card */}
-      <MasterCardPanel
-        isOpen={isMasterCardOpen}
-        onClose={() => setIsMasterCardOpen(false)}
-        masterId={masterCardId}
-        salonId={user?.salonId || ''}
-      />
+      {/* Master → /team page */}
     </div>
   );
 }
