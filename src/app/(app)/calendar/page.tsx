@@ -105,8 +105,8 @@ function ViewModeSegment({ viewMode, onChange }: { viewMode: 'day' | 'week'; onC
 
   return (
     <div
-      className="relative flex h-10 bg-gray-100 border border-black/40 rounded-xl overflow-hidden shrink-0"
-      style={{ padding: '3px' }}
+      className="relative flex bg-gray-100 border border-black/40 rounded-xl overflow-hidden shrink-0"
+      style={{ height: '44px', padding: '3px' }}
     >
       {/* Sliding white pill */}
       <div
@@ -120,14 +120,14 @@ function ViewModeSegment({ viewMode, onChange }: { viewMode: 'day' | 'week'; onC
         }}
       />
       <button
-        className={`relative z-10 flex-1 flex items-center justify-center text-[13px] font-semibold transition-colors duration-200 whitespace-nowrap ${viewMode === 'day' ? 'text-gray-900' : 'text-gray-500'}`}
+        className={`inline-btn relative z-10 flex-1 flex items-center justify-center text-[13px] font-semibold transition-colors duration-200 whitespace-nowrap ${viewMode === 'day' ? 'text-gray-900' : 'text-gray-500'}`}
         style={{ minWidth: '48px', height: '100%' }}
         onClick={() => onChange('day')}
       >
         День
       </button>
       <button
-        className={`relative z-10 flex-1 flex items-center justify-center text-[13px] font-semibold transition-colors duration-200 whitespace-nowrap ${viewMode === 'week' ? 'text-gray-900' : 'text-gray-500'}`}
+        className={`inline-btn relative z-10 flex-1 flex items-center justify-center text-[13px] font-semibold transition-colors duration-200 whitespace-nowrap ${viewMode === 'week' ? 'text-gray-900' : 'text-gray-500'}`}
         style={{ minWidth: '70px', height: '100%' }}
         onClick={() => onChange('week')}
       >
@@ -497,7 +497,7 @@ export default function CalendarPage() {
         <button
           onClick={openSidebar}
           className="shrink-0 active:bg-gray-200 transition-colors"
-          style={{ width: '40px', height: '40px', borderRadius: '12px', backgroundColor: '#f3f4f6', border: '1px solid rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: '#f3f4f6', border: '1px solid rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
           <Menu className="text-gray-700" style={{ width: '18px', height: '18px' }} />
         </button>
@@ -512,7 +512,7 @@ export default function CalendarPage() {
         <button
           onClick={goToToday}
           className="shrink-0 active:bg-gray-200 transition-colors"
-          style={{ height: '40px', padding: '0 14px', borderRadius: '12px', backgroundColor: '#f3f4f6', border: '1px solid rgba(0,0,0,0.4)', fontSize: '13px', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}
+          style={{ height: '44px', padding: '0 14px', borderRadius: '12px', backgroundColor: '#f3f4f6', border: '1px solid rgba(0,0,0,0.4)', fontSize: '13px', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}
         >
           Сьогодні
         </button>
@@ -524,7 +524,7 @@ export default function CalendarPage() {
         <button
           onClick={() => {/* TODO: profile */}}
           className="shrink-0 active:opacity-80 transition-opacity"
-          style={{ width: '40px', height: '40px', borderRadius: '12px', backgroundColor: '#f97316', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: '14px' }}
+          style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: '#f97316', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: '14px' }}
         >
           {user?.name?.charAt(0)?.toUpperCase() || 'U'}
         </button>

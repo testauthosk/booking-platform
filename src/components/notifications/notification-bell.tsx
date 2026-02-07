@@ -114,8 +114,8 @@ export function NotificationBell() {
             : "active:bg-gray-200"
         )}
         style={{
-          width: '40px',
-          height: '40px',
+          width: '44px',
+          height: '44px',
           borderRadius: open ? '12px 12px 0 0' : '12px',
           ...(!open ? { backgroundColor: '#f3f4f6', border: '1px solid rgba(0,0,0,0.4)' } : {}),
         }}
