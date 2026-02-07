@@ -91,7 +91,6 @@ const formatDateUk = (date: Date) => {
 };
 
 export default function CalendarPage() {
-  const router = useRouter();
   const { open: openSidebar } = useSidebar();
   const { getColorForIndex, settings, setGridStep } = useCalendarSettings();
   const { user } = useAuth();
