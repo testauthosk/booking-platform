@@ -239,35 +239,28 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
 
   return (
     <>
-      {/* Backdrop — поверх EventModal */}
+      {/* Прозорий backdrop для перехоплення кліків */}
       <div 
-        className="fixed inset-0 bg-black/20 z-[115]"
-        style={{
-          opacity: isAnimating ? 1 : 0,
-          transition: 'opacity 300ms ease-out',
-        }}
+        className="fixed inset-0 z-[115]"
         onClick={onClose}
       />
       
-      {/* Full-screen bottom sheet — поверх EventModal (z-120 > z-110) */}
+      {/* Edit sheet — стикується знизу до EventModal header, без скруглень */}
       <div 
-        className="fixed inset-x-0 bottom-0 bg-background rounded-t-3xl shadow-xl z-[120] max-h-[95vh] overflow-hidden flex flex-col"
+        className="fixed inset-x-0 bottom-0 bg-background z-[105] overflow-hidden flex flex-col"
         style={{
+          top: '5rem',
           transform: isAnimating ? 'translateY(0)' : 'translateY(100%)',
           transition: 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)',
         }}
       >
-        {/* Drag handle */}
-        <div className="flex justify-center pt-3">
-          <div className="w-10 h-1 rounded-full bg-gray-300" />
-        </div>
 
         {/* Header */}
         <div className="px-4 pt-3 pb-3 border-b flex items-center justify-between shrink-0">
           <h2 className="text-lg font-semibold">Редагувати запис</h2>
           <button 
             onClick={onClose}
-            className="w-8 h-8 rounded-full hover:bg-muted transition-colors flex items-center justify-center"
+            className="w-8 h-8 rounded-xl bg-white/80 hover:bg-white shadow-md border border-gray-200 text-gray-700 flex items-center justify-center transition-colors"
           >
             <X className="h-4 w-4" />
           </button>

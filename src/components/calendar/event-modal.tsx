@@ -116,9 +116,11 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
       {/* Bottom Sheet */}
       <div 
         ref={sheetRef}
-        className={`fixed inset-x-0 bottom-0 bg-background shadow-xl z-[110] overflow-hidden flex flex-col ${(isExpanded || isEditOpen) ? 'rounded-none' : 'rounded-t-3xl'}`}
+        className={`fixed inset-x-0 bottom-0 shadow-xl z-[110] overflow-hidden flex flex-col bg-background ${
+          isExpanded ? 'rounded-none' : 'rounded-t-3xl'
+        }`}
         style={{
-          maxHeight: isExpanded ? '100vh' : isEditOpen ? '100vh' : '85vh',
+          maxHeight: isExpanded ? '100vh' : '85vh',
           transform: isAnimating
             ? `translateY(${isDragging ? Math.max(0, dragY) : 0}px)`
             : 'translateY(100%)',
@@ -127,7 +129,7 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
       >
         {/* Header з drag handle */}
         <div 
-          className="px-4 pb-3 pt-2 rounded-t-3xl relative"
+          className="px-4 pb-3 pt-2 relative rounded-t-3xl"
           style={{ backgroundColor: event.backgroundColor || '#8b5cf6' }}
         >
           {/* Drag handle — swipe up/down */}
@@ -154,8 +156,8 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
           </button>
         </div>
 
-        {/* Content — scrollable */}
-        <div className="p-4 space-y-4 overflow-y-auto flex-1">
+        {/* Content — scrollable (hidden when edit is open) */}
+        <div className={`p-4 space-y-4 overflow-y-auto flex-1 ${isEditOpen ? 'hidden' : ''}`}>
           {/* Status */}
           {event.status && (
             <div className="flex items-center gap-2">
@@ -281,7 +283,7 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
         </div>
 
         {/* Quick extend buttons */}
-        {onExtend && event.status !== 'cancelled' && (
+        {onExtend && event.status !== 'cancelled' && !isEditOpen && (
           <div className="px-4 py-2 border-t flex gap-2">
             <span className="text-sm text-muted-foreground self-center">Продовжити:</span>
             {[10, 15, 30].map((mins) => (
@@ -297,7 +299,7 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
         )}
 
         {/* Actions */}
-        <div className="p-4 border-t flex gap-2 pb-8 shrink-0">
+        <div className={`p-4 border-t flex gap-2 pb-8 shrink-0 ${isEditOpen ? 'hidden' : ''}`}>
           <Button 
             variant="outline" 
             className="flex-1 h-11"
