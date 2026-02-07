@@ -12,6 +12,7 @@ import { BlockTimeModal } from '@/components/calendar/block-time-modal';
 import { EditBookingModal } from '@/components/calendar/edit-booking-modal';
 import { ColleagueBookingModal } from '@/components/staff/colleague-booking-modal';
 import { ClientCardPanel } from '@/components/staff/client-card-panel';
+import { MasterCardPanel } from '@/components/calendar/master-card-panel';
 import dynamic from 'next/dynamic';
 import type { CalendarEvent, CalendarResource } from '@/components/calendar/daypilot-resource-calendar';
 import type { BookingEvent, Resource } from '@/components/calendar/custom-calendar';
@@ -260,6 +261,8 @@ export default function CalendarPage() {
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date; resourceId?: string } | null>(null);
   const [clientCardPhone, setClientCardPhone] = useState<string>('');
   const [isClientCardOpen, setIsClientCardOpen] = useState(false);
+  const [masterCardId, setMasterCardId] = useState<string>('');
+  const [isMasterCardOpen, setIsMasterCardOpen] = useState(false);
 
   // Конвертуємо CalendarEvent → BookingEvent для модалок
   const calEventToBookingEvent = (ce: CalendarEvent): BookingEvent => {
@@ -580,7 +583,8 @@ export default function CalendarPage() {
           }
         }}
         onOpenMaster={(masterId) => {
-          // TODO: MasterCardPanel
+          setMasterCardId(masterId);
+          setIsMasterCardOpen(true);
         }}
         onExtend={async (event, minutes) => {
           try {
@@ -677,6 +681,14 @@ export default function CalendarPage() {
         masterId={selectedEvent?.resourceId || ''}
         salonId={user?.salonId || ''}
         editable
+      />
+
+      {/* Master Card */}
+      <MasterCardPanel
+        isOpen={isMasterCardOpen}
+        onClose={() => setIsMasterCardOpen(false)}
+        masterId={masterCardId}
+        salonId={user?.salonId || ''}
       />
     </div>
   );
