@@ -20,6 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { useCalendarSettings } from '@/lib/calendar-settings-context';
 import { useCalendarDate } from '@/lib/calendar-date-context';
+import { MobileCalendarPicker } from '@/components/calendar/mobile-calendar-picker';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Dynamic import — DayPilot потребує window
@@ -586,24 +587,12 @@ export default function CalendarPage() {
       </Button>
 
       {/* Mobile calendar picker overlay */}
-      {isMobileCalendarOpen && (
-        <div className="lg:hidden fixed inset-0 z-[200] flex items-end justify-center" onClick={() => setIsMobileCalendarOpen(false)}>
-          <div className="absolute inset-0 bg-black/50" />
-          <div 
-            className="relative bg-white rounded-t-2xl shadow-2xl w-full max-w-sm mx-auto pb-8 pt-3"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-2" />
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={(date) => { if (date) { setSelectedDate(date); setIsMobileCalendarOpen(false); }}}
-              initialFocus
-              className="mx-auto"
-            />
-          </div>
-        </div>
-      )}
+      <MobileCalendarPicker
+        isOpen={isMobileCalendarOpen}
+        onClose={() => setIsMobileCalendarOpen(false)}
+        selected={selectedDate}
+        onSelect={(date) => { setSelectedDate(date); }}
+      />
 
       {/* Event details modal */}
       <EventModal
