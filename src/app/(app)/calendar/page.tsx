@@ -407,31 +407,54 @@ export default function CalendarPage() {
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Mobile header */}
-      <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 shrink-0 z-20">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-10 w-10 rounded-xl border border-gray-200"
-          onClick={openSidebar}
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
-        <h1 className="text-lg font-bold text-gray-900">Календар</h1>
+      <header className="lg:hidden flex items-center justify-between px-4 py-2 bg-white border-b border-gray-200 shrink-0 z-20">
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-xl border border-gray-200"
+            onClick={openSidebar}
+          >
+            <Menu className="h-4 w-4" />
+          </Button>
+          {/* Date + calendar picker */}
+          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+            <PopoverTrigger asChild>
+              <button className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-muted transition-colors">
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-semibold capitalize">{formatDateUk(selectedDate)}</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => { if (date) { setSelectedDate(date); setIsCalendarOpen(false); }}}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant={isToday ? "default" : "outline"}
+            size="sm"
+            className="h-8 px-2.5 text-xs"
+            onClick={goToToday}
+          >
+            Сьогодні
+          </Button>
           {(user?.role === 'OWNER' || user?.role === 'ADMIN') && (
             <Button
               variant="ghost"
               size="icon"
-              className="h-10 w-10 rounded-xl border border-gray-200"
+              className="h-9 w-9 rounded-xl border border-gray-200"
               onClick={() => setIsColleagueBookingOpen(true)}
             >
-              <Plus className="h-5 w-5" />
+              <Plus className="h-4 w-4" />
             </Button>
           )}
           <NotificationBell />
-          <div className="h-9 w-9 rounded-xl bg-orange-500 flex items-center justify-center text-white font-bold text-sm">
-            D
-          </div>
         </div>
       </header>
 
