@@ -54,7 +54,9 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
     }
   }, [isOpen, event]);
 
-  // Native touch listeners (passive, no React overhead) + rAF batching
+  // Native touch listeners + rAF
+  const startHeight = useRef(0);
+
   useEffect(() => {
     const handle = handleRef.current;
     const sheet = sheetRef.current;
@@ -64,16 +66,14 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
       if (!isDragging.current) return;
       const d = deltaY.current;
       if (d > 0) {
-        // Вниз — translateY
+        // Вниз — translateY (закриття)
         sheet.style.transform = `translate3d(0,${d}px,0)`;
-        sheet.style.maxHeight = '85vh';
       } else {
-        // Вгору — збільшити maxHeight від 85vh до 100vh
-        const absDelta = Math.abs(d);
-        const maxExtra = window.innerHeight * 0.15; // 15vh gap
-        const progress = Math.min(absDelta / 150, 1); // 150px drag = full expand
-        const newMaxH = 85 + (15 * progress); // 85vh → 100vh
-        sheet.style.maxHeight = `${newMaxH}vh`;
+        // Вгору — збільшити height від поточної до 100vh
+        const targetH = window.innerHeight;
+        const newH = Math.min(targetH, startHeight.current + Math.abs(d));
+        sheet.style.height = `${newH}px`;
+        sheet.style.maxHeight = 'none';
         sheet.style.transform = 'translate3d(0,0,0)';
       }
       rafId.current = requestAnimationFrame(applyFrame);
@@ -83,6 +83,7 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
       touchStartY.current = e.touches[0].clientY;
       deltaY.current = 0;
       isDragging.current = true;
+      startHeight.current = sheet.offsetHeight;
       sheet.style.transition = 'none';
       rafId.current = requestAnimationFrame(applyFrame);
     };
@@ -98,21 +99,23 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
       cancelAnimationFrame(rafId.current);
 
       const d = deltaY.current;
-      sheet.style.transition = 'transform 600ms cubic-bezier(0.32,0.72,0,1), max-height 600ms cubic-bezier(0.32,0.72,0,1)';
+      sheet.style.transition = 'transform 600ms cubic-bezier(0.32,0.72,0,1), height 600ms cubic-bezier(0.32,0.72,0,1)';
 
       if (d > 100) {
         // Свайп вниз → закрити
         sheet.style.transform = 'translate3d(0,100%,0)';
         setTimeout(() => onCloseRef.current(), 100);
       } else if (d < -60) {
-        // Свайп вгору → розгорнути на весь екран
+        // Свайп вгору → розгорнути
         sheet.style.transform = 'translate3d(0,0,0)';
-        sheet.style.maxHeight = '100vh';
+        sheet.style.height = '100vh';
+        sheet.style.maxHeight = 'none';
         setIsExpanded(true);
       } else {
         // Повернути
         sheet.style.transform = 'translate3d(0,0,0)';
-        sheet.style.maxHeight = '85vh';
+        sheet.style.height = '';
+        sheet.style.maxHeight = '';
       }
     };
 
@@ -158,9 +161,10 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
         ref={sheetRef}
         className={`fixed inset-x-0 bottom-0 bg-background shadow-xl z-[110] overflow-hidden flex flex-col ${isExpanded ? 'rounded-none' : 'rounded-t-3xl'}`}
         style={{
-          maxHeight: isExpanded ? '100vh' : '85vh',
+          maxHeight: isExpanded ? 'none' : '85vh',
+          height: isExpanded ? '100vh' : 'auto',
           transform: isAnimating ? 'translate3d(0,0,0)' : 'translate3d(0,100%,0)',
-          transition: 'transform 600ms cubic-bezier(0.32, 0.72, 0, 1), max-height 600ms cubic-bezier(0.32, 0.72, 0, 1)',
+          transition: 'transform 600ms cubic-bezier(0.32, 0.72, 0, 1), height 600ms cubic-bezier(0.32, 0.72, 0, 1)',
           willChange: 'transform',
         }}
       >

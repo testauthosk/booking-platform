@@ -174,6 +174,8 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
   }, [isOpen, booking]);
 
   // Native touch listeners + rAF
+  const startHeight = useRef(0);
+
   useEffect(() => {
     const handle = handleRef.current;
     const sheet = sheetRef.current;
@@ -185,8 +187,10 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
       if (d > 0) {
         sheet.style.transform = `translate3d(0,${d}px,0)`;
       } else {
-        const extra = Math.min(Math.abs(d), window.innerHeight * 0.08);
-        sheet.style.maxHeight = `calc(92vh + ${extra}px)`;
+        const targetH = window.innerHeight;
+        const newH = Math.min(targetH, startHeight.current + Math.abs(d));
+        sheet.style.height = `${newH}px`;
+        sheet.style.maxHeight = 'none';
         sheet.style.transform = 'translate3d(0,0,0)';
       }
       rafId.current = requestAnimationFrame(applyFrame);
@@ -196,6 +200,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
       touchStartY.current = e.touches[0].clientY;
       deltaY.current = 0;
       isDragging.current = true;
+      startHeight.current = sheet.offsetHeight;
       sheet.style.transition = 'none';
       rafId.current = requestAnimationFrame(applyFrame);
     };
@@ -211,18 +216,20 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
       cancelAnimationFrame(rafId.current);
 
       const d = deltaY.current;
-      sheet.style.transition = 'transform 600ms cubic-bezier(0.32,0.72,0,1), max-height 600ms cubic-bezier(0.32,0.72,0,1)';
+      sheet.style.transition = 'transform 600ms cubic-bezier(0.32,0.72,0,1), height 600ms cubic-bezier(0.32,0.72,0,1)';
 
       if (d > 100) {
         sheet.style.transform = 'translate3d(0,100%,0)';
         setTimeout(() => onCloseRef.current(), 100);
       } else if (d < -60) {
         sheet.style.transform = 'translate3d(0,0,0)';
-        sheet.style.maxHeight = '100vh';
+        sheet.style.height = '100vh';
+        sheet.style.maxHeight = 'none';
         setIsExpanded(true);
       } else {
         sheet.style.transform = 'translate3d(0,0,0)';
-        sheet.style.maxHeight = '92vh';
+        sheet.style.height = '';
+        sheet.style.maxHeight = '';
       }
     };
 
@@ -332,9 +339,10 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
         ref={sheetRef}
         className={`fixed inset-x-0 bottom-0 bg-background shadow-xl z-[120] overflow-hidden flex flex-col ${isExpanded ? 'rounded-none' : 'rounded-t-3xl'}`}
         style={{
-          maxHeight: isExpanded ? '100vh' : '92vh',
+          maxHeight: isExpanded ? 'none' : '92vh',
+          height: isExpanded ? '100vh' : 'auto',
           transform: isAnimating ? 'translate3d(0,0,0)' : 'translate3d(0,100%,0)',
-          transition: 'transform 600ms cubic-bezier(0.32, 0.72, 0, 1), max-height 600ms cubic-bezier(0.32, 0.72, 0, 1)',
+          transition: 'transform 600ms cubic-bezier(0.32, 0.72, 0, 1), height 600ms cubic-bezier(0.32, 0.72, 0, 1)',
           willChange: 'transform',
         }}
       >
