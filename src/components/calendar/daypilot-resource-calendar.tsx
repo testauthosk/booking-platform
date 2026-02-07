@@ -402,12 +402,10 @@ export function DayPilotResourceCalendar({
       };
 
       if (state.mode === 'move' && onEventMove) {
-        if (state.event.resource !== state.targetResourceId) {
-          const el = document.querySelector(`[data-event-id="${state.event.id}"]`) as HTMLElement | null;
-          if (el) {
-            flipRef.current = { eventId: state.event.id, from: el.getBoundingClientRect() };
-            setFlipHiddenId(state.event.id);
-          }
+        const el = document.querySelector(`[data-event-id="${state.event.id}"]`) as HTMLElement | null;
+        if (el) {
+          flipRef.current = { eventId: state.event.id, from: el.getBoundingClientRect() };
+          setFlipHiddenId(state.event.id);
         }
         onEventMove(state.event.id, makeDate(state.targetStartMin), makeDate(state.targetEndMin), state.targetResourceId);
       } else if ((state.mode === 'resize-top' || state.mode === 'resize-bottom') && onEventResize) {
