@@ -451,24 +451,24 @@ export default function CalendarPage() {
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Mobile header */}
-      <header className="lg:hidden flex items-center justify-between px-3 py-2 bg-white border-b border-gray-200 shrink-0 z-20">
+      <header className="lg:hidden flex items-center justify-between px-3 h-14 bg-white border-b border-gray-200 shrink-0 z-20">
         {/* Left: menu + view toggle */}
         <div className="flex items-center gap-2">
           <button
-            className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center active:bg-gray-200 transition-colors"
+            className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center active:bg-gray-200 transition-colors shrink-0"
             onClick={openSidebar}
           >
-            <Menu className="h-4 w-4 text-gray-700" />
+            <Menu className="h-[18px] w-[18px] text-gray-700" />
           </button>
-          <div className="flex h-10 items-center bg-gray-100 rounded-xl p-1">
+          <div className="flex h-10 items-center bg-gray-100 rounded-xl p-1 gap-0.5">
             <button
-              className={`h-8 px-3 text-xs font-semibold rounded-lg transition-all ${viewMode === 'day' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
+              className={`h-8 px-3.5 text-[13px] font-semibold rounded-lg transition-all whitespace-nowrap ${viewMode === 'day' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 active:bg-gray-200'}`}
               onClick={() => setViewMode('day')}
             >
               День
             </button>
             <button
-              className={`h-8 px-3 text-xs font-semibold rounded-lg transition-all ${viewMode === 'week' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
+              className={`h-8 px-3.5 text-[13px] font-semibold rounded-lg transition-all whitespace-nowrap ${viewMode === 'week' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 active:bg-gray-200'}`}
               onClick={() => setViewMode('week')}
             >
               Тиждень
@@ -478,23 +478,21 @@ export default function CalendarPage() {
         {/* Right: today + add + bell + avatar */}
         <div className="flex items-center gap-2">
           <button
-            className={`h-10 px-3 rounded-xl text-xs font-semibold transition-colors ${isToday ? 'bg-gray-200 text-gray-900' : 'bg-gray-100 text-gray-700 active:bg-gray-200'}`}
+            className={`h-10 px-3.5 rounded-xl text-[13px] font-semibold transition-colors whitespace-nowrap ${isToday ? 'bg-gray-100 text-gray-900' : 'bg-gray-100 text-gray-700 active:bg-gray-200'}`}
             onClick={goToToday}
           >
             Сьогодні
           </button>
           {(user?.role === 'OWNER' || user?.role === 'ADMIN') && (
             <button
-              className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center active:bg-gray-200 transition-colors"
+              className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center active:bg-gray-200 transition-colors shrink-0"
               onClick={() => setIsColleagueBookingOpen(true)}
             >
-              <Plus className="h-4 w-4 text-gray-700" />
+              <Plus className="h-[18px] w-[18px] text-gray-700" />
             </button>
           )}
-          <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center">
-            <NotificationBell />
-          </div>
-          <div className="h-10 w-10 rounded-xl bg-orange-500 flex items-center justify-center text-white font-bold text-sm">
+          <NotificationBell />
+          <div className="h-10 w-10 rounded-xl bg-orange-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
             {user?.name?.charAt(0)?.toUpperCase() || 'U'}
           </div>
         </div>

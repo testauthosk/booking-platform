@@ -108,13 +108,13 @@ export function NotificationBell() {
         onKeyDown={(e) => e.key === 'Enter' && setOpen(!open)}
         whileTap={{ scale: 0.95 }}
         className={cn(
-          "relative h-10 w-10 flex items-center justify-center cursor-pointer select-none rounded-xl",
+          "relative h-10 w-10 flex items-center justify-center cursor-pointer select-none rounded-xl transition-colors",
           open 
             ? "bg-card rounded-b-none border border-border border-b-transparent z-[60]" 
-            : "hover:bg-muted"
+            : "bg-gray-100 active:bg-gray-200"
         )}
       >
-        <Bell className="h-5 w-5 text-foreground pointer-events-none" />
+        <Bell className="h-[18px] w-[18px] text-gray-700 pointer-events-none" />
         {unreadCount > 0 && (
           <span className={cn(
             "absolute h-4 w-4 bg-destructive rounded-full text-[10px] text-white font-medium flex items-center justify-center pointer-events-none",
