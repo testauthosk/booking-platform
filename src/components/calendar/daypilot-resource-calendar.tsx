@@ -940,19 +940,19 @@ export function DayPilotResourceCalendar({
 
     const dx = to.left - from.left;
     const dy = to.top - from.top;
+    const sx = from.width ? to.width / from.width : 1;
+    const sy = from.height ? to.height / from.height : 1;
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        // Тільки translate, без scale — колонки однакової ширини,
-        // scale псує антиалізинг тексту через GPU compositing
         clone.style.transition = 'transform 300ms ease-out';
-        clone.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+        clone.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${sx}, ${sy})`;
       });
     });
 
     const cleanup = () => {
-      // De-promote clone з GPU шару — текст рендериться CPU,
-      // ідентично реальній карточці (без різниці в антиалізингу)
+      // De-promote: скидаємо transform, ставимо реальні координати "to"
+      // Clone перерисовується CPU — текст ідентичний реальній карточці
       clone.style.transition = 'none';
       clone.style.transform = 'none';
       clone.style.left = `${to.left}px`;
@@ -960,11 +960,10 @@ export function DayPilotResourceCalendar({
       clone.style.width = `${to.width}px`;
       clone.style.height = `${to.height}px`;
 
-      // Через 1 кадр — clone перерисовується CPU, потім показуємо реальну карточку
       requestAnimationFrame(() => {
+        // Clone вже CPU-rendered, показуємо реальну карточку
         setFlipHiddenId(null);
         flipRef.current = null;
-        // Ще 2 кадри — React рендерить реальну карточку, потім видаляємо clone
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             clone.remove();
