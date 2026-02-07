@@ -48,7 +48,7 @@ export function MasterCardPanel({ isOpen, onClose, master, canDelete, onDelete, 
     <>
       {/* Overlay */}
       <div 
-        className={`fixed inset-0 bg-white/20 backdrop-blur-sm z-40 transition-opacity duration-[560ms] ease-out ${
+        className={`fixed inset-0 bg-black/60 z-[140] transition-opacity duration-[560ms] ease-out ${
           isOpen && master ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
@@ -56,66 +56,57 @@ export function MasterCardPanel({ isOpen, onClose, master, canDelete, onDelete, 
 
       {/* Drawer */}
       <div 
-        className={`fixed top-0 right-0 h-full w-80 lg:w-[420px] bg-card border-l border-border shadow-xl z-50 transform transition-transform duration-[560ms] ease-out will-change-transform ${
+        className={`fixed top-0 right-0 h-full w-full sm:w-96 lg:w-[420px] bg-card shadow-2xl z-[145] transform transition-transform duration-[560ms] ease-out will-change-transform ${
           isOpen && master ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         {master && (
           <div className="flex flex-col h-full pb-20 lg:pb-0">
-            {/* Header */}
-            <div className="p-4 border-b border-border flex items-center justify-between">
-              <h2 className="font-semibold">Профіль майстра</h2>
+            {/* Hero header */}
+            <div className="relative p-5 pb-4" style={{ background: `linear-gradient(135deg, ${master.color || '#f97316'}dd, ${master.color || '#f97316'}88)` }}>
               <button 
                 onClick={onClose}
-                className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center"
+                className="absolute top-4 right-4 h-8 w-8 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white"
               >
                 <X className="h-5 w-5" />
               </button>
-            </div>
-
-            {/* Master Info */}
-            <div className="p-4 border-b border-border">
-              <div className="flex items-center gap-3 mb-4">
-                <div 
-                  className="h-16 w-16 rounded-xl flex items-center justify-center text-white text-2xl font-semibold"
-                  style={{ backgroundColor: master.color || '#f97316' }}
-                >
+              <div className="flex items-center gap-4 mt-2">
+                <div className="h-18 w-18 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white text-3xl font-bold" style={{ width: 72, height: 72 }}>
                   {master.name.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-lg font-semibold">{master.name}</p>
-                  <p className="text-sm text-muted-foreground">{master.role || 'Майстер'}</p>
+                  <p className="text-xl font-bold text-white">{master.name}</p>
+                  <p className="text-sm text-white/70">{master.role || 'Майстер'}</p>
+                  {master.email && (
+                    <div className="flex items-center gap-1.5 mt-1 text-xs text-white/60">
+                      <Mail className="h-3 w-3" />
+                      <span>{master.email}</span>
+                    </div>
+                  )}
                 </div>
               </div>
-              {master.email && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Mail className="h-4 w-4" />
-                  <span>{master.email}</span>
-                </div>
-              )}
             </div>
 
             {/* Stats */}
-            <div className="p-4 border-b border-border">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Статистика</p>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="p-3 rounded-xl bg-muted/50">
-                  <p className="text-xs text-muted-foreground mb-1">Сьогодні</p>
-                  <p className="text-xl font-bold">
-                    {loadingStats ? '...' : masterStats?.todayCount ?? 0}
+            <div className="p-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 text-center">
+                  <p className="text-2xl font-bold text-blue-700">
+                    {loadingStats ? '·' : masterStats?.todayCount ?? 0}
                   </p>
+                  <p className="text-[10px] font-medium text-blue-600 mt-0.5">Сьогодні</p>
                 </div>
-                <div className="p-3 rounded-xl bg-muted/50">
-                  <p className="text-xs text-muted-foreground mb-1">Клієнтів</p>
-                  <p className="text-xl font-bold">
-                    {loadingStats ? '...' : masterStats?.totalClients ?? 0}
+                <div className="p-3 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 text-center">
+                  <p className="text-2xl font-bold text-emerald-700">
+                    {loadingStats ? '·' : masterStats?.totalClients ?? 0}
                   </p>
+                  <p className="text-[10px] font-medium text-emerald-600 mt-0.5">Клієнтів</p>
                 </div>
-                <div className="p-3 rounded-xl bg-muted/50">
-                  <p className="text-xs text-muted-foreground mb-1">За місяць</p>
-                  <p className="text-xl font-bold">
-                    {loadingStats ? '...' : masterStats?.monthBookings ?? 0}
+                <div className="p-3 rounded-2xl bg-gradient-to-br from-violet-50 to-violet-100/50 text-center">
+                  <p className="text-2xl font-bold text-violet-700">
+                    {loadingStats ? '·' : masterStats?.monthBookings ?? 0}
                   </p>
+                  <p className="text-[10px] font-medium text-violet-600 mt-0.5">За місяць</p>
                 </div>
               </div>
             </div>

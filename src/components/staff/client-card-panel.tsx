@@ -203,7 +203,7 @@ export function ClientCardPanel({
     <>
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[120]"
+        className="fixed inset-0 bg-black/60 z-[140]"
         style={{
           opacity: isAnimating ? 1 : 0,
           transition: 'opacity 560ms ease-out',
@@ -213,7 +213,7 @@ export function ClientCardPanel({
 
       {/* Panel - slides from right */}
       <div 
-        className="fixed inset-y-0 right-0 w-full sm:w-[400px] bg-background shadow-2xl z-[130] flex flex-col overflow-hidden"
+        className="fixed inset-y-0 right-0 w-full sm:w-96 lg:w-[420px] bg-background shadow-2xl z-[145] flex flex-col overflow-hidden"
         style={{
           transform: isAnimating ? 'translateX(0)' : 'translateX(100%)',
           transition: 'transform 560ms ease-out',
@@ -222,7 +222,7 @@ export function ClientCardPanel({
         {client && (
           <>
             {/* Header with gradient */}
-            <div className="relative bg-gradient-to-br from-primary/10 to-primary/5 p-6 pb-4">
+            <div className="relative bg-gradient-to-br from-primary/20 via-primary/10 to-background p-6 pb-4">
               <button
                 onClick={onClose}
                 className="absolute top-4 right-4 h-8 w-8 rounded-xl bg-white/80 hover:bg-white shadow-md border border-gray-200 flex items-center justify-center transition-colors"
