@@ -25,17 +25,14 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
 
-  // Swipe dismiss + expand
+  // Swipe down to close — тільки вниз, без expand
   const sheetRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
   const deltaY = useRef(0);
   const isDragging = useRef(false);
   const rafId = useRef(0);
-  const startHeight = useRef(0);
-  const originalHeight = useRef(0);
-  const isExpandedRef = useRef(false);
-  const [isExpanded, setIsExpanded] = useState(false);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
@@ -43,26 +40,17 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
   useEffect(() => {
     if (isOpen && event) {
       setIsVisible(true);
-      setIsExpanded(false);
       requestAnimationFrame(() => {
         requestAnimationFrame(() => setIsAnimating(true));
       });
     } else {
       setIsAnimating(false);
-      if (sheetRef.current) {
-        sheetRef.current.style.height = '';
-        sheetRef.current.style.maxHeight = '';
-      }
-      isExpandedRef.current = false;
-      const timer = setTimeout(() => {
-        setIsVisible(false);
-        setIsExpanded(false);
-      }, 650);
+      const timer = setTimeout(() => setIsVisible(false), 400);
       return () => clearTimeout(timer);
     }
   }, [isOpen, event]);
 
-  // Native touch listeners + rAF
+  // Тільки свайп вниз — translate3d only
   useEffect(() => {
     const handle = handleRef.current;
     const sheet = sheetRef.current;
@@ -70,18 +58,8 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
 
     const applyFrame = () => {
       if (!isDragging.current) return;
-      const d = deltaY.current;
-      if (d > 0) {
-        // Вниз — translateY (закриття)
-        sheet.style.transform = `translate3d(0,${d}px,0)`;
-      } else {
-        // Вгору — збільшити height від поточної до 100vh
-        const targetH = window.innerHeight;
-        const newH = Math.min(targetH, startHeight.current + Math.abs(d));
-        sheet.style.height = `${newH}px`;
-        sheet.style.maxHeight = 'none';
-        sheet.style.transform = 'translate3d(0,0,0)';
-      }
+      const d = Math.max(0, deltaY.current);
+      sheet.style.transform = `translate3d(0,${d}px,0)`;
       rafId.current = requestAnimationFrame(applyFrame);
     };
 
@@ -89,10 +67,6 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
       touchStartY.current = e.touches[0].clientY;
       deltaY.current = 0;
       isDragging.current = true;
-      startHeight.current = sheet.offsetHeight;
-      if (!isExpandedRef.current) {
-        originalHeight.current = sheet.offsetHeight;
-      }
       sheet.style.transition = 'none';
       rafId.current = requestAnimationFrame(applyFrame);
     };
@@ -107,39 +81,12 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
       isDragging.current = false;
       cancelAnimationFrame(rafId.current);
 
-      const d = deltaY.current;
-      sheet.style.transition = 'transform 600ms cubic-bezier(0.32,0.72,0,1), height 600ms cubic-bezier(0.32,0.72,0,1)';
-
-      const currentH = sheet.offsetHeight;
-      sheet.style.height = `${currentH}px`;
-
-      if (d > 100 && isExpandedRef.current) {
-        // Expanded → повернути до оригіналу
-        sheet.style.transform = 'translate3d(0,0,0)';
-        sheet.style.height = `${originalHeight.current}px`;
-        sheet.style.maxHeight = 'none';
-        isExpandedRef.current = false;
-        setIsExpanded(false);
-        setTimeout(() => {
-          if (sheet) { sheet.style.height = ''; sheet.style.maxHeight = ''; }
-        }, 650);
-      } else if (d > 100) {
-        // Звичайна → закрити
-        sheet.style.transform = 'translate3d(0,100%,0)';
-        setTimeout(() => onCloseRef.current(), 100);
-      } else if (d < -60) {
-        // Розгорнути
-        sheet.style.transform = 'translate3d(0,0,0)';
-        sheet.style.height = `${window.innerHeight}px`;
-        sheet.style.maxHeight = 'none';
-        isExpandedRef.current = true;
-        setIsExpanded(true);
+      sheet.style.transition = 'transform 300ms cubic-bezier(0.2,0,0,1)';
+      if (deltaY.current > 80) {
+        sheet.style.transform = `translate3d(0,${window.innerHeight}px,0)`;
+        setTimeout(() => onCloseRef.current(), 300);
       } else {
-        sheet.style.height = `${startHeight.current}px`;
-        sheet.style.maxHeight = 'none';
-        setTimeout(() => {
-          if (sheet) { sheet.style.height = ''; sheet.style.maxHeight = ''; }
-        }, 650);
+        sheet.style.transform = 'translate3d(0,0,0)';
       }
     };
 
@@ -171,11 +118,13 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
   return (
     <>
       {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+      {/* Backdrop */}
+      <div
+        ref={backdropRef}
+        className="fixed inset-0 bg-black/60 z-[100]"
         style={{
           opacity: isAnimating ? 1 : 0,
-          transition: 'opacity 500ms ease-out',
+          transition: 'opacity 300ms ease-out',
         }}
         onClick={onClose}
       />
@@ -183,18 +132,18 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
       {/* Bottom Sheet */}
       <div 
         ref={sheetRef}
-        className={`fixed inset-x-0 bottom-0 bg-background shadow-xl z-[110] overflow-hidden flex flex-col ${isExpanded ? 'rounded-none' : 'rounded-t-3xl'}`}
+        className="fixed inset-x-0 bottom-0 bg-background shadow-xl z-[110] overflow-hidden flex flex-col rounded-t-3xl"
         style={{
           maxHeight: '85vh',
           transform: isAnimating ? 'translate3d(0,0,0)' : 'translate3d(0,100%,0)',
-          transition: 'transform 600ms cubic-bezier(0.32, 0.72, 0, 1)',
+          transition: 'transform 300ms cubic-bezier(0.2, 0, 0, 1)',
           willChange: 'transform',
         }}
       >
         {/* Colored header — swipe zone (native listeners via ref) */}
         <div
           ref={handleRef}
-          className={`px-4 pb-3 pt-2 relative shrink-0 ${isExpanded ? '' : 'rounded-t-3xl'}`}
+          className="px-4 pb-3 pt-2 relative shrink-0 rounded-t-3xl"
           style={{ backgroundColor: event.backgroundColor || '#8b5cf6', touchAction: 'none' }}
         >
           {/* Drag handle pill */}

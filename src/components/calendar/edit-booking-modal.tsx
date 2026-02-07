@@ -64,12 +64,10 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
   const [masters, setMasters] = useState<{ id: string; name: string }[]>([]);
   const [showMasterPicker, setShowMasterPicker] = useState(false);
 
-  // Swipe down to close — 60fps GPU composited
+  // Swipe down to close
   const sheetRef = useRef<HTMLDivElement>(null);
-  const backdropRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
-  const touchStartTime = useRef(0);
   const deltaY = useRef(0);
   const isDragging = useRef(false);
   const rafId = useRef(0);
@@ -193,34 +191,24 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
     }
   }, [isOpen, booking]);
 
-  // Тільки свайп вниз — закрити
+  // Тільки свайп вниз — translate3d only
   useEffect(() => {
     const handle = handleRef.current;
     const sheet = sheetRef.current;
     if (!handle || !sheet) return;
 
-    const backdrop = backdropRef.current;
-    const screenH = window.innerHeight;
-
     const applyFrame = () => {
       if (!isDragging.current) return;
       const d = Math.max(0, deltaY.current);
-      // GPU: тільки transform + opacity (обидва composited)
       sheet.style.transform = `translate3d(0,${d}px,0)`;
-      if (backdrop) {
-        const progress = Math.min(d / (screenH * 0.4), 1);
-        backdrop.style.opacity = String(1 - progress);
-      }
       rafId.current = requestAnimationFrame(applyFrame);
     };
 
     const onStart = (e: TouchEvent) => {
       touchStartY.current = e.touches[0].clientY;
-      touchStartTime.current = Date.now();
       deltaY.current = 0;
       isDragging.current = true;
       sheet.style.transition = 'none';
-      if (backdrop) backdrop.style.transition = 'none';
       rafId.current = requestAnimationFrame(applyFrame);
     };
 
@@ -234,26 +222,12 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
       isDragging.current = false;
       cancelAnimationFrame(rafId.current);
 
-      const d = deltaY.current;
-      const elapsed = Date.now() - touchStartTime.current;
-      const velocity = d / Math.max(elapsed, 1); // px/ms
-
-      // Dismiss: distance > 100px АБО velocity > 0.5 px/ms (швидкий свайп)
-      const shouldDismiss = d > 100 || (d > 30 && velocity > 0.5);
-
-      const duration = shouldDismiss ? Math.min(400, Math.max(200, (screenH - d) / Math.max(velocity, 1))) : 300;
-      const easing = 'cubic-bezier(0.32,0.72,0,1)';
-
-      sheet.style.transition = `transform ${duration}ms ${easing}`;
-      if (backdrop) backdrop.style.transition = `opacity ${duration}ms ${easing}`;
-
-      if (shouldDismiss) {
-        sheet.style.transform = `translate3d(0,${screenH}px,0)`;
-        if (backdrop) backdrop.style.opacity = '0';
-        setTimeout(() => onCloseRef.current(), duration);
+      sheet.style.transition = 'transform 300ms cubic-bezier(0.2,0,0,1)';
+      if (deltaY.current > 80) {
+        sheet.style.transform = `translate3d(0,${window.innerHeight}px,0)`;
+        setTimeout(() => onCloseRef.current(), 300);
       } else {
         sheet.style.transform = 'translate3d(0,0,0)';
-        if (backdrop) backdrop.style.opacity = '1';
       }
     };
 
@@ -350,14 +324,12 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
 
   return (
     <>
-      {/* Backdrop — GPU composited opacity */}
+      {/* Backdrop */}
       <div
-        ref={backdropRef}
         className="fixed inset-0 bg-black/60 z-[115]"
         style={{
           opacity: isAnimating ? 1 : 0,
-          transition: 'opacity 400ms ease-out',
-          willChange: 'opacity',
+          transition: 'opacity 300ms ease-out',
         }}
         onClick={onClose}
       />
@@ -368,10 +340,8 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
         className="fixed inset-0 bg-background z-[120] flex flex-col"
         style={{
           transform: isAnimating ? 'translate3d(0,0,0)' : 'translate3d(0,100%,0)',
-          transition: 'transform 600ms cubic-bezier(0.32, 0.72, 0, 1)',
+          transition: 'transform 300ms cubic-bezier(0.2, 0, 0, 1)',
           willChange: 'transform',
-          contain: 'layout style paint',
-          overscrollBehavior: 'none',
         }}
       >
         {/* Header — вся область для свайпу (native listeners via ref) */}
