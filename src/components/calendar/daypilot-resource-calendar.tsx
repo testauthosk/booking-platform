@@ -1191,16 +1191,17 @@ export function DayPilotResourceCalendar({
                 );
               })}
 
-              {/* Червоний бейдж поточного часу — в колонці годин */}
+              {/* Червоний бейдж поточного часу — ідентичний стандартним лейблам */}
               {isToday_ && nowMinutes !== null && nowMinutes >= dayStartHour * 60 && nowMinutes <= dayEndHour * 60 && (
-                <div
-                  className="absolute right-0 z-30 pointer-events-none"
-                  style={{ top: `${((nowMinutes - dayStartHour * 60) / totalMinutes) * 100}%`, transform: 'translateY(-50%)' }}
+                <span
+                  className="absolute right-1 z-30 pointer-events-none text-[9px] lg:text-xs font-medium bg-red-500 text-white px-[3px] py-[1px] rounded-[3px]"
+                  style={{
+                    top: `${((nowMinutes - dayStartHour * 60 + timeStep) / totalMinutes) * 100}%`,
+                    transform: 'translateY(-50%)',
+                  }}
                 >
-                  <div className="bg-red-500 text-white text-[8px] lg:text-[10px] font-bold px-1 lg:px-1.5 py-[1px] rounded-l-md leading-tight whitespace-nowrap">
-                    {nowTimeStr}
-                  </div>
-                </div>
+                  {nowTimeStr}
+                </span>
               )}
             </div>
 
@@ -1335,21 +1336,15 @@ export function DayPilotResourceCalendar({
             <div className="px-1.5 py-1 text-[10px] font-semibold preview-time-label" style={{ transition: 'color 150ms ease' }} />
           </div>
 
-          {/* Червона лінія поточного часу — через всі колонки */}
+          {/* Червона лінія поточного часу — від границі колонки годин до кінця */}
           {isToday_ && nowMinutes !== null && nowMinutes >= dayStartHour * 60 && nowMinutes <= dayEndHour * 60 && (
             <div
-              className="absolute pointer-events-none z-[3]"
+              className="absolute h-[2px] bg-red-500 pointer-events-none z-[3] left-10 lg:left-14 right-0"
               style={{
-                top: `${((nowMinutes - dayStartHour * 60) / totalMinutes) * 100}%`,
-                left: 0,
-                right: 0,
+                top: `${((nowMinutes - dayStartHour * 60 + timeStep) / totalMinutes) * 100}%`,
+                transform: 'translateY(-50%)',
               }}
-            >
-              {/* Кружок зліва */}
-              <div className="absolute w-2.5 h-2.5 rounded-full bg-red-500 -translate-y-1/2" style={{ left: '36px', lg: '52px' }} />
-              {/* Лінія */}
-              <div className="absolute h-[2px] bg-red-500 -translate-y-1/2" style={{ left: '40px', right: 0 }} />
-            </div>
+            />
           )}
 
           {/* Time indicator line — static DOM, позиція через ref */}
