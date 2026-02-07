@@ -102,6 +102,7 @@ export function DayPilotResourceCalendar({
   // Drag state — dragActive (boolean) для React, все координати через refs + DOM
   const dragRef = useRef<DragState | null>(null);
   const [dragActive, setDragActive] = useState<{ eventId: string; mode: InteractionMode } | null>(null);
+  const [flipHiddenId, setFlipHiddenId] = useState<string | null>(null);
 
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchStartPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -132,6 +133,7 @@ export function DayPilotResourceCalendar({
   const appliedColorRef = useRef<string>('#666');
   const appliedNameRef = useRef<string>('?');
   const resourcesCountRef = useRef(resources.length);
+  const flipRef = useRef<{ eventId: string; from: DOMRect } | null>(null);
 
   // Тримаємо кількість ресурсів в ref для rAF loop
   useEffect(() => { resourcesCountRef.current = resources.length; }, [resources.length]);
@@ -400,6 +402,13 @@ export function DayPilotResourceCalendar({
       };
 
       if (state.mode === 'move' && onEventMove) {
+        if (state.event.resource !== state.targetResourceId) {
+          const el = document.querySelector(`[data-event-id="${state.event.id}"]`) as HTMLElement | null;
+          if (el) {
+            flipRef.current = { eventId: state.event.id, from: el.getBoundingClientRect() };
+            setFlipHiddenId(state.event.id);
+          }
+        }
         onEventMove(state.event.id, makeDate(state.targetStartMin), makeDate(state.targetEndMin), state.targetResourceId);
       } else if ((state.mode === 'resize-top' || state.mode === 'resize-bottom') && onEventResize) {
         onEventResize(state.event.id, makeDate(state.targetStartMin), makeDate(state.targetEndMin));
@@ -725,6 +734,57 @@ export function DayPilotResourceCalendar({
     setInternalDate(startDate);
   }, [startDate]);
 
+  // FLIP animation for cross-column move
+  useEffect(() => {
+    const pending = flipRef.current;
+    if (!pending) return;
+
+    const newEl = document.querySelector(`[data-event-id="${pending.eventId}"]`) as HTMLElement | null;
+    if (!newEl) {
+      setFlipHiddenId(null);
+      flipRef.current = null;
+      return;
+    }
+
+    const to = newEl.getBoundingClientRect();
+    const from = pending.from;
+
+    const clone = newEl.cloneNode(true) as HTMLElement;
+    clone.style.position = 'fixed';
+    clone.style.left = `${from.left}px`;
+    clone.style.top = `${from.top}px`;
+    clone.style.width = `${from.width}px`;
+    clone.style.height = `${from.height}px`;
+    clone.style.margin = '0';
+    clone.style.transformOrigin = 'top left';
+    clone.style.transform = 'translate3d(0,0,0)';
+    clone.style.transition = 'transform 260ms cubic-bezier(0.2, 0.9, 0.3, 1), opacity 260ms cubic-bezier(0.2, 0.9, 0.3, 1)';
+    clone.style.pointerEvents = 'none';
+    clone.style.zIndex = '200';
+    clone.style.willChange = 'transform';
+    clone.style.opacity = '1';
+
+    document.body.appendChild(clone);
+
+    requestAnimationFrame(() => {
+      const dx = to.left - from.left;
+      const dy = to.top - from.top;
+      const sx = from.width ? to.width / from.width : 1;
+      const sy = from.height ? to.height / from.height : 1;
+      clone.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${sx}, ${sy})`;
+      clone.style.opacity = '1';
+    });
+
+    const cleanup = () => {
+      clone.remove();
+      setFlipHiddenId(null);
+      flipRef.current = null;
+    };
+
+    const t = window.setTimeout(cleanup, 280);
+    return () => window.clearTimeout(t);
+  }, [events]);
+
   // weekBar resize observer видалено — тепер в layout
 
   // Генеруємо години для сітки
@@ -917,6 +977,7 @@ export function DayPilotResourceCalendar({
                   return (
                     <div
                       key={event.id}
+                      data-event-id={event.id}
                       className={`absolute left-0 right-0.5 rounded-r-lg overflow-hidden select-none transition-all duration-300 ease-out ${
                         isBeingDragged ? 'opacity-30 scale-95' : 'cursor-grab active:scale-[0.98]'
                       }`}
@@ -924,6 +985,7 @@ export function DayPilotResourceCalendar({
                         top: `${pos.top}%`,
                         height: `${pos.height}%`,
                         minHeight: '36px',
+                        opacity: isBeingDragged ? 0.3 : flipHiddenId === event.id ? 0 : 1,
                         background: `linear-gradient(160deg, ${bgColor} 0%, ${bgColor}e0 100%)`,
                         boxShadow: `0 1px 4px ${bgColor}50, 0 2px 6px rgba(0,0,0,0.08)`,
                         borderLeft: `3px solid ${borderColor}`,
