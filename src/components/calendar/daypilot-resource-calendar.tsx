@@ -369,7 +369,12 @@ export function DayPilotResourceCalendar({
   }, [resources, dayStartHour, dayEndHour]);
 
   const startDrag = useCallback((event: CalendarEvent, mode: InteractionMode, clientX: number, clientY: number) => {
-    if (isPastDate()) return; // Заборона drag на минулих датах
+    if (isPastDate()) return;
+    // Блокувати drag для минулих подій
+    if (event.end) {
+      const endDate = typeof event.end === 'string' ? new Date(event.end) : event.end;
+      if (endDate < new Date()) return;
+    }
     didDrag.current = true;
     if (navigator.vibrate) { try { navigator.vibrate(50); } catch {} }
     lockScroll();
