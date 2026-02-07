@@ -63,6 +63,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
   const [selectedMasterId, setSelectedMasterId] = useState<string>('');
   const [masters, setMasters] = useState<{ id: string; name: string }[]>([]);
   const [showMasterPicker, setShowMasterPicker] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   // Swipe down to close
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -273,8 +274,6 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
     const endMinutes = h * 60 + m + totalDuration;
     return `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
   };
-
-  const [saveError, setSaveError] = useState('');
 
   const handleSave = async () => {
     if (!selectedTime) return;
