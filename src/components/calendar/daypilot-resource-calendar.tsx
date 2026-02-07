@@ -250,7 +250,7 @@ export function DayPilotResourceCalendar({
 
     const gc = ghostCardRef.current;
     if (gc) {
-      gc.style.transform = `translate3d(${d.ghostX - 70}px, ${d.ghostY - 22}px, 0)`;
+      gc.style.transform = `translate3d(${d.ghostX - 70}px, ${d.ghostY - gc.offsetHeight - 22}px, 0)`;
       gc.style.opacity = '1';
       const timeEl = gc.querySelector('[data-ghost-time]');
       if (timeEl) timeEl.textContent = `${formatMinutes(d.targetStartMin)} – ${formatMinutes(d.targetEndMin)}`;
@@ -329,9 +329,9 @@ export function DayPilotResourceCalendar({
       mode,
       ghostX: clientX,
       ghostY: clientY,
-      targetResourceId: pos?.resourceId || event.resource,
-      targetStartMin: mode === 'move' ? (pos?.startMin || startMin) : startMin,
-      targetEndMin: mode === 'move' ? (pos?.startMin || startMin) + (endMin - startMin) : endMin,
+      targetResourceId: mode === 'move' ? event.resource : (pos?.resourceId || event.resource),
+      targetStartMin: mode === 'move' ? startMin : startMin,
+      targetEndMin: mode === 'move' ? endMin : endMin,
       phase: 'dragging',
     };
 
@@ -355,6 +355,25 @@ export function DayPilotResourceCalendar({
     previewColorRef.current = appliedColorRef.current;
     updatePreviewTarget();
     updateGhostDOM();
+
+    // animate ghost split (card up, label down)
+    if (ghostCardRef.current) {
+      const inner = ghostCardRef.current.querySelector('[data-ghost-card]') as HTMLElement | null;
+      if (inner) {
+        inner.classList.remove('animate-ghost-up');
+        void inner.offsetWidth;
+        inner.classList.add('animate-ghost-up');
+      }
+    }
+    if (ghostLabelRef.current) {
+      const inner = ghostLabelRef.current.querySelector('[data-ghost-label]') as HTMLElement | null;
+      if (inner) {
+        inner.classList.remove('animate-ghost-down');
+        void inner.offsetWidth;
+        inner.classList.add('animate-ghost-down');
+      }
+    }
+
     // setState тільки для boolean flag (1 раз при старті)
     setDragActive({ eventId: event.id, mode });
   }, [getGridPosition, getEventMinutes, lockScroll, isPastDate, updatePreviewTarget, updateGhostDOM]);
