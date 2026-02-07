@@ -758,7 +758,7 @@ export function DayPilotResourceCalendar({
     clone.style.margin = '0';
     clone.style.transformOrigin = 'top left';
     clone.style.transform = 'translate3d(0,0,0)';
-    clone.style.transition = 'transform 260ms cubic-bezier(0.2, 0.9, 0.3, 1), opacity 260ms cubic-bezier(0.2, 0.9, 0.3, 1)';
+    clone.style.transition = 'none';
     clone.style.pointerEvents = 'none';
     clone.style.zIndex = '200';
     clone.style.willChange = 'transform';
@@ -767,12 +767,15 @@ export function DayPilotResourceCalendar({
     document.body.appendChild(clone);
 
     requestAnimationFrame(() => {
-      const dx = to.left - from.left;
-      const dy = to.top - from.top;
-      const sx = from.width ? to.width / from.width : 1;
-      const sy = from.height ? to.height / from.height : 1;
-      clone.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${sx}, ${sy})`;
-      clone.style.opacity = '1';
+      requestAnimationFrame(() => {
+        const dx = to.left - from.left;
+        const dy = to.top - from.top;
+        const sx = from.width ? to.width / from.width : 1;
+        const sy = from.height ? to.height / from.height : 1;
+        clone.style.transition = 'transform 260ms cubic-bezier(0.2, 0.9, 0.3, 1), opacity 260ms cubic-bezier(0.2, 0.9, 0.3, 1)';
+        clone.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${sx}, ${sy})`;
+        clone.style.opacity = '1';
+      });
     });
 
     const cleanup = () => {
