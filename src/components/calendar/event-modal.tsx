@@ -181,29 +181,19 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
             <div className="space-y-3">
               {/* Клієнт */}
               {event.clientName && (
-                <div className="flex items-center gap-2">
-                  <button
-                    className="flex items-center gap-3 flex-1 min-w-0 text-left rounded-xl p-2 -ml-2 hover:bg-muted/50 transition-colors group"
-                    onClick={() => onOpenClient?.(event.clientId || '', event.clientPhone)}
-                  >
-                    <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[11px] text-muted-foreground">Клієнт</p>
-                      <p className="font-medium text-sm truncate">{event.clientName}</p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                  </button>
-                  {onChangeClient && (
-                    <button
-                      className="text-xs text-primary font-medium px-2 py-1 rounded-lg hover:bg-primary/5 transition-colors shrink-0"
-                      onClick={() => onChangeClient(event.id, event.clientId)}
-                    >
-                      Змінити
-                    </button>
-                  )}
-                </div>
+                <button
+                  className="flex items-center gap-3 w-full text-left rounded-xl p-3 bg-muted/30 border border-border/50 active:bg-muted/60 transition-colors"
+                  onClick={() => onOpenClient?.(event.clientId || '', event.clientPhone)}
+                >
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <User className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] text-muted-foreground">Клієнт</p>
+                    <p className="font-medium text-sm truncate">{event.clientName}</p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+                </button>
               )}
 
               {/* Кнопки зв'язку */}
@@ -250,31 +240,21 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
 
               {/* Майстер */}
               {event.masterName && (
-                <div className="flex items-center gap-2">
-                  <button
-                    className="flex items-center gap-3 flex-1 min-w-0 text-left rounded-xl p-2 -ml-2 hover:bg-muted/50 transition-colors group"
-                    onClick={() => event.resourceId && onOpenMaster?.(event.resourceId)}
+                <button
+                  className="flex items-center gap-3 w-full text-left rounded-xl p-3 bg-muted/30 border border-border/50 active:bg-muted/60 transition-colors"
+                  onClick={() => event.resourceId && onOpenMaster?.(event.resourceId)}
+                >
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: event.backgroundColor || '#8b5cf6' }}
                   >
-                    <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                      style={{ backgroundColor: event.backgroundColor || '#8b5cf6' }}
-                    >
-                      <span className="text-white text-sm font-bold">{event.masterName.charAt(0).toUpperCase()}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[11px] text-muted-foreground">Майстер</p>
-                      <p className="font-medium text-sm truncate">{event.masterName}</p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                  </button>
-                  {onChangeMaster && (
-                    <button
-                      className="text-xs text-primary font-medium px-2 py-1 rounded-lg hover:bg-primary/5 transition-colors shrink-0"
-                      onClick={() => onChangeMaster(event.id, event.resourceId)}
-                    >
-                      Змінити
-                    </button>
-                  )}
-                </div>
+                    <span className="text-white text-sm font-bold">{event.masterName.charAt(0).toUpperCase()}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] text-muted-foreground">Майстер</p>
+                    <p className="font-medium text-sm truncate">{event.masterName}</p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+                </button>
               )}
 
               {/* Дата і час */}
