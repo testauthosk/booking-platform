@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Menu, Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/notification-bell';
@@ -460,41 +460,45 @@ export default function CalendarPage() {
           >
             <Menu className="h-[18px] w-[18px] text-gray-700" />
           </button>
-          <div className="flex h-10 items-center bg-gray-100 rounded-xl p-1 gap-0.5">
+          {/* Segment control with sliding indicator */}
+          <div className="relative flex h-10 items-center bg-gray-100 rounded-xl p-1">
+            {/* Animated indicator */}
+            <div
+              className="absolute top-1 bottom-1 rounded-lg bg-white shadow-sm transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+              style={{
+                left: viewMode === 'day' ? '4px' : '50%',
+                width: 'calc(50% - 4px)',
+              }}
+            />
             <button
-              className={`h-8 px-3.5 text-[13px] font-semibold rounded-lg transition-all whitespace-nowrap ${viewMode === 'day' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 active:bg-gray-200'}`}
+              className={`relative z-10 h-8 px-3.5 text-[13px] font-semibold rounded-lg transition-colors duration-200 whitespace-nowrap ${viewMode === 'day' ? 'text-gray-900' : 'text-gray-500'}`}
               onClick={() => setViewMode('day')}
             >
               День
             </button>
             <button
-              className={`h-8 px-3.5 text-[13px] font-semibold rounded-lg transition-all whitespace-nowrap ${viewMode === 'week' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 active:bg-gray-200'}`}
+              className={`relative z-10 h-8 px-3.5 text-[13px] font-semibold rounded-lg transition-colors duration-200 whitespace-nowrap ${viewMode === 'week' ? 'text-gray-900' : 'text-gray-500'}`}
               onClick={() => setViewMode('week')}
             >
               Тиждень
             </button>
           </div>
         </div>
-        {/* Right: today + add + bell + avatar */}
+        {/* Right: today + bell + avatar */}
         <div className="flex items-center gap-2">
           <button
-            className={`h-10 px-3.5 rounded-xl text-[13px] font-semibold transition-colors whitespace-nowrap ${isToday ? 'bg-gray-100 text-gray-900' : 'bg-gray-100 text-gray-700 active:bg-gray-200'}`}
+            className="h-10 px-3.5 rounded-xl bg-gray-100 text-[13px] font-semibold text-gray-700 active:bg-gray-200 transition-colors whitespace-nowrap"
             onClick={goToToday}
           >
             Сьогодні
           </button>
-          {(user?.role === 'OWNER' || user?.role === 'ADMIN') && (
-            <button
-              className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center active:bg-gray-200 transition-colors shrink-0"
-              onClick={() => setIsColleagueBookingOpen(true)}
-            >
-              <Plus className="h-[18px] w-[18px] text-gray-700" />
-            </button>
-          )}
           <NotificationBell />
-          <div className="h-10 w-10 rounded-xl bg-orange-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
+          <button
+            className="h-10 w-10 rounded-xl bg-orange-500 flex items-center justify-center text-white font-bold text-sm shrink-0 active:opacity-80 transition-opacity"
+            onClick={() => {/* TODO: open profile */}}
+          >
             {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-          </div>
+          </button>
         </div>
       </header>
 

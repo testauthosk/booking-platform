@@ -99,7 +99,7 @@ export function NotificationBell() {
   };
 
   return (
-    <div ref={containerRef} className="relative z-50">
+    <div ref={containerRef} className="relative z-[70]">
       {/* Bell button - transforms to square when open */}
       <motion.div
         role="button"
@@ -133,7 +133,7 @@ export function NotificationBell() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="absolute right-0 top-[39px] w-80 bg-card border border-border rounded-b-xl rounded-tl-xl overflow-hidden z-50"
+            className="absolute right-0 top-[39px] w-80 bg-card border border-border rounded-b-xl rounded-tl-xl overflow-hidden z-[70]"
             style={{ marginRight: '0px' }}
           >
             {/* Top border line with gap for button connection */}
