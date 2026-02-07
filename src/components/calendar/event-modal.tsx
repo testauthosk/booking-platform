@@ -81,10 +81,10 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
       isDragging.current = false;
       cancelAnimationFrame(rafId.current);
 
-      sheet.style.transition = 'transform 450ms cubic-bezier(0.2,0,0,1)';
+      sheet.style.transition = 'transform 750ms cubic-bezier(0.2,0,0,1)';
       if (deltaY.current > 80) {
         sheet.style.transform = `translate3d(0,${window.innerHeight}px,0)`;
-        setTimeout(() => onCloseRef.current(), 450);
+        setTimeout(() => onCloseRef.current(), 750);
       } else {
         sheet.style.transform = 'translate3d(0,0,0)';
       }
