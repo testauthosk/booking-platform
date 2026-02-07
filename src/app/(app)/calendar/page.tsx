@@ -451,7 +451,7 @@ export default function CalendarPage() {
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Mobile header */}
-      <header className="lg:hidden flex items-center justify-between px-3 h-14 bg-white border-b border-gray-200 shrink-0 z-20">
+      <header className="lg:hidden flex items-center justify-between px-3 h-14 bg-white border-b border-gray-200 shrink-0 z-40">
         {/* Left: menu + view toggle */}
         <div className="flex items-center gap-2">
           <button
@@ -461,13 +461,14 @@ export default function CalendarPage() {
             <Menu className="h-[18px] w-[18px] text-gray-700" />
           </button>
           {/* Segment control with sliding indicator */}
-          <div className="relative flex h-10 items-center bg-gray-100 rounded-xl p-1">
+          <div className="relative grid grid-cols-2 h-10 bg-gray-100 rounded-xl p-1 gap-0.5">
             {/* Animated indicator */}
             <div
-              className="absolute top-1 bottom-1 rounded-lg bg-white shadow-sm transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+              className="absolute top-1 bottom-1 rounded-lg bg-white shadow-sm pointer-events-none transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
               style={{
-                left: viewMode === 'day' ? '4px' : '50%',
-                width: 'calc(50% - 4px)',
+                width: 'calc(50% - 3px)',
+                left: '4px',
+                transform: viewMode === 'day' ? 'translateX(0)' : 'translateX(calc(100% + 2px))',
               }}
             />
             <button
