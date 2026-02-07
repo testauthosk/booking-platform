@@ -129,6 +129,8 @@ export function DayPilotResourceCalendar({
   const previewInitRef = useRef(false);
   const appliedResourceRef = useRef<string | null>(null);
   const pendingColorRef = useRef<string>('#666');
+  const appliedColorRef = useRef<string>('#666');
+  const appliedNameRef = useRef<string>('?');
 
   // Відкрити модалку з деталями запису
   const openEventModal = (event: CalendarEvent) => {
@@ -249,9 +251,8 @@ export function DayPilotResourceCalendar({
       if (timeEl) timeEl.textContent = `${formatMinutes(d.targetStartMin)} – ${formatMinutes(d.targetEndMin)}`;
       const nameEl = gc.querySelector('[data-ghost-name]');
       if (nameEl) nameEl.textContent = d.event.clientName || d.event.text;
-      // Колір ghost = колір цільового ресурсу
-      const targetRes = resources.find(r => r.id === d.targetResourceId);
-      const ghostColor = targetRes?.color || d.event.backColor || '#666';
+      // Колір ghost = applied (не target!) — міняється в rAF коли preview доїде
+      const ghostColor = appliedColorRef.current;
       const cardInner = gc.querySelector('[data-ghost-card]') as HTMLElement;
       if (cardInner) cardInner.style.background = `linear-gradient(160deg, ${ghostColor} 0%, ${darkenColor(ghostColor, 15)} 100%)`;
     }
@@ -263,9 +264,8 @@ export function DayPilotResourceCalendar({
       gl.style.opacity = '1';
       const labelText = gl.querySelector('[data-ghost-label]');
       if (labelText) {
-        const targetRes = resources.find(r => r.id === d.targetResourceId);
         labelText.textContent = d.mode === 'move'
-          ? `→ ${targetRes?.name || '?'}`
+          ? `→ ${appliedNameRef.current}`
           : `↕ ${d.mode === 'resize-top' ? 'початок' : 'кінець'}`;
       }
     }
@@ -303,7 +303,7 @@ export function DayPilotResourceCalendar({
       h: ((previewEndMin - previewStartMin) / totalMinutes) * cH,
       active: true,
     };
-    // Цвет в pending — застосується коли preview доїде по X
+    // Pending — застосується коли preview доїде по X
     pendingColorRef.current = resources[colIdx]?.color || '#666';
   }, [resources, dayStartHour, dayEndHour]);
 
@@ -339,7 +339,13 @@ export function DayPilotResourceCalendar({
 
     dragRef.current = state;
     previewInitRef.current = false;
-    appliedResourceRef.current = null;
+    // Applied = стартовий ресурс (колір/ім'я показані одразу)
+    appliedResourceRef.current = state.targetResourceId;
+    const startRes = resources.find(r => r.id === state.targetResourceId);
+    appliedColorRef.current = startRes?.color || event.backColor || '#666';
+    appliedNameRef.current = startRes?.name || '?';
+    pendingColorRef.current = appliedColorRef.current;
+    previewColorRef.current = appliedColorRef.current;
     updatePreviewTarget();
     updateGhostDOM();
     // setState тільки для boolean flag (1 раз при старті)
@@ -641,9 +647,33 @@ export function DayPilotResourceCalendar({
         cur.h += (tgt.h - cur.h) * lerpSpeed;
       }
 
-      // Колір/label міняються тільки коли preview доїхав по X (< 5px)
-      if (Math.abs(cur.x - tgt.x) < 5 && previewColorRef.current !== pendingColorRef.current) {
+      // Колір/label міняються тільки коли preview доїхав по X (< 4px)
+      if (Math.abs(cur.x - tgt.x) < 4 && previewColorRef.current !== pendingColorRef.current) {
         previewColorRef.current = pendingColorRef.current;
+        appliedColorRef.current = pendingColorRef.current;
+        // Знайти ім'я ресурсу для ghost label
+        const d = dragRef.current;
+        if (d) {
+          appliedResourceRef.current = d.targetResourceId;
+          // Оновити ghost card/label з новим кольором/іменем (DOM)
+          const gc = ghostCardRef.current;
+          if (gc) {
+            const cardInner = gc.querySelector('[data-ghost-card]') as HTMLElement;
+            if (cardInner) cardInner.style.background = `linear-gradient(160deg, ${appliedColorRef.current} 0%, ${darkenColor(appliedColorRef.current, 15)} 100%)`;
+          }
+          const gl = ghostLabelRef.current;
+          if (gl) {
+            const labelText = gl.querySelector('[data-ghost-label]');
+            if (labelText && d.mode === 'move') {
+              // Шукаємо ім'я — через closure не маємо resources, беремо з DOM
+              const headers = document.querySelectorAll('[data-resource-name]');
+              const cols = Array.from(headers);
+              const idx = cols.findIndex(el => (el as HTMLElement).dataset.resourceId === d.targetResourceId);
+              appliedNameRef.current = idx >= 0 ? (cols[idx] as HTMLElement).textContent || '?' : '?';
+              labelText.textContent = `→ ${appliedNameRef.current}`;
+            }
+          }
+        }
       }
 
       el.style.transform = `translate(${cur.x}px, ${cur.y}px)`;
@@ -824,7 +854,7 @@ export function DayPilotResourceCalendar({
                     {r.name.charAt(0).toUpperCase()}
                   </div>
                 )}
-                <div className="text-[10px] font-medium text-gray-700 mt-1 truncate px-0.5">{r.name}</div>
+                <div className="text-[10px] font-medium text-gray-700 mt-1 truncate px-0.5" data-resource-name data-resource-id={r.id}>{r.name}</div>
               </div>
             ))}
           </div>
@@ -984,7 +1014,7 @@ export function DayPilotResourceCalendar({
         className="fixed z-[90] pointer-events-none select-none"
         style={{ opacity: 0, left: 0, bottom: 0 }}
       >
-        <div data-ghost-card className="w-[140px] rounded-xl px-3 py-2 text-white text-[11px] font-semibold shadow-2xl bg-gray-600" style={{ opacity: 0.95 }}>
+        <div data-ghost-card className="w-[140px] rounded-xl px-3 py-2 text-white text-[11px] font-semibold shadow-2xl bg-gray-600" style={{ opacity: 0.95, transition: 'background 200ms ease' }}>
           <div className="font-bold text-[12px]" data-ghost-time />
           <div className="truncate opacity-90" data-ghost-name />
         </div>
