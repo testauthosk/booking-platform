@@ -417,23 +417,7 @@ export default function CalendarPage() {
           >
             <Menu className="h-4 w-4" />
           </Button>
-          {/* Date + calendar picker */}
-          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-            <PopoverTrigger asChild>
-              <button className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-muted transition-colors">
-                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-semibold capitalize">{formatDateUk(selectedDate)}</span>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => { if (date) { setSelectedDate(date); setIsCalendarOpen(false); }}}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          <span className="text-sm font-semibold capitalize">{formatDateUk(selectedDate)}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <Button
@@ -581,7 +565,25 @@ export default function CalendarPage() {
       </div>
       {settingsOpen && <div className="fixed inset-0 bg-black/20 z-[65]" onClick={() => setSettingsOpen(false)} />}
 
-      {/* Mobile FAB */}
+      {/* Mobile FABs — calendar + add */}
+      <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            className="lg:hidden fixed right-2 bottom-[172px] w-12 h-12 rounded-2xl shadow-lg z-50 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700"
+            size="icon"
+          >
+            <CalendarIcon className="h-5 w-5" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="end" side="top">
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={(date) => { if (date) { setSelectedDate(date); setIsCalendarOpen(false); }}}
+            initialFocus
+          />
+        </PopoverContent>
+      </Popover>
       <Button
         className="lg:hidden fixed right-2 bottom-[108px] w-14 h-14 rounded-2xl shadow-lg z-50 bg-gray-900 hover:bg-gray-800"
         size="icon"
