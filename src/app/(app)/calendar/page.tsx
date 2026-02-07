@@ -100,6 +100,7 @@ export default function CalendarPage() {
   const [rawBookings, setRawBookings] = useState<BookingFromAPI[]>([]);
   const { selectedDate, setSelectedDate } = useCalendarDate();
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isMobileCalendarOpen, setIsMobileCalendarOpen] = useState(false);
   const [salonTimezone, setSalonTimezone] = useState<string>('Europe/Kiev');
   const [services, setServices] = useState<{ id: string; name: string; duration: number; price: number }[]>([]);
   const [settingsMenu, setSettingsMenu] = useState<{ open: boolean; x: number; y: number; startMin?: number; resourceId?: string }>({ open: false, x: 0, y: 0 });
@@ -572,7 +573,7 @@ export default function CalendarPage() {
       <Button
         className="lg:hidden fixed right-2 bottom-[178px] w-14 h-14 rounded-2xl shadow-lg z-50 bg-gray-900 hover:bg-gray-800"
         size="icon"
-        onClick={() => setIsCalendarOpen(true)}
+        onClick={() => setIsMobileCalendarOpen(true)}
       >
         <CalendarIcon className="h-6 w-6" />
       </Button>
@@ -585,8 +586,8 @@ export default function CalendarPage() {
       </Button>
 
       {/* Mobile calendar picker overlay */}
-      {isCalendarOpen && (
-        <div className="lg:hidden fixed inset-0 z-[200] flex items-end justify-center" onClick={() => setIsCalendarOpen(false)}>
+      {isMobileCalendarOpen && (
+        <div className="lg:hidden fixed inset-0 z-[200] flex items-end justify-center" onClick={() => setIsMobileCalendarOpen(false)}>
           <div className="absolute inset-0 bg-black/50" />
           <div 
             className="relative bg-white rounded-t-2xl shadow-2xl w-full max-w-sm mx-auto pb-8 pt-3"
@@ -596,7 +597,7 @@ export default function CalendarPage() {
             <Calendar
               mode="single"
               selected={selectedDate}
-              onSelect={(date) => { if (date) { setSelectedDate(date); setIsCalendarOpen(false); }}}
+              onSelect={(date) => { if (date) { setSelectedDate(date); setIsMobileCalendarOpen(false); }}}
               initialFocus
               className="mx-auto"
             />
