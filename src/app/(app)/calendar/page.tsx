@@ -115,9 +115,9 @@ function ViewModeSegment({ viewMode, onChange }: { viewMode: 'day' | 'week'; onC
   }, [viewMode]);
 
   return (
-    <div ref={containerRef} className="relative flex h-10 items-center bg-gray-100 border border-black/60 rounded-xl p-1">
+    <div ref={containerRef} className="relative flex h-10 items-center bg-gray-100 border border-black/40 rounded-xl px-1">
       <div
-        className="absolute top-1 bottom-1 rounded-lg bg-white shadow-sm pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+        className="absolute top-[3px] bottom-[3px] rounded-lg bg-white shadow-sm pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
         style={{ left: ind.left, width: ind.width }}
       />
       <button
@@ -494,7 +494,7 @@ export default function CalendarPage() {
         {/* Left: menu + view toggle */}
         <div className="flex items-center gap-2">
           <button
-            className="h-10 w-10 rounded-xl bg-gray-100 border border-black/60 flex items-center justify-center active:bg-gray-200 transition-colors shrink-0"
+            className="h-10 w-10 rounded-xl bg-gray-100 border border-black/40 flex items-center justify-center active:bg-gray-200 transition-colors shrink-0"
             onClick={openSidebar}
           >
             <Menu className="h-[18px] w-[18px] text-gray-700" />
@@ -505,7 +505,7 @@ export default function CalendarPage() {
         {/* Right: today + bell + avatar */}
         <div className="flex items-center gap-2">
           <button
-            className="h-10 px-3.5 rounded-xl bg-gray-100 border border-black/60 text-[13px] font-semibold text-gray-700 active:bg-gray-200 transition-colors whitespace-nowrap"
+            className="h-10 px-3.5 rounded-xl bg-gray-100 border border-black/40 text-[13px] font-semibold text-gray-700 active:bg-gray-200 transition-colors whitespace-nowrap"
             onClick={goToToday}
           >
             Сьогодні
