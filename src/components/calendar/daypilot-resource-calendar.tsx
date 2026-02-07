@@ -38,6 +38,7 @@ interface DayPilotResourceCalendarProps {
   timeStep?: 5 | 15 | 30;
   dayStartHour?: number;
   dayEndHour?: number;
+  timezone?: string;
 }
 
 // Українські назви днів
@@ -100,11 +101,44 @@ export function DayPilotResourceCalendar({
   timeStep = 15,
   dayStartHour = 8,
   dayEndHour = 21,
+  timezone = 'Europe/Kiev',
 }: DayPilotResourceCalendarProps) {
   const [internalDate, setInternalDate] = useState(startDate);
   const [mounted, setMounted] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Поточний час салону (timezone-aware)
+  const [nowMinutes, setNowMinutes] = useState<number | null>(null);
+  const [nowTimeStr, setNowTimeStr] = useState<string>('');
+  const [isToday_, setIsToday_] = useState(false);
+
+  useEffect(() => {
+    const update = () => {
+      const now = new Date();
+      // Час салону через Intl
+      const parts = new Intl.DateTimeFormat('en-GB', {
+        timeZone: timezone,
+        hour: '2-digit', minute: '2-digit', hour12: false,
+      }).formatToParts(now);
+      const h = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
+      const m = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
+      setNowMinutes(h * 60 + m);
+      setNowTimeStr(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+
+      // Чи сьогодні (в timezone салону)
+      const salonDateStr = new Intl.DateTimeFormat('en-CA', {
+        timeZone: timezone,
+        year: 'numeric', month: '2-digit', day: '2-digit',
+      }).format(now);
+      const selectedStr = `${internalDate.getFullYear()}-${String(internalDate.getMonth() + 1).padStart(2, '0')}-${String(internalDate.getDate()).padStart(2, '0')}`;
+      setIsToday_(salonDateStr === selectedStr);
+    };
+
+    update();
+    const interval = setInterval(update, 30000); // кожні 30 сек
+    return () => clearInterval(interval);
+  }, [timezone, internalDate]);
 
   // Drag state — dragActive (boolean) для React, все координати через refs + DOM
   const dragRef = useRef<DragState | null>(null);
@@ -1156,6 +1190,18 @@ export function DayPilotResourceCalendar({
                   </div>
                 );
               })}
+
+              {/* Червоний бейдж поточного часу — в колонці годин */}
+              {isToday_ && nowMinutes !== null && nowMinutes >= dayStartHour * 60 && nowMinutes <= dayEndHour * 60 && (
+                <div
+                  className="absolute right-0 z-30 pointer-events-none"
+                  style={{ top: `${((nowMinutes - dayStartHour * 60) / totalMinutes) * 100}%`, transform: 'translateY(-50%)' }}
+                >
+                  <div className="bg-red-500 text-white text-[8px] lg:text-[10px] font-bold px-1 lg:px-1.5 py-[1px] rounded-l-md leading-tight whitespace-nowrap">
+                    {nowTimeStr}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Колонки ресурсів */}
@@ -1288,6 +1334,23 @@ export function DayPilotResourceCalendar({
           >
             <div className="px-1.5 py-1 text-[10px] font-semibold preview-time-label" style={{ transition: 'color 150ms ease' }} />
           </div>
+
+          {/* Червона лінія поточного часу — через всі колонки */}
+          {isToday_ && nowMinutes !== null && nowMinutes >= dayStartHour * 60 && nowMinutes <= dayEndHour * 60 && (
+            <div
+              className="absolute pointer-events-none z-[3]"
+              style={{
+                top: `${((nowMinutes - dayStartHour * 60) / totalMinutes) * 100}%`,
+                left: 0,
+                right: 0,
+              }}
+            >
+              {/* Кружок зліва */}
+              <div className="absolute w-2.5 h-2.5 rounded-full bg-red-500 -translate-y-1/2" style={{ left: '36px', lg: '52px' }} />
+              {/* Лінія */}
+              <div className="absolute h-[2px] bg-red-500 -translate-y-1/2" style={{ left: '40px', right: 0 }} />
+            </div>
+          )}
 
           {/* Time indicator line — static DOM, позиція через ref */}
           <div

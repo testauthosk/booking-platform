@@ -464,6 +464,7 @@ export default function CalendarPage() {
           timeStep={settings.gridStep}
           dayStartHour={8}
           dayEndHour={21}
+          timezone={salonTimezone}
         />
       </div>
 
