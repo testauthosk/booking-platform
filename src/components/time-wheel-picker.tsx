@@ -9,6 +9,7 @@ interface TimeWheelPickerProps {
   onTimeChange: (start: string, end: string) => void;
   workingHours?: { start: number; end: number };
   isToday?: boolean;
+  disabled?: boolean;
 }
 
 export function TimeWheelPicker({
@@ -17,6 +18,7 @@ export function TimeWheelPicker({
   onTimeChange,
   workingHours = { start: 9, end: 20 },
   isToday = false,
+  disabled = false,
 }: TimeWheelPickerProps) {
   
   // Generate time slots with 5-minute step
@@ -101,6 +103,7 @@ export function TimeWheelPicker({
   }, [duration]);
 
   const handleChange = (value: { start: string; end: string }, key: string) => {
+    if (disabled) return;
     if (key === 'start') {
       const newEnd = calculateEndTime(value.start, duration);
       const newValue = { start: value.start, end: newEnd };
@@ -188,6 +191,16 @@ export function TimeWheelPicker({
           <div className="h-[36px] border-t border-b border-zinc-600" />
         </div>
         
+        {/* Disabled overlay */}
+        {disabled && (
+          <div className="absolute inset-0 bg-zinc-900/60 z-10 rounded-xl flex items-center justify-center">
+            <div className="flex items-center gap-1.5 text-zinc-400 text-sm">
+              <span>🔒</span>
+              <span>Запис вже йде</span>
+            </div>
+          </div>
+        )}
+
         {/* Duration indicator overlay - centered in selection area */}
         <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[36px] flex items-center justify-center pointer-events-none">
           <div className="flex flex-col items-center text-zinc-400">

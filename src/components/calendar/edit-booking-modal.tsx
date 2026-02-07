@@ -550,6 +550,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
             <label className="text-sm font-medium flex items-center gap-2 mb-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
               Дата
+              {hasStarted && <Lock className="h-3 w-3 text-muted-foreground" />}
             </label>
             <div className="flex gap-2 overflow-x-auto pb-1">
               {days.map((day) => {
@@ -558,7 +559,8 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
                 return (
                   <button
                     key={day.toISOString()}
-                    onClick={() => setSelectedDate(day)}
+                    onClick={() => !hasStarted && setSelectedDate(day)}
+                    disabled={hasStarted}
                     className={cn(
                       "shrink-0 w-14 py-2 rounded-xl border text-center transition-all",
                       isSelected
@@ -582,6 +584,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
             <label className="text-sm font-medium flex items-center gap-2 mb-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
               Час
+              {hasStarted && <Lock className="h-3 w-3 text-muted-foreground" />}
             </label>
             <div className="bg-zinc-900 rounded-2xl p-4">
               <TimeWheelPicker
@@ -592,6 +595,7 @@ export function EditBookingModal({ isOpen, onClose, booking, services, salonId, 
                 }}
                 workingHours={{ start: 9, end: 20 }}
                 isToday={isSameDay(selectedDate, new Date())}
+                disabled={hasStarted}
               />
             </div>
           </div>
