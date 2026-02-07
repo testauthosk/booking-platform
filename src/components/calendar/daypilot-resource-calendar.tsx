@@ -16,6 +16,7 @@ export interface CalendarEvent {
   clientPhone?: string;
   serviceId?: string;
   serviceName?: string;
+  masterName?: string;
   isNewClient?: boolean;
   status?: string;
 }
@@ -41,6 +42,9 @@ interface DayPilotResourceCalendarProps {
   dayStartHour?: number;
   dayEndHour?: number;
   timezone?: string;
+  viewMode?: 'day' | 'week';
+  salonWorkingHours?: Record<string, { start: string; end: string; enabled: boolean }> | null;
+  masterWorkingHours?: Record<string, Record<string, { start: string; end: string; enabled: boolean }>>;
 }
 
 // Українські назви днів
@@ -104,6 +108,9 @@ export function DayPilotResourceCalendar({
   dayStartHour = 8,
   dayEndHour = 21,
   timezone = 'Europe/Kiev',
+  viewMode = 'day',
+  salonWorkingHours,
+  masterWorkingHours,
 }: DayPilotResourceCalendarProps) {
   const [internalDate, setInternalDate] = useState(startDate);
   const [mounted, setMounted] = useState(false);
@@ -1065,6 +1072,36 @@ export function DayPilotResourceCalendar({
     onDateChange?.(date);
   };
 
+  // Working hours helper
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const getWorkingHoursForResource = (resourceId: string, date: Date): { startMin: number; endMin: number; enabled: boolean } | null => {
+    const dayKey = dayNames[date.getDay()];
+    // Master-specific first
+    const masterWh = masterWorkingHours?.[resourceId]?.[dayKey];
+    if (masterWh) return { startMin: parseInt(masterWh.start.split(':')[0]) * 60 + parseInt(masterWh.start.split(':')[1] || '0'), endMin: parseInt(masterWh.end.split(':')[0]) * 60 + parseInt(masterWh.end.split(':')[1] || '0'), enabled: masterWh.enabled };
+    // Fallback to salon
+    const salonWh = salonWorkingHours?.[dayKey as keyof typeof salonWorkingHours] as { start: string; end: string; enabled: boolean } | undefined;
+    if (salonWh) return { startMin: parseInt(salonWh.start.split(':')[0]) * 60 + parseInt(salonWh.start.split(':')[1] || '0'), endMin: parseInt(salonWh.end.split(':')[0]) * 60 + parseInt(salonWh.end.split(':')[1] || '0'), enabled: salonWh.enabled };
+    return null;
+  };
+
+  // Week view helpers
+  const getWeekDaysArray = (date: Date) => {
+    const days: Date[] = [];
+    const current = new Date(date);
+    const dow = current.getDay();
+    const monday = new Date(current);
+    monday.setDate(current.getDate() - (dow === 0 ? 6 : dow - 1));
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      days.push(d);
+    }
+    return days;
+  };
+  const weekViewDays = viewMode === 'week' ? getWeekDaysArray(internalDate) : [];
+  const ukDaysShortWeek = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+
   // Фільтруємо події для поточної дати
   const dateStr = internalDate.toISOString().split('T')[0];
   const filteredEvents = events.filter(e => e.start.startsWith(dateStr));
@@ -1135,6 +1172,98 @@ export function DayPilotResourceCalendar({
         
       {/* Єдиний скрол-контейнер (header sticky top, нативний скрол, 60fps) */}
       <div className="flex-1 overflow-hidden">
+        {viewMode === 'week' ? (
+          /* ====== WEEK VIEW ====== */
+          <div className="h-full overflow-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+            {/* Week header */}
+            <div className="flex border-b border-gray-200 bg-white sticky top-0 z-30" style={{ transform: 'translateZ(0)', willChange: 'transform' }}>
+              <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 py-2 sticky left-0 bg-white z-40" />
+              <div className="flex flex-1">
+                {weekViewDays.map((day, idx) => {
+                  const isTodayCol = day.toDateString() === new Date().toDateString();
+                  const isSelectedCol = day.toDateString() === internalDate.toDateString();
+                  return (
+                    <div 
+                      key={idx} 
+                      className={`flex-1 min-w-[100px] py-2 text-center border-r border-gray-200 cursor-pointer ${isSelectedCol ? 'bg-gray-100' : ''}`}
+                      onClick={() => handleDateSelect(day)}
+                    >
+                      <div className={`text-[10px] font-medium ${isTodayCol ? 'text-red-500' : 'text-gray-500'}`}>
+                        {ukDaysShortWeek[day.getDay()]}
+                      </div>
+                      <div className={`text-sm font-bold ${isTodayCol ? 'text-red-500' : 'text-gray-900'}`}>
+                        {day.getDate()}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            {/* Week grid */}
+            <div className="relative flex" style={{ minHeight: `${totalMinutes}px` }}>
+              {/* Time column */}
+              <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 sticky left-0 bg-white/50 backdrop-blur-lg z-20">
+                {steps.map((i) => {
+                  const minutesFromStart = i * timeStep;
+                  const absoluteMin = dayStartHour * 60 + minutesFromStart;
+                  const h = Math.floor(absoluteMin / 60);
+                  const m = absoluteMin % 60;
+                  const isHour = m === 0;
+                  const isHalf = m === 30;
+                  const label = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                  return (
+                    <div key={i} className="relative" style={{ height: `${stepHeight}px` }}>
+                      {(isHour || isHalf) && (
+                        <span className={`absolute right-1 ${isHalf ? 'text-[7px] lg:text-[9px] opacity-60' : 'text-[9px] lg:text-xs font-medium'} text-gray-900`} style={{ top: '100%', transform: 'translateY(-50%)' }}>
+                          {label}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Day columns */}
+              <div className="flex flex-1">
+                {weekViewDays.map((day, dIdx) => {
+                  const dayStr = day.toISOString().split('T')[0];
+                  const dayEvents = events.filter(e => e.start.startsWith(dayStr));
+                  const isTodayCol = day.toDateString() === new Date().toDateString();
+                  return (
+                    <div key={dIdx} className={`flex-1 min-w-[100px] relative border-r border-gray-200 ${isTodayCol ? 'bg-yellow-50/30' : ''}`}>
+                      {/* Hour lines */}
+                      {steps.map((i) => {
+                        const minutesFromStart = i * timeStep;
+                        const absoluteMin = dayStartHour * 60 + minutesFromStart;
+                        const isHour = absoluteMin % 60 === 0;
+                        return <div key={i} className={`border-b ${isHour ? 'border-gray-300' : 'border-gray-200'}`} style={{ height: `${stepHeight}px` }} />;
+                      })}
+                      {/* Events */}
+                      {dayEvents.map(event => {
+                        const pos = getEventPosition(event);
+                        const bgColor = event.backColor || resources.find(r => r.id === event.resource)?.color || '#22c55e';
+                        return (
+                          <div
+                            key={event.id}
+                            data-event-id={event.id}
+                            className="absolute left-0.5 right-0.5 rounded-lg overflow-hidden cursor-pointer z-10 border-l-[3px]"
+                            style={{ top: `${pos.top}%`, height: `${pos.height}%`, backgroundColor: `${bgColor}30`, borderLeftColor: bgColor }}
+                            onClick={() => onEventClick?.(event)}
+                          >
+                            <div className="px-1.5 py-0.5">
+                              <div className="text-[9px] font-bold truncate" style={{ color: bgColor }}>{event.text}</div>
+                              <div className="text-[8px] text-gray-500 truncate">{event.masterName || ''}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="h-[110px] lg:h-0 shrink-0" />
+          </div>
+        ) : (
         <div ref={scrollContainerRef} className="h-full overflow-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
           {/* Заголовки ресурсів — sticky top, скролиться разом з grid */}
           <div className="flex border-b border-gray-200 bg-white sticky top-0 z-30" style={{ minWidth: resources.length > 3 ? `${40 + resources.length * 110}px` : '100%', transform: 'translateZ(0)', willChange: 'transform' }}>
@@ -1230,6 +1359,24 @@ export function DayPilotResourceCalendar({
                 className={`flex-1 min-w-[110px] relative ${rIdx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
                 style={{ backgroundColor: `${r.color}18` }}
               >
+              {/* Working hours shading */}
+              {(() => {
+                const wh = getWorkingHoursForResource(r.id, internalDate);
+                if (!wh) return null;
+                if (!wh.enabled) {
+                  return <div className="absolute inset-0 bg-gray-200/60 z-[1] pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.03) 4px, rgba(0,0,0,0.03) 8px)' }} />;
+                }
+                const gridStartMin = dayStartHour * 60;
+                const gridEndMin = dayEndHour * 60;
+                const beforePct = Math.max(0, ((wh.startMin - gridStartMin + timeStep) / totalMinutes) * 100);
+                const afterPct = Math.max(0, ((gridEndMin - wh.endMin) / totalMinutes) * 100);
+                return (
+                  <>
+                    {beforePct > 0 && <div className="absolute left-0 right-0 top-0 bg-gray-200/50 z-[1] pointer-events-none" style={{ height: `${beforePct}%` }} />}
+                    {afterPct > 0 && <div className="absolute left-0 right-0 bottom-0 bg-gray-200/50 z-[1] pointer-events-none" style={{ height: `${afterPct}%` }} />}
+                  </>
+                );
+              })()}
               {/* Лінії годин */}
               {steps.map((i) => {
                 const minutesFromStart = i * timeStep;
@@ -1371,8 +1518,9 @@ export function DayPilotResourceCalendar({
         </div>
         {/* Spacer для скролу під WeekBar + MobileNav */}
         <div className="h-[110px] lg:h-0 shrink-0" />
-      </div>{/* end scroll container */}
-      </div>{/* end overflow-hidden wrapper */}
+      </div>
+        )}
+      </div>
 
       {/* Ghost card — static DOM, позиція через ref */}
       <div

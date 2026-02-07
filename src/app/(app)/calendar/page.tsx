@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Menu, Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/notification-bell';
@@ -61,6 +61,14 @@ interface SalonData {
   id: string;
   timezone: string;
   address?: string;
+  workingHours?: WorkingHours;
+}
+
+interface UndoAction {
+  type: 'move' | 'resize';
+  bookingId: string;
+  previousData: Partial<BookingFromAPI>;
+  message: string;
 }
 
 interface BookingFromAPI {
@@ -103,6 +111,10 @@ export default function CalendarPage() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isMobileCalendarOpen, setIsMobileCalendarOpen] = useState(false);
   const [salonTimezone, setSalonTimezone] = useState<string>('Europe/Kiev');
+  const [salonWorkingHours, setSalonWorkingHours] = useState<WorkingHours | null>(null);
+  const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
+  const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
   const [services, setServices] = useState<{ id: string; name: string; duration: number; price: number }[]>([]);
   const [settingsMenu, setSettingsMenu] = useState<{ open: boolean; x: number; y: number; startMin?: number; resourceId?: string }>({ open: false, x: 0, y: 0 });
   const [menuAnimating, setMenuAnimating] = useState(false);
@@ -138,6 +150,7 @@ export default function CalendarPage() {
       if (res.ok) {
         const data: SalonData = await res.json();
         if (data.timezone) setSalonTimezone(data.timezone);
+        if (data.workingHours) setSalonWorkingHours(data.workingHours);
       }
     } catch (error) {
       console.error('Load salon error:', error);
@@ -212,6 +225,7 @@ export default function CalendarPage() {
         clientPhone: b.clientPhone,
         serviceId: b.serviceId || undefined,
         serviceName: b.serviceName || undefined,
+        masterName: b.masterName || undefined,
         isNewClient: b.isNewClient || false,
         status: b.status?.toLowerCase(),
       };
@@ -304,13 +318,47 @@ export default function CalendarPage() {
     setIsEventModalOpen(true);
   };
 
+  const showUndo = useCallback((action: UndoAction) => {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoAction(action);
+    undoTimerRef.current = setTimeout(() => setUndoAction(null), 5000);
+  }, []);
+
+  const handleUndo = useCallback(async () => {
+    if (!undoAction) return;
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    const { bookingId, previousData } = undoAction;
+    setUndoAction(null);
+    // Optimistic revert
+    setRawBookings(prev => prev.map(b => b.id === bookingId ? { ...b, ...previousData } : b));
+    try {
+      await fetch('/api/booking', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: bookingId, ...previousData })
+      });
+      loadBookings();
+    } catch { loadBookings(); }
+  }, [undoAction]);
+
   const handleEventMove = async (eventId: string, newStart: Date, newEnd: Date, newResourceId: string) => {
+    const oldBooking = rawBookings.find(b => b.id === eventId);
     const newDate = `${newStart.getFullYear()}-${String(newStart.getMonth() + 1).padStart(2, '0')}-${String(newStart.getDate()).padStart(2, '0')}`;
     const newTime = `${String(newStart.getHours()).padStart(2, '0')}:${String(newStart.getMinutes()).padStart(2, '0')}`;
     const newTimeEnd = `${String(newEnd.getHours()).padStart(2, '0')}:${String(newEnd.getMinutes()).padStart(2, '0')}`;
     const newDuration = Math.round((newEnd.getTime() - newStart.getTime()) / 60000);
 
-    // Optimistic update — оновлюємо стан миттєво, не чекаючи API
+    // Save previous state for undo
+    if (oldBooking) {
+      showUndo({
+        type: 'move',
+        bookingId: eventId,
+        previousData: { date: oldBooking.date, time: oldBooking.time, timeEnd: oldBooking.timeEnd, duration: oldBooking.duration, masterId: oldBooking.masterId },
+        message: 'Запис переміщено',
+      });
+    }
+
+    // Optimistic update
     setRawBookings(prev => prev.map(b =>
       b.id === eventId
         ? { ...b, date: newDate, time: newTime, timeEnd: newTimeEnd, duration: newDuration, masterId: newResourceId }
@@ -321,31 +369,31 @@ export default function CalendarPage() {
       await fetch('/api/booking', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: eventId,
-          date: newDate,
-          time: newTime,
-          timeEnd: newTimeEnd,
-          duration: newDuration,
-          masterId: newResourceId,
-        })
+        body: JSON.stringify({ id: eventId, date: newDate, time: newTime, timeEnd: newTimeEnd, duration: newDuration, masterId: newResourceId })
       });
-      // Тиха синхронізація з сервером (без візуального ефекту)
       loadBookings();
     } catch (error) {
       console.error('Failed to move booking:', error);
-      // Відкат — повертаємо актуальний стан з сервера
       loadBookings();
     }
   };
 
   const handleEventResize = async (eventId: string, newStart: Date, newEnd: Date) => {
+    const oldBooking = rawBookings.find(b => b.id === eventId);
     const newDate = `${newStart.getFullYear()}-${String(newStart.getMonth() + 1).padStart(2, '0')}-${String(newStart.getDate()).padStart(2, '0')}`;
     const newTime = `${String(newStart.getHours()).padStart(2, '0')}:${String(newStart.getMinutes()).padStart(2, '0')}`;
     const newTimeEnd = `${String(newEnd.getHours()).padStart(2, '0')}:${String(newEnd.getMinutes()).padStart(2, '0')}`;
     const newDuration = Math.round((newEnd.getTime() - newStart.getTime()) / 60000);
 
-    // Optimistic update
+    if (oldBooking) {
+      showUndo({
+        type: 'resize',
+        bookingId: eventId,
+        previousData: { date: oldBooking.date, time: oldBooking.time, timeEnd: oldBooking.timeEnd, duration: oldBooking.duration },
+        message: 'Час змінено',
+      });
+    }
+
     setRawBookings(prev => prev.map(b =>
       b.id === eventId
         ? { ...b, date: newDate, time: newTime, timeEnd: newTimeEnd, duration: newDuration }
@@ -356,13 +404,7 @@ export default function CalendarPage() {
       await fetch('/api/booking', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: eventId,
-          date: newDate,
-          time: newTime,
-          timeEnd: newTimeEnd,
-          duration: newDuration,
-        })
+        body: JSON.stringify({ id: eventId, date: newDate, time: newTime, timeEnd: newTimeEnd, duration: newDuration })
       });
       loadBookings();
     } catch (error) {
@@ -422,6 +464,21 @@ export default function CalendarPage() {
           <span className="text-sm font-semibold capitalize">{formatDateUk(selectedDate)}</span>
         </div>
         <div className="flex items-center gap-1.5">
+          {/* View mode toggle */}
+          <div className="flex h-8 bg-gray-100 rounded-lg p-0.5">
+            <button
+              className={`px-2 text-xs font-medium rounded-md transition-colors ${viewMode === 'day' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
+              onClick={() => setViewMode('day')}
+            >
+              День
+            </button>
+            <button
+              className={`px-2 text-xs font-medium rounded-md transition-colors ${viewMode === 'week' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
+              onClick={() => setViewMode('week')}
+            >
+              Тиждень
+            </button>
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -497,6 +554,9 @@ export default function CalendarPage() {
           dayStartHour={8}
           dayEndHour={21}
           timezone={salonTimezone}
+          viewMode={viewMode}
+          salonWorkingHours={salonWorkingHours}
+          masterWorkingHours={masters.reduce((acc, m) => { if (m.workingHours) acc[m.id] = m.workingHours; return acc; }, {} as Record<string, WorkingHours>)}
         />
       </div>
 
@@ -587,6 +647,21 @@ export default function CalendarPage() {
       </Button>
 
       {/* Mobile calendar picker overlay */}
+      {/* Undo toast */}
+      <div
+        className={`fixed left-4 right-4 z-[60] flex items-center justify-between gap-3 px-4 py-3 bg-gray-900 text-white rounded-2xl shadow-lg transition-all duration-300 ease-out ${
+          undoAction ? 'bottom-[88px] opacity-100 translate-y-0' : 'bottom-[88px] opacity-0 translate-y-4 pointer-events-none'
+        }`}
+      >
+        <span className="text-sm font-medium">{undoAction?.message}</span>
+        <button
+          onClick={handleUndo}
+          className="text-sm font-semibold text-yellow-400 hover:text-yellow-300 transition-colors shrink-0"
+        >
+          Скасувати
+        </button>
+      </div>
+
       <MobileCalendarPicker
         isOpen={isMobileCalendarOpen}
         onClose={() => setIsMobileCalendarOpen(false)}
