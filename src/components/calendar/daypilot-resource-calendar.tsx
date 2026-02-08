@@ -59,6 +59,19 @@ function darkenColor(hex: string, percent: number = 20): string {
   return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
 }
 
+// Mix color with white (0 = white, 100 = full color)
+function tintColor(hex: string, amount: number = 10): string {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const r = (num >> 16) & 0xFF;
+  const g = (num >> 8) & 0xFF;
+  const b = num & 0xFF;
+  const t = amount / 100;
+  const R = Math.round(255 + (r - 255) * t);
+  const G = Math.round(255 + (g - 255) * t);
+  const B = Math.round(255 + (b - 255) * t);
+  return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+}
+
 function formatTime(dateStr: string): string {
   const date = new Date(dateStr);
   return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
@@ -1250,7 +1263,7 @@ export function DayPilotResourceCalendar({
                             style={{
                               top: `${pos.top}%`,
                               height: `${pos.height}%`,
-                              backgroundColor: `${bgColor}12`,
+                              backgroundColor: tintColor(bgColor, 10),
                               borderLeft: `2px solid ${bgColor}`,
                               borderRadius: '0 4px 4px 0',
                               boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
@@ -1451,7 +1464,7 @@ export function DayPilotResourceCalendar({
                         transition: flipHiddenId === event.id
                           ? 'none'
                           : 'transform 300ms ease-out, top 300ms ease-out, height 300ms ease-out',
-                        backgroundColor: `${bgColor}12`,
+                        backgroundColor: tintColor(bgColor, 10),
                         borderLeft: `2px solid ${bgColor}`,
                         borderRadius: '0 6px 6px 0',
                         boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
