@@ -43,7 +43,7 @@ export function MobileNav({ isCalendar = false }: MobileNavProps) {
       const links = nav.querySelectorAll('a');
       const btn = links[activeIdx] as HTMLElement;
       if (btn) {
-        const size = 48;
+        const size = 50;
         setIndicator({
           left: btn.offsetLeft + btn.offsetWidth / 2 - size / 2,
           width: size,
@@ -73,7 +73,7 @@ export function MobileNav({ isCalendar = false }: MobileNavProps) {
         {indicator && activeIdx >= 0 && (
           <div
             className={cn(
-              "absolute h-12 rounded-2xl bg-foreground pointer-events-none z-0",
+              "absolute h-[50px] rounded-2xl bg-foreground pointer-events-none z-0",
               animReady && "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
             )}
             style={{
