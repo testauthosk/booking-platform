@@ -37,7 +37,7 @@ interface DayPilotResourceCalendarProps {
   onEventMove?: (eventId: string, newStart: Date, newEnd: Date, newResourceId: string) => void;
   onEventResize?: (eventId: string, newStart: Date, newEnd: Date) => void;
   onTimeRangeSelect?: (start: Date, end: Date, resourceId: string) => void;
-  onEmptySlotMenu?: (x: number, y: number, slotInfo: { startMin: number; resourceId: string }) => void;
+  onEmptySlotMenu?: (x: number, y: number, slotInfo: { startMin: number; resourceId: string; cellRect?: { top: number; left: number; width: number; height: number }; scrollEl?: HTMLElement }) => void;
   timeStep?: 5 | 15 | 30;
   dayStartHour?: number;
   dayEndHour?: number;
@@ -1350,7 +1350,29 @@ export function DayPilotResourceCalendar({
                 // Не відкривати меню якщо тільки що був drag
                 if (didDrag.current) { didDrag.current = false; return; }
                 const pos = getGridPosition(e.clientX, e.clientY);
-                onEmptySlotMenu(e.clientX, e.clientY, { startMin: pos?.startMin ?? dayStartHour * 60, resourceId: pos?.resourceId ?? '' });
+                // Calculate cell rect for centering
+                let cellRect: { top: number; left: number; width: number; height: number } | undefined;
+                if (pos) {
+                  const resContainer = (e.currentTarget as HTMLElement);
+                  const colEls = resContainer.children;
+                  const resIdx = resources.findIndex(r => r.id === pos.resourceId);
+                  const colEl = resIdx >= 0 ? colEls[resIdx] as HTMLElement : null;
+                  if (colEl) {
+                    const colRect = colEl.getBoundingClientRect();
+                    const totalMin = (dayEndHour - dayStartHour) * 60;
+                    const relMin = pos.startMin - dayStartHour * 60;
+                    const step = timeStep || 15;
+                    const cellTop = colRect.top + (relMin / totalMin) * colRect.height;
+                    const cellH = (step / totalMin) * colRect.height;
+                    cellRect = { top: cellTop, left: colRect.left, width: colRect.width, height: cellH };
+                  }
+                }
+                onEmptySlotMenu(e.clientX, e.clientY, {
+                  startMin: pos?.startMin ?? dayStartHour * 60,
+                  resourceId: pos?.resourceId ?? '',
+                  cellRect,
+                  scrollEl: scrollContainerRef.current || undefined,
+                });
               }}
             >
             {resources.map((r, rIdx) => (

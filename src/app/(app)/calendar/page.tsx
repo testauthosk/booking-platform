@@ -173,7 +173,14 @@ export default function CalendarPage() {
   const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
   const [services, setServices] = useState<{ id: string; name: string; duration: number; price: number }[]>([]);
-  const [settingsMenu, setSettingsMenu] = useState<{ open: boolean; x: number; y: number; startMin?: number; resourceId?: string; resourceName?: string; timeLabel?: string }>({ open: false, x: 0, y: 0 });
+  const [settingsMenu, setSettingsMenu] = useState<{
+    open: boolean; x: number; y: number;
+    startMin?: number; resourceId?: string;
+    resourceName?: string; dateLabel?: string;
+    selectedMin?: number; masterColor?: string;
+    cellRect?: { top: number; left: number; width: number; height: number };
+    scrollEl?: HTMLElement;
+  }>({ open: false, x: 0, y: 0 });
   const [menuAnimating, setMenuAnimating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -588,52 +595,97 @@ export default function CalendarPage() {
           onEventMove={handleEventMove}
           onEventResize={handleEventResize}
           onTimeRangeSelect={handleTimeRangeSelect}
-          onEmptySlotMenu={(x, y, slotInfo) => {
+          onEmptySlotMenu={(_x, _y, slotInfo) => {
             const master = masters.find(m => m.id === slotInfo?.resourceId);
             const masterColor = master?.color || getColorForIndex(masters.findIndex(m => m.id === slotInfo?.resourceId));
             const min = slotInfo?.startMin ?? 0;
-            const h = Math.floor(min / 60);
-            const m = min % 60;
-            const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
             const dayNames = ['нд', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
             const monthNames = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
             const dayName = dayNames[selectedDate.getDay()];
             const dateLabel = `${dayName}, ${selectedDate.getDate()} ${monthNames[selectedDate.getMonth()]}`;
 
-            // Phantom highlight — find resource column and show dashed outline
-            requestAnimationFrame(() => {
-              // Remove previous phantom
-              document.querySelectorAll('[data-phantom-highlight]').forEach(el => el.remove());
-              const resEl = document.querySelector(`[data-resource-id="${slotInfo?.resourceId}"]`);
-              if (resEl) {
-                const col = resEl.closest('[class*="min-w-"]') || resEl.parentElement?.parentElement;
-                if (col) {
-                  const colRect = col.getBoundingClientRect();
-                  const gridContainer = col.parentElement;
-                  if (gridContainer) {
-                    const gcRect = gridContainer.getBoundingClientRect();
-                    const totalMinutes = (21 - 8) * 60; // dayEndHour - dayStartHour
-                    const relMin = min - 8 * 60; // relative to dayStartHour
-                    const topPct = ((relMin + (settings.gridStep || 15)) / totalMinutes) * 100;
-                    const heightPct = (60 / totalMinutes) * 100; // 1 hour
-                    const phantom = document.createElement('div');
-                    phantom.setAttribute('data-phantom-highlight', '');
-                    phantom.style.cssText = `position:absolute;top:${topPct}%;height:${heightPct}%;left:${colRect.left - gcRect.left}px;width:${colRect.width}px;border:2px dashed ${masterColor};background:${masterColor}15;border-radius:8px;pointer-events:none;z-index:5;transition:opacity 300ms;`;
-                    gridContainer.style.position = 'relative';
-                    gridContainer.appendChild(phantom);
+            // Remove previous phantom
+            document.querySelectorAll('[data-phantom-highlight]').forEach(el => el.remove());
+
+            const scrollEl = slotInfo?.scrollEl;
+            const cellRect = slotInfo?.cellRect;
+
+            // Step 1: Smooth scroll cell to center of viewport
+            if (scrollEl && cellRect) {
+              const scrollRect = scrollEl.getBoundingClientRect();
+              const cellCenterY = cellRect.top - scrollRect.top + scrollEl.scrollTop + cellRect.height / 2;
+              const cellCenterX = cellRect.left - scrollRect.left + scrollEl.scrollLeft + cellRect.width / 2;
+              const targetScrollTop = cellCenterY - scrollRect.height / 2;
+              const targetScrollLeft = cellCenterX - scrollRect.width / 2;
+              scrollEl.scrollTo({
+                top: Math.max(0, targetScrollTop),
+                left: Math.max(0, targetScrollLeft),
+                behavior: 'smooth',
+              });
+            }
+
+            // Step 2: After scroll completes, show phantom + menu
+            setTimeout(() => {
+              // Recalculate cell position after scroll
+              let finalCellRect = cellRect;
+              if (slotInfo?.cellRect && scrollEl) {
+                // Re-query the column to get updated position
+                const resContainer = scrollEl.querySelector('[data-resources]');
+                if (resContainer) {
+                  const cols = resContainer.children;
+                  const resIdx = masters.findIndex(m => m.id === slotInfo.resourceId);
+                  const colEl = resIdx >= 0 ? cols[resIdx] as HTMLElement : null;
+                  if (colEl) {
+                    const colRect = colEl.getBoundingClientRect();
+                    const totalMin = (21 - 8) * 60;
+                    const relMin = min - 8 * 60;
+                    const step = settings.gridStep || 15;
+                    const cellTop = colRect.top + (relMin / totalMin) * colRect.height;
+                    const cellH = (step / totalMin) * colRect.height;
+                    finalCellRect = { top: cellTop, left: colRect.left, width: colRect.width, height: cellH };
                   }
                 }
               }
-            });
 
-            setSettingsMenu({
-              open: true, x, y,
-              startMin: slotInfo?.startMin,
-              resourceId: slotInfo?.resourceId,
-              resourceName: master?.name || 'Невідомий',
-              timeLabel: `${timeStr}, ${dateLabel}`,
-            });
-            requestAnimationFrame(() => setMenuAnimating(true));
+              // Show phantom highlight on the cell
+              if (finalCellRect) {
+                const phantom = document.createElement('div');
+                phantom.setAttribute('data-phantom-highlight', '');
+                phantom.style.cssText = `
+                  position:fixed;
+                  top:${finalCellRect.top}px;
+                  left:${finalCellRect.left}px;
+                  width:${finalCellRect.width}px;
+                  height:${finalCellRect.height}px;
+                  border:2px dashed ${masterColor};
+                  background:${masterColor}20;
+                  border-radius:8px;
+                  pointer-events:none;
+                  z-index:55;
+                  transition:opacity 300ms;
+                `;
+                document.body.appendChild(phantom);
+              }
+
+              // Position menu: centered below the cell, 8px gap
+              const menuX = finalCellRect ? finalCellRect.left + finalCellRect.width / 2 : window.innerWidth / 2;
+              const menuY = finalCellRect ? finalCellRect.top + finalCellRect.height + 8 : window.innerHeight / 2;
+
+              setSettingsMenu({
+                open: true,
+                x: menuX,
+                y: menuY,
+                startMin: slotInfo?.startMin,
+                resourceId: slotInfo?.resourceId,
+                resourceName: master?.name || 'Невідомий',
+                dateLabel,
+                selectedMin: min,
+                masterColor,
+                cellRect: finalCellRect,
+                scrollEl: scrollEl || undefined,
+              });
+              requestAnimationFrame(() => setMenuAnimating(true));
+            }, 350); // wait for smooth scroll
           }}
           timeStep={settings.gridStep}
           dayStartHour={8}
@@ -658,64 +710,120 @@ export default function CalendarPage() {
           <div
             ref={(el) => {
               if (!el) return;
-              // Clamp menu position to viewport with 16px margin
               const rect = el.getBoundingClientRect();
               const vw = window.innerWidth;
               const vh = window.innerHeight;
-              let x = settingsMenu.x;
+              // Center horizontally under cell, clamp to viewport
+              let x = settingsMenu.x - rect.width / 2;
               let y = settingsMenu.y;
               if (x + rect.width > vw - 16) x = vw - rect.width - 16;
               if (x < 16) x = 16;
-              if (y + rect.height > vh - 16) y = vh - rect.height - 16;
+              if (y + rect.height > vh - 16) y = settingsMenu.y - rect.height - (settingsMenu.cellRect?.height || 0) - 16;
               if (y < 16) y = 16;
               el.style.left = `${x}px`;
               el.style.top = `${y}px`;
             }}
-            className={`absolute bg-white border border-gray-200 rounded-xl shadow-xl p-1.5 min-w-[220px] transition-all duration-200 origin-top-left ${
-              menuAnimating ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
+            className={`fixed bg-white border border-gray-200 rounded-2xl shadow-2xl p-2 min-w-[200px] max-w-[260px] transition-all duration-200 origin-top ${
+              menuAnimating ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
             }`}
             style={{ left: settingsMenu.x, top: settingsMenu.y }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Context info */}
-            {(settingsMenu.resourceName || settingsMenu.timeLabel) && (
-              <div className="px-3 pt-2 pb-1.5 border-b border-gray-100 mb-1">
-                <div className="text-[13px] font-semibold text-gray-900">{settingsMenu.resourceName}</div>
-                <div className="text-[11px] text-gray-500 mt-0.5">{settingsMenu.timeLabel}</div>
+            {/* Master name + date */}
+            <div className="px-2 pt-1 pb-2">
+              <div className="flex items-center gap-2">
+                {settingsMenu.masterColor && (
+                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: settingsMenu.masterColor }} />
+                )}
+                <span className="text-[13px] font-semibold text-gray-900">{settingsMenu.resourceName}</span>
               </div>
-            )}
-            <button
-              className="px-3 py-2.5 text-sm font-medium hover:bg-gray-50 rounded-lg w-full text-left flex items-center gap-2.5 transition-colors"
-              onClick={() => {
-                setMenuAnimating(false);
-                document.querySelectorAll('[data-phantom-highlight]').forEach(el => el.remove());
-                setTimeout(() => setSettingsMenu({ open: false, x: 0, y: 0 }), 150);
-                // Створюємо слот з позиції кліку
-                const startMin = settingsMenu.startMin ?? 10 * 60;
-                const h = Math.floor(startMin / 60);
-                const m = startMin % 60;
-                const slotStart = new Date(selectedDate);
-                slotStart.setHours(h, m, 0, 0);
-                const slotEnd = new Date(slotStart.getTime() + 60 * 60000);
-                setSelectedSlot({ start: slotStart, end: slotEnd, resourceId: settingsMenu.resourceId || resources[0]?.id || '' });
-                setIsColleagueBookingOpen(true);
-              }}
-            >
-              <Plus className="h-4 w-4 text-gray-500" />
-              Додати запис
-            </button>
-            <button
-              className="px-3 py-2.5 text-sm font-medium hover:bg-gray-50 rounded-lg w-full text-left flex items-center gap-2.5 transition-colors"
-              onClick={() => {
-                setMenuAnimating(false);
-                document.querySelectorAll('[data-phantom-highlight]').forEach(el => el.remove());
-                setTimeout(() => setSettingsMenu({ open: false, x: 0, y: 0 }), 150);
-                setSettingsOpen(true);
-              }}
-            >
-              <CalendarIcon className="h-4 w-4 text-gray-500" />
-              Налаштування календаря
-            </button>
+              <div className="text-[11px] text-gray-400 mt-0.5 ml-[18px]">{settingsMenu.dateLabel}</div>
+            </div>
+
+            {/* Time picker - scrollable drum */}
+            <div className="mx-1 mb-2 bg-gray-50 rounded-xl overflow-hidden">
+              <div
+                className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide py-2 px-1 gap-0"
+                ref={(el) => {
+                  if (!el || !settingsMenu.selectedMin) return;
+                  // Scroll to selected time
+                  const selected = el.querySelector('[data-time-selected="true"]');
+                  if (selected) {
+                    const elRect = el.getBoundingClientRect();
+                    const selRect = selected.getBoundingClientRect();
+                    el.scrollLeft = selected.offsetLeft - el.offsetWidth / 2 + selRect.width / 2;
+                  }
+                }}
+              >
+                {(() => {
+                  const currentMin = settingsMenu.selectedMin ?? 0;
+                  const step = 5;
+                  const range = 30; // ±30 min
+                  const times: number[] = [];
+                  for (let t = currentMin - range; t <= currentMin + range; t += step) {
+                    if (t >= 0 && t < 24 * 60) times.push(t);
+                  }
+                  return times.map(t => {
+                    const hh = Math.floor(t / 60);
+                    const mm = t % 60;
+                    const label = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+                    const isSelected = t === currentMin;
+                    return (
+                      <button
+                        key={t}
+                        data-time-selected={isSelected ? 'true' : 'false'}
+                        className={`inline-btn snap-center flex-shrink-0 px-2 py-1.5 rounded-lg text-[13px] font-medium transition-all ${
+                          isSelected
+                            ? 'bg-black text-white shadow-sm'
+                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSettingsMenu(prev => ({ ...prev, selectedMin: t }));
+                        }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="space-y-0.5">
+              <button
+                className="inline-btn px-3 py-2.5 text-sm font-medium hover:bg-gray-50 rounded-xl w-full text-left flex items-center gap-2.5 transition-colors"
+                onClick={() => {
+                  setMenuAnimating(false);
+                  document.querySelectorAll('[data-phantom-highlight]').forEach(el => el.remove());
+                  setTimeout(() => setSettingsMenu({ open: false, x: 0, y: 0 }), 150);
+                  const startMin = settingsMenu.selectedMin ?? settingsMenu.startMin ?? 10 * 60;
+                  const h = Math.floor(startMin / 60);
+                  const m = startMin % 60;
+                  const slotStart = new Date(selectedDate);
+                  slotStart.setHours(h, m, 0, 0);
+                  const slotEnd = new Date(slotStart.getTime() + 60 * 60000);
+                  setSelectedSlot({ start: slotStart, end: slotEnd, resourceId: settingsMenu.resourceId || resources[0]?.id || '' });
+                  setIsColleagueBookingOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4 text-gray-500" />
+                Додати запис
+              </button>
+              <button
+                className="inline-btn px-3 py-2.5 text-sm font-medium hover:bg-gray-50 rounded-xl w-full text-left flex items-center gap-2.5 transition-colors"
+                onClick={() => {
+                  setMenuAnimating(false);
+                  document.querySelectorAll('[data-phantom-highlight]').forEach(el => el.remove());
+                  setTimeout(() => setSettingsMenu({ open: false, x: 0, y: 0 }), 150);
+                  setSettingsOpen(true);
+                }}
+              >
+                <CalendarIcon className="h-4 w-4 text-gray-500" />
+                Налаштування
+              </button>
+            </div>
           </div>
         </div>
       )}
