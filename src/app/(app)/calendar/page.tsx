@@ -1020,6 +1020,7 @@ export default function CalendarPage() {
         event={selectedEvent}
         isOpen={isEventModalOpen}
         isEditOpen={isEditModalOpen}
+        masterColor={selectedEvent ? (eventColors[selectedEvent.resource] || getColorForIndex(masters.findIndex(m => m.id === selectedEvent.resource))) : undefined}
         onClose={() => setIsEventModalOpen(false)}
         onEdit={() => { setIsEditModalOpen(true); }}
         onDelete={handleDeleteEvent}

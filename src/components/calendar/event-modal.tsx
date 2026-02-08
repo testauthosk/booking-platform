@@ -10,6 +10,7 @@ import { uk } from 'date-fns/locale';
 interface EventModalProps {
   event: BookingEvent | null;
   isOpen: boolean;
+  masterColor?: string;
   onClose: () => void;
   onEdit?: (event: BookingEvent) => void;
   onDelete?: (event: BookingEvent) => void;
@@ -21,7 +22,7 @@ interface EventModalProps {
   isEditOpen?: boolean;
 }
 
-export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend, onOpenClient, onOpenMaster, onChangeMaster, onChangeClient, isEditOpen }: EventModalProps) {
+export function EventModal({ event, isOpen, masterColor, onClose, onEdit, onDelete, onExtend, onOpenClient, onOpenMaster, onChangeMaster, onChangeClient, isEditOpen }: EventModalProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -315,18 +316,19 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
           <div className="p-4 border-t flex gap-2 pb-8 shrink-0">
             <Button
               variant="outline"
-              className={`flex-1 h-11 relative overflow-hidden ${isPast ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`flex-1 h-11 relative overflow-hidden ${isPast ? 'cursor-not-allowed' : ''}`}
               onClick={() => !isPast && onEdit?.(event)}
               disabled={isPast}
             >
               <Edit className="h-4 w-4 mr-2" />
               Редагувати
               {isPast && (
-                <div className="absolute inset-0 pointer-events-none">
-                  <svg className="w-full h-full" preserveAspectRatio="none">
-                    <line x1="0" y1="0" x2="100%" y2="100%" stroke="black" strokeWidth="1.5" strokeOpacity="0.4" />
-                  </svg>
-                </div>
+                <div
+                  className="absolute inset-0 pointer-events-none rounded-md"
+                  style={{
+                    backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 4px, ${masterColor || 'rgba(0,0,0,0.08)'}30 4px, ${masterColor || 'rgba(0,0,0,0.08)'}30 8px)`,
+                  }}
+                />
               )}
             </Button>
             <Button
