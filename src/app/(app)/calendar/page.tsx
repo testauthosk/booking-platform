@@ -102,12 +102,13 @@ const formatDateUk = (date: Date) => {
 function ViewModeSegment({ viewMode, onChange }: { viewMode: 'day' | 'week'; onChange: (v: 'day' | 'week') => void }) {
   return (
     <div
-      className="relative shrink-0"
+      className="relative"
       style={{
+        flex: 1,
         height: '44px',
         padding: '3px',
         borderRadius: '12px',
-        backgroundColor: '#d1d5db',
+        backgroundColor: '#f3f4f6',
         border: '1px solid rgba(0,0,0,0.4)',
       }}
     >
@@ -131,7 +132,7 @@ function ViewModeSegment({ viewMode, onChange }: { viewMode: 'day' | 'week'; onC
               height: '100%',
               borderRadius: '9px',
               backgroundColor: '#ffffff',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08)',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.15), 0 0 0 0.5px rgba(0,0,0,0.04)',
             }}
           />
         </div>
@@ -522,9 +523,6 @@ export default function CalendarPage() {
 
         {/* Day/Week segment */}
         <ViewModeSegment viewMode={viewMode} onChange={setViewMode} />
-
-        {/* Spacer */}
-        <div style={{ flex: 1 }} />
 
         {/* Today */}
         <button
