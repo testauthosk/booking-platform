@@ -73,12 +73,13 @@ export function MobileNav({ isCalendar = false }: MobileNavProps) {
         {indicator && activeIdx >= 0 && (
           <div
             className={cn(
-              "absolute h-[50px] rounded-2xl bg-foreground pointer-events-none z-0",
+              "absolute rounded-2xl bg-foreground pointer-events-none z-0",
               animReady && "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
             )}
             style={{
               left: indicator.left,
               width: indicator.width,
+              height: '50px',
               top: '50%',
               transform: 'translateY(-50%)',
             }}
