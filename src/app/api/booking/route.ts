@@ -45,50 +45,7 @@ export async function GET(request: NextRequest) {
       toDate = to.toISOString().split('T')[0];
     }
 
-    // Auto-complete: mark past CONFIRMED bookings as COMPLETED
-    const todayStr = new Date().toISOString().split('T')[0];
-    const now = new Date();
-    const currentTotalMin = now.getHours() * 60 + now.getMinutes();
-
-    // Past days: all CONFIRMED → COMPLETED
-    await prisma.booking.updateMany({
-      where: {
-        salonId: user.salonId,
-        status: 'CONFIRMED',
-        date: { lt: todayStr },
-      },
-      data: { status: 'COMPLETED' },
-    });
-
-    // Today: CONFIRMED bookings whose end time has passed → COMPLETED
-    const todayConfirmed = await prisma.booking.findMany({
-      where: {
-        salonId: user.salonId,
-        status: 'CONFIRMED',
-        date: todayStr,
-      },
-      select: { id: true, time: true, timeEnd: true, duration: true },
-    });
-
-    const toCompleteIds: string[] = [];
-    for (const b of todayConfirmed) {
-      const [h, m] = b.time.split(':').map(Number);
-      const endMin = b.timeEnd
-        ? (() => { const [eh, em] = b.timeEnd.split(':').map(Number); return eh * 60 + em; })()
-        : h * 60 + m + (b.duration || 60);
-      if (currentTotalMin >= endMin) {
-        toCompleteIds.push(b.id);
-      }
-    }
-
-    if (toCompleteIds.length > 0) {
-      await prisma.booking.updateMany({
-        where: { id: { in: toCompleteIds } },
-        data: { status: 'COMPLETED' },
-      });
-    }
-
-    // Fetch bookings in date range
+    // Fetch bookings in date range (auto-complete moved to POST /api/staff/bookings/auto-complete)
     const bookings = await prisma.booking.findMany({
       where: {
         salonId: user.salonId,

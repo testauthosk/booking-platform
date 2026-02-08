@@ -8,17 +8,67 @@ export async function GET(request: NextRequest) {
     const salonId = searchParams.get('salonId');
     const date = searchParams.get('date');
     const masterId = searchParams.get('masterId');
+    const durationParam = searchParams.get('duration');
+    const serviceDuration = durationParam ? parseInt(durationParam, 10) : 60;
 
     if (!salonId || !date) {
       return NextResponse.json({ error: 'salonId and date required' }, { status: 400 });
     }
 
-    // Get salon for bufferTime setting
+    // Get salon settings
     const salon = await prisma.salon.findUnique({
       where: { id: salonId },
-      select: { bufferTime: true }
+      select: { bufferTime: true, workingHours: true }
     });
     const bufferTime = salon?.bufferTime || 0;
+
+    // Determine working hours for this day
+    const dayOfWeek = new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    let dayStart = 9 * 60; // default 09:00
+    let dayEnd = 19 * 60;  // default 19:00
+    let dayEnabled = true;
+
+    // Check master-specific working hours first, then salon
+    if (masterId && masterId !== 'any') {
+      const master = await prisma.master.findUnique({
+        where: { id: masterId },
+        select: { workingHours: true },
+      });
+      if (master?.workingHours) {
+        const mwh = master.workingHours as Record<string, { start: string; end: string; enabled: boolean }>;
+        const dayConfig = mwh[dayOfWeek];
+        if (dayConfig) {
+          dayEnabled = dayConfig.enabled;
+          if (dayConfig.start) {
+            const [sh, sm] = dayConfig.start.split(':').map(Number);
+            dayStart = sh * 60 + sm;
+          }
+          if (dayConfig.end) {
+            const [eh, em] = dayConfig.end.split(':').map(Number);
+            dayEnd = eh * 60 + em;
+          }
+        }
+      }
+    } else if (salon?.workingHours) {
+      const swh = salon.workingHours as Record<string, { start: string; end: string; enabled: boolean }>;
+      const dayConfig = swh[dayOfWeek];
+      if (dayConfig) {
+        dayEnabled = dayConfig.enabled;
+        if (dayConfig.start) {
+          const [sh, sm] = dayConfig.start.split(':').map(Number);
+          dayStart = sh * 60 + sm;
+        }
+        if (dayConfig.end) {
+          const [eh, em] = dayConfig.end.split(':').map(Number);
+          dayEnd = eh * 60 + em;
+        }
+      }
+    }
+
+    // Day off — no slots
+    if (!dayEnabled) {
+      return NextResponse.json([]);
+    }
 
     // Get existing bookings for this date
     const bookings = await prisma.booking.findMany({
@@ -28,45 +78,48 @@ export async function GET(request: NextRequest) {
         status: { not: 'CANCELLED' },
         ...(masterId && masterId !== 'any' ? { masterId } : {}),
       },
-      select: {
-        time: true,
-        timeEnd: true,
-        duration: true,
-      }
+      select: { time: true, timeEnd: true, duration: true }
     });
 
-    // Build set of blocked times
-    const blockedTimes = new Set<string>();
-    bookings.forEach(booking => {
-      if (booking.time) {
-        blockedTimes.add(booking.time);
-        // Block duration slots + buffer time
-        if (booking.duration) {
-          const [hours, mins] = booking.time.split(':').map(Number);
-          let totalMins = hours * 60 + mins;
-          const endMins = totalMins + booking.duration + bufferTime; // +buffer
-          while (totalMins < endMins) {
-            const h = Math.floor(totalMins / 60);
-            const m = totalMins % 60;
-            blockedTimes.add(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
-            totalMins += 30;
-          }
-        }
-      }
-    });
+    // Get time blocks
+    const timeBlocks = masterId && masterId !== 'any'
+      ? await prisma.timeBlock.findMany({
+          where: { masterId, date },
+          select: { startTime: true, endTime: true }
+        })
+      : [];
 
-    // Generate all possible times
-    const allTimes = [
-      "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-      "12:00", "12:30", "13:00", "13:30", "14:00", "14:30",
-      "15:00", "15:30", "16:00", "16:30", "17:00", "17:30",
-      "18:00", "18:30", "19:00"
-    ];
+    // Build blocked intervals (start, end) in minutes
+    const blocked: Array<{ start: number; end: number }> = [];
 
-    const slots = allTimes.map(time => ({
-      time,
-      available: !blockedTimes.has(time),
-    }));
+    for (const b of bookings) {
+      const [h, m] = b.time.split(':').map(Number);
+      const start = h * 60 + m;
+      const end = b.timeEnd
+        ? (() => { const [eh, em] = b.timeEnd.split(':').map(Number); return eh * 60 + em; })()
+        : start + (b.duration || 60);
+      blocked.push({ start, end: end + bufferTime });
+    }
+
+    for (const tb of timeBlocks) {
+      const [h, m] = tb.startTime.split(':').map(Number);
+      const [eh, em] = tb.endTime.split(':').map(Number);
+      blocked.push({ start: h * 60 + m, end: eh * 60 + em });
+    }
+
+    // Generate slots every 30 min within working hours
+    const slots: Array<{ time: string; available: boolean }> = [];
+    for (let mins = dayStart; mins + serviceDuration <= dayEnd; mins += 30) {
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      const time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+      const slotEnd = mins + serviceDuration;
+
+      // Check overlap with blocked intervals
+      const isBlocked = blocked.some(b => mins < b.end && slotEnd > b.start);
+
+      slots.push({ time, available: !isBlocked });
+    }
 
     return NextResponse.json(slots);
   } catch (error) {

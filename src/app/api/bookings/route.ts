@@ -34,6 +34,47 @@ export async function POST(request: NextRequest) {
 
     const master = await prisma.master.findUnique({ where: { id: masterId }, select: { name: true } });
 
+    // Overlap check — bookings
+    if (masterId) {
+      const [startH, startM] = time.split(':').map(Number);
+      const startMin = startH * 60 + startM;
+      const endMin = startMin + dur;
+
+      const existing = await prisma.booking.findMany({
+        where: { masterId, date, status: { not: 'CANCELLED' } },
+        select: { time: true, timeEnd: true, duration: true, clientName: true },
+      });
+      for (const b of existing) {
+        const [bh, bm] = b.time.split(':').map(Number);
+        const bStart = bh * 60 + bm;
+        const bEnd = b.timeEnd
+          ? (() => { const [eh, em] = b.timeEnd.split(':').map(Number); return eh * 60 + em; })()
+          : bStart + (b.duration || 60);
+        if (startMin < bEnd && endMin > bStart) {
+          return NextResponse.json(
+            { error: `Цей час вже зайнятий (${b.time} — ${b.clientName})` },
+            { status: 409 }
+          );
+        }
+      }
+
+      // Overlap check — time blocks
+      const blocks = await prisma.timeBlock.findMany({
+        where: { masterId, date },
+        select: { startTime: true, endTime: true, title: true },
+      });
+      for (const tb of blocks) {
+        const [th, tm] = tb.startTime.split(':').map(Number);
+        const [teh, tem] = tb.endTime.split(':').map(Number);
+        if (startMin < teh * 60 + tem && endMin > th * 60 + tm) {
+          return NextResponse.json(
+            { error: `Цей час заблоковано: ${tb.title || 'Перерва'} (${tb.startTime}–${tb.endTime})` },
+            { status: 409 }
+          );
+        }
+      }
+    }
+
     const booking = await prisma.booking.create({
       data: {
         salonId: user.salonId,
