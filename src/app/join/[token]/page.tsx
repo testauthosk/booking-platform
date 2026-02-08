@@ -80,7 +80,31 @@ export default function JoinPage() {
 
       setSuccess(true);
       
-      // Редирект на логін через 2 секунди
+      // Auto-login: одразу авторизуємось з щойно створеними credentials
+      try {
+        const loginRes = await fetch('/api/staff/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: invitation?.email, password }),
+        });
+        
+        if (loginRes.ok) {
+          const loginData = await loginRes.json();
+          localStorage.setItem('staffToken', loginData.token);
+          localStorage.setItem('staffId', loginData.master.id);
+          localStorage.setItem('staffName', loginData.master.name);
+          localStorage.setItem('staffSalonId', loginData.master.salonId);
+          if (loginData.master.avatar) localStorage.setItem('staffAvatar', loginData.master.avatar);
+          
+          // Redirect to staff dashboard
+          setTimeout(() => router.push('/staff'), 1500);
+          return;
+        }
+      } catch {
+        // Auto-login failed — fallback to login page
+      }
+      
+      // Fallback: redirect to login page
       setTimeout(() => {
         router.push('/staff/login');
       }, 2000);
@@ -127,7 +151,7 @@ export default function JoinPage() {
             <CheckCircle className="h-12 w-12 text-primary mx-auto mb-2" />
             <CardTitle>Акаунт створено!</CardTitle>
             <CardDescription>
-              Зараз вас буде перенаправлено на сторінку входу...
+              Входимо в кабінет...
             </CardDescription>
           </CardHeader>
         </Card>
