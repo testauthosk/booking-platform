@@ -144,9 +144,8 @@ export default function RegisterPage() {
         if (authMethod === 'phone' && phone.replace(/\D/g, '').length !== 9) return false;
         if (password.length < 6) return false;
         if (password !== confirmPassword) return false;
-        if (!companyName.trim()) return false;
         return true;
-      case 2: return true; // Website is optional
+      case 2: return companyName.trim().length > 0;
       case 3: return categories.length > 0;
       case 4: return accountType !== null;
       case 5: return serviceLocation !== null;
@@ -175,7 +174,7 @@ export default function RegisterPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          salonName: companyName.trim(),
+          salonName: 'Новий салон',
           authMethod,
           email: authMethod === 'email' ? email.trim() : null,
           phone: authMethod === 'phone' ? getFullPhone(phone) : null,
@@ -364,22 +363,6 @@ export default function RegisterPage() {
             </div>
 
             <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 p-6 space-y-5">
-              {/* Company name */}
-              <div>
-                <label className="block font-medium text-gray-700 mb-1.5" style={{ fontSize: '16px' }}>
-                  Назва компанії *
-                </label>
-                <input
-                  type="text"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder="Beauty Studio"
-                  autoFocus
-                  style={{ fontSize: '16px', height: '50px' }}
-                  className="w-full px-4 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none text-gray-900"
-                />
-              </div>
-
               {/* Auth Method Toggle - з анімованим слайдером */}
               <div className="relative p-1 bg-gray-100 rounded-xl">
                 {/* Sliding indicator */}
@@ -561,16 +544,28 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* ===== STEP 2: Website (optional) ===== */}
+        {/* ===== STEP 2: Company Name + Website ===== */}
         {step === 2 && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center">
               <p className="text-violet-600 text-sm font-medium mb-2">Налаштування</p>
-              <h1 className="text-3xl font-bold text-gray-900">Чи є у вас сайт?</h1>
-              <p className="text-gray-500 mt-3">Необов'язково — можете пропустити</p>
+              <h1 className="text-3xl font-bold text-gray-900">Як називається ваша компанія?</h1>
+              <p className="text-gray-500 mt-3">Цю назву бачитимуть ваші клієнти</p>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 p-6">
+            <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Назва компанії *</label>
+                <input
+                  type="text"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  placeholder="Beauty Studio"
+                  autoFocus
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-gray-900"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Сайт <span className="text-gray-400">(необов'язково)</span>
@@ -580,7 +575,6 @@ export default function RegisterPage() {
                   value={website}
                   onChange={(e) => setWebsite(e.target.value)}
                   placeholder="www.yoursite.com"
-                  autoFocus
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-gray-900"
                 />
               </div>
