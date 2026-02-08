@@ -77,6 +77,7 @@ model Master {
   email         String?         @unique
   avatar        String?
   bio           String?
+  color         String?
   rating        Float           @default(5.0)
   reviewCount   Int             @default(0)
   price         Int             @default(0)
@@ -90,7 +91,6 @@ model Master {
   updatedAt     DateTime        @updatedAt
   lastLogin     DateTime?
   passwordHash  String?
-  color         String?
   bookings     Booking[]
   salon        Salon           @relation(fields: [salonId], references: [id], onDelete: Cascade)
   services     MasterService[]

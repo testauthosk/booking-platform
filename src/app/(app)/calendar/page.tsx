@@ -158,7 +158,7 @@ function ViewModeSegment({ viewMode, onChange }: { viewMode: 'day' | 'week'; onC
 
 export default function CalendarPage() {
   const { open: openSidebar } = useSidebar();
-  const { getColorForIndex, settings, setGridStep } = useCalendarSettings();
+  const { getColorForIndex, settings, setGridStep, setPaletteId } = useCalendarSettings();
   const { user } = useAuth();
   
   const [masters, setMasters] = useState<Master[]>([]);
@@ -959,18 +959,91 @@ export default function CalendarPage() {
           <h3 className="font-semibold">Налаштування</h3>
           <button className="h-8 w-8 rounded-lg hover:bg-gray-100" onClick={() => setSettingsOpen(false)}>✕</button>
         </div>
-        <div className="p-4 space-y-3">
-          <div className="text-xs text-gray-500 uppercase tracking-wide">Сітка часу</div>
-          <div className="flex gap-2">
-            {[5, 15, 30].map((s) => (
-              <button
-                key={s}
-                onClick={() => setGridStep(s as 5 | 15 | 30)}
-                className={`px-3 py-2 rounded-lg text-sm font-semibold border ${settings.gridStep === s ? 'bg-black text-white border-black' : 'bg-white text-gray-700 border-gray-200'}`}
-              >
-                {s} хв
-              </button>
-            ))}
+        <div className="p-4 space-y-5">
+          {/* Grid step */}
+          <div>
+            <div className="text-xs text-gray-500 uppercase tracking-wide mb-2">Сітка часу</div>
+            <div className="flex gap-2">
+              {[5, 15, 30].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setGridStep(s as 5 | 15 | 30)}
+                  className={`px-3 py-2 rounded-lg text-sm font-semibold border ${settings.gridStep === s ? 'bg-black text-white border-black' : 'bg-white text-gray-700 border-gray-200'}`}
+                >
+                  {s} хв
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Palette */}
+          <div>
+            <div className="text-xs text-gray-500 uppercase tracking-wide mb-2">Палітра кольорів</div>
+            <div className="space-y-2">
+              {(() => {
+                // Dynamic import not needed — palettes are small
+                const palettes = [
+                  { id: 'rose-bloom', name: 'Rosé Bloom', desc: 'Жіночий салон' },
+                  { id: 'heritage-vault', name: 'Heritage Vault', desc: 'Барбершоп' },
+                  { id: 'earth-harmony', name: 'Earth Harmony', desc: 'Унісекс' },
+                ];
+                return palettes.map(p => {
+                  const isActive = settings.paletteId === p.id;
+                  const colors = (() => {
+                    // Inline palette color previews
+                    const map: Record<string, string[]> = {
+                      'rose-bloom': ['#D88B79', '#C09BAC', '#BEA98E', '#A6445D', '#9B7E82'],
+                      'heritage-vault': ['#2E4053', '#5B6E74', '#62929E', '#8B7355', '#142F40'],
+                      'earth-harmony': ['#87C2CA', '#BAB8A8', '#E6D17B', '#DF93B4', '#94B5FD'],
+                    };
+                    return map[p.id] || [];
+                  })();
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => setPaletteId(p.id)}
+                      className={`w-full text-left p-3 rounded-xl border-2 transition-all ${
+                        isActive ? 'border-black bg-gray-50' : 'border-transparent bg-gray-50/50 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-sm font-semibold">{p.name}</span>
+                        <span className="text-[10px] text-gray-400">{p.desc}</span>
+                      </div>
+                      <div className="flex gap-1">
+                        {colors.map((c, i) => (
+                          <div key={i} className="w-6 h-6 rounded-md" style={{ backgroundColor: c }} />
+                        ))}
+                      </div>
+                    </button>
+                  );
+                });
+              })()}
+            </div>
+            {/* Save & assign button */}
+            <button
+              className="w-full mt-3 py-2.5 rounded-xl bg-black text-white text-sm font-semibold active:scale-[0.98] transition-all"
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/masters/assign-colors', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ colors: settings.colors }),
+                  });
+                  if (res.ok) {
+                    await loadMasters();
+                    setSettingsOpen(false);
+                  }
+                } catch (e) {
+                  console.error('Failed to assign colors:', e);
+                }
+              }}
+            >
+              Зберегти та призначити кольори
+            </button>
+            <p className="text-[10px] text-gray-400 mt-1 text-center">
+              Кожен майстер отримає випадковий колір з палітри
+            </p>
           </div>
         </div>
       </div>
