@@ -534,10 +534,15 @@ export default function CalendarPage() {
         {/* Today */}
         <button
           onClick={goToToday}
-          className="shrink-0 active:bg-gray-200 transition-colors"
-          style={{ height: '44px', padding: '0 14px', borderRadius: '12px', backgroundColor: '#f3f4f6', border: '1px solid rgba(0,0,0,0.4)', fontSize: '13px', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}
+          className="shrink-0 transition-all duration-150 active:scale-[0.95] active:opacity-80"
+          style={{ height: '44px', padding: '0 14px', borderRadius: '12px', backgroundColor: '#f3f4f6', border: '1px solid rgba(0,0,0,0.4)', fontSize: '13px', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}
         >
           Сьогодні
+          {isToday && (
+            <svg className="h-3.5 w-3.5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          )}
         </button>
 
         {/* Notifications */}
