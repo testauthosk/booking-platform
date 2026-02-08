@@ -22,7 +22,16 @@ export async function GET(
         },
         masters: {
           where: { isActive: true },
-          orderBy: { sortOrder: 'asc' }
+          orderBy: { sortOrder: 'asc' },
+          select: {
+            id: true,
+            name: true,
+            role: true,
+            avatar: true,
+            rating: true,
+            reviewCount: true,
+            price: true,
+          }
         },
         reviews: {
           where: { isVisible: true },

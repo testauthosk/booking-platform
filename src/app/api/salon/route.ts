@@ -10,24 +10,27 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     let salonId = searchParams.get('salonId');
 
-    // Якщо salonId не передано, беремо з сесії поточного користувача
-    if (!salonId) {
-      const session = await getServerSession(authOptions);
-      if (!session?.user?.id) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-
-      const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { salonId: true }
-      });
-
-      if (!user?.salonId) {
-        return NextResponse.json({ error: 'No salon' }, { status: 400 });
-      }
-
-      salonId = user.salonId;
+    // Always verify user owns this salon
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { salonId: true, role: true }
+    });
+
+    if (!user?.salonId) {
+      return NextResponse.json({ error: 'No salon' }, { status: 400 });
+    }
+
+    // If salonId provided, verify access
+    if (salonId && user.role !== 'SUPER_ADMIN' && salonId !== user.salonId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    salonId = salonId || user.salonId;
 
     const salon = await prisma.salon.findUnique({
       where: { id: salonId },
@@ -69,6 +72,19 @@ export async function PATCH(request: NextRequest) {
 
     if (!salonId) {
       return NextResponse.json({ error: 'salonId required' }, { status: 400 });
+    }
+
+    // Verify user owns this salon
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { salonId: true, role: true },
+    });
+    if (user?.role !== 'SUPER_ADMIN' && user?.salonId !== salonId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Перевіряємо чи змінилась адреса

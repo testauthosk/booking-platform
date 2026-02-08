@@ -18,7 +18,24 @@ export async function GET(
 
     const master = await prisma.master.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        salonId: true,
+        name: true,
+        role: true,
+        phone: true,
+        email: true,
+        avatar: true,
+        bio: true,
+        color: true,
+        rating: true,
+        reviewCount: true,
+        price: true,
+        workingHours: true,
+        lunchDuration: true,
+        lunchStart: true,
+        isActive: true,
+        sortOrder: true,
         services: { include: { service: true } },
       },
     });
@@ -93,6 +110,11 @@ export async function PATCH(
         ...(isActive !== undefined && { isActive }),
         ...(workingHours !== undefined && { workingHours }),
         ...(sortOrder !== undefined && { sortOrder }),
+      },
+      select: {
+        id: true, salonId: true, name: true, role: true, phone: true,
+        email: true, avatar: true, bio: true, color: true, rating: true,
+        reviewCount: true, price: true, workingHours: true, isActive: true, sortOrder: true,
       },
     });
 

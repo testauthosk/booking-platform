@@ -238,6 +238,22 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'ID required' }, { status: 400 });
     }
 
+    // Verify booking belongs to user's salon
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { salonId: true },
+    });
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      select: { salonId: true },
+    });
+    if (!booking) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+    if (booking.salonId !== user?.salonId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     await prisma.booking.delete({ where: { id } });
 
     return NextResponse.json({ success: true });
@@ -252,7 +268,6 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
 
     const {
-      salonId,
       clientId,
       masterId,
       serviceId,
@@ -269,7 +284,24 @@ export async function POST(request: NextRequest) {
       notes,
     } = data;
 
-    if (!salonId || !clientName || !clientPhone || !date || !time) {
+    // Auth check
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Always use user's salonId — never trust client input
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { salonId: true },
+    });
+    const salonId = user?.salonId;
+
+    if (!salonId) {
+      return NextResponse.json({ error: 'No salon' }, { status: 400 });
+    }
+
+    if (!clientName || !clientPhone || !date || !time) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
