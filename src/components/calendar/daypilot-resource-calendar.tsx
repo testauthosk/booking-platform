@@ -1039,7 +1039,8 @@ export function DayPilotResourceCalendar({
   const totalMinutes = (dayEndHour - dayStartHour) * 60;
   const stepCount = Math.ceil(totalMinutes / timeStep);
   const steps = Array.from({ length: stepCount }, (_, i) => i);
-  const stepHeight = 60 * (timeStep / 60); // 60px per hour
+  const pxPerHour = 120; // Height of one hour in pixels
+  const stepHeight = pxPerHour * (timeStep / 60);
 
   // Отримуємо дні тижня для навігації
   const getWeekDays = (date: Date) => {
