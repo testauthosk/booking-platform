@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
+import { staffFetch } from '@/lib/staff-fetch';
 import { Switch } from '@/components/ui/switch';
 import { ChevronLeft, Loader2, Check, X, Copy } from 'lucide-react';
 
@@ -77,7 +78,7 @@ export default function StaffSchedule() {
 
   const loadSchedule = async () => {
     try {
-      const res = await fetch(`/api/staff/profile?masterId=${staffId}`);
+      const res = await staffFetch(`/api/staff/profile?masterId=${staffId}`);
       if (res.ok) {
         const data = await res.json();
         if (data.workingHours) {
@@ -92,7 +93,7 @@ export default function StaffSchedule() {
   const saveSchedule = async () => {
     setSaving(true);
     try {
-      const res = await fetch('/api/staff/profile', {
+      const res = await staffFetch('/api/staff/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -54,6 +54,22 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Прив'язуємо всі послуги салону до нового мастера
+    const salonServices = await prisma.service.findMany({
+      where: { salonId: invitation.salonId, isActive: true },
+      select: { id: true },
+    });
+
+    if (salonServices.length > 0) {
+      await prisma.masterService.createMany({
+        data: salonServices.map(s => ({
+          masterId: master.id,
+          serviceId: s.id,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
     // Помечаем приглашение как использованное
     await prisma.staffInvitation.update({
       where: { id: invitation.id },

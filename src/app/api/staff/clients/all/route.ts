@@ -1,15 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { verifyStaffToken } from '@/lib/staff-auth'
 
 // GET /api/staff/clients/all — отримати всіх клієнтів салону
 export async function GET(request: NextRequest) {
   try {
+    const auth = await verifyStaffToken(request)
+    if (auth instanceof NextResponse) return auth
+
     const { searchParams } = new URL(request.url)
-    const salonId = searchParams.get('salonId')
+    const salonId = searchParams.get('salonId') || auth.salonId
     const search = searchParams.get('search') || ''
 
-    if (!salonId) {
-      return NextResponse.json({ error: 'salonId required' }, { status: 400 })
+    // Мастер може бачити тільки клієнтів свого салону
+    if (salonId !== auth.salonId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const clients = await prisma.client.findMany({

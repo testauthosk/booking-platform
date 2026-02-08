@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ChevronLeft, Loader2, Check, Camera, User, Image, X } from 'lucide-react';
 import { COLOR_PALETTES, getPaletteById } from '@/lib/color-palettes';
+import { staffFetch } from '@/lib/staff-fetch';
 
 export default function StaffProfile() {
   const router = useRouter();
@@ -99,7 +100,7 @@ export default function StaffProfile() {
 
   const loadProfile = async () => {
     try {
-      const res = await fetch(`/api/staff/profile?masterId=${staffId}`);
+      const res = await staffFetch(`/api/staff/profile?masterId=${staffId}`);
       if (res.ok) {
         const data = await res.json();
         setName(data.name || '');
@@ -120,7 +121,7 @@ export default function StaffProfile() {
   const saveProfile = async () => {
     setSaving(true);
     try {
-      const res = await fetch('/api/staff/profile', {
+      const res = await staffFetch('/api/staff/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -168,7 +169,7 @@ export default function StaffProfile() {
         setAvatar(data.url);
         
         // Save to profile
-        await fetch('/api/staff/profile', {
+        await staffFetch('/api/staff/profile', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -516,7 +517,7 @@ export default function StaffProfile() {
             <button
               onClick={async () => {
                 setAvatar('');
-                await fetch('/api/staff/profile', {
+                await staffFetch('/api/staff/profile', {
                   method: 'PUT',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ masterId: staffId, avatar: '' })

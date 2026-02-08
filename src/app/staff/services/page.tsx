@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { staffFetch } from '@/lib/staff-fetch';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -94,7 +95,7 @@ export default function StaffServices() {
   const loadServices = async () => {
     setLoadingServices(true);
     try {
-      const res = await fetch(`/api/staff/services?masterId=${staffId}`);
+      const res = await staffFetch(`/api/staff/services?masterId=${staffId}`);
       if (res.ok) {
         const data = await res.json();
         setServices(data);
@@ -110,7 +111,7 @@ export default function StaffServices() {
     // Use salonId from localStorage or fallback to demo
     const sid = salonId || localStorage.getItem('staffSalonId') || 'demo-salon-id';
     try {
-      const res = await fetch(`/api/staff/categories?salonId=${sid}`);
+      const res = await staffFetch(`/api/staff/categories?salonId=${sid}`);
       if (res.ok) {
         const data = await res.json();
         setCategories(data);
@@ -147,7 +148,7 @@ export default function StaffServices() {
     ));
 
     try {
-      await fetch(`/api/staff/services`, {
+      await staffFetch(`/api/staff/services`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -177,7 +178,7 @@ export default function StaffServices() {
     setServices(prev => prev.filter(s => s.id !== serviceId));
     
     try {
-      await fetch(`/api/staff/services?masterId=${staffId}&serviceId=${serviceId}`, {
+      await staffFetch(`/api/staff/services?masterId=${staffId}&serviceId=${serviceId}`, {
         method: 'DELETE'
       });
     } catch (error) {
@@ -204,7 +205,7 @@ export default function StaffServices() {
     
     setCreatingService(true);
     try {
-      const res = await fetch('/api/staff/services/create', {
+      const res = await staffFetch('/api/staff/services/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { verifyStaffToken, assertOwnMaster } from '@/lib/staff-auth';
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await verifyStaffToken(request);
+    if (auth instanceof NextResponse) return auth;
+
     const { searchParams } = new URL(request.url);
     const masterId = searchParams.get('masterId');
 
-    if (!masterId) {
-      return NextResponse.json({ error: 'masterId required' }, { status: 400 });
-    }
+    const denied = assertOwnMaster(auth, masterId);
+    if (denied) return denied;
 
     const master = await prisma.master.findUnique({
-      where: { id: masterId },
+      where: { id: masterId! },
       select: {
         id: true,
         name: true,
@@ -48,15 +51,17 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const auth = await verifyStaffToken(request);
+    if (auth instanceof NextResponse) return auth;
+
     const body = await request.json();
     const { masterId, name, phone, bio, workingHours, color, avatar, lunchDuration, lunchStart } = body;
 
-    if (!masterId) {
-      return NextResponse.json({ error: 'masterId required' }, { status: 400 });
-    }
+    const denied = assertOwnMaster(auth, masterId);
+    if (denied) return denied;
 
     const updated = await prisma.master.update({
-      where: { id: masterId },
+      where: { id: masterId! },
       data: {
         ...(name && { name }),
         ...(phone !== undefined && { phone }),

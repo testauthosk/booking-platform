@@ -10,6 +10,7 @@ import { ColleagueBookingModal } from '@/components/staff/colleague-booking-moda
 import { StaffBookingModal } from '@/components/staff/staff-booking-modal';
 import { BookingDetailsModal } from '@/components/staff/booking-details-modal';
 import { getPaletteById } from '@/lib/color-palettes';
+import { staffFetch } from '@/lib/staff-fetch';
 
 // Затемнити колір на X% для обводки
 const darkenColor = (hex: string, percent = 20): string => {
@@ -166,7 +167,7 @@ export default function StaffDashboard() {
 
   const loadProfile = async () => {
     try {
-      const res = await fetch(`/api/staff/profile?masterId=${staffId}`);
+      const res = await staffFetch(`/api/staff/profile?masterId=${staffId}`);
       if (res.ok) {
         const data = await res.json();
         if (data.avatar) setStaffAvatar(data.avatar);
@@ -205,7 +206,7 @@ export default function StaffDashboard() {
   const loadStats = async () => {
     setLoadingStats(true);
     try {
-      const res = await fetch(`/api/staff/dashboard?masterId=${staffId}`);
+      const res = await staffFetch(`/api/staff/dashboard?masterId=${staffId}`);
       if (res.ok) {
         const data = await res.json();
         setStats(data);
@@ -219,7 +220,7 @@ export default function StaffDashboard() {
 
   const loadServices = async () => {
     try {
-      const res = await fetch(`/api/staff/services?masterId=${staffId}`);
+      const res = await staffFetch(`/api/staff/services?masterId=${staffId}`);
       if (res.ok) {
         const data = await res.json();
         // Only enabled services
@@ -372,7 +373,7 @@ export default function StaffDashboard() {
         return;
       }
       
-      const res = await fetch('/api/staff/bookings', {
+      const res = await staffFetch('/api/staff/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -451,7 +452,7 @@ export default function StaffDashboard() {
       
       console.log('[STAFF] Creating booking:', bookingData);
       
-      const res = await fetch('/api/booking', {
+      const res = await staffFetch('/api/booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bookingData)

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { staffFetch } from '@/lib/staff-fetch';
 import { useTransitionRouter } from 'next-view-transitions';
 import { 
   ArrowLeft, Search, Phone, User, Loader2, ChevronRight, 
@@ -76,7 +77,7 @@ export default function StaffClientsPage() {
     setLoading(true);
     try {
       // Use /all endpoint to get ALL salon clients, not just those with bookings
-      const res = await fetch(`/api/staff/clients/all?salonId=${salonId}&search=${search}`);
+      const res = await staffFetch(`/api/staff/clients/all?salonId=${salonId}&search=${search}`);
       if (res.ok) {
         const data = await res.json();
         setClients(data);
@@ -148,7 +149,7 @@ export default function StaffClientsPage() {
       const phone = '+380' + newClientPhone.replace(/\D/g, '');
       
       // Use staff API endpoint
-      const res = await fetch('/api/staff/clients/create', {
+      const res = await staffFetch('/api/staff/clients/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: fullName, phone, salonId, masterId }),
@@ -236,7 +237,7 @@ export default function StaffClientsPage() {
     if (!selectedClient) return;
     setIsSaving(true);
     try {
-      const res = await fetch(`/api/staff/clients?masterId=${masterId}&clientId=${selectedClient.id}`, {
+      const res = await staffFetch(`/api/staff/clients?masterId=${masterId}&clientId=${selectedClient.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editForm),
@@ -542,7 +543,7 @@ export default function StaffClientsPage() {
                   onBlur={async () => {
                     if (editForm.notes !== selectedClient.notes) {
                       try {
-                        await fetch(`/api/staff/clients?masterId=${masterId}&clientId=${selectedClient.id}`, {
+                        await staffFetch(`/api/staff/clients?masterId=${masterId}&clientId=${selectedClient.id}`, {
                           method: 'PATCH',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ notes: editForm.notes }),

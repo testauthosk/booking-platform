@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { verifyStaffToken, assertOwnMaster } from '@/lib/staff-auth';
 
 // Отримати поточний час в заданій таймзоні
 const getTimeInTimezone = (timezone: string) => {
@@ -10,17 +11,19 @@ const getTimeInTimezone = (timezone: string) => {
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await verifyStaffToken(request);
+    if (auth instanceof NextResponse) return auth;
+
     const { searchParams } = new URL(request.url);
     const masterId = searchParams.get('masterId');
-    const requestedDate = searchParams.get('date'); // Optional: specific date YYYY-MM-DD
+    const requestedDate = searchParams.get('date');
 
-    if (!masterId) {
-      return NextResponse.json({ error: 'masterId required' }, { status: 400 });
-    }
+    const denied = assertOwnMaster(auth, masterId);
+    if (denied) return denied;
 
     // Отримуємо timezone мастера
     const master = await prisma.master.findUnique({
-      where: { id: masterId },
+      where: { id: masterId! },
       select: { timezone: true }
     });
     const timezone = master?.timezone || 'Europe/Kiev';

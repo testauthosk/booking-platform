@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { verifyStaffToken } from '@/lib/staff-auth';
 
 export async function GET(request: NextRequest) {
+  const auth = await verifyStaffToken(request);
+  if (auth instanceof NextResponse) return auth;
+
   const { searchParams } = new URL(request.url);
   const phone = searchParams.get('phone');
-  const masterId = searchParams.get('masterId');
+  const masterId = searchParams.get('masterId') || auth.masterId;
 
   if (!phone) {
     return NextResponse.json({ error: 'Phone required' }, { status: 400 });

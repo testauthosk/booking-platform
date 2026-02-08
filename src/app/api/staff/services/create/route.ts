@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { verifyStaffToken, assertOwnMaster } from '@/lib/staff-auth';
 
 // POST - create new service by master
 export async function POST(request: NextRequest) {
   try {
+    const auth = await verifyStaffToken(request);
+    if (auth instanceof NextResponse) return auth;
+
     const body = await request.json();
-    const { salonId, masterId, name, duration, price, description, categoryId } = body;
+    const { masterId, name, duration, price, description, categoryId } = body;
+    const salonId = auth.salonId;
 
-    console.log('Create service request:', { salonId, masterId, name, price, categoryId });
+    const denied = assertOwnMaster(auth, masterId || auth.masterId);
+    if (denied) return denied;
 
-    if (!salonId || !masterId || !name || !price) {
-      return NextResponse.json({ error: 'Missing required fields', details: { salonId, masterId, name, price } }, { status: 400 });
+    if (!name || !price) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     // Create service in salon

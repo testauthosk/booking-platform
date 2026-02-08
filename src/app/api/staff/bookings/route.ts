@@ -1,13 +1,20 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { verifyStaffToken, assertOwnMaster } from '@/lib/staff-auth';
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await verifyStaffToken(request);
+    if (auth instanceof NextResponse) return auth;
+
     const body = await request.json();
     const { masterId, salonId, serviceId, clientName, clientPhone, date, time, duration, price, serviceName, notifyAdmin, blockReason } = body;
 
-    if (!masterId || !clientName || !clientPhone || !date || !time) {
+    const denied = assertOwnMaster(auth, masterId);
+    if (denied) return denied;
+
+    if (!clientName || !clientPhone || !date || !time) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -63,11 +70,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Master not found' }, { status: 404 });
     }
 
+    const finalSalonId = salonId || master.salonId;
+
+    // Шукаємо існуючого клієнта за телефоном у цьому салоні
+    let clientId: string | null = null;
+    if (clientPhone && clientPhone !== '-') {
+      const existingClient = await prisma.client.findFirst({
+        where: { phone: clientPhone, salonId: finalSalonId },
+      });
+      if (existingClient) {
+        clientId = existingClient.id;
+      } else {
+        // Створюємо нового клієнта
+        const newClient = await prisma.client.create({
+          data: {
+            name: clientName,
+            phone: clientPhone,
+            salonId: finalSalonId,
+          },
+        });
+        clientId = newClient.id;
+      }
+    }
+
     const booking = await prisma.booking.create({
       data: {
-        salonId: salonId || master.salonId,
+        salonId: finalSalonId,
         masterId,
         serviceId: serviceId || null,
+        clientId,
         clientName,
         clientPhone,
         clientEmail: null,
@@ -91,7 +122,7 @@ export async function POST(request: NextRequest) {
         const admins = await prisma.user.findMany({
           where: {
             salonId: finalSalonId,
-            role: { in: ['OWNER', 'ADMIN'] }
+            role: { in: ['SALON_OWNER', 'SUPER_ADMIN'] }
           },
           select: { telegramChatId: true, name: true }
         });
@@ -128,13 +159,15 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await verifyStaffToken(request);
+    if (auth instanceof NextResponse) return auth;
+
     const { searchParams } = new URL(request.url);
     const masterId = searchParams.get('masterId');
     const date = searchParams.get('date');
 
-    if (!masterId) {
-      return NextResponse.json({ error: 'masterId required' }, { status: 400 });
-    }
+    const denied = assertOwnMaster(auth, masterId);
+    if (denied) return denied;
 
     const where: Record<string, unknown> = {
       masterId,
@@ -172,6 +205,9 @@ export async function GET(request: NextRequest) {
 // PUT - Update booking (time, duration, status, masterId for transfer)
 export async function PUT(request: NextRequest) {
   try {
+    const auth = await verifyStaffToken(request);
+    if (auth instanceof NextResponse) return auth;
+
     const body = await request.json();
     const { bookingId, time, duration, status, masterId, masterName, serviceId, serviceName, price } = body;
 
@@ -220,6 +256,9 @@ export async function PUT(request: NextRequest) {
 // PATCH - Update booking status (NO_SHOW, CANCELLED, COMPLETED)
 export async function PATCH(request: NextRequest) {
   try {
+    const auth = await verifyStaffToken(request);
+    if (auth instanceof NextResponse) return auth;
+
     const body = await request.json();
     const { bookingId, status } = body;
 

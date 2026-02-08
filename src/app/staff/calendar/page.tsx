@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
+import { staffFetch } from '@/lib/staff-fetch';
 import { useSearchParams } from 'next/navigation';
 import { useTransitionRouter } from 'next-view-transitions';
 import { Card } from '@/components/ui/card';
@@ -278,7 +279,7 @@ function StaffCalendarContent() {
     setConfirmLoading(true);
     try {
       const status = confirmModal.type === 'cancel' ? 'CANCELLED' : 'NO_SHOW';
-      const res = await fetch('/api/staff/bookings', {
+      const res = await staffFetch('/api/staff/bookings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bookingId: confirmModal.booking.id, status })
@@ -298,7 +299,7 @@ function StaffCalendarContent() {
 
   const handleCompleteBooking = async (bookingId: string) => {
     try {
-      const res = await fetch('/api/staff/bookings', {
+      const res = await staffFetch('/api/staff/bookings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bookingId, status: 'COMPLETED' })
@@ -317,7 +318,7 @@ function StaffCalendarContent() {
     setPickerBookingsLoading(true);
     try {
       const dateStr = date.toISOString().split('T')[0];
-      const res = await fetch(`/api/staff/dashboard?masterId=${staffId}&date=${dateStr}`);
+      const res = await staffFetch(`/api/staff/dashboard?masterId=${staffId}&date=${dateStr}`);
       if (res.ok) {
         const data = await res.json();
         setPickerBookings(data.todayBookings || []);
@@ -399,7 +400,7 @@ function StaffCalendarContent() {
     const defaultHours = { start: 9, end: 21 };
     
     try {
-      const res = await fetch(`/api/staff/profile?masterId=${staffId}`);
+      const res = await staffFetch(`/api/staff/profile?masterId=${staffId}`);
       if (res.ok) {
         const data = await res.json();
         // Load master color
@@ -430,7 +431,7 @@ function StaffCalendarContent() {
 
   const loadServices = async () => {
     try {
-      const res = await fetch(`/api/staff/services?masterId=${staffId}`);
+      const res = await staffFetch(`/api/staff/services?masterId=${staffId}`);
       if (res.ok) {
         const data = await res.json();
         setServices(data);
@@ -501,7 +502,7 @@ function StaffCalendarContent() {
     setLoadingBookings(true);
     try {
       const dateStr = selectedDate.toISOString().split('T')[0];
-      const res = await fetch(`/api/staff/bookings?masterId=${staffId}&date=${dateStr}`);
+      const res = await staffFetch(`/api/staff/bookings?masterId=${staffId}&date=${dateStr}`);
       if (res.ok) {
         const data = await res.json();
         setBookings(data);
@@ -1227,7 +1228,7 @@ function StaffCalendarContent() {
               if (!editBooking) return;
               const selectedService = services.find(s => s.id === editServiceId);
               try {
-                const res = await fetch('/api/staff/bookings', {
+                const res = await staffFetch('/api/staff/bookings', {
                   method: 'PUT',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ 

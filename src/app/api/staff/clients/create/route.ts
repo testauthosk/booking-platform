@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { verifyStaffToken } from '@/lib/staff-auth'
 
 // POST /api/staff/clients/create — створити клієнта від імені мастера
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { name, phone, salonId, masterId } = body
+    const auth = await verifyStaffToken(request)
+    if (auth instanceof NextResponse) return auth
 
-    if (!name || !phone || !salonId) {
-      return NextResponse.json({ error: 'name, phone, salonId required' }, { status: 400 })
+    const body = await request.json()
+    const { name, phone } = body
+    const salonId = auth.salonId
+
+    if (!name || !phone) {
+      return NextResponse.json({ error: 'name, phone required' }, { status: 400 })
     }
 
     // Check if client with this phone already exists in salon

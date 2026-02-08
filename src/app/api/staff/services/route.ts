@@ -1,19 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { verifyStaffToken, assertOwnMaster } from '@/lib/staff-auth';
 
 // GET services for master - only master's own services
 export async function GET(request: NextRequest) {
   try {
+    const auth = await verifyStaffToken(request);
+    if (auth instanceof NextResponse) return auth;
+
     const { searchParams } = new URL(request.url);
     const masterId = searchParams.get('masterId');
 
-    if (!masterId) {
-      return NextResponse.json({ error: 'masterId required' }, { status: 400 });
-    }
+    const denied = assertOwnMaster(auth, masterId);
+    if (denied) return denied;
 
     // Get only master's services (through MasterService link)
     const masterServices = await prisma.masterService.findMany({
-      where: { masterId },
+      where: { masterId: masterId! },
       include: {
         service: {
           include: {
@@ -46,11 +49,17 @@ export async function GET(request: NextRequest) {
 // PUT - update master's service price/duration
 export async function PUT(request: NextRequest) {
   try {
+    const auth = await verifyStaffToken(request);
+    if (auth instanceof NextResponse) return auth;
+
     const body = await request.json();
     const { masterId, serviceId, customPrice, customDuration } = body;
 
-    if (!masterId || !serviceId) {
-      return NextResponse.json({ error: 'masterId and serviceId required' }, { status: 400 });
+    const denied = assertOwnMaster(auth, masterId);
+    if (denied) return denied;
+
+    if (!serviceId) {
+      return NextResponse.json({ error: 'serviceId required' }, { status: 400 });
     }
 
     // Update price/duration
@@ -74,18 +83,24 @@ export async function PUT(request: NextRequest) {
 // DELETE - remove service from master
 export async function DELETE(request: NextRequest) {
   try {
+    const auth = await verifyStaffToken(request);
+    if (auth instanceof NextResponse) return auth;
+
     const { searchParams } = new URL(request.url);
     const masterId = searchParams.get('masterId');
     const serviceId = searchParams.get('serviceId');
 
-    if (!masterId || !serviceId) {
-      return NextResponse.json({ error: 'masterId and serviceId required' }, { status: 400 });
+    const denied = assertOwnMaster(auth, masterId);
+    if (denied) return denied;
+
+    if (!serviceId) {
+      return NextResponse.json({ error: 'serviceId required' }, { status: 400 });
     }
 
     // Remove link
     await prisma.masterService.delete({
       where: {
-        masterId_serviceId: { masterId, serviceId }
+        masterId_serviceId: { masterId: masterId!, serviceId: serviceId! }
       }
     });
 

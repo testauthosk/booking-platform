@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { verifyStaffToken, assertOwnMaster } from '@/lib/staff-auth'
 
 // GET /api/staff/clients — отримати клієнтів мастера (тих що мали записи до нього)
 export async function GET(request: NextRequest) {
   try {
+    const auth = await verifyStaffToken(request)
+    if (auth instanceof NextResponse) return auth
+
     const { searchParams } = new URL(request.url)
     const masterId = searchParams.get('masterId')
     const search = searchParams.get('search') || ''
 
-    if (!masterId) {
-      return NextResponse.json({ error: 'masterId required' }, { status: 400 })
-    }
+    const denied = assertOwnMaster(auth, masterId)
+    if (denied) return denied
 
     // Знаходимо всі записи до цього мастера
     const bookings = await prisma.booking.findMany({
@@ -109,17 +112,23 @@ export async function GET(request: NextRequest) {
 // PATCH /api/staff/clients — оновити клієнта (мастер може редагувати своїх)
 export async function PATCH(request: NextRequest) {
   try {
+    const auth = await verifyStaffToken(request)
+    if (auth instanceof NextResponse) return auth
+
     const { searchParams } = new URL(request.url)
     const masterId = searchParams.get('masterId')
     const clientId = searchParams.get('clientId')
 
-    if (!masterId || !clientId) {
-      return NextResponse.json({ error: 'masterId and clientId required' }, { status: 400 })
+    const denied = assertOwnMaster(auth, masterId)
+    if (denied) return denied
+
+    if (!clientId) {
+      return NextResponse.json({ error: 'clientId required' }, { status: 400 })
     }
 
     // Перевіряємо що мастер мав записи з цим клієнтом
     const hasBooking = await prisma.booking.findFirst({
-      where: { masterId, clientId }
+      where: { masterId: masterId!, clientId }
     })
 
     if (!hasBooking) {
