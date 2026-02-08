@@ -84,6 +84,7 @@ export default function StaffDashboard() {
   const [lunchStart, setLunchStart] = useState('13:00'); // Час початку обіду
   const [stats, setStats] = useState<StaffStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
+  const [timeBlocks, setTimeBlocks] = useState<Array<{ id: string; startTime: string; endTime: string; title: string; type: string }>>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   
   // Services for booking form
@@ -142,7 +143,14 @@ export default function StaffDashboard() {
 
   useEffect(() => {
     if (staffId) {
-      loadStats();
+      // Auto-complete past bookings, then load fresh data
+      staffFetch('/api/staff/bookings/auto-complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ masterId: staffId })
+      }).catch(() => {}).finally(() => {
+        loadStats();
+      });
       loadServices();
       loadProfile();
     }
@@ -207,6 +215,7 @@ export default function StaffDashboard() {
       if (res.ok) {
         const data = await res.json();
         setStats(data);
+        setTimeBlocks(data.todayTimeBlocks || []);
       }
     } catch (error) {
       console.error('Load stats error:', error);
@@ -353,32 +362,17 @@ export default function StaffDashboard() {
     try {
       const dateStr = blockDate.toISOString().split('T')[0];
       
-      // Calculate duration
-      const [startH, startM] = blockTimeStart.split(':').map(Number);
-      const [endH, endM] = blockTimeEnd.split(':').map(Number);
-      const duration = (endH * 60 + endM) - (startH * 60 + startM);
-      
-      if (duration <= 0) {
-        alert('Час закінчення має бути пізніше за час початку');
-        setSavingBlock(false);
-        return;
-      }
-      
-      const res = await staffFetch('/api/staff/bookings', {
+      const res = await staffFetch('/api/staff/time-blocks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           masterId: staffId,
-          salonId,
-          clientName: 'Зайнято',
-          clientPhone: '-',
-          serviceName: isEmergency ? 'Терміново закрито' : 'Вільний запис',
           date: dateStr,
-          time: blockTimeStart,
-          duration: duration,
-          price: 0,
+          startTime: blockTimeStart,
+          endTime: blockTimeEnd,
+          title: isEmergency ? 'Терміново закрито' : 'Перерва',
+          type: isEmergency ? 'OTHER' : 'BREAK',
           notifyAdmin: isEmergency,
-          blockReason: isEmergency ? 'end_of_day' : 'manual'
         })
       });
       
@@ -669,6 +663,25 @@ export default function StaffDashboard() {
                   );
                 })}
                 
+                {/* Time blocks */}
+                {timeBlocks.map((block) => (
+                  <Card 
+                    key={`block-${block.id}`}
+                    className="p-3 w-[160px] h-[200px] shrink-0 flex flex-col justify-between border-dashed border-zinc-300 bg-zinc-50"
+                  >
+                    <div>
+                      <div className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-bold mb-3 bg-zinc-200 text-zinc-600">
+                        {block.startTime}
+                      </div>
+                      <p className="font-semibold text-sm text-zinc-600">{block.title || 'Перерва'}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{block.startTime} — {block.endTime}</p>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-zinc-400 uppercase">{block.type === 'LUNCH' ? '🍽️ Обід' : block.type === 'DAY_OFF' ? '📅 Вихідний' : '⏸️ Блок'}</span>
+                    </div>
+                  </Card>
+                ))}
+
                 {/* Add button - same height as booking card */}
                 <Card 
                   className="p-3 w-[160px] h-[200px] shrink-0 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors border-dashed border-2"

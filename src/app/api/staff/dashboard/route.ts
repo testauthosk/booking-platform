@@ -47,42 +47,11 @@ export async function GET(request: NextRequest) {
     weekEnd.setDate(weekEnd.getDate() + 6); // Sunday
     const weekEndStr = weekEnd.toISOString().split('T')[0];
 
-    // Автозавершення: записи що закінчились переводимо в COMPLETED
-    // Тільки якщо запитуємо сьогоднішню дату
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     const currentTotalMinutes = currentHour * 60 + currentMinute;
-    const isRequestingToday = !requestedDate || requestedDate === now.toISOString().split('T')[0];
-    
-    if (isRequestingToday) {
-      // Знаходимо записи які повинні бути завершені
-      const pendingBookings = await prisma.booking.findMany({
-        where: {
-          masterId,
-          date: todayStr,
-          status: 'CONFIRMED'
-        },
-        select: { id: true, time: true, timeEnd: true, duration: true }
-      });
-      
-      // Автоматично завершуємо записи час яких пройшов
-      for (const booking of pendingBookings) {
-        const [h, m] = booking.time.split(':').map(Number);
-        const endMinutes = booking.timeEnd 
-          ? (() => { const [eh, em] = booking.timeEnd.split(':').map(Number); return eh * 60 + em; })()
-          : h * 60 + m + (booking.duration || 60);
-        
-        // Якщо запис закінчився — помічаємо як виконаний
-        if (currentTotalMinutes >= endMinutes) {
-          await prisma.booking.update({
-            where: { id: booking.id },
-            data: { status: 'COMPLETED' }
-          });
-        }
-      }
-    }
 
-    // Get today's bookings (оновлені після автозавершення)
+    // Get today's bookings
     const todayBookings = await prisma.booking.findMany({
       where: {
         masterId,
@@ -163,14 +132,32 @@ export async function GET(request: NextRequest) {
       // Don't show tomorrow's as "next" for now
     }
 
+    // Fetch time blocks for today
+    const todayTimeBlocks = await prisma.timeBlock.findMany({
+      where: {
+        masterId,
+        date: todayStr,
+      },
+      orderBy: { startTime: 'asc' },
+      select: {
+        id: true,
+        startTime: true,
+        endTime: true,
+        title: true,
+        type: true,
+        isAllDay: true,
+      }
+    });
+
     return NextResponse.json({
       todayCount: todayBookings.length,
       tomorrowCount,
       weekCount,
       totalClients: uniqueClients.length,
       todayBookings,
+      todayTimeBlocks,
       nextBooking: nextBooking || null,
-      serverTime: now.toISOString() // Для дебагу
+      serverTime: now.toISOString()
     }, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate',

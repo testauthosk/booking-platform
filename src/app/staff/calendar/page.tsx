@@ -227,6 +227,7 @@ function StaffCalendarContent() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
+  const [timeBlocks, setTimeBlocks] = useState<Array<{ id: string; startTime: string; endTime: string; title: string; type: string }>>([]);
   const [salonId, setSalonId] = useState('');
   const [workingHours, setWorkingHours] = useState<{ start: number; end: number }>({ start: 8, end: 21 });
   const [showOnlyBookings, setShowOnlyBookings] = useState(false);
@@ -502,10 +503,17 @@ function StaffCalendarContent() {
     setLoadingBookings(true);
     try {
       const dateStr = selectedDate.toISOString().split('T')[0];
-      const res = await staffFetch(`/api/staff/bookings?masterId=${staffId}&date=${dateStr}`);
-      if (res.ok) {
-        const data = await res.json();
+      const [bookingsRes, blocksRes] = await Promise.all([
+        staffFetch(`/api/staff/bookings?masterId=${staffId}&date=${dateStr}`),
+        staffFetch(`/api/staff/time-blocks?masterId=${staffId}&date=${dateStr}`),
+      ]);
+      if (bookingsRes.ok) {
+        const data = await bookingsRes.json();
         setBookings(data);
+      }
+      if (blocksRes.ok) {
+        const data = await blocksRes.json();
+        setTimeBlocks(data);
       }
     } catch (error) {
       console.error('Load bookings error:', error);
@@ -766,7 +774,34 @@ function StaffCalendarContent() {
                     </div>
                   );
                 })
-            ) : (
+            ) : null}
+
+            {/* Time blocks in list view */}
+            {timeBlocks.map((block) => (
+              <div
+                key={`block-list-${block.id}`}
+                className="rounded-xl overflow-hidden bg-zinc-100 border-l-4 border-zinc-400"
+                style={{
+                  backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.03) 5px, rgba(0,0,0,0.03) 10px)',
+                }}
+              >
+                <div className="p-3 flex justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-bold text-zinc-500">{block.startTime}</span>
+                      <span className="text-sm text-zinc-400">—</span>
+                      <span className="text-sm text-zinc-400">{block.endTime}</span>
+                    </div>
+                    <p className="font-semibold text-zinc-500">{block.title || 'Перерва'}</p>
+                  </div>
+                  <span className="text-lg">
+                    {block.type === 'LUNCH' ? '🍽️' : block.type === 'DAY_OFF' ? '📅' : '⏸️'}
+                  </span>
+                </div>
+              </div>
+            ))}
+
+            {bookings.length === 0 && timeBlocks.length === 0 && (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">Немає записів на цей день</p>
               </div>
@@ -1007,6 +1042,38 @@ function StaffCalendarContent() {
                           </div>
                         )}
                       </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Time blocks on timeline */}
+              {timeBlocks.map((block) => {
+                const [startH, startM] = block.startTime.split(':').map(Number);
+                const [endH, endM] = block.endTime.split(':').map(Number);
+                const startMinutes = (startH - workingHours.start) * 60 + startM;
+                const blockDuration = (endH * 60 + endM) - (startH * 60 + startM);
+                const topPosition = startMinutes * 2;
+                const height = blockDuration * 2;
+
+                return (
+                  <div
+                    key={`block-${block.id}`}
+                    className="absolute -left-2 right-4 rounded-r-xl bg-zinc-100 border-l-4 border-zinc-400 border-t border-r border-b border-zinc-300"
+                    style={{
+                      top: `${topPosition}px`,
+                      height: `${Math.max(height, 40)}px`,
+                      backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.04) 5px, rgba(0,0,0,0.04) 10px)',
+                    }}
+                  >
+                    <div className="p-3 h-full flex items-start justify-between">
+                      <div>
+                        <p className="font-semibold text-sm text-zinc-500">{block.title || 'Перерва'}</p>
+                        <p className="text-xs text-zinc-400">{block.startTime} — {block.endTime}</p>
+                      </div>
+                      <span className="text-xs text-zinc-400">
+                        {block.type === 'LUNCH' ? '🍽️' : block.type === 'DAY_OFF' ? '📅' : '⏸️'}
+                      </span>
                     </div>
                   </div>
                 );

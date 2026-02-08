@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifyStaffToken, assertSameSalonMaster } from '@/lib/staff-auth';
+import { staffAuditLog } from '@/lib/staff-audit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -114,6 +115,18 @@ export async function POST(request: NextRequest) {
         price: price || 0,
         status: 'CONFIRMED'
       }
+    });
+
+    // Audit log
+    staffAuditLog({
+      salonId: finalSalonId,
+      masterId,
+      masterName: master.name,
+      action: 'CREATE',
+      entityType: 'booking',
+      entityId: booking.id,
+      entityName: `${clientName} — ${serviceName || 'Запис'}`,
+      changes: { date, time, duration, price },
     });
 
     // Якщо треба повідомити адміна (термінове закриття)
@@ -284,6 +297,16 @@ export async function PUT(request: NextRequest) {
       data: updateData
     });
 
+    staffAuditLog({
+      salonId: booking.salonId,
+      masterId: auth.masterId,
+      action: 'UPDATE',
+      entityType: 'booking',
+      entityId: bookingId,
+      entityName: booking.clientName,
+      changes: updateData,
+    });
+
     return NextResponse.json(updated);
   } catch (error) {
     console.error('Update booking error:', error);
@@ -317,6 +340,16 @@ export async function PATCH(request: NextRequest) {
     const updated = await prisma.booking.update({
       where: { id: bookingId },
       data: { status }
+    });
+
+    staffAuditLog({
+      salonId: booking.salonId,
+      masterId: auth.masterId,
+      action: 'UPDATE',
+      entityType: 'booking',
+      entityId: bookingId,
+      entityName: booking.clientName,
+      changes: { status, previousStatus: booking.status },
     });
 
     return NextResponse.json(updated);
