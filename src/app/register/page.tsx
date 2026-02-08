@@ -479,15 +479,18 @@ export default function RegisterPage() {
     }
   };
 
-  // Get Telegram deep link
+  // Get Telegram deep link (GET генерує токен і повертає telegramLink)
   const handleGetTelegramLink = async () => {
     setTelegramLoading(true);
     try {
-      const res = await fetch('/api/auth/link-telegram', { method: 'POST' });
+      const res = await fetch('/api/auth/link-telegram');
       const data = await res.json();
       
-      if (data.deepLink) {
-        setTelegramLink(data.deepLink);
+      if (data.telegramLink) {
+        setTelegramLink(data.telegramLink);
+      } else if (data.linked) {
+        // Telegram вже прив'язаний
+        setTelegramLink(null);
       }
     } catch (err) {
       console.error('Error getting telegram link:', err);
