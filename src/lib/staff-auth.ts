@@ -11,6 +11,32 @@ const JWT_SECRET = new TextEncoder().encode(
   JWT_SECRET_RAW || 'staff-secret-key-change-in-production'
 );
 
+// ── isActive cache (5 min TTL) ──
+const activeCache = new Map<string, { active: boolean; expiresAt: number }>();
+const ACTIVE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function checkMasterActive(masterId: string): Promise<boolean> {
+  const now = Date.now();
+  const cached = activeCache.get(masterId);
+  if (cached && cached.expiresAt > now) {
+    return cached.active;
+  }
+  // Dynamic import to avoid circular dependency
+  const { default: prisma } = await import('@/lib/prisma');
+  const master = await prisma.master.findUnique({
+    where: { id: masterId },
+    select: { isActive: true },
+  });
+  const active = master?.isActive ?? false;
+  activeCache.set(masterId, { active, expiresAt: now + ACTIVE_CACHE_TTL });
+  return active;
+}
+
+/** Force-evict a master from the active cache (call on deactivation) */
+export function evictActiveCache(masterId: string): void {
+  activeCache.delete(masterId);
+}
+
 interface StaffTokenPayload {
   masterId: string;
   salonId: string;
@@ -45,11 +71,17 @@ export async function verifyStaffToken(
     const currentIpHash = createHash('sha256').update(currentIp).digest('hex').slice(0, 16);
     if (payload.ipHash && payload.ipHash !== currentIpHash) {
       console.warn(`[STAFF_AUTH] IP mismatch for master ${payload.masterId}: token=${payload.ipHash} current=${currentIpHash} ip=${currentIp}`);
-      // Don't block — mobile users change IPs often. Just log for audit.
+    }
+
+    // Check if master is still active (cached 5 min to avoid DB hit every request)
+    const masterId = payload.masterId as string;
+    const isActive = await checkMasterActive(masterId);
+    if (!isActive) {
+      return NextResponse.json({ error: 'Акаунт деактивовано' }, { status: 403 });
     }
 
     return {
-      masterId: payload.masterId as string,
+      masterId,
       salonId: payload.salonId as string,
       email: payload.email as string,
       type: 'staff',

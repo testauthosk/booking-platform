@@ -43,9 +43,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Находим мастера
+    // Находим мастера — select only needed fields
     const master = await prisma.master.findFirst({
-      where: { email, isActive: true },
+      where: { email: email.toLowerCase().trim(), isActive: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        avatar: true,
+        salonId: true,
+        passwordHash: true,
+      }
     });
 
     if (!master || !master.passwordHash) {

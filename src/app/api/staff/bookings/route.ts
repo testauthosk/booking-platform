@@ -95,7 +95,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Master not found' }, { status: 404 });
     }
 
-    const finalSalonId = salonId || master.salonId;
+    // Always use master's salonId — never trust client-supplied salonId
+    const finalSalonId = master.salonId;
 
     // Шукаємо існуючого клієнта за телефоном у цьому салоні
     let clientId: string | null = null;
@@ -153,8 +154,6 @@ export async function POST(request: NextRequest) {
     // Якщо треба повідомити адміна (термінове закриття)
     if (notifyAdmin && blockReason === 'end_of_day') {
       try {
-        const finalSalonId = salonId || master.salonId;
-        
         // Знайти адмінів/власників салону
         const admins = await prisma.user.findMany({
           where: {

@@ -135,6 +135,19 @@ export async function PUT(request: NextRequest) {
         ...(avatar !== undefined && { avatar: avatar || null }),
         ...(lunchDuration !== undefined && { lunchDuration }),
         ...(lunchStart !== undefined && { lunchStart })
+      },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        email: true,
+        avatar: true,
+        bio: true,
+        role: true,
+        color: true,
+        workingHours: true,
+        lunchDuration: true,
+        lunchStart: true,
       }
     });
 

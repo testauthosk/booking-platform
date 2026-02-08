@@ -12,8 +12,15 @@ export async function POST(request: NextRequest) {
     const { name, phone } = body
     const salonId = auth.salonId
 
-    if (!name || !phone) {
-      return NextResponse.json({ error: 'name, phone required' }, { status: 400 })
+    if (!name || !name.trim()) {
+      return NextResponse.json({ error: 'Імʼя обовʼязкове' }, { status: 400 })
+    }
+    if (!phone) {
+      return NextResponse.json({ error: 'Телефон обовʼязковий' }, { status: 400 })
+    }
+    const phoneDigits = phone.replace(/\D/g, '')
+    if (phoneDigits.length < 10 || phoneDigits.length > 13) {
+      return NextResponse.json({ error: 'Невірний формат телефону' }, { status: 400 })
     }
 
     // Check if client with this phone already exists in salon
@@ -28,7 +35,7 @@ export async function POST(request: NextRequest) {
     // Create client
     const client = await prisma.client.create({
       data: {
-        name,
+        name: name.trim(),
         phone,
         salonId,
       }
