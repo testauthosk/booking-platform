@@ -90,7 +90,7 @@ export function WeekBar({ selectedDate, onDateChange, bottomOffset = 68, visible
   return (
     <div
       ref={weekBarRef}
-      className="lg:hidden fixed left-[23px] right-[23px] z-40 h-[32px] flex items-end touch-none select-none overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+      className="lg:hidden fixed left-[23px] right-[23px] z-40 h-[32px] flex items-end touch-none select-none overflow-visible transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
       style={{
         bottom: bottomOffset,
         background: 'transparent',
@@ -158,8 +158,14 @@ export function WeekBar({ selectedDate, onDateChange, bottomOffset = 68, visible
         return (
           <svg
             className="absolute pointer-events-none z-[2]"
-            style={{ top: -(bump + pad), left: 0, width: w, height: totalH }}
+            style={{ top: -(bump + pad), left: 0, width: w, height: totalH, overflow: 'hidden' }}
           >
+            <defs>
+              <clipPath id="weekbar-clip">
+                <rect x="0" y="0" width={w} height={totalH} />
+              </clipPath>
+            </defs>
+            <g clipPath="url(#weekbar-clip)">
             {/* Жовті секції (без base rect — щілини прозорі, видно контент за ними) */}
             {yellowLeft && <path d={yellowLeft} fill="#facc15" />}
             {yellowRight && <path d={yellowRight} fill="#facc15" />}
@@ -167,6 +173,7 @@ export function WeekBar({ selectedDate, onDateChange, bottomOffset = 68, visible
             <path d={whitePath} fill="white" />
             {/* Обводка */}
             <path d={contour} fill="none" stroke="black" strokeWidth="1" />
+            </g>
           </svg>
         );
       })()}
