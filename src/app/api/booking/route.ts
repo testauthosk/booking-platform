@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth-config';
 import prisma from '@/lib/prisma';
 
 // GET bookings for salon
+// Query params: from (YYYY-MM-DD), to (YYYY-MM-DD) — date range filter
+// Without params: returns current month ±7 days
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -20,10 +22,79 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No salon' }, { status: 400 });
     }
 
+    // Date range filter
+    const { searchParams } = new URL(request.url);
+    const fromParam = searchParams.get('from');
+    const toParam = searchParams.get('to');
+
+    let fromDate: string;
+    let toDate: string;
+
+    if (fromParam && toParam) {
+      fromDate = fromParam;
+      toDate = toParam;
+    } else {
+      // Default: current month ±7 days buffer
+      const now = new Date();
+      const from = new Date(now);
+      from.setDate(1);
+      from.setDate(from.getDate() - 7);
+      const to = new Date(now.getFullYear(), now.getMonth() + 1, 0); // last day of month
+      to.setDate(to.getDate() + 7);
+      fromDate = from.toISOString().split('T')[0];
+      toDate = to.toISOString().split('T')[0];
+    }
+
+    // Auto-complete: mark past CONFIRMED bookings as COMPLETED
+    const todayStr = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const currentTotalMin = now.getHours() * 60 + now.getMinutes();
+
+    // Past days: all CONFIRMED → COMPLETED
+    await prisma.booking.updateMany({
+      where: {
+        salonId: user.salonId,
+        status: 'CONFIRMED',
+        date: { lt: todayStr },
+      },
+      data: { status: 'COMPLETED' },
+    });
+
+    // Today: CONFIRMED bookings whose end time has passed → COMPLETED
+    const todayConfirmed = await prisma.booking.findMany({
+      where: {
+        salonId: user.salonId,
+        status: 'CONFIRMED',
+        date: todayStr,
+      },
+      select: { id: true, time: true, timeEnd: true, duration: true },
+    });
+
+    const toCompleteIds: string[] = [];
+    for (const b of todayConfirmed) {
+      const [h, m] = b.time.split(':').map(Number);
+      const endMin = b.timeEnd
+        ? (() => { const [eh, em] = b.timeEnd.split(':').map(Number); return eh * 60 + em; })()
+        : h * 60 + m + (b.duration || 60);
+      if (currentTotalMin >= endMin) {
+        toCompleteIds.push(b.id);
+      }
+    }
+
+    if (toCompleteIds.length > 0) {
+      await prisma.booking.updateMany({
+        where: { id: { in: toCompleteIds } },
+        data: { status: 'COMPLETED' },
+      });
+    }
+
+    // Fetch bookings in date range
     const bookings = await prisma.booking.findMany({
-      where: { salonId: user.salonId },
-      orderBy: [{ date: 'desc' }, { time: 'asc' }],
-      take: 100,
+      where: {
+        salonId: user.salonId,
+        date: { gte: fromDate, lte: toDate },
+      },
+      orderBy: [{ date: 'asc' }, { time: 'asc' }],
       include: {
         master: { select: { name: true } },
         service: { select: { name: true } },

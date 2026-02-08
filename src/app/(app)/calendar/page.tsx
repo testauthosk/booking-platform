@@ -236,7 +236,14 @@ export default function CalendarPage() {
 
   const loadBookings = async (): Promise<BookingFromAPI[]> => {
     try {
-      const res = await fetch('/api/booking');
+      // Load ±2 weeks from selected date for smooth navigation
+      const from = new Date(selectedDate);
+      from.setDate(from.getDate() - 14);
+      const to = new Date(selectedDate);
+      to.setDate(to.getDate() + 14);
+      const fromStr = from.toISOString().split('T')[0];
+      const toStr = to.toISOString().split('T')[0];
+      const res = await fetch(`/api/booking?from=${fromStr}&to=${toStr}`);
       if (res.ok) {
         const data: BookingFromAPI[] = await res.json();
         setRawBookings(data);
