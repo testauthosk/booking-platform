@@ -105,45 +105,47 @@ function ViewModeSegment({ viewMode, onChange }: { viewMode: 'day' | 'week'; onC
       className="relative shrink-0"
       style={{
         height: '44px',
-        padding: '2px',
+        padding: '3px',
         borderRadius: '12px',
-        backgroundColor: '#e5e7eb',
+        backgroundColor: '#d1d5db',
         border: '1px solid rgba(0,0,0,0.4)',
       }}
     >
       <div className="relative flex items-center" style={{ height: '100%' }}>
-        {/* White sliding pill — Apple style */}
+        {/* White sliding pill */}
         <div
-          className="absolute inset-y-0 pointer-events-none"
+          className="absolute pointer-events-none"
           style={{
+            top: '0',
+            bottom: '0',
             width: '50%',
             left: 0,
             transform: viewMode === 'day' ? 'translateX(0%)' : 'translateX(100%)',
             transition: 'transform 300ms cubic-bezier(0.25, 0.1, 0.25, 1)',
-            padding: '1px',
+            padding: '0',
           }}
         >
           <div
             style={{
               width: '100%',
               height: '100%',
-              borderRadius: '10px',
-              backgroundColor: '#fff',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)',
+              borderRadius: '9px',
+              backgroundColor: '#ffffff',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08)',
             }}
           />
         </div>
-        {/* Buttons */}
+        {/* Buttons — equal width */}
         <button
-          className="inline-btn relative z-10 flex-1 flex items-center justify-center whitespace-nowrap"
-          style={{ height: '100%', fontSize: '13px', fontWeight: 600, color: viewMode === 'day' ? '#111827' : '#6b7280', transition: 'color 200ms' }}
+          className="inline-btn relative z-10 flex items-center justify-center whitespace-nowrap"
+          style={{ width: '50%', height: '100%', fontSize: '13px', fontWeight: 600, color: viewMode === 'day' ? '#111827' : '#6b7280', transition: 'color 200ms' }}
           onClick={() => onChange('day')}
         >
           День
         </button>
         <button
-          className="inline-btn relative z-10 flex-1 flex items-center justify-center whitespace-nowrap"
-          style={{ height: '100%', fontSize: '13px', fontWeight: 600, color: viewMode === 'week' ? '#111827' : '#6b7280', transition: 'color 200ms' }}
+          className="inline-btn relative z-10 flex items-center justify-center whitespace-nowrap"
+          style={{ width: '50%', height: '100%', fontSize: '13px', fontWeight: 600, color: viewMode === 'week' ? '#111827' : '#6b7280', transition: 'color 200ms' }}
           onClick={() => onChange('week')}
         >
           Тиждень
