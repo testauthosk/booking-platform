@@ -173,7 +173,7 @@ export default function CalendarPage() {
   const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
   const [services, setServices] = useState<{ id: string; name: string; duration: number; price: number }[]>([]);
-  const [settingsMenu, setSettingsMenu] = useState<{ open: boolean; x: number; y: number; startMin?: number; resourceId?: string }>({ open: false, x: 0, y: 0 });
+  const [settingsMenu, setSettingsMenu] = useState<{ open: boolean; x: number; y: number; startMin?: number; resourceId?: string; resourceName?: string; timeLabel?: string }>({ open: false, x: 0, y: 0 });
   const [menuAnimating, setMenuAnimating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -589,7 +589,50 @@ export default function CalendarPage() {
           onEventResize={handleEventResize}
           onTimeRangeSelect={handleTimeRangeSelect}
           onEmptySlotMenu={(x, y, slotInfo) => {
-            setSettingsMenu({ open: true, x, y, startMin: slotInfo?.startMin, resourceId: slotInfo?.resourceId });
+            const master = masters.find(m => m.id === slotInfo?.resourceId);
+            const masterColor = master?.color || getColorForIndex(masters.findIndex(m => m.id === slotInfo?.resourceId));
+            const min = slotInfo?.startMin ?? 0;
+            const h = Math.floor(min / 60);
+            const m = min % 60;
+            const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            const dayNames = ['нд', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+            const monthNames = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
+            const dayName = dayNames[selectedDate.getDay()];
+            const dateLabel = `${dayName}, ${selectedDate.getDate()} ${monthNames[selectedDate.getMonth()]}`;
+
+            // Phantom highlight — find resource column and show dashed outline
+            requestAnimationFrame(() => {
+              // Remove previous phantom
+              document.querySelectorAll('[data-phantom-highlight]').forEach(el => el.remove());
+              const resEl = document.querySelector(`[data-resource-id="${slotInfo?.resourceId}"]`);
+              if (resEl) {
+                const col = resEl.closest('[class*="min-w-"]') || resEl.parentElement?.parentElement;
+                if (col) {
+                  const colRect = col.getBoundingClientRect();
+                  const gridContainer = col.parentElement;
+                  if (gridContainer) {
+                    const gcRect = gridContainer.getBoundingClientRect();
+                    const totalMinutes = (21 - 8) * 60; // dayEndHour - dayStartHour
+                    const relMin = min - 8 * 60; // relative to dayStartHour
+                    const topPct = ((relMin + (settings.gridStep || 15)) / totalMinutes) * 100;
+                    const heightPct = (60 / totalMinutes) * 100; // 1 hour
+                    const phantom = document.createElement('div');
+                    phantom.setAttribute('data-phantom-highlight', '');
+                    phantom.style.cssText = `position:absolute;top:${topPct}%;height:${heightPct}%;left:${colRect.left - gcRect.left}px;width:${colRect.width}px;border:2px dashed ${masterColor};background:${masterColor}15;border-radius:8px;pointer-events:none;z-index:5;transition:opacity 300ms;`;
+                    gridContainer.style.position = 'relative';
+                    gridContainer.appendChild(phantom);
+                  }
+                }
+              }
+            });
+
+            setSettingsMenu({
+              open: true, x, y,
+              startMin: slotInfo?.startMin,
+              resourceId: slotInfo?.resourceId,
+              resourceName: master?.name || 'Невідомий',
+              timeLabel: `${timeStr}, ${dateLabel}`,
+            });
             requestAnimationFrame(() => setMenuAnimating(true));
           }}
           timeStep={settings.gridStep}
@@ -606,34 +649,46 @@ export default function CalendarPage() {
       {settingsMenu.open && (
         <div className="fixed inset-0 z-[60]" onClick={() => {
           setMenuAnimating(false);
+          document.querySelectorAll('[data-phantom-highlight]').forEach(el => {
+            (el as HTMLElement).style.opacity = '0';
+            setTimeout(() => el.remove(), 300);
+          });
           setTimeout(() => setSettingsMenu({ open: false, x: 0, y: 0 }), 200);
         }}>
           <div
             ref={(el) => {
               if (!el) return;
-              // Clamp menu position to viewport
+              // Clamp menu position to viewport with 16px margin
               const rect = el.getBoundingClientRect();
               const vw = window.innerWidth;
               const vh = window.innerHeight;
               let x = settingsMenu.x;
               let y = settingsMenu.y;
-              if (x + rect.width > vw - 8) x = vw - rect.width - 8;
-              if (x < 8) x = 8;
-              if (y + rect.height > vh - 8) y = vh - rect.height - 8;
-              if (y < 8) y = 8;
+              if (x + rect.width > vw - 16) x = vw - rect.width - 16;
+              if (x < 16) x = 16;
+              if (y + rect.height > vh - 16) y = vh - rect.height - 16;
+              if (y < 16) y = 16;
               el.style.left = `${x}px`;
               el.style.top = `${y}px`;
             }}
-            className={`absolute bg-white border border-gray-200 rounded-xl shadow-xl p-1.5 min-w-[200px] transition-all duration-200 origin-top-left ${
+            className={`absolute bg-white border border-gray-200 rounded-xl shadow-xl p-1.5 min-w-[220px] transition-all duration-200 origin-top-left ${
               menuAnimating ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
             }`}
             style={{ left: settingsMenu.x, top: settingsMenu.y }}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Context info */}
+            {(settingsMenu.resourceName || settingsMenu.timeLabel) && (
+              <div className="px-3 pt-2 pb-1.5 border-b border-gray-100 mb-1">
+                <div className="text-[13px] font-semibold text-gray-900">{settingsMenu.resourceName}</div>
+                <div className="text-[11px] text-gray-500 mt-0.5">{settingsMenu.timeLabel}</div>
+              </div>
+            )}
             <button
               className="px-3 py-2.5 text-sm font-medium hover:bg-gray-50 rounded-lg w-full text-left flex items-center gap-2.5 transition-colors"
               onClick={() => {
                 setMenuAnimating(false);
+                document.querySelectorAll('[data-phantom-highlight]').forEach(el => el.remove());
                 setTimeout(() => setSettingsMenu({ open: false, x: 0, y: 0 }), 150);
                 // Створюємо слот з позиції кліку
                 const startMin = settingsMenu.startMin ?? 10 * 60;
@@ -653,6 +708,7 @@ export default function CalendarPage() {
               className="px-3 py-2.5 text-sm font-medium hover:bg-gray-50 rounded-lg w-full text-left flex items-center gap-2.5 transition-colors"
               onClick={() => {
                 setMenuAnimating(false);
+                document.querySelectorAll('[data-phantom-highlight]').forEach(el => el.remove());
                 setTimeout(() => setSettingsMenu({ open: false, x: 0, y: 0 }), 150);
                 setSettingsOpen(true);
               }}
