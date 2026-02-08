@@ -1245,13 +1245,23 @@ export function DayPilotResourceCalendar({
                           <div
                             key={event.id}
                             data-event-id={event.id}
-                            className="absolute left-0.5 right-0.5 rounded-lg overflow-hidden cursor-pointer z-10 border-l-[3px]"
-                            style={{ top: `${pos.top}%`, height: `${pos.height}%`, backgroundColor: `${bgColor}30`, borderLeftColor: bgColor }}
+                            className="absolute left-0.5 right-0.5 overflow-hidden cursor-pointer z-10"
+                            style={{
+                              top: `${pos.top}%`,
+                              height: `${pos.height}%`,
+                              backgroundColor: `${bgColor}18`,
+                              borderLeft: `3px solid ${bgColor}`,
+                              borderRadius: '0 4px 4px 0',
+                            }}
                             onClick={() => onEventClick?.(event)}
                           >
-                            <div className="px-1.5 py-0.5">
-                              <div className="text-[9px] font-bold truncate" style={{ color: bgColor }}>{event.text}</div>
-                              <div className="text-[8px] text-gray-500 truncate">{event.masterName || ''}</div>
+                            {/* Time bar */}
+                            <div className="px-1 py-[1px]" style={{ backgroundColor: `${bgColor}25` }}>
+                              <span className="text-[8px] font-bold" style={{ color: bgColor }}>{formatTime(event.start)}</span>
+                            </div>
+                            <div className="px-1 py-0.5">
+                              <div className="text-[9px] font-bold text-gray-900 truncate">{event.clientName || event.text}</div>
+                              <div className="text-[7px] text-gray-500 truncate">{event.serviceName || ''}</div>
                             </div>
                           </div>
                         );
@@ -1425,7 +1435,7 @@ export function DayPilotResourceCalendar({
                     <div
                       key={event.id}
                       data-event-id={event.id}
-                      className={`absolute left-0 right-0.5 rounded-r-lg overflow-hidden select-none ${
+                      className={`absolute left-0 right-0.5 overflow-hidden select-none ${
                         isBeingDragged ? 'opacity-30 scale-95' : 'cursor-grab active:scale-[0.98]'
                       }`}
                       style={{
@@ -1436,12 +1446,9 @@ export function DayPilotResourceCalendar({
                         transition: flipHiddenId === event.id
                           ? 'none'
                           : 'transform 300ms ease-out, top 300ms ease-out, height 300ms ease-out',
-                        background: `linear-gradient(160deg, ${bgColor} 0%, ${bgColor}e0 100%)`,
-                        boxShadow: `0 1px 4px ${bgColor}50, 0 2px 6px rgba(0,0,0,0.08)`,
-                        borderLeft: `3px solid ${borderColor}`,
-                        borderTop: `1px solid ${borderColor}`,
-                        borderRight: `1px solid ${borderColor}`,
-                        borderBottom: `1px solid ${borderColor}`,
+                        backgroundColor: `${bgColor}18`,
+                        borderLeft: `4px solid ${bgColor}`,
+                        borderRadius: '0 6px 6px 0',
                         WebkitUserSelect: 'none',
                         userSelect: 'none',
                         WebkitTouchCallout: 'none',
@@ -1452,35 +1459,38 @@ export function DayPilotResourceCalendar({
                       onMouseDown={(e) => handleMouseDown(event, e)}
                     >
                       {/* Resize handle top */}
-                      <div className="absolute top-0 left-0 right-0 h-3 cursor-ns-resize z-10 lg:hover:bg-white/20 transition-colors">
-                        <div className="absolute top-[3px] left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-white/40" />
+                      <div className="absolute top-0 left-0 right-0 h-3 cursor-ns-resize z-10 lg:hover:bg-black/5 transition-colors">
+                        <div className="absolute top-[3px] left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full" style={{ backgroundColor: `${bgColor}40` }} />
                       </div>
                       
-                      <div className="h-full p-1.5 text-white relative flex flex-col justify-center pointer-events-none">
-                        {/* Час */}
-                        <div className="text-[10px] font-bold leading-tight opacity-90">
-                          {formatTime(event.start)}
+                      <div className="h-full relative flex flex-col pointer-events-none">
+                        {/* Time bar */}
+                        <div className="px-1.5 py-[2px] flex-shrink-0" style={{ backgroundColor: `${bgColor}25` }}>
+                          <span className="text-[10px] font-bold" style={{ color: bgColor }}>{formatTime(event.start)}</span>
                         </div>
                         
-                        {/* Ім'я клієнта + NEW бейдж */}
-                        <div className="text-[11px] font-semibold leading-tight truncate">
-                          {event.clientName || event.text}
-                          {event.isNewClient && (
-                            <span className="ml-1 px-1 py-px text-[7px] font-bold bg-white/30 rounded text-white uppercase align-middle">
-                              new
-                            </span>
+                        {/* Content */}
+                        <div className="px-1.5 py-0.5 flex-1 min-h-0">
+                          {/* Client name + NEW badge */}
+                          <div className="text-[11px] font-bold leading-tight truncate text-gray-900">
+                            {event.clientName || event.text}
+                            {event.isNewClient && (
+                              <span className="ml-1 px-1 py-px text-[7px] font-bold rounded uppercase align-middle" style={{ backgroundColor: `${bgColor}30`, color: bgColor }}>
+                                new
+                              </span>
+                            )}
+                          </div>
+                          
+                          {/* Service */}
+                          {event.serviceName && (
+                            <div className="text-[9px] text-gray-500 leading-tight truncate">{event.serviceName}</div>
                           )}
                         </div>
-                        
-                        {/* Послуга */}
-                        {event.serviceName && (
-                          <div className="text-[9px] opacity-80 leading-tight truncate">{event.serviceName}</div>
-                        )}
                       </div>
                       
                       {/* Resize handle bottom */}
-                      <div className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize z-10 lg:hover:bg-white/20 transition-colors">
-                        <div className="absolute bottom-[3px] left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-white/40" />
+                      <div className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize z-10 lg:hover:bg-black/5 transition-colors">
+                        <div className="absolute bottom-[3px] left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full" style={{ backgroundColor: `${bgColor}40` }} />
                       </div>
                     </div>
                   );
