@@ -2,15 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import prisma from '@/lib/prisma'
 import { checkRateLimit } from '@/lib/rate-limit'
-
-function generateSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-zа-яіїєґ0-9\s-]/gi, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .substring(0, 50)
-}
+import { generateSlug } from '@/lib/slug'
 
 async function getUniqueSlug(baseName: string): Promise<string> {
   let slug = generateSlug(baseName)

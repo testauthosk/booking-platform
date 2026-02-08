@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import prisma from '@/lib/prisma';
+import { generateSlug } from '@/lib/slug';
 
 interface OnboardingData {
   lastStep?: number;
@@ -74,7 +75,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No salon' }, { status: 400 });
     }
 
-    const body = await request.json();
+    const raw = await request.text();
+    if (raw.length > 10_000) {
+      return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
+    }
+    const body = JSON.parse(raw);
     const { step, data, complete } = body as {
       step?: number;
       data?: Partial<OnboardingData>;
@@ -103,11 +108,7 @@ export async function POST(request: NextRequest) {
     if (merged.companyName) {
       salonUpdate.name = merged.companyName;
 
-      const baseSlug = merged.companyName
-        .toLowerCase()
-        .replace(/[^a-z0-9а-яіїєґ\s]/gi, '')
-        .replace(/\s+/g, '-')
-        .slice(0, 50);
+      const baseSlug = generateSlug(merged.companyName);
 
       const existingSlug = await prisma.salon.findUnique({ where: { slug: baseSlug } });
       salonUpdate.slug = existingSlug && existingSlug.id !== user.salonId

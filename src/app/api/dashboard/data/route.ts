@@ -46,10 +46,15 @@ export async function GET(request: NextRequest) {
           }
         },
         masters: {
-          orderBy: { sortOrder: 'asc' }
+          orderBy: { sortOrder: 'asc' },
+          select: {
+            id: true, name: true, role: true, avatar: true, color: true,
+            isActive: true, rating: true, reviewCount: true, workingHours: true,
+            sortOrder: true, phone: true, email: true,
+          }
         },
-        clients: {
-          orderBy: { name: 'asc' }
+        _count: {
+          select: { clients: true }
         },
         bookings: {
           orderBy: [{ date: 'desc' }, { time: 'asc' }],
@@ -99,12 +104,9 @@ export async function GET(request: NextRequest) {
         is_active: m.isActive,
         working_hours: m.workingHours,
       })),
-      clients: salon.clients.map(c => ({
-        ...c,
-        visits_count: c.visitsCount,
-        total_spent: c.totalSpent,
-        last_visit: c.lastVisit,
-      })),
+      // Only count for dashboard stats — full list loaded separately via /api/clients
+      clients: Array(salon._count.clients).fill({ id: 'x' }),
+      totalClients: salon._count.clients,
       bookings: salon.bookings.map(b => ({
         id: b.id,
         client_name: b.clientName,
