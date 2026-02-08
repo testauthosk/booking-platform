@@ -77,7 +77,8 @@ export function CalendarSettingsProvider({ children, salonId }: ProviderProps) {
   }, [salonId]);
 
   const setPaletteId = async (id: string) => {
-    const newSettings = {
+    const newSettings: CalendarSettings = {
+      ...settings,
       paletteId: id,
       colors: getPaletteColors(id),
     };

@@ -5,11 +5,11 @@ import { authOptions } from '@/lib/auth-config';
 import { verifyStaffToken } from '@/lib/staff-auth';
 import { checkRateLimit } from '@/lib/rate-limit';
 
-// Конфигурація Cloudinary
+// Конфигурація Cloudinary — credentials only from env vars
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dyy8isfr0',
-  api_key: process.env.CLOUDINARY_API_KEY || '497364172988845',
-  api_secret: process.env.CLOUDINARY_API_SECRET || 'vWz6KERJLA7CsycgN5iPKxlOpkU',
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 export async function POST(request: NextRequest) {

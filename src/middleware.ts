@@ -42,10 +42,17 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // ── Staff API: rate limiting header for client tracking ──
-  if (pathname.startsWith('/api/staff/')) {
+  // ── Sensitive paths: additional headers ──
+  if (pathname.startsWith('/api/staff/') || pathname.startsWith('/api/admin/')) {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
     response.headers.set('X-RateLimit-IP', ip);
+  }
+
+  // ── Admin API: strict rate limiting on mutations ──
+  if (pathname.startsWith('/api/admin/') && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
+    // 30 mutations per minute per IP for admin
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    response.headers.set('X-Admin-IP', ip);
   }
 
   return response;
