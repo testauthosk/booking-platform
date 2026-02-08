@@ -188,11 +188,11 @@
 @keyframes calHeaderFlyOut {
   0% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translateY(-56px);
+    transform: translateY(-20px) scale(0.95);
   }
 }
 

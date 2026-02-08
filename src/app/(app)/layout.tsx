@@ -24,11 +24,11 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const wasCalendarRef = useRef(isCalendar);
   const [ghostExit, setGhostExit] = useState(false);
 
-  // Detect leaving calendar → show ghost fly-out
+  // Detect leaving calendar → show ghost fade-out
   useEffect(() => {
     if (wasCalendarRef.current && !isCalendar) {
       setGhostExit(true);
-      const t = setTimeout(() => setGhostExit(false), 400);
+      const t = setTimeout(() => setGhostExit(false), 300);
       return () => clearTimeout(t);
     }
     wasCalendarRef.current = isCalendar;
@@ -110,7 +110,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
             top: 6,
             left: 68, // after burger (12px pad + 44px burger + 8px gap)
             gap: 8,
-            animation: 'calHeaderFlyOut 350ms cubic-bezier(0.4,0,0.2,1) forwards',
+            animation: 'calHeaderFlyOut 250ms ease-out forwards',
           }}
         >
           {/* Segment ghost */}
