@@ -90,7 +90,7 @@ export function WeekBar({ selectedDate, onDateChange, bottomOffset = 68, visible
   return (
     <div
       ref={weekBarRef}
-      className="lg:hidden fixed left-[23px] right-[23px] z-40 h-[32px] flex items-end touch-none select-none overflow-visible transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+      className="lg:hidden fixed left-[23px] right-[23px] z-40 h-[32px] flex items-end touch-none select-none overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
       style={{
         bottom: bottomOffset,
         background: 'transparent',
