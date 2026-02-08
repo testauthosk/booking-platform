@@ -93,6 +93,14 @@ export function MobileNav({ isCalendar = false }: MobileNavProps) {
             <Link
               key={item.href}
               href={item.href}
+              onClick={(e) => {
+                // If leaving calendar — dispatch event for exit animation
+                if (isCalendar && item.href !== '/calendar') {
+                  e.preventDefault();
+                  window.dispatchEvent(new CustomEvent('calendar-leaving'));
+                  setTimeout(() => { window.location.href = item.href; }, 280);
+                }
+              }}
               className={cn(
                 'relative z-10 flex flex-col items-center justify-center w-16 h-full gap-0.5',
                 'transition-all duration-200 active:scale-95'
