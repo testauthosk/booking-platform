@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 
+const JWT_SECRET_RAW = process.env.JWT_SECRET;
+if (!JWT_SECRET_RAW && process.env.NODE_ENV === 'production') {
+  console.error('⚠️ CRITICAL: JWT_SECRET not set in production!');
+}
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'staff-secret-key-change-in-production'
+  JWT_SECRET_RAW || 'staff-secret-key-change-in-production'
 );
 
 interface StaffTokenPayload {

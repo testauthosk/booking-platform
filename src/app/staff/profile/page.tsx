@@ -177,9 +177,13 @@ export default function StaffProfile() {
             avatar: data.url
           })
         });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || 'Помилка завантаження фото. Спробуйте ще раз.');
       }
     } catch (error) {
       console.error('Upload error:', error);
+      alert('Помилка з\'єднання. Перевірте інтернет і спробуйте ще раз.');
     } finally {
       setUploadingPhoto(false);
     }

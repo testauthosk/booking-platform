@@ -58,6 +58,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'salonId and email required' }, { status: 400 });
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: 'Невірний формат email' }, { status: 400 });
+    }
+
     // Перевіряємо доступ
     const currentUser = await prisma.user.findUnique({
       where: { id: currentSession.user.id },
@@ -111,7 +117,7 @@ export async function POST(request: NextRequest) {
         email,
         name,
         role,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days
       },
     });
 

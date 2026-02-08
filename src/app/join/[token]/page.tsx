@@ -57,8 +57,16 @@ export default function JoinPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Пароль має бути не менше 6 символів');
+    if (password.length < 8) {
+      setError('Пароль має бути не менше 8 символів');
+      return;
+    }
+    if (!/[0-9]/.test(password)) {
+      setError('Пароль має містити хоча б одну цифру');
+      return;
+    }
+    if (!/[A-Z]/.test(password)) {
+      setError('Пароль має містити хоча б одну велику літеру');
       return;
     }
 
@@ -199,7 +207,7 @@ export default function JoinPage() {
                 id="password"
                 value={password}
                 onChange={setPassword}
-                placeholder="Мінімум 6 символів"
+                placeholder="Мін. 8 символів, цифра, велика літера"
               />
             </div>
 

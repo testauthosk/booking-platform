@@ -23,8 +23,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Token and password required' }, { status: 400 });
     }
 
-    if (password.length < 6) {
-      return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
+    // Password requirements: min 8 chars, 1 digit, 1 uppercase
+    if (password.length < 8) {
+      return NextResponse.json({ error: 'Пароль має бути не менше 8 символів' }, { status: 400 });
+    }
+    if (!/[0-9]/.test(password)) {
+      return NextResponse.json({ error: 'Пароль має містити хоча б одну цифру' }, { status: 400 });
+    }
+    if (!/[A-Z]/.test(password)) {
+      return NextResponse.json({ error: 'Пароль має містити хоча б одну велику літеру' }, { status: 400 });
     }
 
     // Знаходимо запрошення
@@ -57,13 +64,8 @@ export async function POST(request: NextRequest) {
       where: { salonId: invitation.salonId },
     });
 
-    // Отримуємо послуги салону до транзакції
-    const salonServices = await prisma.service.findMany({
-      where: { salonId: invitation.salonId, isActive: true },
-      select: { id: true },
-    });
-
-    // Всё в одній транзакції: master + services + invitation update + audit
+    // Всё в одній транзакції: master + invitation update + audit
+    // НЕ прив'язуємо послуги автоматично — майстер сам додасть потрібні
     const master = await prisma.$transaction(async (tx) => {
       // Створюємо мастера
       const newMaster = await tx.master.create({
@@ -79,16 +81,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Прив'язуємо всі послуги салону
-      if (salonServices.length > 0) {
-        await tx.masterService.createMany({
-          data: salonServices.map(s => ({
-            masterId: newMaster.id,
-            serviceId: s.id,
-          })),
-          skipDuplicates: true,
-        });
-      }
+      // Послуги не прив'язуємо — майстер сам обере у своєму кабінеті
 
       // Позначаємо запрошення як використане
       await tx.staffInvitation.update({

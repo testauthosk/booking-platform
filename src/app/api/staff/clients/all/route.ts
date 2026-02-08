@@ -17,13 +17,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    // Normalize phone search (remove spaces, +, -)
+    const normalizedSearch = search.replace(/[\s+\-()]/g, '')
+    
     const clients = await prisma.client.findMany({
       where: { 
         salonId,
         ...(search ? {
           OR: [
             { name: { contains: search, mode: 'insensitive' } },
-            { phone: { contains: search } },
+            { phone: { contains: normalizedSearch } },
           ]
         } : {})
       },
