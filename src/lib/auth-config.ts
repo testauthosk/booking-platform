@@ -13,34 +13,61 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         try {
-          console.log('[AUTH] Attempting login for:', credentials?.email)
-          
           if (!credentials?.email || !credentials?.password) {
-            console.log('[AUTH] Missing credentials')
             return null
           }
 
+          const loginId = credentials.email // email або +380XXXXXXXXX
+
           const user = await prisma.user.findUnique({
-            where: { email: credentials.email },
+            where: { email: loginId },
             include: { salon: true }
           })
 
-          console.log('[AUTH] User found:', !!user)
-
           if (!user) {
-            console.log('[AUTH] User not found')
             return null
           }
 
+          // OTP login: password starts with __otp__
+          if (credentials.password.startsWith('__otp__')) {
+            const otpCode = credentials.password.replace('__otp__', '')
+
+            const otp = await prisma.otpCode.findFirst({
+              where: {
+                phone: loginId,
+                code: otpCode,
+                type: 'LOGIN',
+                verified: true,
+                expiresAt: { gte: new Date() },
+              },
+              orderBy: { createdAt: 'desc' },
+            })
+
+            if (!otp) {
+              console.log('[AUTH] OTP not found or expired for:', loginId)
+              return null
+            }
+
+            // Видаляємо використаний OTP
+            await prisma.otpCode.delete({ where: { id: otp.id } })
+
+            console.log('[AUTH] OTP login successful for:', loginId)
+            return {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              role: user.role,
+              salonId: user.salonId,
+            }
+          }
+
+          // Password login
           const passwordMatch = await bcrypt.compare(credentials.password, user.passwordHash)
-          console.log('[AUTH] Password match:', passwordMatch)
 
           if (!passwordMatch) {
-            console.log('[AUTH] Password mismatch')
             return null
           }
 
-          console.log('[AUTH] Login successful for:', user.email)
           return {
             id: user.id,
             email: user.email,
@@ -49,7 +76,7 @@ export const authOptions: NextAuthOptions = {
             salonId: user.salonId,
           }
         } catch (error) {
-          console.error('[AUTH] Error during authentication:', error)
+          console.error('[AUTH] Error:', error)
           return null
         }
       }
@@ -78,6 +105,8 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: 'jwt',
+    maxAge: 90 * 24 * 60 * 60, // 90 днів
+    updateAge: 24 * 60 * 60,   // Оновлювати JWT кожні 24 години
   },
   secret: process.env.NEXTAUTH_SECRET || 'development-secret-change-in-production',
 }

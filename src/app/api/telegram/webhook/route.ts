@@ -1,240 +1,156 @@
-import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+import { NextRequest, NextResponse } from 'next/server'
+import prisma from '@/lib/prisma'
+import { sendMessage } from '@/lib/telegram-bot'
 
 interface TelegramUpdate {
+  update_id: number
   message?: {
+    message_id: number
+    from: {
+      id: number
+      is_bot: boolean
+      first_name: string
+      last_name?: string
+      username?: string
+      language_code?: string
+    }
     chat: {
-      id: number;
-    };
-    text?: string;
-    from?: {
-      id: number;
-      username?: string;
-      first_name?: string;
-    };
-  };
-}
-
-async function sendMessage(chatId: number, text: string) {
-  await fetch(`${TELEGRAM_API_URL}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text,
-      parse_mode: 'HTML',
-    }),
-  });
-}
-
-export async function POST(request: NextRequest) {
-  if (!TELEGRAM_BOT_TOKEN) {
-    return NextResponse.json({ error: 'Bot not configured' }, { status: 500 });
+      id: number
+      type: string
+    }
+    date: number
+    text?: string
   }
+}
 
+export async function POST(req: NextRequest) {
   try {
-    const update: TelegramUpdate = await request.json();
+    const update: TelegramUpdate = await req.json()
+    
+    console.log('[TELEGRAM WEBHOOK] Отримано update:', JSON.stringify(update, null, 2))
 
-    if (!update.message?.text) {
-      return NextResponse.json({ ok: true });
+    const message = update.message
+    if (!message?.text) {
+      return NextResponse.json({ ok: true })
     }
 
-    const chatId = update.message.chat.id;
-    const text = update.message.text;
+    const chatId = message.chat.id.toString()
+    const telegramId = message.from.id.toString()
+    const username = message.from.username
+    const text = message.text.trim()
 
-    // Handle /start command
-    if (text === '/start') {
-      await sendMessage(
-        chatId,
-        `👋 <b>Вітаю!</b>
-
-Цей бот надсилатиме нагадування про ваші записи в салон.
-
-💡 <b>Команди:</b>
-/connect - Підключити нагадування (введіть номер телефону)
-/status - Перевірити підключення
-/id - Отримати ваш Chat ID
-
-<b>Для власників салонів:</b>
-Використовуйте Chat ID <code>${chatId}</code> в налаштуваннях для отримання сповіщень.`
-      );
-      return NextResponse.json({ ok: true });
-    }
-
-    // Handle /connect command - link client by phone
-    if (text === '/connect') {
-      await sendMessage(
-        chatId,
-        `📱 <b>Підключення нагадувань</b>
-
-Надішліть ваш номер телефону (той, що вказували при записі).
-
-Приклад: <code>+380501234567</code> або <code>0501234567</code>`
-      );
-      return NextResponse.json({ ok: true });
-    }
-
-    // Handle phone number - try to link client
-    const phoneMatch = text.match(/^[\+]?[\d\s\-\(\)]{9,15}$/);
-    if (phoneMatch) {
-      const phone = text.replace(/[\s\-\(\)]/g, '').replace(/^0/, '+380');
-      const phoneVariants = [phone, phone.replace('+', ''), '0' + phone.slice(-9)];
+    // Обробка /start
+    if (text.startsWith('/start')) {
+      const parts = text.split(' ')
       
-      // Search for client with this phone
-      const client = await prisma.client.findFirst({
-        where: {
-          OR: phoneVariants.map(p => ({ phone: { contains: p.slice(-9) } })),
-        },
-        include: {
-          salon: { select: { name: true } },
-        },
-      });
-
-      if (client) {
-        // Link Telegram to client
-        await prisma.client.update({
-          where: { id: client.id },
-          data: { 
-            telegramChatId: chatId.toString(),
-            telegramUsername: update.message?.from?.username,
-          },
-        });
-
-        await sendMessage(
-          chatId,
-          `✅ <b>Підключено!</b>
-
-Ви будете отримувати нагадування про записи в <b>${client.salon.name}</b>.
-
-📞 Телефон: ${client.phone}
-👤 Ім'я: ${client.name}
-
-Тепер бот нагадуватиме вам:
-• За 24 години до візиту
-• За 2 години до візиту`
-        );
+      // Deep link: /start link_XXXXX
+      if (parts.length > 1 && parts[1].startsWith('link_')) {
+        const token = parts[1]
+        await handleLinkTelegram(telegramId, username, chatId, token)
       } else {
-        await sendMessage(
-          chatId,
-          `❌ <b>Клієнта не знайдено</b>
-
-Номер ${phone} не знайдено в системі.
-
-Переконайтесь, що ви вказали той номер, який використовували при записі в салон.`
-        );
+        // Звичайний /start
+        await sendWelcomeMessage(chatId)
       }
-      return NextResponse.json({ ok: true });
     }
 
-    // Handle /id command
-    if (text === '/id') {
-      await sendMessage(
-        chatId,
-        `🆔 Ваш Chat ID: <code>${chatId}</code>
-
-Скопіюйте цей код та вставте в налаштуваннях салону для отримання сповіщень.`
-      );
-      return NextResponse.json({ ok: true });
-    }
-
-    // Handle /status command
-    if (text === '/status') {
-      // Check client first
-      const client = await prisma.client.findFirst({
-        where: { telegramChatId: chatId.toString() },
-        include: { 
-          salon: { select: { name: true } },
-          bookings: {
-            where: { 
-              status: { in: ['CONFIRMED', 'PENDING'] },
-              date: { gte: new Date().toISOString().split('T')[0] },
-            },
-            orderBy: { date: 'asc' },
-            take: 3,
-          },
-        },
-      });
-
-      if (client) {
-        let message = `✅ <b>Підключено як клієнт</b>
-
-👤 ${client.name}
-📍 ${client.salon.name}
-🔔 Нагадування активовано`;
-
-        if (client.bookings.length > 0) {
-          message += `\n\n📅 <b>Найближчі записи:</b>`;
-          for (const b of client.bookings) {
-            message += `\n• ${b.date} о ${b.time} — ${b.serviceName || 'візит'}`;
-          }
-        }
-
-        await sendMessage(chatId, message);
-        return NextResponse.json({ ok: true });
-      }
-
-      // Check admin/owner
-      const user = await prisma.user.findFirst({
-        where: { telegramChatId: chatId.toString() },
-        select: { email: true, salonId: true }
-      });
-
-      if (user) {
-        await sendMessage(
-          chatId,
-          `✅ <b>Підключено як власник</b>
-
-📧 ${user.email}
-🔔 Сповіщення про нові записи активовано`
-        );
-      } else {
-        await sendMessage(
-          chatId,
-          `❌ <b>Не підключено</b>
-
-Щоб отримувати нагадування про записи:
-• Надішліть /connect та ваш номер телефону
-
-Для власників салонів:
-• Chat ID: <code>${chatId}</code>`
-        );
-      }
-      return NextResponse.json({ ok: true });
-    }
-
-    // Handle connection code (6-digit number)
-    if (/^\d{6}$/.test(text)) {
-      await sendMessage(
-        chatId,
-        `🔍 Шукаємо код підтвердження...
-
-Якщо ви намагаєтесь підключити Telegram, переконайтесь що ввели правильний код з панелі управління.`
-      );
-      return NextResponse.json({ ok: true });
-    }
-
-    // Default response for unknown commands
-    await sendMessage(
-      chatId,
-      `❓ Невідома команда.
-
-Доступні команди:
-/start - Почати
-/id - Отримати Chat ID
-/status - Перевірити підключення`
-    );
-
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true })
   } catch (error) {
-    console.error('Telegram webhook error:', error);
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    console.error('[TELEGRAM WEBHOOK] Error:', error)
+    return NextResponse.json({ ok: true }) // Завжди повертаємо 200 для Telegram
   }
 }
 
-// Verify webhook (GET request from Telegram)
+async function sendWelcomeMessage(chatId: string) {
+  const welcomeText = `👋 Вітаємо в Booking Platform!
+
+Цей бот допомагає:
+• 🔐 Входити в акаунт через OTP код
+• 🔔 Отримувати сповіщення про записи
+
+Щоб прив'язати Telegram до вашого акаунту:
+1. Увійдіть на сайт
+2. Перейдіть в налаштування профілю
+3. Натисніть "Підключити Telegram"
+
+Потрібна допомога? Звертайтесь до підтримки.`
+
+  await sendMessage(chatId, welcomeText)
+}
+
+async function handleLinkTelegram(
+  telegramId: string,
+  username: string | undefined,
+  chatId: string,
+  token: string
+) {
+  try {
+    // Шукаємо токен
+    const linkRecord = await prisma.otpCode.findFirst({
+      where: {
+        code: token,
+        type: 'LINK_TELEGRAM',
+        expiresAt: { gt: new Date() },
+      },
+    })
+
+    if (!linkRecord || !linkRecord.userId) {
+      await sendMessage(chatId, 
+        '❌ Посилання недійсне або застаріле.\n\nСпробуйте згенерувати нове посилання в налаштуваннях профілю.'
+      )
+      return
+    }
+
+    // Перевіряємо чи цей telegramId вже прив'язаний до іншого акаунту
+    const existingUser = await prisma.user.findFirst({
+      where: { telegramId },
+    })
+
+    if (existingUser && existingUser.id !== linkRecord.userId) {
+      await sendMessage(chatId,
+        '⚠️ Цей Telegram акаунт вже прив\'язаний до іншого профілю.\n\nЯкщо хочете прив\'язати до нового — спочатку відв\'яжіть в налаштуваннях старого акаунту.'
+      )
+      return
+    }
+
+    // Прив'язуємо Telegram до користувача
+    await prisma.user.update({
+      where: { id: linkRecord.userId },
+      data: {
+        telegramId,
+        telegramUsername: username,
+        telegramChatId: chatId,
+      },
+    })
+
+    // Позначаємо токен як використаний
+    await prisma.otpCode.update({
+      where: { id: linkRecord.id },
+      data: { verified: true },
+    })
+
+    console.log(`[TELEGRAM] Telegram ${telegramId} прив'язано до користувача ${linkRecord.userId}`)
+
+    await sendMessage(chatId,
+      `✅ Telegram успішно підключено!
+
+Тепер ви можете:
+• Входити через OTP код у Telegram
+• Отримувати сповіщення про нові записи
+
+Дякуємо за використання Booking Platform! 🎉`
+    )
+  } catch (error) {
+    console.error('[TELEGRAM] Error linking:', error)
+    await sendMessage(chatId,
+      '❌ Виникла помилка при підключенні. Спробуйте ще раз.'
+    )
+  }
+}
+
+// GET для перевірки webhook
 export async function GET() {
-  return NextResponse.json({ status: 'Telegram webhook active' });
+  return NextResponse.json({ 
+    status: 'ok', 
+    message: 'Telegram webhook is running' 
+  })
 }

@@ -61,13 +61,17 @@ model User {
   role                 UserRole @default(SALON_OWNER)
   salonId              String?
   telegramChatId       String?
+  telegramId           String?  @unique
+  telegramUsername     String?
   notificationsEnabled Boolean  @default(true)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
   salon                Salon?   @relation(fields: [salonId], references: [id])
+  otpCodes             OtpCode[]
 
   @@index([email])
   @@index([salonId])
+  @@index([telegramId])
 }
 
 model Master {
@@ -451,4 +455,33 @@ enum StockMovementType {
   ADJUSTMENT
   WRITE_OFF
   SERVICE
+}
+
+enum OtpType {
+  REGISTER
+  LOGIN
+  LINK_TELEGRAM
+}
+
+enum OtpChannel {
+  SMS
+  TELEGRAM
+}
+
+model OtpCode {
+  id        String     @id @default(uuid())
+  userId    String?
+  phone     String
+  code      String     // 6 цифр
+  type      OtpType
+  channel   OtpChannel
+  expiresAt DateTime
+  verified  Boolean    @default(false)
+  attempts  Int        @default(0)
+  createdAt DateTime   @default(now())
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([phone])
+  @@index([code])
+  @@index([expiresAt])
 }
