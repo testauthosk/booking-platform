@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { X, Calendar, Users, ChevronRight, Loader2, Phone, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ClientCardPanel } from './client-card-panel';
+import { staffFetch } from '@/lib/staff-fetch';
 
 // Затемнити колір на X%
 const darkenColor = (hex: string, percent = 20): string => {
@@ -108,7 +109,7 @@ export function BookingDetailsModal({
 
   const loadColleagues = async () => {
     try {
-      const res = await fetch(`/api/masters?salonId=${salonId}`);
+      const res = await staffFetch(`/api/masters?salonId=${salonId}`);
       if (res.ok) {
         const data = await res.json();
         setColleagues(data.filter((m: any) => m.id !== staffId));
@@ -121,7 +122,7 @@ export function BookingDetailsModal({
     setTransferring(true);
     try {
       const colleague = colleagues.find(c => c.id === selectedColleague);
-      const res = await fetch('/api/staff/bookings', {
+      const res = await staffFetch('/api/staff/bookings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -147,7 +148,7 @@ export function BookingDetailsModal({
     }
     
     try {
-      const res = await fetch('/api/staff/bookings', {
+      const res = await staffFetch('/api/staff/bookings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bookingId: booking.id, status }),
@@ -163,7 +164,7 @@ export function BookingDetailsModal({
     if (!booking) return;
     setCancelConfirmOpen(false);
     try {
-      const res = await fetch('/api/staff/bookings', {
+      const res = await staffFetch('/api/staff/bookings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bookingId: booking.id, status: 'CANCELLED' }),

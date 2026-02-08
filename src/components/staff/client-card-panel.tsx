@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { staffFetch } from '@/lib/staff-fetch';
 
 interface ClientData {
   id?: string;
@@ -127,7 +128,7 @@ export function ClientCardPanel({
   const loadClient = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/staff/clients/by-phone?phone=${encodeURIComponent(clientPhone)}&masterId=${masterId}`);
+      const res = await staffFetch(`/api/staff/clients/by-phone?phone=${encodeURIComponent(clientPhone)}&masterId=${masterId}`);
       if (res.ok) {
         const data = await res.json();
         setClient(data);
@@ -151,7 +152,7 @@ export function ClientCardPanel({
     if (!client?.id) return;
     setIsSaving(true);
     try {
-      const res = await fetch(`/api/staff/clients?masterId=${masterId}&clientId=${client.id}`, {
+      const res = await staffFetch(`/api/staff/clients?masterId=${masterId}&clientId=${client.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editForm),
@@ -390,7 +391,7 @@ export function ClientCardPanel({
                   onBlur={async () => {
                     if (client?.id && editForm.notes !== client.notes) {
                       try {
-                        await fetch(`/api/staff/clients?masterId=${masterId}&clientId=${client.id}`, {
+                        await staffFetch(`/api/staff/clients?masterId=${masterId}&clientId=${client.id}`, {
                           method: 'PATCH',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ notes: editForm.notes }),
