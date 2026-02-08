@@ -34,7 +34,8 @@ model Salon {
   updatedAt         DateTime          @updatedAt
   paletteId         String            @default("earth-harmony")
   previousPlatform  String?           // Платформа з якої мігрують (altegio, booksy, fresha...)
-  onboardingData    Json?             // Дані онбордінгу: accountType, serviceLocation, website
+  onboardingData      Json?             // Дані онбордінгу: accountType, serviceLocation, website, lastStep
+  onboardingCompleted Boolean           @default(false)
   migrationDismissed Boolean         @default(false) // Чи закрив користувач банер міграції
   bookings          Booking[]
   clients           Client[]

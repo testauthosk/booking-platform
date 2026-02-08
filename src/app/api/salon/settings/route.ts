@@ -56,6 +56,18 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Перевіряємо чи онбордінг завершено
+    const salonCheck = await prisma.salon.findUnique({
+      where: { id: session.user.salonId },
+      select: { onboardingCompleted: true },
+    })
+    if (!salonCheck?.onboardingCompleted) {
+      return NextResponse.json(
+        { error: 'Завершіть налаштування акаунту', code: 'ONBOARDING_REQUIRED' },
+        { status: 403 }
+      )
+    }
+
     const body = await request.json()
     
     // Дозволені поля для оновлення

@@ -52,6 +52,7 @@ export default function TeamPage() {
   
   // Використовуємо salonId з сесії або дефолтний
   const salonId = session?.user?.salonId || DEFAULT_SALON_ID;
+  const [onboardingRequired, setOnboardingRequired] = useState(false);
   
   // Invite modal
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
@@ -78,6 +79,11 @@ export default function TeamPage() {
   useEffect(() => {
     if (salonId) {
       loadData();
+      // Перевіряємо онбордінг
+      fetch('/api/salon/onboarding')
+        .then(res => res.json())
+        .then(r => { if (!r.completed) setOnboardingRequired(true); })
+        .catch(() => {});
     }
   }, [salonId]);
 
@@ -284,10 +290,21 @@ export default function TeamPage() {
             <h1 className="text-2xl font-bold">Команда</h1>
             <p className="text-muted-foreground">Учасники команди</p>
           </div>
-          <Button onClick={() => setInviteModalOpen(true)}>
-            <UserPlus className="h-4 w-4 mr-2" />
-            Запросити майстра
-          </Button>
+          <div className="relative group">
+            <Button
+              onClick={() => !onboardingRequired && setInviteModalOpen(true)}
+              disabled={onboardingRequired}
+              className={onboardingRequired ? 'opacity-50 cursor-not-allowed' : ''}
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Запросити майстра
+            </Button>
+            {onboardingRequired && (
+              <div className="absolute bottom-full mb-2 right-0 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                Завершіть налаштування акаунту
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Search */}
@@ -380,9 +397,12 @@ export default function TeamPage() {
               <UserPlus className="h-8 w-8 text-muted-foreground" />
             </div>
             <p className="text-muted-foreground mb-4">Додайте першого майстра</p>
-            <Button onClick={() => setInviteModalOpen(true)}>
+            <Button
+              onClick={() => !onboardingRequired && setInviteModalOpen(true)}
+              disabled={onboardingRequired}
+            >
               <UserPlus className="h-4 w-4 mr-2" />
-              Запросити майстра
+              {onboardingRequired ? 'Спершу завершіть налаштування' : 'Запросити майстра'}
             </Button>
           </div>
         )}

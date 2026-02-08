@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Menu, TrendingUp, Calendar, Users, DollarSign, Loader2, ExternalLink } from 'lucide-react';
+import { Menu, TrendingUp, Calendar, Users, DollarSign, Loader2, ExternalLink, ArrowRight, Settings } from 'lucide-react';
 import { useSidebar } from '@/components/sidebar-context';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface Booking {
   id: string;
@@ -29,8 +30,11 @@ interface DashboardData {
 
 export default function DashboardPage() {
   const { open: openSidebar } = useSidebar();
+  const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [onboardingIncomplete, setOnboardingIncomplete] = useState(false);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
 
   useEffect(() => {
     fetch('/api/dashboard/data')
@@ -38,6 +42,14 @@ export default function DashboardPage() {
       .then(setData)
       .catch(console.error)
       .finally(() => setLoading(false));
+
+    // Перевіряємо онбордінг
+    fetch('/api/salon/onboarding')
+      .then(res => res.json())
+      .then(result => {
+        if (!result.completed) setOnboardingIncomplete(true);
+      })
+      .catch(console.error);
   }, []);
 
   // Get upcoming bookings (today and future, not cancelled)
@@ -119,6 +131,37 @@ export default function DashboardPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
+        {/* Onboarding incomplete banner */}
+        {onboardingIncomplete && !onboardingDismissed && (
+          <div className="bg-gradient-to-r from-violet-500 to-purple-600 rounded-2xl p-5 text-white relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-1">
+                <Settings className="h-5 w-5" />
+                <h3 className="font-semibold text-lg">Завершіть налаштування</h3>
+              </div>
+              <p className="text-white/80 text-sm mb-4">
+                Декілька кроків залишилось, щоб ваш салон був готовий до роботи
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => router.push('/register')}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-white text-violet-600 rounded-xl font-semibold text-sm hover:bg-white/90 transition-colors"
+                >
+                  Продовжити
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setOnboardingDismissed(true)}
+                  className="px-4 py-2.5 text-white/70 hover:text-white rounded-xl text-sm font-medium transition-colors"
+                >
+                  Пізніше
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Desktop title + View site button */}
         <div className="flex items-center justify-between">
           <h1 className="hidden lg:block text-2xl font-bold">Головна панель</h1>

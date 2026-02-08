@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { 
   Loader2, Scissors, ArrowRight, ArrowLeft, Check, Mail, Phone,
@@ -83,10 +83,60 @@ const SOFTWARE_OPTIONS = [
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [step, setStep] = useState(1);
   const totalSteps = 7;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [progressLoaded, setProgressLoaded] = useState(false);
+
+  // Завантажуємо прогрес якщо юзер вже залогінений
+  useEffect(() => {
+    if (!session?.user || progressLoaded) return;
+    
+    const loadProgress = async () => {
+      try {
+        const res = await fetch('/api/salon/onboarding');
+        if (!res.ok) return;
+        const { completed, data } = await res.json();
+        
+        if (completed) {
+          router.push('/dashboard');
+          return;
+        }
+
+        // Відновлюємо дані
+        if (data?.companyName) setCompanyName(data.companyName);
+        if (data?.website) setWebsite(data.website);
+        if (data?.categories) setCategories(data.categories);
+        if (data?.accountType) setAccountType(data.accountType);
+        if (data?.serviceLocation) setServiceLocation(data.serviceLocation);
+        if (data?.previousPlatform) {
+          // Знаходимо назву софту по slug
+          const slugToSoftware: Record<string, string> = {
+            altegio: 'Altegio / YCLIENTS', booksy: 'Booksy', fresha: 'Fresha',
+            calendly: 'Calendly', square: 'Square', mindbody: 'Mindbody',
+            vagaro: 'Vagaro', setmore: 'Setmore', timely: 'Timely',
+            treatwell: 'Treatwell', salonIris: 'Salon Iris', other: 'Інше', none: 'none',
+          };
+          setCurrentSoftware(slugToSoftware[data.previousPlatform] || null);
+        }
+
+        // Переходимо на наступний крок після останнього збереженого
+        if (data?.lastStep && data.lastStep >= 2) {
+          setStep(data.lastStep + 1);
+        } else {
+          setStep(2); // Вже зареєстрований — пропускаємо step 1
+        }
+      } catch (e) {
+        console.error('Failed to load onboarding progress:', e);
+      } finally {
+        setProgressLoaded(true);
+      }
+    };
+
+    loadProgress();
+  }, [session, progressLoaded, router]);
 
   // Step 1: Auth
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
@@ -214,42 +264,51 @@ export default function RegisterPage() {
     }
   };
 
-  // Зберігаємо дані профілю салону
-  const saveOnboardingData = async () => {
-    try {
-      // Мапимо назву софту в slug для системи
-      const softwareToSlug: Record<string, string> = {
-        'Altegio / YCLIENTS': 'altegio',
-        'Booksy': 'booksy',
-        'Fresha': 'fresha',
-        'Calendly': 'calendly',
-        'Square': 'square',
-        'Mindbody': 'mindbody',
-        'Vagaro': 'vagaro',
-        'Setmore': 'setmore',
-        'Timely': 'timely',
-        'Treatwell': 'treatwell',
-        'Salon Iris': 'salonIris',
-        'Інше': 'other',
-        'none': 'none',
-      };
+  const softwareToSlug: Record<string, string> = {
+    'Altegio / YCLIENTS': 'altegio',
+    'Booksy': 'booksy',
+    'Fresha': 'fresha',
+    'Calendly': 'calendly',
+    'Square': 'square',
+    'Mindbody': 'mindbody',
+    'Vagaro': 'vagaro',
+    'Setmore': 'setmore',
+    'Timely': 'timely',
+    'Treatwell': 'treatwell',
+    'Salon Iris': 'salonIris',
+    'Інше': 'other',
+    'none': 'none',
+  };
 
-      const previousPlatform = currentSoftware ? softwareToSlug[currentSoftware] || 'other' : null;
+  // Зберігаємо прогрес поточного кроку
+  const saveStepProgress = async (currentStep: number, complete = false) => {
+    try {
+      const data: Record<string, unknown> = {};
+
+      if (currentStep >= 2) {
+        data.companyName = companyName || undefined;
+        data.website = website || undefined;
+      }
+      if (currentStep >= 3) {
+        data.categories = categories;
+      }
+      if (currentStep >= 4) {
+        data.accountType = accountType;
+      }
+      if (currentStep >= 5) {
+        data.serviceLocation = serviceLocation;
+      }
+      if (currentStep >= 6) {
+        data.previousPlatform = currentSoftware ? softwareToSlug[currentSoftware] || 'other' : null;
+      }
 
       await fetch('/api/salon/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: companyName || undefined,
-          website: website || undefined,
-          type: categories[0] ? BUSINESS_CATEGORIES.find(c => c.id === categories[0])?.name : undefined,
-          previousPlatform,
-          accountType,
-          serviceLocation,
-        }),
+        body: JSON.stringify({ step: currentStep, data, complete }),
       });
     } catch (err) {
-      console.error('Failed to save onboarding data:', err);
+      console.error('Failed to save step progress:', err);
     }
   };
 
@@ -263,10 +322,14 @@ export default function RegisterPage() {
     }
 
     if (step < totalSteps) {
+      // Зберігаємо прогрес кроку (2+)
+      if (step >= 2) {
+        await saveStepProgress(step);
+      }
       setStep(step + 1);
     } else {
-      // Зберігаємо дані онбордінгу і переходимо в дашборд
-      await saveOnboardingData();
+      // Фінальний крок — зберігаємо і завершуємо
+      await saveStepProgress(step, true);
       router.push('/dashboard?welcome=true');
     }
   };

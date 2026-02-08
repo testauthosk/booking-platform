@@ -41,6 +41,14 @@ export async function POST(request: NextRequest) {
       where: { id: salonId },
     });
 
+    // Перевіряємо чи онбордінг завершено
+    if (salon && !salon.onboardingCompleted) {
+      return NextResponse.json(
+        { error: 'Завершіть налаштування акаунту перед запрошенням майстрів', code: 'ONBOARDING_REQUIRED' },
+        { status: 403 }
+      );
+    }
+
     // Проверяем нет ли уже активного приглашения
     const existing = await prisma.staffInvitation.findFirst({
       where: {
