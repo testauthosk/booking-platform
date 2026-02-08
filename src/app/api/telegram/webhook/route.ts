@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { sendMessage } from '@/lib/telegram-bot'
+import { sendMessage, sendMessageWithButtons, answerCallbackQuery, editMessage } from '@/lib/telegram-bot'
 
 interface TelegramUpdate {
   update_id: number
@@ -21,6 +21,12 @@ interface TelegramUpdate {
     date: number
     text?: string
   }
+  callback_query?: {
+    id: string
+    from: { id: number; username?: string }
+    message?: { message_id: number; chat: { id: number } }
+    data?: string
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -28,6 +34,12 @@ export async function POST(req: NextRequest) {
     const update: TelegramUpdate = await req.json()
     
     console.log('[TELEGRAM WEBHOOK] Отримано update:', JSON.stringify(update, null, 2))
+
+    // Callback query handler (inline buttons)
+    if (update.callback_query) {
+      await handleCallbackQuery(update.callback_query)
+      return NextResponse.json({ ok: true })
+    }
 
     const message = update.message
     if (!message?.text) {
@@ -144,6 +156,146 @@ async function handleLinkTelegram(
     await sendMessage(chatId,
       '❌ Виникла помилка при підключенні. Спробуйте ще раз.'
     )
+  }
+}
+
+// Обробка натискання inline кнопок
+async function handleCallbackQuery(query: NonNullable<TelegramUpdate['callback_query']>) {
+  const data = query.data || ''
+  const chatId = query.message?.chat.id.toString() || ''
+  const messageId = query.message?.message_id || 0
+
+  try {
+    // confirm_BOOKING_ID — підтвердження візиту
+    if (data.startsWith('confirm_')) {
+      const bookingId = data.replace('confirm_', '')
+      await answerCallbackQuery(query.id, '✅ Дякуємо! Чекаємо на вас')
+      await editMessage(chatId, messageId,
+        `✅ <b>Візит підтверджено!</b>\n\nДякуємо, чекаємо на вас! 🎉`)
+
+      // Оновлюємо статус запису
+      await prisma.booking.update({
+        where: { id: bookingId },
+        data: { status: 'CONFIRMED' },
+      }).catch(() => {})
+      return
+    }
+
+    // cancel_BOOKING_ID — скасування
+    if (data.startsWith('cancel_')) {
+      const bookingId = data.replace('cancel_', '')
+      await answerCallbackQuery(query.id, '❌ Запис скасовано')
+
+      const booking = await prisma.booking.findUnique({
+        where: { id: bookingId },
+        select: { serviceName: true, date: true, time: true },
+      })
+
+      await prisma.booking.update({
+        where: { id: bookingId },
+        data: { status: 'CANCELLED' },
+      }).catch(() => {})
+
+      await editMessage(chatId, messageId,
+        `❌ <b>Запис скасовано</b>\n\n${booking ? `${booking.serviceName} — ${booking.date} о ${booking.time}` : ''}\n\nЯкщо передумаєте — запишіться знову через сайт.`)
+
+      // Сповіщаємо власника
+      const bookingFull = await prisma.booking.findUnique({
+        where: { id: bookingId },
+        include: {
+          salon: { select: { ownerId: true } },
+          client: { select: { name: true, phone: true } },
+        },
+      })
+      if (bookingFull?.salon?.ownerId) {
+        const owner = await prisma.user.findUnique({
+          where: { id: bookingFull.salon.ownerId },
+          select: { telegramChatId: true },
+        })
+        if (owner?.telegramChatId) {
+          await sendMessage(owner.telegramChatId,
+            `❌ <b>Клієнт скасував запис</b>\n\n👤 ${bookingFull.client?.name || 'Клієнт'}\n📞 ${bookingFull.client?.phone || ''}\n💇 ${bookingFull.serviceName || ''}\n📅 ${bookingFull.date} о ${bookingFull.time}`)
+        }
+      }
+      return
+    }
+
+    // late_BOOKING_ID — запізнюсь (показати вибір часу)
+    if (data.startsWith('late_') && !data.includes('_min_')) {
+      const bookingId = data.replace('late_', '')
+      await answerCallbackQuery(query.id)
+
+      const buttons = [
+        [
+          { text: '5 хв', callback_data: `late_${bookingId}_min_5` },
+          { text: '10 хв', callback_data: `late_${bookingId}_min_10` },
+          { text: '15 хв', callback_data: `late_${bookingId}_min_15` },
+          { text: '30 хв', callback_data: `late_${bookingId}_min_30` },
+        ],
+      ]
+
+      await editMessage(chatId, messageId, '🕐 <b>На скільки запізнюєтесь?</b>')
+      // Відправляємо нове повідомлення з кнопками бо editMessage не підтримує reply_markup
+      await sendMessageWithButtons(chatId, 'Оберіть час:', buttons)
+      return
+    }
+
+    // late_BOOKING_ID_min_N — запізнюсь на N хвилин
+    const lateMatch = data.match(/^late_(.+)_min_(\d+)$/)
+    if (lateMatch) {
+      const bookingId = lateMatch[1]
+      const minutes = parseInt(lateMatch[2])
+
+      await answerCallbackQuery(query.id, `🕐 Повідомлено: +${minutes} хв`)
+
+      // Оновлюємо запис — додаємо нотатку
+      await prisma.booking.update({
+        where: { id: bookingId },
+        data: { notes: `Клієнт запізнюється на ${minutes} хв` },
+      }).catch(() => {})
+
+      await editMessage(chatId, messageId,
+        `🕐 <b>Запізнення: +${minutes} хвилин</b>\n\nМайстер повідомлений. Дякуємо що попередили! 🙏`)
+
+      // Сповіщаємо власника та майстра
+      const booking = await prisma.booking.findUnique({
+        where: { id: bookingId },
+        include: {
+          salon: { select: { ownerId: true } },
+          client: { select: { name: true } },
+          master: { select: { name: true, email: true } },
+        },
+      })
+
+      if (booking?.salon?.ownerId) {
+        const owner = await prisma.user.findUnique({
+          where: { id: booking.salon.ownerId },
+          select: { telegramChatId: true },
+        })
+        if (owner?.telegramChatId) {
+          await sendMessage(owner.telegramChatId,
+            `🕐 <b>Клієнт запізнюється</b>\n\n👤 ${booking.client?.name || 'Клієнт'}\n👨‍💼 Майстер: ${booking.master?.name || ''}\n⏰ +${minutes} хвилин\n📅 ${booking.date} о ${booking.time}`)
+        }
+      }
+
+      // Якщо мастер має телеграм
+      if (booking?.master?.email) {
+        const masterUser = await prisma.user.findUnique({
+          where: { email: booking.master.email },
+          select: { telegramChatId: true },
+        })
+        if (masterUser?.telegramChatId) {
+          await sendMessage(masterUser.telegramChatId,
+            `🕐 <b>Клієнт запізнюється на ${minutes} хв</b>\n\n👤 ${booking.client?.name || 'Клієнт'}\n📅 ${booking.date} о ${booking.time}`)
+        }
+      }
+      return
+    }
+
+    await answerCallbackQuery(query.id)
+  } catch (error) {
+    console.error('[TELEGRAM] Callback error:', error)
+    await answerCallbackQuery(query.id, '❌ Помилка')
   }
 }
 

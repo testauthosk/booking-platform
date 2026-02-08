@@ -84,6 +84,153 @@ export async function sendMessage(telegramId: string, text: string): Promise<boo
 }
 
 /**
+ * Відправляє повідомлення з inline кнопками
+ */
+export async function sendMessageWithButtons(
+  chatId: string,
+  text: string,
+  buttons: { text: string; callback_data: string }[][],
+): Promise<boolean> {
+  if (!BOT_TOKEN) return false;
+
+  try {
+    const response = await fetch(`${TELEGRAM_API}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard: buttons },
+      }),
+    });
+
+    const data: TelegramResponse = await response.json();
+    if (!data.ok) {
+      console.error('[TELEGRAM] Buttons send error:', data.description);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('[TELEGRAM] Buttons send error:', error);
+    return false;
+  }
+}
+
+/**
+ * Відповідає на callback query (прибирає "годинник" на кнопці)
+ */
+export async function answerCallbackQuery(callbackQueryId: string, text?: string): Promise<void> {
+  if (!BOT_TOKEN) return;
+  try {
+    await fetch(`${TELEGRAM_API}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        callback_query_id: callbackQueryId,
+        text: text || '',
+      }),
+    });
+  } catch { /* ignore */ }
+}
+
+/**
+ * Редагує повідомлення (для оновлення після натискання кнопки)
+ */
+export async function editMessage(chatId: string, messageId: number, text: string): Promise<void> {
+  if (!BOT_TOKEN) return;
+  try {
+    await fetch(`${TELEGRAM_API}/editMessageText`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        message_id: messageId,
+        text,
+        parse_mode: 'HTML',
+      }),
+    });
+  } catch { /* ignore */ }
+}
+
+/**
+ * Надсилає нагадування клієнту про запис з кнопками
+ */
+export async function sendBookingReminder(
+  chatId: string,
+  booking: {
+    id: string;
+    serviceName: string;
+    masterName: string;
+    date: string;
+    time: string;
+    salonName: string;
+    salonAddress?: string;
+    hoursUntil: number;
+  },
+): Promise<boolean> {
+  const timeLabel = booking.hoursUntil === 24 ? 'Завтра' :
+                    booking.hoursUntil === 2 ? 'Через 2 години' :
+                    `Через ${booking.hoursUntil} год`;
+
+  const text = `⏰ <b>${timeLabel} у вас запис</b>
+
+📍 <b>${booking.salonName}</b>
+${booking.salonAddress ? `📍 ${booking.salonAddress}\n` : ''}
+💇 <b>Послуга:</b> ${booking.serviceName}
+👨‍💼 <b>Майстер:</b> ${booking.masterName}
+📅 <b>Дата:</b> ${booking.date}
+⏰ <b>Час:</b> ${booking.time}`;
+
+  const buttons = [
+    [
+      { text: '✅ Буду', callback_data: `confirm_${booking.id}` },
+      { text: '❌ Скасувати', callback_data: `cancel_${booking.id}` },
+    ],
+    [
+      { text: '🕐 Запізнюсь', callback_data: `late_${booking.id}` },
+    ],
+  ];
+
+  return sendMessageWithButtons(chatId, text, buttons);
+}
+
+/**
+ * Надсилає власнику сповіщення про новий запис
+ */
+export async function sendNewBookingNotification(
+  chatId: string,
+  booking: {
+    clientName: string;
+    clientPhone: string;
+    serviceName: string;
+    masterName: string;
+    date: string;
+    time: string;
+    duration: number;
+    price: number;
+    salonName: string;
+  },
+): Promise<boolean> {
+  const text = `🔔 <b>Новий запис!</b>
+
+📍 <b>${booking.salonName}</b>
+
+👤 <b>Клієнт:</b> ${booking.clientName}
+📞 <b>Телефон:</b> ${booking.clientPhone}
+
+💇 <b>Послуга:</b> ${booking.serviceName}
+👨‍💼 <b>Майстер:</b> ${booking.masterName}
+
+📅 <b>Дата:</b> ${booking.date}
+⏰ <b>Час:</b> ${booking.time}
+⏱ <b>Тривалість:</b> ${booking.duration} хв
+💰 <b>Вартість:</b> ${booking.price} ₴`;
+
+  return sendMessage(chatId, text);
+}
+
+/**
  * Встановлює webhook для бота
  */
 export async function setWebhook(webhookUrl: string): Promise<boolean> {
