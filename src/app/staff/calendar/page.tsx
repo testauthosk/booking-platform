@@ -257,6 +257,7 @@ function StaffCalendarContent() {
   const [calendarPickerOpen, setCalendarPickerOpen] = useState(false);
   const [pickerViewDate, setPickerViewDate] = useState(new Date());
   const [pickerBookings, setPickerBookings] = useState<Booking[]>([]);
+  const [pickerTimeBlocks, setPickerTimeBlocks] = useState<Array<{ id: string; startTime: string; endTime: string; title: string; type: string }>>([]);
   const [pickerBookingsLoading, setPickerBookingsLoading] = useState(false);
   const [calendarCollapsed, setCalendarCollapsed] = useState(false);
   const bookingsListRef = useRef<HTMLDivElement>(null);
@@ -319,10 +320,19 @@ function StaffCalendarContent() {
     setPickerBookingsLoading(true);
     try {
       const dateStr = date.toISOString().split('T')[0];
-      const res = await staffFetch(`/api/staff/dashboard?masterId=${staffId}&date=${dateStr}`);
-      if (res.ok) {
-        const data = await res.json();
+      const [dashRes, tbRes] = await Promise.all([
+        staffFetch(`/api/staff/dashboard?masterId=${staffId}&date=${dateStr}`),
+        staffFetch(`/api/staff/time-blocks?masterId=${staffId}&date=${dateStr}`),
+      ]);
+      if (dashRes.ok) {
+        const data = await dashRes.json();
         setPickerBookings(data.todayBookings || []);
+      }
+      if (tbRes.ok) {
+        const tbData = await tbRes.json();
+        setPickerTimeBlocks(tbData);
+      } else {
+        setPickerTimeBlocks([]);
       }
     } catch (error) {
       console.error('Load picker bookings error:', error);
@@ -1613,8 +1623,31 @@ function StaffCalendarContent() {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
-        ) : pickerBookings.length > 0 ? (
-          pickerBookings.map((booking) => {
+        ) : (pickerBookings.length > 0 || pickerTimeBlocks.length > 0) ? (
+          <>
+          {pickerTimeBlocks.map((block) => (
+            <div
+              key={`tb-${block.id}`}
+              className="rounded-xl overflow-hidden bg-zinc-100"
+              style={{ borderLeft: '4px solid #a1a1aa' }}
+            >
+              <div className="p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm font-bold">{block.startTime}</span>
+                  <span className="text-sm text-muted-foreground">—</span>
+                  <span className="text-sm text-muted-foreground">{block.endTime}</span>
+                </div>
+                <p className="font-semibold">🚫 {block.title || 'Заблоковано'}</p>
+                <p className="text-sm text-muted-foreground">{
+                  block.type === 'LUNCH' ? 'Обід' :
+                  block.type === 'BREAK' ? 'Перерва' :
+                  block.type === 'DAY_OFF' ? 'Вихідний' :
+                  block.type === 'VACATION' ? 'Відпустка' : 'Блокування'
+                }</p>
+              </div>
+            </div>
+          ))}
+          {pickerBookings.map((booking) => {
             const [h, m] = booking.time.split(':').map(Number);
             const endMins = h * 60 + m + booking.duration;
             const endH = Math.floor(endMins / 60);
@@ -1684,7 +1717,8 @@ function StaffCalendarContent() {
                 </div>
               </div>
             );
-          })
+          })}
+          </>
         ) : (
           <div className="text-center py-12">
             <p className="text-muted-foreground">Немає записів на цей день</p>
