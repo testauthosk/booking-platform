@@ -3,6 +3,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { verifyStaffToken } from '@/lib/staff-auth';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 // Конфигурація Cloudinary
 cloudinary.config({
@@ -14,10 +15,24 @@ cloudinary.config({
 export async function POST(request: NextRequest) {
   try {
     // Auth: NextAuth (owner) або JWT (staff)
+    let userId = 'unknown';
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       const staffAuth = await verifyStaffToken(request);
       if (staffAuth instanceof NextResponse) return staffAuth;
+      userId = staffAuth.masterId;
+    } else {
+      userId = session.user.id;
+    }
+
+    // Rate limit: 10 uploads per minute per user
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const rlCheck = checkRateLimit(`upload:${userId}:${ip}`, { maxAttempts: 10, windowMs: 60_000 });
+    if (!rlCheck.allowed) {
+      return NextResponse.json(
+        { error: `Забагато завантажень. Спробуйте через ${rlCheck.resetIn} сек` },
+        { status: 429 }
+      );
     }
 
     const formData = await request.formData();

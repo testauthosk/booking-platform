@@ -21,8 +21,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Check if booking is in the past
+    // Validate date format (YYYY-MM-DD)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return NextResponse.json({ error: 'Невірний формат дати (YYYY-MM-DD)' }, { status: 400 });
+    }
+    // Validate time format (HH:mm)
+    if (!/^\d{2}:\d{2}$/.test(time)) {
+      return NextResponse.json({ error: 'Невірний формат часу (HH:mm)' }, { status: 400 });
+    }
+    // Validate date is real
     const bookingDateTime = new Date(`${date}T${time}:00`);
+    if (isNaN(bookingDateTime.getTime())) {
+      return NextResponse.json({ error: 'Невалідна дата або час' }, { status: 400 });
+    }
+
+    // Validate time range
+    const [vH, vM] = time.split(':').map(Number);
+    if (vH < 0 || vH > 23 || vM < 0 || vM > 59) {
+      return NextResponse.json({ error: 'Час поза допустимим діапазоном' }, { status: 400 });
+    }
+
+    // Validate duration
+    if (duration !== undefined && (typeof duration !== 'number' || duration < 5 || duration > 480)) {
+      return NextResponse.json({ error: 'Тривалість має бути від 5 до 480 хвилин' }, { status: 400 });
+    }
+
+    // Check if booking is in the past
     const now = new Date();
     if (bookingDateTime < now) {
       return NextResponse.json({ 

@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
       ipHash: hashString(ip), // Loose binding — logged for anomaly detection
     })
       .setProtectedHeader({ alg: 'HS256' })
-      .setExpirationTime('30d')
+      .setExpirationTime('7d')
       .sign(JWT_SECRET);
 
     return NextResponse.json({

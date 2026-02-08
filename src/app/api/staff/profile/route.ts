@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
         where: {
           masterId: masterId!,
           date: { gte: monthStart, lte: monthEnd },
-          status: { not: 'CANCELLED' },
+          status: { notIn: ['CANCELLED', 'NO_SHOW'] },
         }
       }),
       prisma.review.aggregate({
