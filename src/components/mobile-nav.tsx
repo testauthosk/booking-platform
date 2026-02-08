@@ -13,11 +13,11 @@ import {
 } from 'lucide-react';
 
 const navItems = [
-  { href: '/calendar', icon: Calendar },
-  { href: '/catalogue', icon: Tag },
-  { href: '/inventory', icon: Package },
-  { href: '/clients', icon: Smile },
-  { href: '/dashboard', icon: LayoutGrid },
+  { href: '/calendar', icon: Calendar, label: 'Календар' },
+  { href: '/catalogue', icon: Tag, label: 'Каталог' },
+  { href: '/inventory', icon: Package, label: 'Склад' },
+  { href: '/clients', icon: Smile, label: 'Клієнти' },
+  { href: '/dashboard', icon: LayoutGrid, label: 'Головна' },
 ];
 
 interface MobileNavProps {
@@ -93,14 +93,20 @@ export function MobileNav({ isCalendar = false }: MobileNavProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                'relative z-10 flex items-center justify-center w-16 h-full',
+                'relative z-10 flex flex-col items-center justify-center w-16 h-full gap-0.5',
                 'transition-all duration-200 active:scale-95'
               )}
             >
               <item.icon className={cn(
-                "h-6 w-6 transition-colors duration-300",
+                "h-5 w-5 transition-colors duration-300",
                 isActive ? "text-background" : "text-muted-foreground"
               )} />
+              <span className={cn(
+                "text-[9px] font-medium leading-none transition-colors duration-300",
+                isActive ? "text-background" : "text-muted-foreground"
+              )}>
+                {item.label}
+              </span>
             </Link>
           );
         })}
