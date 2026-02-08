@@ -472,7 +472,7 @@ export default function CalendarPage() {
 
   const handleTimeRangeSelect = (start: Date, end: Date, resourceId: string) => {
     setSelectedSlot({ start, end, resourceId });
-    setIsNewBookingModalOpen(true);
+    setIsColleagueBookingOpen(true);
   };
 
   const handleDeleteEvent = async (event: BookingEvent) => {
@@ -502,7 +502,7 @@ export default function CalendarPage() {
     now.setMinutes(Math.ceil(now.getMinutes() / 15) * 15, 0, 0);
     const end = new Date(now.getTime() + 60 * 60000);
     setSelectedSlot({ start: now, end, resourceId: resources[0]?.id || '1' });
-    setIsNewBookingModalOpen(true);
+    setIsColleagueBookingOpen(true);
   };
 
   return (
@@ -609,6 +609,21 @@ export default function CalendarPage() {
           setTimeout(() => setSettingsMenu({ open: false, x: 0, y: 0 }), 200);
         }}>
           <div
+            ref={(el) => {
+              if (!el) return;
+              // Clamp menu position to viewport
+              const rect = el.getBoundingClientRect();
+              const vw = window.innerWidth;
+              const vh = window.innerHeight;
+              let x = settingsMenu.x;
+              let y = settingsMenu.y;
+              if (x + rect.width > vw - 8) x = vw - rect.width - 8;
+              if (x < 8) x = 8;
+              if (y + rect.height > vh - 8) y = vh - rect.height - 8;
+              if (y < 8) y = 8;
+              el.style.left = `${x}px`;
+              el.style.top = `${y}px`;
+            }}
             className={`absolute bg-white border border-gray-200 rounded-xl shadow-xl p-1.5 min-w-[200px] transition-all duration-200 origin-top-left ${
               menuAnimating ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
             }`}
@@ -628,7 +643,7 @@ export default function CalendarPage() {
                 slotStart.setHours(h, m, 0, 0);
                 const slotEnd = new Date(slotStart.getTime() + 60 * 60000);
                 setSelectedSlot({ start: slotStart, end: slotEnd, resourceId: settingsMenu.resourceId || resources[0]?.id || '' });
-                setIsNewBookingModalOpen(true);
+                setIsColleagueBookingOpen(true);
               }}
             >
               <Plus className="h-4 w-4 text-gray-500" />
@@ -803,12 +818,12 @@ export default function CalendarPage() {
       />
 
       {/* Colleague Booking Modal */}
-      {(user?.role === 'OWNER' || user?.role === 'ADMIN') && user?.salonId && (
+      {user?.salonId && (
         <ColleagueBookingModal
           isOpen={isColleagueBookingOpen}
           onClose={() => setIsColleagueBookingOpen(false)}
           salonId={user.salonId}
-          currentMasterId={null}
+          currentMasterId={selectedSlot?.resourceId || null}
           onSuccess={loadBookings}
         />
       )}
