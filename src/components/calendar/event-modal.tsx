@@ -107,7 +107,7 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
 
   if (!isVisible || !event) return null;
 
-  const isPast = event.end < new Date();
+  const isPast = event.start < new Date(); // Can't edit if session started or ended
 
   const statusColors: Record<string, string> = {
     confirmed: 'bg-green-100 text-green-700',
@@ -313,16 +313,22 @@ export function EventModal({ event, isOpen, onClose, onEdit, onDelete, onExtend,
         {/* Actions */}
         {!showDeleteConfirm && (
           <div className="p-4 border-t flex gap-2 pb-8 shrink-0">
-            {!isPast && (
-              <Button
-                variant="outline"
-                className="flex-1 h-11"
-                onClick={() => onEdit?.(event)}
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Редагувати
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              className={`flex-1 h-11 relative overflow-hidden ${isPast ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={() => !isPast && onEdit?.(event)}
+              disabled={isPast}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Редагувати
+              {isPast && (
+                <div className="absolute inset-0 pointer-events-none">
+                  <svg className="w-full h-full" preserveAspectRatio="none">
+                    <line x1="0" y1="0" x2="100%" y2="100%" stroke="black" strokeWidth="1.5" strokeOpacity="0.4" />
+                  </svg>
+                </div>
+              )}
+            </Button>
             <Button
               variant="outline"
               className="h-11 text-red-600 hover:text-red-700 hover:bg-red-50"
