@@ -741,27 +741,29 @@ export default function CalendarPage() {
               <div className="text-[11px] text-gray-400 mt-0.5 ml-[18px]">{settingsMenu.dateLabel}</div>
             </div>
 
-            {/* Time picker - scrollable drum */}
-            <div className="mx-1 mb-2 bg-gray-50 rounded-xl overflow-hidden">
+            {/* Time picker - horizontal scroll with fade edges */}
+            <div className="mx-1 mb-2 relative">
+              {/* Fade edges to hint at scrollability */}
+              <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 z-10 rounded-l-xl" style={{ background: 'linear-gradient(to right, #f3f4f6, transparent)' }} />
+              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 z-10 rounded-r-xl" style={{ background: 'linear-gradient(to left, #f3f4f6, transparent)' }} />
               <div
-                className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide py-2 px-1 gap-0"
+                className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide py-2 px-4 gap-1 bg-gray-100 rounded-xl"
                 ref={(el) => {
-                  if (!el || !settingsMenu.selectedMin) return;
-                  // Scroll to selected time
+                  if (!el) return;
+                  // Scroll selected into center
                   const selected = el.querySelector('[data-time-selected="true"]');
                   if (selected) {
-                    const elRect = el.getBoundingClientRect();
-                    const selRect = selected.getBoundingClientRect();
-                    el.scrollLeft = selected.offsetLeft - el.offsetWidth / 2 + selRect.width / 2;
+                    el.scrollLeft = (selected as HTMLElement).offsetLeft - el.offsetWidth / 2 + (selected as HTMLElement).offsetWidth / 2;
                   }
                 }}
               >
                 {(() => {
-                  const currentMin = settingsMenu.selectedMin ?? 0;
+                  const originalMin = settingsMenu.startMin ?? 0;
+                  const currentMin = settingsMenu.selectedMin ?? originalMin;
                   const step = 5;
-                  const range = 30; // ±30 min
+                  const range = 30; // ±30 min from original click
                   const times: number[] = [];
-                  for (let t = currentMin - range; t <= currentMin + range; t += step) {
+                  for (let t = originalMin - range; t <= originalMin + range; t += step) {
                     if (t >= 0 && t < 24 * 60) times.push(t);
                   }
                   return times.map(t => {
@@ -773,14 +775,34 @@ export default function CalendarPage() {
                       <button
                         key={t}
                         data-time-selected={isSelected ? 'true' : 'false'}
-                        className={`inline-btn snap-center flex-shrink-0 px-2 py-1.5 rounded-lg text-[13px] font-medium transition-all ${
+                        className={`inline-btn snap-center flex-shrink-0 w-[46px] py-1.5 rounded-lg text-[13px] font-semibold transition-all duration-200 ${
                           isSelected
-                            ? 'bg-black text-white shadow-sm'
-                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                            ? 'bg-black text-white shadow-md scale-105'
+                            : 'text-gray-400 hover:text-gray-700 hover:bg-white/60'
                         }`}
                         onClick={(e) => {
                           e.stopPropagation();
                           setSettingsMenu(prev => ({ ...prev, selectedMin: t }));
+                          // Move phantom highlight to new time
+                          const phantom = document.querySelector('[data-phantom-highlight]') as HTMLElement;
+                          if (phantom && settingsMenu.scrollEl) {
+                            const resContainer = settingsMenu.scrollEl.querySelector('[data-resources]');
+                            if (resContainer) {
+                              const cols = resContainer.children;
+                              const resIdx = masters.findIndex(m => m.id === settingsMenu.resourceId);
+                              const colEl = resIdx >= 0 ? cols[resIdx] as HTMLElement : null;
+                              if (colEl) {
+                                const colRect = colEl.getBoundingClientRect();
+                                const totalMin = (21 - 8) * 60;
+                                const relMin = t - 8 * 60;
+                                const gridStep = settings.gridStep || 15;
+                                const cellTop = colRect.top + (relMin / totalMin) * colRect.height;
+                                const cellH = (gridStep / totalMin) * colRect.height;
+                                phantom.style.top = `${cellTop}px`;
+                                phantom.style.height = `${cellH}px`;
+                              }
+                            }
+                          }
                         }}
                       >
                         {label}
