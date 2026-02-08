@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import prisma from '@/lib/prisma'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 function generateSlug(name: string): string {
   return name
@@ -25,6 +26,16 @@ async function getUniqueSlug(baseName: string): Promise<string> {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 3 registrations per hour per IP
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const rl = checkRateLimit(`register:${ip}`, { maxAttempts: 3, windowMs: 60 * 60 * 1000 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `Забагато спроб реєстрації. Спробуйте через ${Math.ceil(rl.resetIn / 60)} хв` },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json()
     const { 
       salonName, 
@@ -44,9 +55,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!password || password.length < 6) {
+    if (!password || password.length < 8) {
       return NextResponse.json(
-        { error: 'Пароль має бути не менше 6 символів' },
+        { error: 'Пароль має бути не менше 8 символів' },
+        { status: 400 }
+      )
+    }
+    if (!/[0-9]/.test(password)) {
+      return NextResponse.json(
+        { error: 'Пароль має містити хоча б одну цифру' },
+        { status: 400 }
+      )
+    }
+    if (!/[A-Z]/.test(password)) {
+      return NextResponse.json(
+        { error: 'Пароль має містити хоча б одну велику літеру' },
         { status: 400 }
       )
     }

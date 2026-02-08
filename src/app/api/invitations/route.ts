@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
         email,
         name,
         role,
-        expiresAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days (matches email text)
       },
     });
 
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
     if (resend) {
       try {
         await resend.emails.send({
-          from: `${salonName} <onboarding@resend.dev>`,
+          from: `${salonName} <noreply@tholim.com>`,
           to: email,
           subject: `${salonName} запрошує вас приєднатися до команди`,
           html: `
