@@ -954,12 +954,12 @@ export default function CalendarPage() {
       )}
 
       {/* Sidebar налаштувань календаря */}
-      <div className={`fixed inset-y-0 right-0 w-[300px] bg-white shadow-2xl z-[70] transform transition-transform duration-300 ease-out ${settingsOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-        <div className="flex items-center justify-between px-4 py-3 border-b">
+      <div className={`fixed inset-y-0 right-0 w-[300px] bg-white shadow-2xl z-[70] transform transition-transform duration-300 ease-out flex flex-col ${settingsOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
           <h3 className="font-semibold">Налаштування</h3>
           <button className="h-8 w-8 rounded-lg hover:bg-gray-100" onClick={() => setSettingsOpen(false)}>✕</button>
         </div>
-        <div className="p-4 space-y-5">
+        <div className="p-4 space-y-5 overflow-y-auto flex-1 pb-24">
           {/* Grid step */}
           <div>
             <div className="text-xs text-gray-500 uppercase tracking-wide mb-2">Сітка часу</div>
