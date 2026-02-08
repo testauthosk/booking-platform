@@ -18,7 +18,7 @@ import { useSidebar } from '@/components/sidebar-context';
 import { useCalendarSettings } from '@/lib/calendar-settings-context';
 import { MasterCardPanel } from '@/components/staff/master-card-panel';
 
-const DEFAULT_SALON_ID = '93b6801f-0193-4706-896b-3de71f3799e1';
+// salonId береться з сесії, fallback видалено для безпеки
 
 interface Master {
   id: string;
@@ -50,8 +50,7 @@ export default function TeamPage() {
   const [masters, setMasters] = useState<Master[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   
-  // Використовуємо salonId з сесії або дефолтний
-  const salonId = session?.user?.salonId || DEFAULT_SALON_ID;
+  const salonId = session?.user?.salonId || '';
   const [onboardingRequired, setOnboardingRequired] = useState(false);
   
   // Invite modal
@@ -409,13 +408,15 @@ export default function TeamPage() {
       </div>
 
       {/* Mobile FAB */}
-      <Button 
-        className="lg:hidden fixed right-4 bottom-24 w-14 h-14 rounded-full shadow-lg"
-        size="icon"
-        onClick={() => setInviteModalOpen(true)}
-      >
-        <Plus className="h-6 w-6" />
-      </Button>
+      {!onboardingRequired && (
+        <Button 
+          className="lg:hidden fixed right-4 bottom-24 w-14 h-14 rounded-full shadow-lg"
+          size="icon"
+          onClick={() => setInviteModalOpen(true)}
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      )}
 
       {/* Invite Modal */}
       <Dialog open={inviteModalOpen} onOpenChange={closeInviteModal}>

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/prisma';
 import { Resend } from 'resend';
 
@@ -7,11 +9,26 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 // GET /api/invitations - список приглашений
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const salonId = searchParams.get('salonId');
 
     if (!salonId) {
       return NextResponse.json({ error: 'salonId required' }, { status: 400 });
+    }
+
+    // Перевіряємо що юзер має доступ до цього салону
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { salonId: true, role: true },
+    });
+
+    if (user?.role !== 'SUPER_ADMIN' && user?.salonId !== salonId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const invitations = await prisma.staffInvitation.findMany({
@@ -29,11 +46,26 @@ export async function GET(request: NextRequest) {
 // POST /api/invitations - создать приглашение
 export async function POST(request: NextRequest) {
   try {
+    const currentSession = await getServerSession(authOptions);
+    if (!currentSession?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { salonId, email, name, role } = body;
 
     if (!salonId || !email) {
       return NextResponse.json({ error: 'salonId and email required' }, { status: 400 });
+    }
+
+    // Перевіряємо доступ
+    const currentUser = await prisma.user.findUnique({
+      where: { id: currentSession.user.id },
+      select: { salonId: true, role: true },
+    });
+
+    if (currentUser?.role !== 'SUPER_ADMIN' && currentUser?.salonId !== salonId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Получаем данные салона
