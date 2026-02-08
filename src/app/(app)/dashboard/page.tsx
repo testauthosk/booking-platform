@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Menu, TrendingUp, Calendar, Users, DollarSign, Loader2, ExternalLink, ArrowRight, Settings } from 'lucide-react';
+import { Menu, TrendingUp, Calendar, Users, DollarSign, Loader2, ExternalLink, ArrowRight, Settings, PartyPopper } from 'lucide-react';
 import { useSidebar } from '@/components/sidebar-context';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface Booking {
   id: string;
@@ -29,12 +29,23 @@ interface DashboardData {
 }
 
 export default function DashboardPage() {
+  return (
+    <Suspense fallback={null}>
+      <DashboardContent />
+    </Suspense>
+  );
+}
+
+function DashboardContent() {
   const { open: openSidebar } = useSidebar();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isWelcome = searchParams.get('welcome') === 'true';
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [onboardingIncomplete, setOnboardingIncomplete] = useState(false);
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
 
   useEffect(() => {
     fetch('/api/dashboard/data')
@@ -131,6 +142,28 @@ export default function DashboardPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
+        {/* Welcome banner after registration */}
+        {isWelcome && !welcomeDismissed && (
+          <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-5 text-white relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-1">
+                <PartyPopper className="h-5 w-5" />
+                <h3 className="font-semibold text-lg">Ласкаво просимо!</h3>
+              </div>
+              <p className="text-white/80 text-sm mb-4">
+                Ваш акаунт створено. Починайте додавати послуги та приймати записи.
+              </p>
+              <button
+                onClick={() => setWelcomeDismissed(true)}
+                className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl text-sm font-medium transition-colors"
+              >
+                Зрозуміло 👍
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Onboarding incomplete banner */}
         {onboardingIncomplete && !onboardingDismissed && (
           <div className="bg-gradient-to-r from-violet-500 to-purple-600 rounded-2xl p-5 text-white relative overflow-hidden">

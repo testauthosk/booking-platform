@@ -480,15 +480,15 @@ export default function RegisterPage() {
     }
   };
 
-  // Get Telegram link
+  // Get Telegram deep link
   const handleGetTelegramLink = async () => {
     setTelegramLoading(true);
     try {
-      const res = await fetch('/api/auth/link-telegram');
+      const res = await fetch('/api/auth/link-telegram', { method: 'POST' });
       const data = await res.json();
       
-      if (data.telegramLink) {
-        setTelegramLink(data.telegramLink);
+      if (data.deepLink) {
+        setTelegramLink(data.deepLink);
       }
     } catch (err) {
       console.error('Error getting telegram link:', err);
