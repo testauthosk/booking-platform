@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { usePreservedModal } from '@/hooks/use-preserved-modal';
 import { TimeWheelPicker } from '@/components/time-wheel-picker';
+import { staffFetch } from '@/lib/staff-fetch';
 
 interface Service {
   id: string;
@@ -159,7 +160,7 @@ export function StaffBookingModal({
     try {
       const params = new URLSearchParams({ salonId });
       if (search) params.append('search', search);
-      const res = await fetch(`/api/staff/clients/all?${params}`);
+      const res = await staffFetch(`/api/staff/clients/all?${params}`);
       if (res.ok) {
         const data = await res.json();
         setClients(data);
@@ -174,7 +175,7 @@ export function StaffBookingModal({
   const loadMasterBookings = async () => {
     try {
       const dateStr = selectedDate.toISOString().split('T')[0];
-      const res = await fetch(`/api/staff/bookings?masterId=${masterId}&date=${dateStr}`);
+      const res = await staffFetch(`/api/staff/bookings?masterId=${masterId}&date=${dateStr}`);
       if (res.ok) {
         const data = await res.json();
         setMasterBookings(data);
@@ -311,13 +312,12 @@ export function StaffBookingModal({
       let clientPhone = selectedClient?.phone || ('+380' + newClientPhone.replace(/\D/g, ''));
 
       if (isNewClient) {
-        const clientRes = await fetch('/api/clients', {
+        const clientRes = await staffFetch('/api/staff/clients/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             name: fullName, 
             phone: clientPhone,
-            salonId 
           }),
         });
         if (clientRes.ok) {
@@ -326,29 +326,24 @@ export function StaffBookingModal({
         }
       }
 
-      // Створюємо запис
+      // Створюємо запис через staff API (auto-links clientId by phone)
       const dateStr = selectedDate.toISOString().split('T')[0];
       const endTime = getEndTime();
 
-      const res = await fetch('/api/booking', {
+      const res = await staffFetch('/api/staff/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           salonId,
           masterId,
-          clientId,
           serviceId: selectedService.id,
           clientName,
           clientPhone,
           serviceName: selectedService.name,
-          masterName,
           date: dateStr,
           time: selectedTime,
-          timeEnd: endTime,
           duration: getTotalDuration(),
           price: selectedService.price,
-          extraTime: extraTime > 0 ? extraTime : undefined,
-          status: 'CONFIRMED',
         }),
       });
 
