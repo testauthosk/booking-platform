@@ -49,7 +49,10 @@ export async function POST(request: NextRequest) {
     for (const existing of existingBookings) {
       const [exH, exM] = existing.time.split(':').map(Number);
       const exStart = exH * 60 + exM;
-      const exEnd = exStart + existing.duration;
+      // Use timeEnd if available, otherwise fallback to time + duration
+      const exEnd = existing.timeEnd
+        ? (() => { const [eh, em] = existing.timeEnd.split(':').map(Number); return eh * 60 + em; })()
+        : exStart + existing.duration;
       
       // Check overlap: new booking starts before existing ends AND new booking ends after existing starts
       if (startMinutes < exEnd && endMinutes > exStart) {
@@ -241,10 +244,40 @@ export async function PUT(request: NextRequest) {
     const newTime = time || booking.time;
     const newDuration = duration || booking.duration;
     const [hours, minutes] = newTime.split(':').map(Number);
-    const endMinutes = hours * 60 + minutes + newDuration;
-    const endHours = Math.floor(endMinutes / 60);
-    const endMins = endMinutes % 60;
+    const newStartMinutes = hours * 60 + minutes;
+    const newEndMinutes = newStartMinutes + newDuration;
+    const endHours = Math.floor(newEndMinutes / 60);
+    const endMins = newEndMinutes % 60;
     updateData.timeEnd = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+
+    // Overlap check — if time or duration changed
+    if (time || duration) {
+      const targetMasterId = (masterId as string) || booking.masterId;
+      const existingBookings = await prisma.booking.findMany({
+        where: {
+          masterId: targetMasterId,
+          date: booking.date,
+          status: { not: 'CANCELLED' },
+          id: { not: bookingId }, // exclude self
+        },
+        select: { time: true, timeEnd: true, duration: true }
+      });
+
+      for (const existing of existingBookings) {
+        const [exH, exM] = existing.time.split(':').map(Number);
+        const exStart = exH * 60 + exM;
+        const exEnd = existing.timeEnd
+          ? (() => { const [eh, em] = existing.timeEnd.split(':').map(Number); return eh * 60 + em; })()
+          : exStart + existing.duration;
+
+        if (newStartMinutes < exEnd && newEndMinutes > exStart) {
+          return NextResponse.json({
+            error: 'На цей час вже є запис',
+            overlappingTime: existing.time
+          }, { status: 409 });
+        }
+      }
+    }
 
     const updated = await prisma.booking.update({
       where: { id: bookingId },

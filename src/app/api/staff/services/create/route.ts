@@ -19,7 +19,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Create service in salon
+    // Create service in salon — marked inactive so it doesn't appear
+    // in the public catalogue until admin approves it
     const service = await prisma.service.create({
       data: {
         salonId,
@@ -28,7 +29,8 @@ export async function POST(request: NextRequest) {
         price,
         description: description || null,
         categoryId: categoryId || null,
-        sortOrder: 999, // Add to end
+        sortOrder: 999,
+        isActive: false, // Master-created services are hidden from public until admin enables
       }
     });
 

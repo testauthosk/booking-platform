@@ -32,6 +32,15 @@ export default function StaffProfile() {
   const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  
+  // Change password
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -423,6 +432,29 @@ export default function StaffProfile() {
           </div>
         </div>
 
+        {/* Change password */}
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-medium">Змінити пароль</h3>
+              <p className="text-xs text-muted-foreground">Для безпеки акаунту</p>
+            </div>
+            <button
+              onClick={() => {
+                setCurrentPassword('');
+                setNewPassword('');
+                setConfirmPassword('');
+                setPasswordError('');
+                setPasswordSuccess(false);
+                setPasswordModalOpen(true);
+              }}
+              className="h-9 px-4 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors"
+            >
+              Змінити
+            </button>
+          </div>
+        </Card>
+
         {/* Stats card */}
         <Card className="p-4">
           <h3 className="font-medium mb-3">Статистика</h3>
@@ -544,6 +576,124 @@ export default function StaffProfile() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Change password modal */}
+      <div 
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] transition-all duration-700 ease-in-out ${
+          passwordModalOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setPasswordModalOpen(false)}
+      />
+      <div 
+        className={`fixed inset-x-0 bottom-0 bg-card rounded-t-3xl shadow-xl z-[90] transform transition-all duration-700 ease-in-out overflow-hidden ${
+          passwordModalOpen ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="p-4 border-b border-border flex items-center justify-between">
+          <h2 className="font-semibold">Змінити пароль</h2>
+          <button 
+            onClick={() => setPasswordModalOpen(false)}
+            className="h-9 w-10 rounded-xl border border-border hover:bg-muted flex items-center justify-center transition-colors"
+          >
+            <X className="h-5 w-5 text-muted-foreground" />
+          </button>
+        </div>
+        <div className="p-4 space-y-3">
+          {passwordSuccess ? (
+            <div className="text-center py-6">
+              <div className="h-14 w-14 rounded-2xl bg-green-100 flex items-center justify-center mx-auto mb-3">
+                <Check className="h-7 w-7 text-green-600" />
+              </div>
+              <p className="font-semibold text-lg">Пароль змінено!</p>
+              <p className="text-sm text-muted-foreground mt-1">Використовуйте новий пароль при наступному вході</p>
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Поточний пароль</label>
+                <Input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Введіть поточний пароль"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Новий пароль</label>
+                <Input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Мін. 8 символів, цифра, велика літера"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Підтвердіть новий пароль</label>
+                <Input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Повторіть новий пароль"
+                />
+              </div>
+              {passwordError && (
+                <p className="text-sm text-red-500">{passwordError}</p>
+              )}
+            </>
+          )}
+        </div>
+        {!passwordSuccess && (
+          <div className="p-4 border-t border-border">
+            <button
+              onClick={async () => {
+                setPasswordError('');
+                if (!currentPassword || !newPassword || !confirmPassword) {
+                  setPasswordError('Заповніть всі поля');
+                  return;
+                }
+                if (newPassword !== confirmPassword) {
+                  setPasswordError('Паролі не співпадають');
+                  return;
+                }
+                if (newPassword.length < 8) {
+                  setPasswordError('Пароль має бути не менше 8 символів');
+                  return;
+                }
+                setChangingPassword(true);
+                try {
+                  const res = await staffFetch('/api/staff/profile', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ currentPassword, newPassword })
+                  });
+                  if (res.ok) {
+                    setPasswordSuccess(true);
+                    setTimeout(() => setPasswordModalOpen(false), 2000);
+                  } else {
+                    const err = await res.json();
+                    setPasswordError(err.error || 'Помилка зміни паролю');
+                  }
+                } catch {
+                  setPasswordError('Помилка зʼєднання');
+                } finally {
+                  setChangingPassword(false);
+                }
+              }}
+              disabled={changingPassword}
+              className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {changingPassword ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  <Check className="h-5 w-5" />
+                  Змінити пароль
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Save button */}

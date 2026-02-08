@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import bcrypt from 'bcryptjs';
 import { verifyStaffToken, assertOwnMaster } from '@/lib/staff-auth';
 
 export async function GET(request: NextRequest) {
@@ -139,6 +140,56 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(updated);
   } catch (error) {
     console.error('Update profile error:', error);
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+  }
+}
+
+// PATCH /api/staff/profile — change password
+export async function PATCH(request: NextRequest) {
+  try {
+    const auth = await verifyStaffToken(request);
+    if (auth instanceof NextResponse) return auth;
+
+    const body = await request.json();
+    const { currentPassword, newPassword } = body;
+
+    if (!currentPassword || !newPassword) {
+      return NextResponse.json({ error: 'Поточний та новий пароль обовʼязкові' }, { status: 400 });
+    }
+
+    if (newPassword.length < 8) {
+      return NextResponse.json({ error: 'Пароль має бути не менше 8 символів' }, { status: 400 });
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      return NextResponse.json({ error: 'Пароль має містити хоча б одну цифру' }, { status: 400 });
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      return NextResponse.json({ error: 'Пароль має містити хоча б одну велику літеру' }, { status: 400 });
+    }
+
+    const master = await prisma.master.findUnique({
+      where: { id: auth.masterId },
+      select: { passwordHash: true }
+    });
+
+    if (!master?.passwordHash) {
+      return NextResponse.json({ error: 'Акаунт не має паролю' }, { status: 400 });
+    }
+
+    const valid = await bcrypt.compare(currentPassword, master.passwordHash);
+    if (!valid) {
+      return NextResponse.json({ error: 'Невірний поточний пароль' }, { status: 401 });
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 12);
+    await prisma.master.update({
+      where: { id: auth.masterId },
+      data: { passwordHash: newHash }
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Change password error:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
