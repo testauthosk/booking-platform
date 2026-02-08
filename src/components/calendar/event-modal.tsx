@@ -110,6 +110,19 @@ export function EventModal({ event, isOpen, masterColor, onClose, onEdit, onDele
 
   const isPast = event.start < new Date(); // Can't edit if session started or ended
 
+  // Format phone: +380671000005 → +380 67 100 00 05
+  const formatPhone = (phone?: string) => {
+    if (!phone) return '';
+    const digits = phone.replace(/[^0-9+]/g, '');
+    if (digits.startsWith('+380') && digits.length === 13) {
+      return `+380 ${digits.slice(4, 6)} ${digits.slice(6, 9)} ${digits.slice(9, 11)} ${digits.slice(11)}`;
+    }
+    return phone;
+  };
+
+  // Capitalize first letter
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
   const statusColors: Record<string, string> = {
     confirmed: 'bg-green-100 text-green-700',
     pending: 'bg-yellow-100 text-yellow-700',
@@ -175,41 +188,53 @@ export function EventModal({ event, isOpen, masterColor, onClose, onEdit, onDele
         <div className="p-4 space-y-3 overflow-y-auto flex-1">
             {/* Client — main block */}
             {event.clientName && (
-              <button
-                className="flex items-center gap-3 w-full text-left rounded-2xl p-3 bg-muted/30 border border-border/50 active:bg-muted/60 transition-colors"
-                onClick={() => onOpenClient?.(event.clientId || '', event.clientPhone)}
-              >
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                  <span className="text-lg font-bold text-primary">{event.clientName.charAt(0).toUpperCase()}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-base truncate">{event.clientName}</p>
-                  {event.clientPhone && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{event.clientPhone}</p>
-                  )}
-                </div>
-                {/* Contact buttons */}
-                <div className="flex gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
-                  {event.clientPhone && (
-                    <>
-                      <a
-                        href={`tel:${event.clientPhone}`}
-                        className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-100 transition-colors"
-                      >
-                        <Phone className="h-4 w-4" />
-                      </a>
-                      <a
-                        href={`https://t.me/${event.clientPhone?.replace(/[^0-9]/g, '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-9 h-9 rounded-xl bg-sky-50 text-sky-500 flex items-center justify-center hover:bg-sky-100 transition-colors"
-                      >
-                        <MessageCircle className="h-4 w-4" />
-                      </a>
-                    </>
-                  )}
-                </div>
-              </button>
+              <div className="rounded-2xl border border-border/50 overflow-hidden">
+                <button
+                  className="flex items-center gap-3 w-full text-left p-3 active:bg-muted/40 transition-colors"
+                  onClick={() => onOpenClient?.(event.clientId || '', event.clientPhone)}
+                >
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <span className="text-lg font-bold text-primary">{event.clientName.charAt(0).toUpperCase()}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-base truncate">{event.clientName}</p>
+                    {event.clientPhone && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{formatPhone(event.clientPhone)}</p>
+                    )}
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                </button>
+                {/* Contact buttons row */}
+                {event.clientPhone && (
+                  <div className="flex border-t border-border/50">
+                    <a
+                      href={`tel:${event.clientPhone}`}
+                      className="flex-1 flex items-center justify-center gap-2 py-2.5 text-emerald-600 hover:bg-emerald-50 active:bg-emerald-100 transition-colors text-sm font-medium border-r border-border/50"
+                    >
+                      <Phone className="h-4 w-4" />
+                      <span>Дзвінок</span>
+                    </a>
+                    <a
+                      href={`https://t.me/${event.clientPhone?.replace(/[^0-9]/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sky-500 hover:bg-sky-50 active:bg-sky-100 transition-colors text-sm font-medium border-r border-border/50"
+                    >
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0h-.056zm.056 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2zm4.93 5.83-1.48 6.99c-.11.5-.41.62-.83.39l-2.3-1.7-1.11 1.07c-.12.12-.23.23-.47.23l.17-2.35 4.26-3.85c.19-.17-.04-.26-.29-.1L8.59 12.6l-2.27-.71c-.49-.16-.5-.5.1-.73l8.88-3.42c.41-.15.77.1.64.73z"/></svg>
+                      <span>Telegram</span>
+                    </a>
+                    <a
+                      href={`https://wa.me/${event.clientPhone?.replace(/[^0-9+]/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 flex items-center justify-center gap-2 py-2.5 text-green-600 hover:bg-green-50 active:bg-green-100 transition-colors text-sm font-medium"
+                    >
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492l4.625-1.466A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818c-2.169 0-4.18-.591-5.914-1.621l-.424-.252-4.398 1.395 1.416-4.297-.277-.44A9.8 9.8 0 012.182 12c0-5.422 4.396-9.818 9.818-9.818S21.818 6.578 21.818 12s-4.396 9.818-9.818 9.818z"/></svg>
+                      <span>WhatsApp</span>
+                    </a>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Details grid — compact */}
@@ -218,7 +243,7 @@ export function EventModal({ event, isOpen, masterColor, onClose, onEdit, onDele
               <div className="flex items-center gap-3 px-3 py-2.5">
                 <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
                 <p className="text-sm flex-1">
-                  {format(event.start, "EEEE, d MMMM", { locale: uk })}
+                  {capitalize(format(event.start, "EEEE, d MMMM", { locale: uk }))}
                 </p>
                 {event.status && (
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${statusColors[event.status] || 'bg-gray-100 text-gray-700'}`}>
@@ -256,9 +281,15 @@ export function EventModal({ event, isOpen, masterColor, onClose, onEdit, onDele
             )}
           </div>
 
-        {/* Delete Confirmation */}
-        {showDeleteConfirm && (
-          <div className="px-4 py-3 bg-red-50 border-t border-red-200">
+        {/* Delete Confirmation — animated */}
+        <div
+          className="overflow-hidden border-t border-red-200 transition-all duration-300 ease-out"
+          style={{
+            maxHeight: showDeleteConfirm ? '150px' : '0px',
+            opacity: showDeleteConfirm ? 1 : 0,
+          }}
+        >
+          <div className="px-4 py-3 bg-red-50">
             <p className="text-sm font-medium text-red-700 mb-2">
               Видалити запис {event.clientName}?
             </p>
@@ -288,7 +319,7 @@ export function EventModal({ event, isOpen, masterColor, onClose, onEdit, onDele
               </Button>
             </div>
           </div>
-        )}
+        </div>
 
         {/* Actions */}
         {!showDeleteConfirm && (
