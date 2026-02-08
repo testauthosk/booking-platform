@@ -105,14 +105,15 @@ export async function POST(request: NextRequest) {
       expiresIn: 300, // 5 хвилин в секундах
     };
 
-    // SMS поки не реалізовано — повертаємо код в dev mode
+    // SMS — через Twilio або fallback
     if (channel === 'SMS') {
-      if (process.env.NODE_ENV !== 'production' || !process.env.TWILIO_ACCOUNT_SID) {
-        response.devCode = code; // Тільки для розробки!
-        response.message = 'SMS не налаштовано. Код для тестування в devCode.';
-      } else {
-        // TODO: Twilio SMS
+      if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+        // TODO: Twilio SMS send
         response.message = 'Код надіслано на ваш номер';
+      } else {
+        // Twilio не підключено — показуємо код в UI
+        response.devCode = code;
+        response.message = 'SMS сервіс в розробці. Код показано на екрані.';
       }
     } else if (channel === 'TELEGRAM') {
       response.message = delivered

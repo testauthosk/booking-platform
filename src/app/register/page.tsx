@@ -228,8 +228,8 @@ export default function RegisterPage() {
         return;
       }
 
-      if (data.code) {
-        setTempCode(data.code);
+      if (data.devCode) {
+        setTempCode(data.devCode);
       }
 
       setCountdown(60);
@@ -326,9 +326,8 @@ export default function RegisterPage() {
           if (password !== confirmPassword) return false;
           return true;
         } else {
-          // Phone method
+          // Phone method — OTP не обов'язковий (SMS не підключено)
           if (phone.replace(/\D/g, '').length !== 9) return false;
-          if (!phoneVerified) return false;
           if (password.length < 6) return false;
           if (password !== confirmPassword) return false;
           return true;
@@ -740,12 +739,12 @@ export default function RegisterPage() {
                             type="button"
                             onClick={handleSendOtp}
                             disabled={otpLoading}
-                            className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors disabled:opacity-50"
+                            className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors disabled:opacity-50 text-sm"
                           >
                             {otpLoading ? (
                               <Loader2 className="w-4 h-4 animate-spin mx-auto" />
                             ) : (
-                              'Підтвердити номер'
+                              'Підтвердити номер (необов\'язково)'
                             )}
                           </button>
                         )}
