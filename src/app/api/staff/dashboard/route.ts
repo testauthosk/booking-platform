@@ -93,12 +93,13 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Count unique clients
+    // Count unique clients (exclude fake block entries)
     const uniqueClients = await prisma.booking.groupBy({
       by: ['clientPhone'],
       where: {
         masterId,
-        status: { not: 'CANCELLED' }
+        status: { not: 'CANCELLED' },
+        clientPhone: { not: '-' },
       }
     });
 

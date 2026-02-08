@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { verifyStaffToken, assertOwnMaster } from '@/lib/staff-auth';
+import { staffAuditLog } from '@/lib/staff-audit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -126,7 +127,7 @@ export async function PUT(request: NextRequest) {
     const updated = await prisma.master.update({
       where: { id: masterId! },
       data: {
-        ...(name && { name }),
+        ...(name && name.trim() && { name: name.trim() }),
         ...(phone !== undefined && { phone: phone || null }),
         ...(bio !== undefined && { bio }),
         ...(workingHours !== undefined && { workingHours }),
@@ -135,6 +136,15 @@ export async function PUT(request: NextRequest) {
         ...(lunchDuration !== undefined && { lunchDuration }),
         ...(lunchStart !== undefined && { lunchStart })
       }
+    });
+
+    staffAuditLog({
+      salonId: auth.salonId,
+      masterId: masterId!,
+      action: 'UPDATE',
+      entityType: 'master_profile',
+      entityId: masterId!,
+      changes: { name, phone, bio, color, lunchDuration, lunchStart, workingHours: workingHours ? 'updated' : undefined },
     });
 
     return NextResponse.json(updated);

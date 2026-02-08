@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
+import { createHash } from 'crypto';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const JWT_SECRET_RAW = process.env.JWT_SECRET;
 if (!JWT_SECRET_RAW && process.env.NODE_ENV === 'production') {
@@ -38,6 +40,14 @@ export async function verifyStaffToken(
       return NextResponse.json({ error: 'Invalid token type' }, { status: 401 });
     }
 
+    // IP fingerprint check — log mismatch for anomaly detection
+    const currentIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const currentIpHash = createHash('sha256').update(currentIp).digest('hex').slice(0, 16);
+    if (payload.ipHash && payload.ipHash !== currentIpHash) {
+      console.warn(`[STAFF_AUTH] IP mismatch for master ${payload.masterId}: token=${payload.ipHash} current=${currentIpHash} ip=${currentIp}`);
+      // Don't block — mobile users change IPs often. Just log for audit.
+    }
+
     return {
       masterId: payload.masterId as string,
       salonId: payload.salonId as string,
@@ -47,6 +57,24 @@ export async function verifyStaffToken(
   } catch {
     return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
   }
+}
+
+/**
+ * Rate-limit check for staff API write operations.
+ * Returns NextResponse 429 if exceeded, null if OK.
+ * 60 write requests per minute per master.
+ */
+export function staffWriteRateLimit(request: NextRequest, masterId: string): NextResponse | null {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const key = `staff-write:${masterId}:${ip}`;
+  const check = checkRateLimit(key, { maxAttempts: 60, windowMs: 60_000 });
+  if (!check.allowed) {
+    return NextResponse.json(
+      { error: `Забагато запитів. Спробуйте через ${check.resetIn} сек` },
+      { status: 429 }
+    );
+  }
+  return null;
 }
 
 /**

@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
+import { createHash } from 'crypto';
 import { checkRateLimit, resetRateLimit } from '@/lib/rate-limit';
+
+// Simple hash for IP fingerprinting (not security-critical, just binding)
+function hashString(input: string): string {
+  return createHash('sha256').update(input).digest('hex').slice(0, 16);
+}
 
 const JWT_SECRET_RAW = process.env.JWT_SECRET;
 if (!JWT_SECRET_RAW && process.env.NODE_ENV === 'production') {
@@ -62,12 +68,15 @@ export async function POST(request: NextRequest) {
     // Reset rate limit on success
     resetRateLimit(rateLimitKey);
 
-    // Создаём JWT токен
+    // IP fingerprint for token binding (reuse ip from rate limit)
+
+    // Создаём JWT токен with IP fingerprint
     const token = await new SignJWT({
       masterId: master.id,
       salonId: master.salonId,
       email: master.email,
       type: 'staff',
+      ipHash: hashString(ip), // Loose binding — logged for anomaly detection
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setExpirationTime('30d')

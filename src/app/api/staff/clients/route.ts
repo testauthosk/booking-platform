@@ -137,13 +137,26 @@ export async function PATCH(request: NextRequest) {
 
     const body = await request.json()
     
+    // Validate phone if provided
+    if (body.phone !== undefined && body.phone !== null && body.phone !== '') {
+      const phoneDigits = body.phone.replace(/\D/g, '')
+      if (phoneDigits.length < 10 || phoneDigits.length > 13) {
+        return NextResponse.json({ error: 'Невірний формат телефону' }, { status: 400 })
+      }
+    }
+
+    // Validate name
+    if (body.name !== undefined && (!body.name || !body.name.trim())) {
+      return NextResponse.json({ error: 'Імʼя не може бути порожнім' }, { status: 400 })
+    }
+
     // Дозволені поля для оновлення
     const allowedFields = ['name', 'phone', 'email', 'notes', 'telegramUsername']
     const updateData: Record<string, any> = {}
     
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
-        updateData[field] = body[field]
+        updateData[field] = field === 'name' ? body[field].trim() : body[field]
       }
     }
 

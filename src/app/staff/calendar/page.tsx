@@ -382,6 +382,17 @@ function StaffCalendarContent() {
     setLoading(false);
   }, [router]);
 
+  // Auto-complete past bookings once on mount
+  useEffect(() => {
+    if (staffId) {
+      staffFetch('/api/staff/bookings/auto-complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ masterId: staffId })
+      }).catch(() => {});
+    }
+  }, [staffId]);
+
   useEffect(() => {
     if (staffId && selectedDate) {
       loadBookings();

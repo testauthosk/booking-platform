@@ -62,6 +62,14 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'serviceId required' }, { status: 400 });
     }
 
+    // Validate
+    if (customPrice !== undefined && (typeof customPrice !== 'number' || customPrice < 0)) {
+      return NextResponse.json({ error: 'Ціна не може бути від\'ємною' }, { status: 400 });
+    }
+    if (customDuration !== undefined && (typeof customDuration !== 'number' || customDuration < 5 || customDuration > 480)) {
+      return NextResponse.json({ error: 'Тривалість має бути від 5 до 480 хвилин' }, { status: 400 });
+    }
+
     // Update price/duration
     await prisma.masterService.update({
       where: {
@@ -103,6 +111,15 @@ export async function DELETE(request: NextRequest) {
         masterId_serviceId: { masterId: masterId!, serviceId: serviceId! }
       }
     });
+
+    // If service was master-created (isActive=false) and has no other masters — delete it
+    const service = await prisma.service.findUnique({
+      where: { id: serviceId! },
+      select: { isActive: true, _count: { select: { masters: true } } }
+    });
+    if (service && !service.isActive && service._count.masters === 0) {
+      await prisma.service.delete({ where: { id: serviceId! } }).catch(() => {});
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Prevent exposing server internals
+  poweredByHeader: false,
   images: {
     remotePatterns: [
       {

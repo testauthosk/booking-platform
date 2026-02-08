@@ -1,7 +1,6 @@
-// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { verifyStaffToken, assertSameSalonMaster } from '@/lib/staff-auth';
+import { verifyStaffToken, assertSameSalonMaster, staffWriteRateLimit } from '@/lib/staff-auth';
 import { staffAuditLog } from '@/lib/staff-audit';
 
 export async function POST(request: NextRequest) {
@@ -14,6 +13,9 @@ export async function POST(request: NextRequest) {
 
     const denied = await assertSameSalonMaster(auth, masterId);
     if (denied) return denied;
+
+    const rateLimit = staffWriteRateLimit(request, auth.masterId);
+    if (rateLimit) return rateLimit;
 
     if (!clientName || !clientPhone || !date || !time) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -60,6 +62,25 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ 
           error: 'На цей час вже є запис', 
           overlappingTime: existing.time 
+        }, { status: 409 });
+      }
+    }
+
+    // Check overlap with time blocks
+    const existingTimeBlocks = await prisma.timeBlock.findMany({
+      where: { masterId, date },
+      select: { startTime: true, endTime: true, title: true }
+    });
+
+    for (const block of existingTimeBlocks) {
+      const [bH, bM] = block.startTime.split(':').map(Number);
+      const [beH, beM] = block.endTime.split(':').map(Number);
+      const bStart = bH * 60 + bM;
+      const bEnd = beH * 60 + beM;
+
+      if (startMinutes < bEnd && endMinutes > bStart) {
+        return NextResponse.json({
+          error: `Цей час заблоковано: ${block.title || 'Перерва'} (${block.startTime}–${block.endTime})`,
         }, { status: 409 });
       }
     }
@@ -266,12 +287,14 @@ export async function PUT(request: NextRequest) {
     // Overlap check — if time or duration changed
     if (time || duration) {
       const targetMasterId = (masterId as string) || booking.masterId;
+
+      // Check against other bookings
       const existingBookings = await prisma.booking.findMany({
         where: {
           masterId: targetMasterId,
           date: booking.date,
           status: { not: 'CANCELLED' },
-          id: { not: bookingId }, // exclude self
+          id: { not: bookingId },
         },
         select: { time: true, timeEnd: true, duration: true }
       });
@@ -287,6 +310,25 @@ export async function PUT(request: NextRequest) {
           return NextResponse.json({
             error: 'На цей час вже є запис',
             overlappingTime: existing.time
+          }, { status: 409 });
+        }
+      }
+
+      // Check against time blocks
+      const existingTimeBlocks = await prisma.timeBlock.findMany({
+        where: { masterId: targetMasterId, date: booking.date },
+        select: { startTime: true, endTime: true, title: true }
+      });
+
+      for (const block of existingTimeBlocks) {
+        const [bH, bM] = block.startTime.split(':').map(Number);
+        const [beH, beM] = block.endTime.split(':').map(Number);
+        const bStart = bH * 60 + bM;
+        const bEnd = beH * 60 + beM;
+
+        if (newStartMinutes < bEnd && newEndMinutes > bStart) {
+          return NextResponse.json({
+            error: `Цей час заблоковано: ${block.title || 'Перерва'} (${block.startTime}–${block.endTime})`,
           }, { status: 409 });
         }
       }
