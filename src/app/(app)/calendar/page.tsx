@@ -782,11 +782,10 @@ export default function CalendarPage() {
                         }`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSettingsMenu(prev => ({ ...prev, selectedMin: t }));
-                          // Move phantom highlight to new time
                           const phantom = document.querySelector('[data-phantom-highlight]') as HTMLElement;
-                          if (phantom && settingsMenu.scrollEl) {
-                            const resContainer = settingsMenu.scrollEl.querySelector('[data-resources]');
+                          const scEl = settingsMenu.scrollEl;
+                          if (phantom && scEl) {
+                            const resContainer = scEl.querySelector('[data-resources]');
                             if (resContainer) {
                               const cols = resContainer.children;
                               const resIdx = masters.findIndex(m => m.id === settingsMenu.resourceId);
@@ -796,12 +795,40 @@ export default function CalendarPage() {
                                 const totalMin = (21 - 8) * 60;
                                 const relMin = t - 8 * 60;
                                 const gridStep = settings.gridStep || 15;
-                                const cellTop = colRect.top + (relMin / totalMin) * colRect.height;
+                                const cellTopViewport = colRect.top + (relMin / totalMin) * colRect.height;
                                 const cellH = (gridStep / totalMin) * colRect.height;
-                                phantom.style.top = `${cellTop}px`;
-                                phantom.style.height = `${cellH}px`;
+
+                                // Scroll so new cell is centered
+                                const scRect = scEl.getBoundingClientRect();
+                                const cellCenterInScroll = cellTopViewport - scRect.top + scEl.scrollTop + cellH / 2;
+                                const cellCenterX = colRect.left - scRect.left + scEl.scrollLeft + colRect.width / 2;
+                                scEl.scrollTo({
+                                  top: Math.max(0, cellCenterInScroll - scRect.height / 2),
+                                  left: Math.max(0, cellCenterX - scRect.width / 2),
+                                  behavior: 'smooth',
+                                });
+
+                                // After scroll, update phantom + menu position
+                                setTimeout(() => {
+                                  const newColRect = colEl.getBoundingClientRect();
+                                  const newCellTop = newColRect.top + (relMin / totalMin) * newColRect.height;
+                                  const newCellH = (gridStep / totalMin) * newColRect.height;
+                                  phantom.style.top = `${newCellTop}px`;
+                                  phantom.style.left = `${newColRect.left}px`;
+                                  phantom.style.width = `${newColRect.width}px`;
+                                  phantom.style.height = `${newCellH}px`;
+                                  // Update menu position — centered below phantom
+                                  const menuX = newColRect.left + newColRect.width / 2;
+                                  const menuY = newCellTop + newCellH + 8;
+                                  setSettingsMenu(prev => ({
+                                    ...prev, selectedMin: t, x: menuX, y: menuY,
+                                    cellRect: { top: newCellTop, left: newColRect.left, width: newColRect.width, height: newCellH },
+                                  }));
+                                }, 350);
                               }
                             }
+                          } else {
+                            setSettingsMenu(prev => ({ ...prev, selectedMin: t }));
                           }
                         }}
                       >
