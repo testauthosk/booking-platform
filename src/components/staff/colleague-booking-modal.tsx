@@ -8,6 +8,7 @@ import {
 import { cn } from '@/lib/utils';
 import { TimeWheelPicker } from '@/components/time-wheel-picker';
 import { usePreservedModal } from '@/hooks/use-preserved-modal';
+import { staffFetch } from '@/lib/staff-fetch';
 
 interface Master {
   id: string;
@@ -130,7 +131,7 @@ export function ColleagueBookingModal({
   const loadColleagues = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/masters?salonId=${salonId}`);
+      const res = await staffFetch(`/api/masters?salonId=${salonId}`);
       if (res.ok) {
         const data = await res.json();
         // Фільтруємо поточного мастера
@@ -147,7 +148,7 @@ export function ColleagueBookingModal({
   const loadServices = async (masterId: string) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/staff/services?masterId=${masterId}`);
+      const res = await staffFetch(`/api/staff/services?masterId=${masterId}`);
       if (res.ok) {
         const data = await res.json();
         setServices(data);
@@ -161,7 +162,7 @@ export function ColleagueBookingModal({
 
   const loadClients = async () => {
     try {
-      const res = await fetch('/api/clients');
+      const res = await staffFetch(`/api/staff/clients/all?salonId=${salonId}`);
       if (res.ok) {
         const data = await res.json();
         setClients(data);
@@ -175,7 +176,7 @@ export function ColleagueBookingModal({
   const loadColleagueBookings = async (masterId: string, date: Date) => {
     try {
       const dateStr = date.toISOString().split('T')[0];
-      const res = await fetch(`/api/booking?masterId=${masterId}&date=${dateStr}`);
+      const res = await staffFetch(`/api/staff/bookings?masterId=${masterId}&date=${dateStr}`);
       if (res.ok) {
         const data = await res.json();
         setColleagueBookings(data);
@@ -239,7 +240,7 @@ export function ColleagueBookingModal({
       let clientPhone = selectedClient?.phone || newClientPhone;
 
       if (isNewClient) {
-        const clientRes = await fetch('/api/clients', {
+        const clientRes = await staffFetch('/api/staff/clients/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: newClientName, phone: newClientPhone }),
@@ -250,29 +251,22 @@ export function ColleagueBookingModal({
         }
       }
 
-      // Створюємо запис
+      // Створюємо запис через staff API
       const totalDuration = getTotalDuration();
-      const [h, m] = selectedTime.split(':').map(Number);
-      const endMinutes = h * 60 + m + totalDuration;
-      const endTime = `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
 
-      const bookingRes = await fetch('/api/booking', {
+      const bookingRes = await staffFetch('/api/staff/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           salonId,
           masterId: selectedColleague.id,
-          clientId,
           clientName,
           clientPhone,
           serviceName: selectedServices.map(s => s.name).join(', '),
-          masterName: selectedColleague.name,
           date: selectedDate.toISOString().split('T')[0],
           time: selectedTime,
-          timeEnd: endTime,
           duration: totalDuration,
           price: getTotalPrice(),
-          status: 'CONFIRMED',
         }),
       });
 

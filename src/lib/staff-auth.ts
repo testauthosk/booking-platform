@@ -63,3 +63,34 @@ export function assertOwnMaster(
 
   return null; // ok
 }
+
+/**
+ * Перевіряє що запитуваний masterId належить до того ж салону.
+ * Для операцій з колегами (перегляд розкладу, створення запису для колеги).
+ */
+export async function assertSameSalonMaster(
+  tokenPayload: StaffTokenPayload,
+  requestedMasterId: string | null
+): Promise<NextResponse | null> {
+  if (!requestedMasterId) {
+    return NextResponse.json({ error: 'masterId required' }, { status: 400 });
+  }
+
+  // Якщо це свій ID — одразу ОК
+  if (tokenPayload.masterId === requestedMasterId) {
+    return null;
+  }
+
+  // Перевіряємо що колега з того ж салону
+  const { prisma } = await import('@/lib/prisma');
+  const colleague = await prisma.master.findUnique({
+    where: { id: requestedMasterId },
+    select: { salonId: true },
+  });
+
+  if (!colleague || colleague.salonId !== tokenPayload.salonId) {
+    return NextResponse.json({ error: 'Forbidden — мастер з іншого салону' }, { status: 403 });
+  }
+
+  return null; // ok — колега з того ж салону
+}

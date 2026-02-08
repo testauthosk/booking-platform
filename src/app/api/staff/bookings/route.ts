@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { verifyStaffToken, assertOwnMaster } from '@/lib/staff-auth';
+import { verifyStaffToken, assertSameSalonMaster } from '@/lib/staff-auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { masterId, salonId, serviceId, clientName, clientPhone, date, time, duration, price, serviceName, notifyAdmin, blockReason } = body;
 
-    const denied = assertOwnMaster(auth, masterId);
+    const denied = await assertSameSalonMaster(auth, masterId);
     if (denied) return denied;
 
     if (!clientName || !clientPhone || !date || !time) {
@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
     const masterId = searchParams.get('masterId');
     const date = searchParams.get('date');
 
-    const denied = assertOwnMaster(auth, masterId);
+    const denied = await assertSameSalonMaster(auth, masterId);
     if (denied) return denied;
 
     const where: Record<string, unknown> = {
@@ -220,6 +220,11 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 
+    // Перевіряємо що booking з того ж салону
+    if (booking.salonId !== auth.salonId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     // Build update data
     const updateData: Record<string, unknown> = {};
     
@@ -268,6 +273,12 @@ export async function PATCH(request: NextRequest) {
 
     if (!['NO_SHOW', 'CANCELLED', 'COMPLETED', 'CONFIRMED'].includes(status)) {
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+    }
+
+    // Перевіряємо що booking з того ж салону
+    const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+    if (!booking || booking.salonId !== auth.salonId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const updated = await prisma.booking.update({
