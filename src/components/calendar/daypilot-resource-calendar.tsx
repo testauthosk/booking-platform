@@ -1250,9 +1250,10 @@ export function DayPilotResourceCalendar({
                             style={{
                               top: `${pos.top}%`,
                               height: `${pos.height}%`,
-                              backgroundColor: `${bgColor}28`,
+                              backgroundColor: '#ffffff',
                               borderLeft: `3px solid ${bgColor}`,
                               borderRadius: '0 4px 4px 0',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
                             }}
                             onClick={() => onEventClick?.(event)}
                           >
@@ -1277,16 +1278,16 @@ export function DayPilotResourceCalendar({
         ) : (
         <div ref={scrollContainerRef} className="h-full overflow-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
           {/* Заголовки ресурсів — sticky top, скролиться разом з grid */}
-          <div className="flex border-b border-gray-200 bg-white sticky top-0 z-30" style={{ minWidth: resources.length > 3 ? `${40 + resources.length * 110}px` : '100%', transform: 'translateZ(0)', willChange: 'transform' }}>
+          <div className="flex border-b border-gray-200 bg-white sticky top-0 z-30" style={{ minWidth: resources.length > 3 ? `${40 + resources.length * 120}px` : '100%', transform: 'translateZ(0)', willChange: 'transform' }}>
             {/* Колонка часу - заголовок */}
             <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 py-2 sticky left-0 bg-white z-40">
             </div>
             
-            <div className="flex flex-1" style={{ minWidth: resources.length > 3 ? `${resources.length * 110}px` : undefined }}>
+            <div className="flex flex-1" style={{ minWidth: resources.length > 3 ? `${resources.length * 120}px` : undefined }}>
               {resources.map((r, idx) => (
                 <div
                   key={r.id}
-                  className={`flex-1 min-w-[110px] py-2 text-center ${idx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
+                  className={`flex-1 min-w-[120px] py-2 text-center ${idx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
                 >
                   {r.avatar ? (
                     <img
@@ -1308,7 +1309,7 @@ export function DayPilotResourceCalendar({
             </div>
           </div>
           {/* Сітка часу */}
-          <div ref={gridRef} className="relative flex select-none" style={{ minHeight: `${totalMinutes}px`, minWidth: resources.length > 3 ? `${40 + resources.length * 110}px` : '100%', WebkitUserSelect: 'none', userSelect: 'none' }}>
+          <div ref={gridRef} className="relative flex select-none" style={{ minHeight: `${totalMinutes}px`, minWidth: resources.length > 3 ? `${40 + resources.length * 120}px` : '100%', WebkitUserSelect: 'none', userSelect: 'none' }}>
             {/* Колонка часу — sticky left */}
             <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 sticky left-0 bg-white/50 backdrop-blur-lg z-20">
               {steps.map((i) => {
@@ -1352,7 +1353,7 @@ export function DayPilotResourceCalendar({
             <div
               data-resources
               className="flex relative"
-              style={{ minWidth: resources.length > 3 ? `${resources.length * 110}px` : '100%' }}
+              style={{ minWidth: resources.length > 3 ? `${resources.length * 120}px` : '100%' }}
               onTouchStart={handleEmptyTouchStart}
               onClick={(e) => {
                 if (!onEmptySlotMenu) return;
@@ -1389,7 +1390,7 @@ export function DayPilotResourceCalendar({
             {resources.map((r, rIdx) => (
               <div
                 key={r.id}
-                className={`flex-1 min-w-[110px] relative ${rIdx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
+                className={`flex-1 min-w-[120px] relative ${rIdx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
                 style={{ backgroundColor: `${r.color}18` }}
               >
               {/* Working hours shading */}
@@ -1447,9 +1448,10 @@ export function DayPilotResourceCalendar({
                         transition: flipHiddenId === event.id
                           ? 'none'
                           : 'transform 300ms ease-out, top 300ms ease-out, height 300ms ease-out',
-                        backgroundColor: `${bgColor}28`,
-                        borderLeft: `4px solid ${bgColor}`,
+                        backgroundColor: '#ffffff',
+                        borderLeft: `3px solid ${bgColor}`,
                         borderRadius: '0 6px 6px 0',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
                         WebkitUserSelect: 'none',
                         userSelect: 'none',
                         WebkitTouchCallout: 'none',
@@ -1534,7 +1536,7 @@ export function DayPilotResourceCalendar({
           <div
             ref={timeLineRef}
             className="absolute pointer-events-none z-[25]"
-            style={{ top: 0, left: 0, opacity: 0, width: resources.length > 3 ? `${40 + resources.length * 110}px` : '100%' }}
+            style={{ top: 0, left: 0, opacity: 0, width: resources.length > 3 ? `${40 + resources.length * 120}px` : '100%' }}
           >
             <div className="absolute left-0 right-0 h-[2px] bg-black/50" />
             <div
