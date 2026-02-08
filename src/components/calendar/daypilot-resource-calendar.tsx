@@ -1039,7 +1039,7 @@ export function DayPilotResourceCalendar({
   const totalMinutes = (dayEndHour - dayStartHour) * 60;
   const stepCount = Math.ceil(totalMinutes / timeStep);
   const steps = Array.from({ length: stepCount }, (_, i) => i);
-  const pxPerHour = 160; // Height of one hour in pixels
+  const pxPerHour = 112; // Height of one hour in pixels
   const stepHeight = pxPerHour * (timeStep / 60);
 
   // Отримуємо дні тижня для навігації
@@ -1251,15 +1251,18 @@ export function DayPilotResourceCalendar({
                               top: `${pos.top}%`,
                               height: `${pos.height}%`,
                               backgroundColor: '#ffffff',
-                              borderLeft: `3px solid ${bgColor}`,
+                              borderLeft: `2px solid ${bgColor}`,
                               borderRadius: '0 4px 4px 0',
                               boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
                             }}
                             onClick={() => onEventClick?.(event)}
                           >
                             {/* Time bar — solid */}
-                            <div className="px-1 py-[1px]" style={{ backgroundColor: bgColor }}>
-                              <span className="text-[8px] font-bold text-white">{formatTime(event.start)}–{formatTime(event.end)}</span>
+                            <div className="px-0.5 flex items-center gap-0.5" style={{ backgroundColor: bgColor, height: '13px' }}>
+                              <svg className="w-[7px] h-[7px] text-white/80 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />
+                              </svg>
+                              <span className="text-[7px] font-bold text-white leading-none">{formatTime(event.start)}–{formatTime(event.end)}</span>
                             </div>
                             <div className="px-1 py-0.5">
                               <div className="text-[9px] font-bold text-gray-900 truncate">{event.clientName || event.text}</div>
@@ -1449,7 +1452,7 @@ export function DayPilotResourceCalendar({
                           ? 'none'
                           : 'transform 300ms ease-out, top 300ms ease-out, height 300ms ease-out',
                         backgroundColor: '#ffffff',
-                        borderLeft: `3px solid ${bgColor}`,
+                        borderLeft: `2px solid ${bgColor}`,
                         borderRadius: '0 6px 6px 0',
                         boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
                         WebkitUserSelect: 'none',
@@ -1468,8 +1471,11 @@ export function DayPilotResourceCalendar({
                       
                       <div className="h-full relative flex flex-col pointer-events-none">
                         {/* Time bar — solid background */}
-                        <div className="px-1.5 py-[1px] flex-shrink-0" style={{ backgroundColor: bgColor }}>
-                          <span className="text-[10px] font-bold text-white">{formatTime(event.start)} – {formatTime(event.end)}</span>
+                        <div className="px-1 flex items-center gap-0.5 flex-shrink-0" style={{ backgroundColor: bgColor, height: '16px' }}>
+                          <svg className="w-[9px] h-[9px] text-white/80 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />
+                          </svg>
+                          <span className="text-[9px] font-bold text-white leading-none">{formatTime(event.start)} – {formatTime(event.end)}</span>
                         </div>
                         
                         {/* Content */}
