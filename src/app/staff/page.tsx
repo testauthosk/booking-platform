@@ -184,17 +184,31 @@ export default function StaffDashboard() {
             setAccentColor(palette.colors[0].hex);
           }
         }
-        // Parse working hours from profile
-        if (data.workingHours && Array.isArray(data.workingHours) && data.workingHours.length > 0) {
-          // workingHours is array like [{day: 0, start: "09:00", end: "18:00"}, ...]
-          setAllWorkingHours(data.workingHours);
-          // Get today's working hours or default
-          const today = new Date().getDay();
-          const todayHours = data.workingHours.find((wh: { day: number }) => wh.day === today);
-          if (todayHours && todayHours.start && todayHours.end) {
-            const startHour = parseInt(todayHours.start.split(':')[0]);
-            const endHour = parseInt(todayHours.end.split(':')[0]);
-            setStaffWorkingHours({ start: startHour, end: endHour });
+        // Parse working hours from profile (supports both formats)
+        if (data.workingHours) {
+          const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+          const today = new Date().getDay(); // 0=Sun, 1=Mon...
+
+          if (Array.isArray(data.workingHours)) {
+            // Legacy format: [{day: 0, start: "09:00", end: "18:00"}, ...]
+            setAllWorkingHours(data.workingHours);
+            const todayHours = data.workingHours.find((wh: { day: number }) => wh.day === today);
+            if (todayHours?.start && todayHours?.end) {
+              setStaffWorkingHours({ start: parseInt(todayHours.start.split(':')[0]), end: parseInt(todayHours.end.split(':')[0]) });
+            }
+          } else if (typeof data.workingHours === 'object') {
+            // Object format: {monday: {start, end, enabled}, ...}
+            const dayKey = DAY_KEYS[today];
+            const todaySchedule = data.workingHours[dayKey];
+            // Convert to array for calendar component
+            const asArray = DAY_KEYS.map((key, i) => {
+              const d = data.workingHours[key];
+              return d && d.enabled !== false ? { day: i, start: d.start, end: d.end } : null;
+            }).filter(Boolean);
+            setAllWorkingHours(asArray as any[]);
+            if (todaySchedule && todaySchedule.enabled !== false && todaySchedule.start && todaySchedule.end) {
+              setStaffWorkingHours({ start: parseInt(todaySchedule.start.split(':')[0]), end: parseInt(todaySchedule.end.split(':')[0]) });
+            }
           }
         }
       }

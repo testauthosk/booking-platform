@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       type: 'staff',
     })
       .setProtectedHeader({ alg: 'HS256' })
-      .setExpirationTime('7d')
+      .setExpirationTime('30d')
       .sign(JWT_SECRET);
 
     return NextResponse.json({
