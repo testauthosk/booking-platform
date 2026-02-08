@@ -5,7 +5,8 @@ import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Search, Plus, Filter, Menu, Bell, ChevronRight, Loader2, Users } from 'lucide-react';
+import { Search, Plus, Filter, Menu, ChevronRight, Loader2, Users } from 'lucide-react';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useSidebar } from '@/components/sidebar-context';
 import { MigrationBanner } from '@/components/migration/migration-banner';
 import { ImportModal } from '@/components/migration/import-modal';
@@ -160,24 +161,26 @@ export default function ClientsPage() {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Mobile header */}
-      <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b bg-background sticky top-0 z-20">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-9 w-9 transition-transform active:scale-95" 
+      <header
+        className="lg:hidden bg-white border-b border-gray-200 shrink-0 z-20 sticky top-0"
+        style={{ height: 56, padding: '0 12px', display: 'flex', alignItems: 'center', gap: 8 }}
+      >
+        <button
           onClick={openSidebar}
+          className="shrink-0 active:scale-95 transition-transform"
+          style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          <Menu className="h-5 w-5" />
-        </Button>
+          <Menu className="text-gray-700" style={{ width: 18, height: 18 }} />
+        </button>
         
-        <h1 className="text-base font-semibold">Клієнти</h1>
+        <h1 className="flex-1 text-center text-base font-semibold truncate">Клієнти</h1>
 
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-9 w-9 relative transition-transform active:scale-95">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
-          </Button>
-          <div className="h-8 w-8 rounded-xl bg-orange-500 flex items-center justify-center text-white text-sm font-medium">
+        <div className="flex items-center shrink-0" style={{ gap: 8 }}>
+          <NotificationBell />
+          <div
+            className="bg-orange-500 text-white text-sm font-medium shrink-0"
+            style={{ width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
             D
           </div>
         </div>

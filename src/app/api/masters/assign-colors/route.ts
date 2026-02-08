@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       select: { salonId: true, role: true }
     });
 
-    if (!user?.salonId || (user.role !== 'OWNER' && user.role !== 'ADMIN')) {
+    if (!user?.salonId || (user.role !== 'SALON_OWNER' && user.role !== 'SUPER_ADMIN')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

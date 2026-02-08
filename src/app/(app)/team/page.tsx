@@ -250,23 +250,26 @@ export default function TeamPage() {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Mobile header */}
-      <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b bg-background sticky top-0 z-20">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-10 w-10 rounded-xl border border-border" 
+      <header
+        className="lg:hidden bg-white border-b border-gray-200 shrink-0 z-20 sticky top-0"
+        style={{ height: 56, padding: '0 12px', display: 'flex', alignItems: 'center', gap: 8 }}
+      >
+        <button
           onClick={openSidebar}
+          className="shrink-0 active:scale-95 transition-transform"
+          style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          <Menu className="h-5 w-5" />
-        </Button>
+          <Menu className="text-gray-700" style={{ width: 18, height: 18 }} />
+        </button>
         
-        <h1 className="text-base font-semibold">Команда</h1>
+        <h1 className="flex-1 text-center text-base font-semibold truncate">Команда</h1>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center shrink-0" style={{ gap: 8 }}>
           <NotificationBell />
           <button 
             onClick={() => setProfileOpen(true)}
-            className="h-10 w-10 rounded-xl bg-orange-500 flex items-center justify-center text-white text-sm font-medium cursor-pointer active:scale-95 transition-transform"
+            className="bg-orange-500 text-white text-sm font-medium shrink-0 cursor-pointer active:scale-95 transition-transform"
+            style={{ width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             D
           </button>

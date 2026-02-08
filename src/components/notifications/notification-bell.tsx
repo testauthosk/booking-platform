@@ -117,7 +117,7 @@ export function NotificationBell() {
           width: '44px',
           height: '44px',
           borderRadius: open ? '12px 12px 0 0' : '12px',
-          ...(!open ? { backgroundColor: '#f3f4f6', border: '1px solid rgba(0,0,0,0.4)' } : {}),
+          ...(!open ? { backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.4)' } : {}),
         }}
       >
         <Bell className="h-[18px] w-[18px] text-gray-700 pointer-events-none" />

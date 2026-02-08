@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Plus, Download, ChevronLeft, ChevronRight, Menu, Bell, ChevronDown } from 'lucide-react';
+import { Plus, Download, ChevronLeft, ChevronRight, Menu, ChevronDown } from 'lucide-react';
 import { useSidebar } from '@/components/sidebar-context';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 
 export default function SalesPage() {
   const { open: openSidebar } = useSidebar();
@@ -48,18 +49,20 @@ export default function SalesPage() {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Mobile header */}
-      <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b bg-background sticky top-0 z-20">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-9 w-9 transition-transform active:scale-95" 
+      <header
+        className="lg:hidden bg-white border-b border-gray-200 shrink-0 z-20 sticky top-0"
+        style={{ height: 56, padding: '0 12px', display: 'flex', alignItems: 'center', gap: 8 }}
+      >
+        <button
           onClick={openSidebar}
+          className="shrink-0 active:scale-95 transition-transform"
+          style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          <Menu className="h-5 w-5" />
-        </Button>
+          <Menu className="text-gray-700" style={{ width: 18, height: 18 }} />
+        </button>
         
         {/* Date navigation */}
-        <div className="flex items-center">
+        <div className="flex-1 flex items-center justify-center">
           <Button 
             variant="ghost" 
             size="icon" 
@@ -82,12 +85,12 @@ export default function SalesPage() {
           </Button>
         </div>
 
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-9 w-9 relative transition-transform active:scale-95">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
-          </Button>
-          <div className="h-8 w-8 rounded-full bg-orange-500 flex items-center justify-center text-white text-sm font-medium">
+        <div className="flex items-center shrink-0" style={{ gap: 8 }}>
+          <NotificationBell />
+          <div
+            className="bg-orange-500 text-white text-sm font-medium shrink-0"
+            style={{ width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
             D
           </div>
         </div>

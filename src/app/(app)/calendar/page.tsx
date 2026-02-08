@@ -530,8 +530,8 @@ export default function CalendarPage() {
         {/* Burger */}
         <button
           onClick={openSidebar}
-          className="shrink-0 active:bg-gray-200 transition-colors"
-          style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: '#f3f4f6', border: '1px solid rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          className="shrink-0 active:scale-95 transition-transform"
+          style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
           <Menu className="text-gray-700" style={{ width: '18px', height: '18px' }} />
         </button>
@@ -548,7 +548,7 @@ export default function CalendarPage() {
         <button
           onClick={goToToday}
           className="shrink-0 transition-colors duration-300 active:scale-[0.95] active:opacity-80 relative flex items-center justify-center"
-          style={{ height: '44px', width: '96px', borderRadius: '12px', backgroundColor: '#f3f4f6', border: '1px solid rgba(0,0,0,0.4)', fontSize: '13px', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}
+          style={{ height: '44px', width: '96px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.4)', fontSize: '13px', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}
         >
           <span className={`transition-all duration-300 ease-out absolute left-2.5 ${isToday ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}>✓</span>
           <span className={`transition-transform duration-300 ease-out ${isToday ? 'translate-x-2' : 'translate-x-0'}`}>Сьогодні</span>
