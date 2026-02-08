@@ -172,6 +172,7 @@ export default function CalendarPage() {
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
   const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
+  const [weekFilterMasterIds, setWeekFilterMasterIds] = useState<string[]>([]);
   const [services, setServices] = useState<{ id: string; name: string; duration: number; price: number }[]>([]);
   const [settingsMenu, setSettingsMenu] = useState<{
     open: boolean; x: number; y: number;
@@ -529,7 +530,12 @@ export default function CalendarPage() {
         </button>
 
         {/* Day/Week segment */}
-        <ViewModeSegment viewMode={viewMode} onChange={setViewMode} />
+        <ViewModeSegment viewMode={viewMode} onChange={(mode) => {
+          setViewMode(mode);
+          if (mode === 'week' && weekFilterMasterIds.length === 0 && masters.length > 0) {
+            setWeekFilterMasterIds([masters[0].id]);
+          }
+        }} />
 
         {/* Today */}
         <button
@@ -553,6 +559,64 @@ export default function CalendarPage() {
           {user?.name?.charAt(0)?.toUpperCase() || 'U'}
         </button>
       </header>
+
+      {/* Week master filter panel — slides down when week mode */}
+      <div
+        className="lg:hidden overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] bg-white border-b border-gray-200"
+        style={{
+          maxHeight: viewMode === 'week' ? '56px' : '0px',
+          opacity: viewMode === 'week' ? 1 : 0,
+        }}
+      >
+        <div className="flex items-center gap-2 px-3 py-2 overflow-x-auto scrollbar-hide">
+          {/* "Всі" button */}
+          <button
+            className={`inline-btn shrink-0 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all duration-200 border ${
+              weekFilterMasterIds.length === 0 || weekFilterMasterIds.length === masters.length
+                ? 'bg-black text-white border-black'
+                : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
+            }`}
+            onClick={() => setWeekFilterMasterIds(
+              weekFilterMasterIds.length === masters.length ? (masters.length > 0 ? [masters[0].id] : []) : masters.map(m => m.id)
+            )}
+          >
+            Всі
+          </button>
+          {/* Master chips */}
+          {masters.map((m, idx) => {
+            const isSelected = weekFilterMasterIds.includes(m.id);
+            const color = m.color || getColorForIndex(idx);
+            return (
+              <button
+                key={m.id}
+                className={`inline-btn shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[12px] font-medium transition-all duration-200 border ${
+                  isSelected
+                    ? 'text-white shadow-sm'
+                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                }`}
+                style={isSelected ? { backgroundColor: color, borderColor: color } : {}}
+                onClick={() => {
+                  setWeekFilterMasterIds(prev => {
+                    if (prev.includes(m.id)) {
+                      const next = prev.filter(id => id !== m.id);
+                      return next.length === 0 ? [m.id] : next; // can't deselect all
+                    }
+                    return [...prev, m.id];
+                  });
+                }}
+              >
+                <div
+                  className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold"
+                  style={{ backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : color, color: isSelected ? 'white' : 'white' }}
+                >
+                  {m.name.charAt(0)}
+                </div>
+                <span className="max-w-[60px] truncate">{m.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Desktop date navigation */}
       <div className="hidden lg:flex items-center justify-between px-4 py-2 border-b bg-white shrink-0">
@@ -588,8 +652,12 @@ export default function CalendarPage() {
       {/* Calendar */}
       <div className="flex-1 overflow-hidden">
         <DayPilotResourceCalendar
-          resources={calendarResources}
-          events={calendarEvents}
+          resources={viewMode === 'week' && weekFilterMasterIds.length > 0 && weekFilterMasterIds.length < masters.length
+            ? calendarResources.filter(r => weekFilterMasterIds.includes(r.id))
+            : calendarResources}
+          events={viewMode === 'week' && weekFilterMasterIds.length > 0 && weekFilterMasterIds.length < masters.length
+            ? calendarEvents.filter(e => weekFilterMasterIds.includes(e.resource))
+            : calendarEvents}
           startDate={selectedDate}
           onDateChange={setSelectedDate}
           onEventClick={handleEventClick}
