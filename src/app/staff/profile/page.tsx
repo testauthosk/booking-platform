@@ -159,7 +159,7 @@ export default function StaffProfile() {
       formData.append('file', file);
       formData.append('folder', 'masters');
       
-      const res = await fetch('/api/upload', {
+      const res = await staffFetch('/api/upload', {
         method: 'POST',
         body: formData
       });

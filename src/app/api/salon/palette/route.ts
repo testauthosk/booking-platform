@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
+import { verifyStaffToken } from '@/lib/staff-auth';
 
-// GET /api/salon/palette?salonId=xxx
+// GET /api/salon/palette?salonId=xxx (dual auth: NextAuth OR staff JWT)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -9,6 +12,16 @@ export async function GET(request: NextRequest) {
 
     if (!salonId) {
       return NextResponse.json({ error: 'salonId required' }, { status: 400 });
+    }
+
+    // Auth: NextAuth (owner) або JWT (staff)
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      const staffAuth = await verifyStaffToken(request);
+      if (staffAuth instanceof NextResponse) return staffAuth;
+      if (staffAuth.salonId !== salonId) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
     }
 
     const salon = await prisma.salon.findUnique({
@@ -27,14 +40,29 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// PUT /api/salon/palette
+// PUT /api/salon/palette (owner only — NextAuth)
 export async function PUT(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { salonId, paletteId } = body;
 
     if (!salonId || !paletteId) {
       return NextResponse.json({ error: 'salonId and paletteId required' }, { status: 400 });
+    }
+
+    // Перевіряємо що owner має доступ до салону
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { salonId: true, role: true },
+    });
+
+    if (user?.role !== 'SUPER_ADMIN' && user?.salonId !== salonId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const updated = await prisma.salon.update({
