@@ -46,7 +46,12 @@ export async function POST(request: NextRequest) {
         ...(slug && { slug }),
         ...(type && { type }),
         ...(previousPlatform && { previousPlatform }),
-        // Можна зберігати додаткові поля в workingHours JSON або додати нові поля
+        onboardingData: {
+          accountType: accountType || null,
+          serviceLocation: serviceLocation || null,
+          website: website || null,
+          completedAt: new Date().toISOString(),
+        },
       },
     });
 

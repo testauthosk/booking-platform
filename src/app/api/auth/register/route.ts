@@ -141,15 +141,6 @@ export async function POST(request: NextRequest) {
         data: { ownerId: user.id }
       })
 
-      // Створюємо базові категорії послуг
-      await tx.serviceCategory.createMany({
-        data: [
-          { salonId: salon.id, name: 'Стрижки', sortOrder: 1 },
-          { salonId: salon.id, name: 'Борода', sortOrder: 2 },
-          { salonId: salon.id, name: 'Комбо', sortOrder: 3 },
-        ]
-      })
-
       return { user, salon }
     })
 

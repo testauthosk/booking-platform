@@ -42,13 +42,13 @@ function AuthContextProvider({ children }: { children: ReactNode }) {
       });
 
       if (result?.error) {
-        return { error: 'Неверный email или пароль' };
+        return { error: 'Невірний email або пароль' };
       }
 
       return { error: null };
     } catch (err) {
       console.error('Sign in error:', err);
-      return { error: 'Ошибка подключения к серверу' };
+      return { error: 'Помилка підключення до сервера' };
     }
   };
 

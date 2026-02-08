@@ -35,12 +35,12 @@ export default function AdminLoginPage() {
 
   const translateError = (error: string) => {
     if (error.includes('Invalid login credentials')) {
-      return 'Неверный email или пароль';
+      return 'Невірний email або пароль';
     }
     if (error.includes('Email not confirmed')) {
       return 'Подтвердите email для входа';
     }
-    return 'Ошибка входа. Попробуйте ещё раз.';
+    return 'Помилка входу. Спробуйте ще раз.';
   };
 
   const handleSignOut = async () => {
@@ -173,7 +173,7 @@ export default function AdminLoginPage() {
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                'Войти'
+                'Увійти'
               )}
             </Button>
           </form>
