@@ -1250,7 +1250,7 @@ export function DayPilotResourceCalendar({
                             style={{
                               top: `${pos.top}%`,
                               height: `${pos.height}%`,
-                              backgroundColor: '#ffffff',
+                              backgroundColor: `${bgColor}12`,
                               borderLeft: `2px solid ${bgColor}`,
                               borderRadius: '0 4px 4px 0',
                               boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
@@ -1258,11 +1258,11 @@ export function DayPilotResourceCalendar({
                             onClick={() => onEventClick?.(event)}
                           >
                             {/* Time bar — solid */}
-                            <div className="px-0.5 flex items-center gap-0.5" style={{ backgroundColor: bgColor, height: '13px' }}>
-                              <svg className="w-[7px] h-[7px] text-white/80 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <div className="px-1 flex items-center gap-0.5" style={{ backgroundColor: bgColor, height: '14px' }}>
+                              <span className="text-[7px] font-bold text-white leading-none">{formatTime(event.start)}–{formatTime(event.end)}</span>
+                              <svg className="w-[7px] h-[7px] text-white/70 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                 <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />
                               </svg>
-                              <span className="text-[7px] font-bold text-white leading-none">{formatTime(event.start)}–{formatTime(event.end)}</span>
                             </div>
                             <div className="px-1 py-0.5">
                               <div className="text-[9px] font-bold text-gray-900 truncate">{event.clientName || event.text}</div>
@@ -1451,10 +1451,10 @@ export function DayPilotResourceCalendar({
                         transition: flipHiddenId === event.id
                           ? 'none'
                           : 'transform 300ms ease-out, top 300ms ease-out, height 300ms ease-out',
-                        backgroundColor: '#ffffff',
+                        backgroundColor: `${bgColor}12`,
                         borderLeft: `2px solid ${bgColor}`,
                         borderRadius: '0 6px 6px 0',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
                         WebkitUserSelect: 'none',
                         userSelect: 'none',
                         WebkitTouchCallout: 'none',
@@ -1471,28 +1471,32 @@ export function DayPilotResourceCalendar({
                       
                       <div className="h-full relative flex flex-col pointer-events-none">
                         {/* Time bar — solid background */}
-                        <div className="px-1 flex items-center gap-0.5 flex-shrink-0" style={{ backgroundColor: bgColor, height: '16px' }}>
-                          <svg className="w-[9px] h-[9px] text-white/80 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <div className="px-1.5 flex items-center gap-1 flex-shrink-0" style={{ backgroundColor: bgColor, height: '18px' }}>
+                          <span className="text-[9px] font-bold text-white leading-none">{formatTime(event.start)} – {formatTime(event.end)}</span>
+                          <svg className="w-[9px] h-[9px] text-white/70 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />
                           </svg>
-                          <span className="text-[9px] font-bold text-white leading-none">{formatTime(event.start)} – {formatTime(event.end)}</span>
                         </div>
                         
                         {/* Content */}
                         <div className="px-1.5 py-0.5 flex-1 min-h-0">
-                          {/* Client name + NEW badge */}
+                          {/* Client name */}
                           <div className="text-[11px] font-bold leading-tight truncate text-gray-900">
                             {event.clientName || event.text}
-                            {event.isNewClient && (
-                              <span className="ml-1 px-1 py-px text-[7px] font-bold rounded uppercase align-middle" style={{ backgroundColor: `${bgColor}40`, color: bgColor }}>
-                                new
-                              </span>
-                            )}
                           </div>
                           
                           {/* Service */}
                           {event.serviceName && (
                             <div className="text-[9px] text-gray-500 leading-tight truncate">{event.serviceName}</div>
+                          )}
+                          
+                          {/* NEW client badge */}
+                          {event.isNewClient && (
+                            <div className="mt-0.5">
+                              <span className="px-1 py-px text-[7px] font-bold rounded uppercase" style={{ backgroundColor: `${bgColor}25`, color: bgColor }}>
+                                new
+                              </span>
+                            </div>
                           )}
                         </div>
                       </div>
