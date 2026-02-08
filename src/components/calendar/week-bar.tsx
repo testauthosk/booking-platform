@@ -90,9 +90,10 @@ export function WeekBar({ selectedDate, onDateChange, bottomOffset = 68, visible
   return (
     <div
       ref={weekBarRef}
-      className="lg:hidden fixed left-[23px] right-[23px] z-40 h-[32px] flex items-end touch-none select-none overflow-visible transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+      className="lg:hidden fixed left-[23px] right-[23px] z-40 flex items-end touch-none select-none overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
       style={{
         bottom: bottomOffset,
+        height: '40px', // 32px bar + 8px bump
         background: 'transparent',
         transform: visible ? 'translateY(0)' : 'translateY(calc(100% + 8px))',
       }}
@@ -158,11 +159,11 @@ export function WeekBar({ selectedDate, onDateChange, bottomOffset = 68, visible
         return (
           <svg
             className="absolute pointer-events-none z-[2]"
-            style={{ top: -(bump + pad), left: 0, width: w, height: totalH, overflow: 'hidden' }}
+            style={{ top: 0, left: 0, width: w, height: totalH, overflow: 'hidden' }}
           >
             <defs>
               <clipPath id="weekbar-clip">
-                <rect x="0" y="0" width={w} height={totalH} />
+                <rect x="0" y="0" width={w} height={totalH - 2} rx="0" />
               </clipPath>
             </defs>
             <g clipPath="url(#weekbar-clip)">
@@ -179,7 +180,7 @@ export function WeekBar({ selectedDate, onDateChange, bottomOffset = 68, visible
       })()}
 
       {/* Кнопки днів */}
-      <div className="relative flex items-center justify-around w-full h-[28px] touch-none overflow-visible z-[3]">
+      <div className="relative flex items-center justify-around w-full h-[28px] touch-none overflow-hidden z-[3]">
         {weekDays.map((day, idx) => {
           const dayNum = day.getDate();
           const dayName = ukDaysShort[day.getDay()];
