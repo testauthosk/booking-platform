@@ -99,6 +99,15 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 
+    // Verify booking belongs to user's salon
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { salonId: true },
+    });
+    if (existingBooking.salonId !== currentUser?.salonId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     // Build update data
     const updateData: Record<string, unknown> = {};
     
