@@ -15,9 +15,9 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Find client by phone
+    // Find client by phone — only within master's salon
     const client = await prisma.client.findFirst({
-      where: { phone },
+      where: { phone, salonId: auth.salonId },
       select: {
         id: true,
         name: true,
@@ -53,18 +53,20 @@ export async function GET(request: NextRequest) {
       _sum: { price: true }
     }) : { _sum: { price: 0 } };
 
-    // Total visits in salon
+    // Total visits in salon (scoped to master's salon)
     const visitsCount = await prisma.booking.count({
       where: {
         clientPhone: phone,
+        salonId: auth.salonId,
         status: 'COMPLETED',
       }
     });
 
-    // Total spent in salon
+    // Total spent in salon (scoped to master's salon)
     const totalSpentAgg = await prisma.booking.aggregate({
       where: {
         clientPhone: phone,
+        salonId: auth.salonId,
         status: 'COMPLETED',
       },
       _sum: { price: true }

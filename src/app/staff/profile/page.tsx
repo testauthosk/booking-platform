@@ -25,6 +25,9 @@ export default function StaffProfile() {
   const [color, setColor] = useState('');
   const [lunchDuration, setLunchDuration] = useState(60); // Тривалість обіду в хв
   const [lunchStart, setLunchStart] = useState('13:00'); // Час початку обіду
+  const [monthBookings, setMonthBookings] = useState(0);
+  const [avgRating, setAvgRating] = useState(5.0);
+  const [reviewCount, setReviewCount] = useState(0);
   
   const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -112,6 +115,11 @@ export default function StaffProfile() {
         setColor(data.color || colorPalette[0]?.hex || '#f97316');
         setLunchDuration(data.lunchDuration ?? 60);
         setLunchStart(data.lunchStart ?? '13:00');
+        if (data.stats) {
+          setMonthBookings(data.stats.monthBookings ?? 0);
+          setAvgRating(data.stats.avgRating ?? 5.0);
+          setReviewCount(data.stats.reviewCount ?? 0);
+        }
       }
     } catch (error) {
       console.error('Load profile error:', error);
@@ -420,12 +428,14 @@ export default function StaffProfile() {
           <h3 className="font-medium mb-3">Статистика</h3>
           <div className="grid grid-cols-2 gap-4 text-center">
             <div>
-              <p className="text-2xl font-bold text-primary">0</p>
+              <p className="text-2xl font-bold text-primary">{monthBookings}</p>
               <p className="text-xs text-muted-foreground">Записів цього місяця</p>
             </div>
             <div>
-              <p className="text-2xl font-bold">5.0</p>
-              <p className="text-xs text-muted-foreground">Середній рейтинг</p>
+              <p className="text-2xl font-bold">{avgRating.toFixed(1)}</p>
+              <p className="text-xs text-muted-foreground">
+                Рейтинг{reviewCount > 0 ? ` (${reviewCount} відгуків)` : ''}
+              </p>
             </div>
           </div>
         </Card>

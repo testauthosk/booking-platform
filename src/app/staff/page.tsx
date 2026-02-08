@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useTransitionRouter } from 'next-view-transitions';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Calendar, Clock, LogOut, Settings, Loader2, Plus, ChevronRight, X, Tag, User, Phone, Check, Users } from 'lucide-react';
-import { TimeWheelPicker } from '@/components/time-wheel-picker';
+// Input removed — no longer used on dashboard directly
+import { Clock, LogOut, Settings, Loader2, Plus, ChevronRight, X, Tag, User, Check, Users } from 'lucide-react';
+// TimeWheelPicker removed — not used on dashboard
 import { ColleagueBookingModal } from '@/components/staff/colleague-booking-modal';
 import { StaffBookingModal } from '@/components/staff/staff-booking-modal';
 import { BookingDetailsModal } from '@/components/staff/booking-details-modal';
@@ -68,12 +68,7 @@ interface StaffStats {
   nextBooking?: Booking;
 }
 
-interface ServiceOption {
-  id: string;
-  name: string;
-  duration: number;
-  price: number;
-}
+// ServiceOption removed — handled by StaffBookingModal
 
 export default function StaffDashboard() {
   const router = useTransitionRouter();
@@ -92,22 +87,10 @@ export default function StaffDashboard() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   
   // Services for booking form
-  const [services, setServices] = useState<ServiceOption[]>([]);
+  const [services, setServices] = useState<{ id: string; name: string; duration: number; price: number; isEnabled?: boolean }[]>([]);
   const [newBookingOpen, setNewBookingOpen] = useState(false);
   
-  // New booking form
-  const [bookingService, setBookingService] = useState<ServiceOption | null>(null);
-  const [bookingClientName, setBookingClientName] = useState('');
-  const [bookingClientPhone, setBookingClientPhone] = useState('');
-  const [bookingDate, setBookingDate] = useState(new Date());
-  const [bookingTime, setBookingTime] = useState('10:00');
-  const [bookingEndTime, setBookingEndTime] = useState('11:00');
-  const [savingBooking, setSavingBooking] = useState(false);
-  const [bookingStep, setBookingStep] = useState<'service' | 'details'>('service');
-  
-  // Pickers
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
-  const [timePickerOpen, setTimePickerOpen] = useState(false);
+  // (booking form state removed — handled by StaffBookingModal)
   
   // Block time (вільний запис)
   const [blockTimeOpen, setBlockTimeOpen] = useState(false);
@@ -246,12 +229,6 @@ export default function StaffDashboard() {
   };
 
   const openNewBooking = () => {
-    setBookingStep('service');
-    setBookingService(null);
-    setBookingClientName('');
-    setBookingClientPhone('');
-    setBookingDate(new Date());
-    setBookingTime('10:00');
     setNewBookingOpen(true);
   };
   
@@ -420,82 +397,14 @@ export default function StaffDashboard() {
     }
   };
   
-  const formatPhoneNumber = (value: string) => {
-    // Remove all non-digits
-    const digits = value.replace(/\D/g, '');
-    
-    // Format: XX XXX XX XX (9 digits after +380)
-    let formatted = '';
-    if (digits.length > 0) formatted += digits.slice(0, 2);
-    if (digits.length > 2) formatted += ' ' + digits.slice(2, 5);
-    if (digits.length > 5) formatted += ' ' + digits.slice(5, 7);
-    if (digits.length > 7) formatted += ' ' + digits.slice(7, 9);
-    
-    return formatted;
-  };
-  
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    const digits = value.replace(/\D/g, '').slice(0, 9);
-    setBookingClientPhone(formatPhoneNumber(digits));
-  };
-
-  const createBooking = async () => {
-    if (!bookingService || !bookingClientName || !bookingClientPhone || !bookingDate || !bookingTime) return;
-    
-    setSavingBooking(true);
-    try {
-      // Format full phone number
-      const fullPhone = '+380' + bookingClientPhone.replace(/\D/g, '');
-      const dateStr = bookingDate.toISOString().split('T')[0];
-      
-      const bookingData = {
-          salonId,
-          masterId: staffId,
-          serviceId: bookingService.id,
-          clientName: bookingClientName,
-          clientPhone: fullPhone,
-          serviceName: bookingService.name,
-          masterName: staffName,
-          date: dateStr,
-          time: bookingTime,
-          timeEnd: bookingEndTime,
-          duration: bookingService.duration,
-          price: bookingService.price
-        };
-      
-      console.log('[STAFF] Creating booking:', bookingData);
-      
-      const res = await staffFetch('/api/booking', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bookingData)
-      });
-      
-      if (res.ok) {
-        setNewBookingOpen(false);
-        setBookingStep('service');
-        setBookingService(null);
-        setBookingClientName('');
-        setBookingClientPhone('');
-        loadStats(); // Refresh stats
-      } else {
-        const error = await res.json();
-        console.error('[STAFF] Booking error:', error);
-        alert(error.error || 'Помилка створення запису');
-      }
-    } catch (error) {
-      console.error('Create booking error:', error);
-      alert('Помилка з\'єднання');
-    } finally {
-      setSavingBooking(false);
-    }
-  };
+  // (createBooking, formatPhoneNumber, handlePhoneChange removed — handled by StaffBookingModal)
 
   const handleLogout = () => {
     localStorage.removeItem('staffToken');
     localStorage.removeItem('staffId');
     localStorage.removeItem('staffName');
+    localStorage.removeItem('staffSalonId');
+    localStorage.removeItem('staffAvatar');
     router.push('/staff/login');
   };
 

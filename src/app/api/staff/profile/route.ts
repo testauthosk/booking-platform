@@ -40,10 +40,35 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Master not found' }, { status: 404 });
     }
 
+    // Calculate real stats for profile page
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+
+    const [monthBookings, avgRating] = await Promise.all([
+      prisma.booking.count({
+        where: {
+          masterId: masterId!,
+          date: { gte: monthStart, lte: monthEnd },
+          status: { not: 'CANCELLED' },
+        }
+      }),
+      prisma.review.aggregate({
+        where: { masterId: masterId! },
+        _avg: { rating: true },
+        _count: { rating: true },
+      })
+    ]);
+
     return NextResponse.json({
       ...master,
       salonName: master.salon?.name || '',
       paletteId: master.salon?.paletteId || 'earth-harmony',
+      stats: {
+        monthBookings,
+        avgRating: avgRating._avg.rating ?? 5.0,
+        reviewCount: avgRating._count.rating ?? 0,
+      }
     });
   } catch (error) {
     console.error('Staff profile error:', error);
@@ -62,11 +87,46 @@ export async function PUT(request: NextRequest) {
     const denied = assertOwnMaster(auth, masterId);
     if (denied) return denied;
 
+    // Validate phone format if provided
+    if (phone !== undefined && phone !== null && phone !== '') {
+      const phoneDigits = phone.replace(/\D/g, '');
+      if (phoneDigits.length < 10 || phoneDigits.length > 13) {
+        return NextResponse.json({ error: 'Невірний формат телефону' }, { status: 400 });
+      }
+    }
+
+    // Validate workingHours structure if provided
+    if (workingHours !== undefined && workingHours !== null) {
+      const validDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+      if (typeof workingHours !== 'object' || Array.isArray(workingHours)) {
+        return NextResponse.json({ error: 'Невірний формат графіку роботи' }, { status: 400 });
+      }
+      for (const [key, value] of Object.entries(workingHours)) {
+        if (!validDays.includes(key)) {
+          return NextResponse.json({ error: `Невідомий день: ${key}` }, { status: 400 });
+        }
+        const day = value as { enabled?: boolean; start?: string; end?: string };
+        if (day.start && day.end && day.start >= day.end) {
+          return NextResponse.json({ error: `Час початку має бути раніше за час кінця (${key})` }, { status: 400 });
+        }
+      }
+    }
+
+    // Validate lunchDuration
+    if (lunchDuration !== undefined && (typeof lunchDuration !== 'number' || lunchDuration < 0 || lunchDuration > 480)) {
+      return NextResponse.json({ error: 'Невірна тривалість обіду' }, { status: 400 });
+    }
+
+    // Validate lunchStart format (HH:mm)
+    if (lunchStart !== undefined && !/^\d{2}:\d{2}$/.test(lunchStart)) {
+      return NextResponse.json({ error: 'Невірний формат часу обіду' }, { status: 400 });
+    }
+
     const updated = await prisma.master.update({
       where: { id: masterId! },
       data: {
         ...(name && { name }),
-        ...(phone !== undefined && { phone }),
+        ...(phone !== undefined && { phone: phone || null }),
         ...(bio !== undefined && { bio }),
         ...(workingHours !== undefined && { workingHours }),
         ...(color !== undefined && { color }),
