@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
         lunchStart: true,
         salon: {
           select: {
+            name: true,
             paletteId: true,
           }
         }
@@ -41,6 +42,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       ...master,
+      salonName: master.salon?.name || '',
       paletteId: master.salon?.paletteId || 'earth-harmony',
     });
   } catch (error) {
@@ -68,7 +70,7 @@ export async function PUT(request: NextRequest) {
         ...(bio !== undefined && { bio }),
         ...(workingHours !== undefined && { workingHours }),
         ...(color !== undefined && { color }),
-        ...(avatar !== undefined && { avatar }),
+        ...(avatar !== undefined && { avatar: avatar || null }),
         ...(lunchDuration !== undefined && { lunchDuration }),
         ...(lunchStart !== undefined && { lunchStart })
       }
