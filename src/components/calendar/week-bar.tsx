@@ -163,7 +163,7 @@ export function WeekBar({ selectedDate, onDateChange, bottomOffset = 68, visible
           >
             <defs>
               <clipPath id="weekbar-clip">
-                <rect x="1" y="0" width={w - 2} height={totalH - 1} />
+                <rect x="-1" y="0" width={w + 2} height={totalH - 1} />
               </clipPath>
             </defs>
             <g clipPath="url(#weekbar-clip)">
