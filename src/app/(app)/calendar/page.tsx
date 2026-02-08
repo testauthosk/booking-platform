@@ -172,6 +172,7 @@ export default function CalendarPage() {
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
   const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
+  const [headerMounted, setHeaderMounted] = useState(false);
   const [weekFilterMasterIds, setWeekFilterMasterIds] = useState<string[]>([]);
   const [services, setServices] = useState<{ id: string; name: string; duration: number; price: number }[]>([]);
   const [settingsMenu, setSettingsMenu] = useState<{
@@ -194,6 +195,12 @@ export default function CalendarPage() {
       loadServices();
     }
   }, [user?.salonId]);
+
+  // Trigger header slide-in animation on mount
+  useEffect(() => {
+    const t = setTimeout(() => setHeaderMounted(true), 50);
+    return () => clearTimeout(t);
+  }, []);
 
   const loadMasters = async () => {
     try {
@@ -536,23 +543,35 @@ export default function CalendarPage() {
           <Menu className="text-gray-700" style={{ width: '18px', height: '18px' }} />
         </button>
 
-        {/* Day/Week segment */}
-        <ViewModeSegment viewMode={viewMode} onChange={(mode) => {
-          setViewMode(mode);
-          if (mode === 'week' && weekFilterMasterIds.length === 0 && masters.length > 0) {
-            setWeekFilterMasterIds([masters[0].id]);
-          }
-        }} />
-
-        {/* Today */}
-        <button
-          onClick={goToToday}
-          className="shrink-0 transition-colors duration-300 active:scale-[0.95] active:opacity-80 relative flex items-center justify-center"
-          style={{ height: '44px', width: '96px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.4)', fontSize: '13px', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}
+        {/* Day/Week segment + Today — slide in from top */}
+        <div
+          className="flex items-center overflow-hidden"
+          style={{
+            gap: 8,
+            flex: '1 1 auto',
+            minWidth: 0,
+            transform: headerMounted ? 'translateY(0)' : 'translateY(-60px)',
+            opacity: headerMounted ? 1 : 0,
+            transition: 'transform 300ms cubic-bezier(0.4,0,0.2,1), opacity 300ms cubic-bezier(0.4,0,0.2,1)',
+          }}
         >
-          <span className={`transition-all duration-300 ease-out absolute left-2.5 ${isToday ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}>✓</span>
-          <span className={`transition-transform duration-300 ease-out ${isToday ? 'translate-x-2' : 'translate-x-0'}`}>Сьогодні</span>
-        </button>
+          <ViewModeSegment viewMode={viewMode} onChange={(mode) => {
+            setViewMode(mode);
+            if (mode === 'week' && weekFilterMasterIds.length === 0 && masters.length > 0) {
+              setWeekFilterMasterIds([masters[0].id]);
+            }
+          }} />
+
+          {/* Today */}
+          <button
+            onClick={goToToday}
+            className="shrink-0 transition-colors duration-300 active:scale-[0.95] active:opacity-80 relative flex items-center justify-center"
+            style={{ height: '44px', width: '96px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.4)', fontSize: '13px', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}
+          >
+            <span className={`transition-all duration-300 ease-out absolute left-2.5 ${isToday ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}>✓</span>
+            <span className={`transition-transform duration-300 ease-out ${isToday ? 'translate-x-2' : 'translate-x-0'}`}>Сьогодні</span>
+          </button>
+        </div>
 
         {/* Notifications */}
         <NotificationBell />

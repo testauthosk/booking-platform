@@ -143,6 +143,12 @@ export default function InventoryPage() {
 
         <div className="flex items-center shrink-0" style={{ gap: 8 }}>
           <NotificationBell />
+          <div
+            className="bg-orange-500 text-white text-sm font-medium shrink-0"
+            style={{ width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            D
+          </div>
         </div>
       </header>
 
