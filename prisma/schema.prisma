@@ -103,6 +103,7 @@ model Master {
   reviews        Review[]
   timeBlocks     TimeBlock[]
   trustedDevices TrustedDevice[]
+  staffOtps      StaffOtp[]
 
   @@index([salonId])
   @@index([isActive])
@@ -420,6 +421,21 @@ model TimeBlock {
   @@index([salonId])
   @@index([masterId])
   @@index([date])
+}
+
+model StaffOtp {
+  id        String   @id @default(uuid())
+  masterId  String
+  code      String   // 6-digit code
+  expiresAt DateTime
+  attempts  Int      @default(0) // failed verification attempts
+  used      Boolean  @default(false)
+  channel   String   @default("email") // "email" | "telegram"
+  createdAt DateTime @default(now())
+  master    Master   @relation(fields: [masterId], references: [id], onDelete: Cascade)
+
+  @@index([masterId])
+  @@index([expiresAt])
 }
 
 model TrustedDevice {

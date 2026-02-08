@@ -4,8 +4,8 @@ import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
 import { createHash } from 'crypto';
 import { checkRateLimit, resetRateLimit } from '@/lib/rate-limit';
+import { createAndSendOtp } from '@/lib/staff-otp';
 
-// Simple hash for IP fingerprinting (not security-critical, just binding)
 function hashString(input: string): string {
   return createHash('sha256').update(input).digest('hex').slice(0, 16);
 }
@@ -18,10 +18,8 @@ const JWT_SECRET = new TextEncoder().encode(
   JWT_SECRET_RAW || 'staff-secret-key-change-in-production'
 );
 
-// Extract readable device label from User-Agent
 function parseDeviceLabel(ua: string): string {
   if (!ua) return 'Невідомий пристрій';
-  // Mobile
   if (/iPhone/.test(ua)) return 'Safari on iPhone';
   if (/iPad/.test(ua)) return 'Safari on iPad';
   if (/Android/.test(ua)) {
@@ -29,7 +27,6 @@ function parseDeviceLabel(ua: string): string {
     if (/Firefox/.test(ua)) return 'Firefox on Android';
     return 'Browser on Android';
   }
-  // Desktop
   if (/Macintosh/.test(ua)) {
     if (/Chrome/.test(ua)) return 'Chrome on Mac';
     if (/Safari/.test(ua)) return 'Safari on Mac';
@@ -46,23 +43,21 @@ function parseDeviceLabel(ua: string): string {
   return 'Невідомий пристрій';
 }
 
-// Rate limit: 5 attempts per 15 minutes per IP+email
-const RATE_LIMIT = { maxAttempts: 5, windowMs: 15 * 60 * 1000 };
+const LOGIN_RATE_LIMIT = { maxAttempts: 5, windowMs: 15 * 60 * 1000 };
 
-// POST /api/staff/login - авторизация мастера
+// POST /api/staff/login
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { email, password } = body;
 
     if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password required' }, { status: 400 });
+      return NextResponse.json({ error: 'Email та пароль обовʼязкові' }, { status: 400 });
     }
 
-    // Rate limiting by IP + email
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
     const rateLimitKey = `staff-login:${ip}:${email.toLowerCase()}`;
-    const rateCheck = checkRateLimit(rateLimitKey, RATE_LIMIT);
+    const rateCheck = checkRateLimit(rateLimitKey, LOGIN_RATE_LIMIT);
 
     if (!rateCheck.allowed) {
       return NextResponse.json(
@@ -71,7 +66,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Находим мастера — select only needed fields
+    // Find master
     const master = await prisma.master.findFirst({
       where: { email: email.toLowerCase().trim(), isActive: true },
       select: {
@@ -86,76 +81,116 @@ export async function POST(request: NextRequest) {
     });
 
     if (!master || !master.passwordHash) {
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+      return NextResponse.json({ error: 'Невірний email або пароль' }, { status: 401 });
     }
 
-    // Проверяем пароль
     const valid = await bcrypt.compare(password, master.passwordHash);
-
     if (!valid) {
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+      return NextResponse.json({ error: 'Невірний email або пароль' }, { status: 401 });
     }
 
-    // Обновляем lastLogin
-    await prisma.master.update({
-      where: { id: master.id },
-      data: { lastLogin: new Date() },
-    });
-
-    // Reset rate limit on success
-    resetRateLimit(rateLimitKey);
-
-    // Device fingerprint — client sends it, we hash for storage
+    // Password OK — check device
     const deviceFingerprint = body.deviceFingerprint || request.headers.get('user-agent') || 'unknown';
     const fpHash = hashString(deviceFingerprint);
 
-    // Check if this device is trusted
     const trustedDevice = await prisma.trustedDevice.findUnique({
       where: { masterId_fingerprint: { masterId: master.id, fingerprint: fpHash } },
     });
 
-    const isTrusted = !!trustedDevice;
-    const tokenTTL = isTrusted ? '30d' : '7d';
+    // ── Trusted device → issue token immediately ──
+    if (trustedDevice) {
+      // Update last used
+      await prisma.trustedDevice.update({
+        where: { id: trustedDevice.id },
+        data: { lastUsedAt: new Date(), ip: ip.trim() },
+      });
 
-    // Upsert trusted device
-    await prisma.trustedDevice.upsert({
-      where: { masterId_fingerprint: { masterId: master.id, fingerprint: fpHash } },
-      update: { lastUsedAt: new Date(), ip: ip.trim() },
-      create: {
-        masterId: master.id,
-        fingerprint: fpHash,
-        label: parseDeviceLabel(request.headers.get('user-agent') || ''),
-        ip: ip.trim(),
-      },
-    });
+      await prisma.master.update({
+        where: { id: master.id },
+        data: { lastLogin: new Date() },
+      });
 
-    // Create JWT with device binding
-    const token = await new SignJWT({
+      resetRateLimit(rateLimitKey);
+
+      const token = await createStaffToken(master, ip, fpHash, '30d');
+
+      return NextResponse.json({
+        token,
+        master: masterResponse(master),
+        trustedDevice: true,
+      });
+    }
+
+    // ── New device → require OTP ──
+    // Store pending login data in a short-lived session token
+    const pendingToken = await new SignJWT({
       masterId: master.id,
-      salonId: master.salonId,
-      email: master.email,
-      type: 'staff',
-      ipHash: hashString(ip),
       fp: fpHash,
+      type: 'pending-otp',
     })
       .setProtectedHeader({ alg: 'HS256' })
-      .setExpirationTime(tokenTTL)
+      .setExpirationTime('10m')
       .sign(JWT_SECRET);
 
+    // Send OTP
+    // Check if master has telegram linked (we need to look it up since select above doesn't include it)
+    // For now, use email — telegram linking for masters is a future feature
+    const otpResult = await createAndSendOtp(
+      master.id,
+      master.email,
+      master.name,
+      null, // telegramChatId — not available on Master model yet
+    );
+
     return NextResponse.json({
-      token,
-      master: {
-        id: master.id,
-        name: master.name,
-        email: master.email,
-        role: master.role,
-        avatar: master.avatar,
-        salonId: master.salonId,
-      },
-      trustedDevice: isTrusted,
+      requireOtp: true,
+      pendingToken,
+      otpChannel: otpResult.channel,
+      otpTarget: otpResult.maskedTarget,
+      otpSent: otpResult.sent,
+      deviceLabel: parseDeviceLabel(request.headers.get('user-agent') || ''),
     });
   } catch (error) {
     console.error('POST /api/staff/login error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Помилка сервера' }, { status: 500 });
   }
+}
+
+// ── Helpers ──
+
+async function createStaffToken(
+  master: { id: string; salonId: string; email: string | null },
+  ip: string,
+  fp: string,
+  ttl: string
+): Promise<string> {
+  return new SignJWT({
+    masterId: master.id,
+    salonId: master.salonId,
+    email: master.email,
+    type: 'staff',
+    ipHash: hashString(ip),
+    fp,
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setExpirationTime(ttl)
+    .sign(JWT_SECRET);
+}
+
+function masterResponse(master: {
+  id: string;
+  name: string;
+  email: string | null;
+  role: string | null;
+  avatar: string | null;
+  salonId: string;
+}) {
+  return {
+    id: master.id,
+    name: master.name,
+    email: master.email,
+    role: master.role,
+    avatar: master.avatar,
+    salonId: master.salonId,
+  };
 }
