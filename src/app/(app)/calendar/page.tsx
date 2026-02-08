@@ -164,6 +164,7 @@ export default function CalendarPage() {
   const [masters, setMasters] = useState<Master[]>([]);
   const [loadingMasters, setLoadingMasters] = useState(true);
   const [rawBookings, setRawBookings] = useState<BookingFromAPI[]>([]);
+  const [loadingBookings, setLoadingBookings] = useState(true);
   const { selectedDate, setSelectedDate } = useCalendarDate();
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isMobileCalendarOpen, setIsMobileCalendarOpen] = useState(false);
@@ -247,6 +248,7 @@ export default function CalendarPage() {
   };
 
   const loadBookings = async (): Promise<BookingFromAPI[]> => {
+    setLoadingBookings(true);
     try {
       // Load ±2 weeks from selected date for smooth navigation
       const from = new Date(selectedDate);
@@ -263,6 +265,8 @@ export default function CalendarPage() {
       }
     } catch (error) {
       console.error('Load bookings error:', error);
+    } finally {
+      setLoadingBookings(false);
     }
     return [];
   };
@@ -681,7 +685,16 @@ export default function CalendarPage() {
       </div>
 
       {/* Calendar */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden relative">
+        {/* Loading overlay */}
+        {(loadingMasters || loadingBookings) && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/70 backdrop-blur-[1px]">
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+              <span className="text-xs text-gray-400">Завантаження...</span>
+            </div>
+          </div>
+        )}
         <DayPilotResourceCalendar
           resources={viewMode === 'week' && weekFilterMasterIds.length > 0 && weekFilterMasterIds.length < masters.length
             ? calendarResources.filter(r => weekFilterMasterIds.includes(r.id))
