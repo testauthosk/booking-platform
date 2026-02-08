@@ -1039,7 +1039,7 @@ export function DayPilotResourceCalendar({
   const totalMinutes = (dayEndHour - dayStartHour) * 60;
   const stepCount = Math.ceil(totalMinutes / timeStep);
   const steps = Array.from({ length: stepCount }, (_, i) => i);
-  const pxPerHour = 120; // Height of one hour in pixels
+  const pxPerHour = 160; // Height of one hour in pixels
   const stepHeight = pxPerHour * (timeStep / 60);
 
   // Отримуємо дні тижня для навігації
@@ -1250,15 +1250,15 @@ export function DayPilotResourceCalendar({
                             style={{
                               top: `${pos.top}%`,
                               height: `${pos.height}%`,
-                              backgroundColor: `${bgColor}18`,
+                              backgroundColor: `${bgColor}28`,
                               borderLeft: `3px solid ${bgColor}`,
                               borderRadius: '0 4px 4px 0',
                             }}
                             onClick={() => onEventClick?.(event)}
                           >
-                            {/* Time bar */}
-                            <div className="px-1 py-[1px]" style={{ backgroundColor: `${bgColor}25` }}>
-                              <span className="text-[8px] font-bold" style={{ color: bgColor }}>{formatTime(event.start)}</span>
+                            {/* Time bar — solid */}
+                            <div className="px-1 py-[1px]" style={{ backgroundColor: bgColor }}>
+                              <span className="text-[8px] font-bold text-white">{formatTime(event.start)}–{formatTime(event.end)}</span>
                             </div>
                             <div className="px-1 py-0.5">
                               <div className="text-[9px] font-bold text-gray-900 truncate">{event.clientName || event.text}</div>
@@ -1447,7 +1447,7 @@ export function DayPilotResourceCalendar({
                         transition: flipHiddenId === event.id
                           ? 'none'
                           : 'transform 300ms ease-out, top 300ms ease-out, height 300ms ease-out',
-                        backgroundColor: `${bgColor}18`,
+                        backgroundColor: `${bgColor}28`,
                         borderLeft: `4px solid ${bgColor}`,
                         borderRadius: '0 6px 6px 0',
                         WebkitUserSelect: 'none',
@@ -1465,9 +1465,9 @@ export function DayPilotResourceCalendar({
                       </div>
                       
                       <div className="h-full relative flex flex-col pointer-events-none">
-                        {/* Time bar */}
-                        <div className="px-1.5 py-[2px] flex-shrink-0" style={{ backgroundColor: `${bgColor}25` }}>
-                          <span className="text-[10px] font-bold" style={{ color: bgColor }}>{formatTime(event.start)}</span>
+                        {/* Time bar — solid background */}
+                        <div className="px-1.5 py-[1px] flex-shrink-0" style={{ backgroundColor: bgColor }}>
+                          <span className="text-[10px] font-bold text-white">{formatTime(event.start)} – {formatTime(event.end)}</span>
                         </div>
                         
                         {/* Content */}
@@ -1476,7 +1476,7 @@ export function DayPilotResourceCalendar({
                           <div className="text-[11px] font-bold leading-tight truncate text-gray-900">
                             {event.clientName || event.text}
                             {event.isNewClient && (
-                              <span className="ml-1 px-1 py-px text-[7px] font-bold rounded uppercase align-middle" style={{ backgroundColor: `${bgColor}30`, color: bgColor }}>
+                              <span className="ml-1 px-1 py-px text-[7px] font-bold rounded uppercase align-middle" style={{ backgroundColor: `${bgColor}40`, color: bgColor }}>
                                 new
                               </span>
                             )}
