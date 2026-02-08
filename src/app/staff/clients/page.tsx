@@ -77,10 +77,10 @@ export default function StaffClientsPage() {
     setLoading(true);
     try {
       // Use /all endpoint to get ALL salon clients, not just those with bookings
-      const res = await staffFetch(`/api/staff/clients/all?salonId=${salonId}&search=${search}`);
+      const res = await staffFetch(`/api/staff/clients/all?salonId=${salonId}&search=${search}&limit=100`);
       if (res.ok) {
         const data = await res.json();
-        setClients(data);
+        setClients(data.clients ?? data); // support paginated and legacy response
       }
     } catch (error) {
       console.error('Error loading clients:', error);

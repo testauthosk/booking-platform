@@ -11,6 +11,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const salonId = searchParams.get('salonId') || auth.salonId
     const search = searchParams.get('search') || ''
+    const offset = parseInt(searchParams.get('offset') || '0', 10)
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100)
 
     // Мастер може бачити тільки клієнтів свого салону
     if (salonId !== auth.salonId) {
@@ -20,33 +22,39 @@ export async function GET(request: NextRequest) {
     // Normalize phone search (remove spaces, +, -)
     const normalizedSearch = search.replace(/[\s+\-()]/g, '')
     
-    const clients = await prisma.client.findMany({
-      where: { 
-        salonId,
-        ...(search ? {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { phone: { contains: normalizedSearch } },
-          ]
-        } : {})
-      },
-      select: {
-        id: true,
-        name: true,
-        phone: true,
-        email: true,
-        telegramUsername: true,
-        telegramChatId: true,
-        visitsCount: true,
-        totalSpent: true,
-        notes: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-    })
+    const where = {
+      salonId,
+      ...(search ? {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' as const } },
+          { phone: { contains: normalizedSearch } },
+        ]
+      } : {})
+    }
 
-    // Add default values for master-specific stats (will be 0 for new clients)
+    const [clients, total] = await Promise.all([
+      prisma.client.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          email: true,
+          telegramUsername: true,
+          telegramChatId: true,
+          visitsCount: true,
+          totalSpent: true,
+          notes: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: offset,
+        take: limit,
+      }),
+      prisma.client.count({ where }),
+    ])
+
+    // Add default values for master-specific stats
     const clientsWithStats = clients.map(c => ({
       ...c,
       visitsWithMaster: c.visitsCount || 0,
@@ -54,7 +62,13 @@ export async function GET(request: NextRequest) {
       lastVisitWithMaster: null,
     }))
 
-    return NextResponse.json(clientsWithStats)
+    return NextResponse.json({
+      clients: clientsWithStats,
+      total,
+      offset,
+      limit,
+      hasMore: offset + clients.length < total,
+    })
   } catch (error) {
     console.error('Staff clients all GET error:', error)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
