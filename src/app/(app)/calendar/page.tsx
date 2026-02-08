@@ -197,15 +197,10 @@ export default function CalendarPage() {
     }
   }, [user?.salonId]);
 
-  // Trigger header slide-in animation on mount + slide-out on leave
+  // Trigger header slide-in animation on mount
   useEffect(() => {
     const t = setTimeout(() => setHeaderMounted(true), 50);
-    const onLeave = () => setHeaderMounted(false);
-    window.addEventListener('calendar-leaving', onLeave);
-    return () => {
-      clearTimeout(t);
-      window.removeEventListener('calendar-leaving', onLeave);
-    };
+    return () => clearTimeout(t);
   }, []);
 
   const loadMasters = async () => {

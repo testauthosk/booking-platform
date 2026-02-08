@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Sidebar } from '@/components/sidebar';
 import { Header } from '@/components/header';
@@ -21,6 +21,18 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const { selectedDate, setSelectedDate } = useCalendarDate();
 
   const isCalendar = pathname === '/calendar' || pathname.startsWith('/calendar/') || pathname === '/calendar-test';
+  const wasCalendarRef = useRef(isCalendar);
+  const [ghostExit, setGhostExit] = useState(false);
+
+  // Detect leaving calendar → show ghost fly-out
+  useEffect(() => {
+    if (wasCalendarRef.current && !isCalendar) {
+      setGhostExit(true);
+      const t = setTimeout(() => setGhostExit(false), 400);
+      return () => clearTimeout(t);
+    }
+    wasCalendarRef.current = isCalendar;
+  }, [isCalendar]);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -89,6 +101,33 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* Mobile bottom navigation */}
       <MobileNav isCalendar={isCalendar} />
+
+      {/* Ghost calendar header elements — fly out when leaving calendar */}
+      {ghostExit && (
+        <div
+          className="lg:hidden fixed z-[100] pointer-events-none flex items-center"
+          style={{
+            top: 6,
+            left: 68, // after burger (12px pad + 44px burger + 8px gap)
+            gap: 8,
+            animation: 'calHeaderFlyOut 350ms cubic-bezier(0.4,0,0.2,1) forwards',
+          }}
+        >
+          {/* Segment ghost */}
+          <div
+            style={{ height: 44, borderRadius: 12, border: '1px solid rgba(0,0,0,0.4)', backgroundColor: '#fff', display: 'flex', alignItems: 'center', padding: '0 3px', gap: 2 }}
+          >
+            <div style={{ height: 36, borderRadius: 10, backgroundColor: '#fff', padding: '0 14px', display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 600, color: '#6b7280' }}>День</div>
+            <div style={{ height: 36, borderRadius: 10, backgroundColor: '#000', color: '#fff', padding: '0 10px', display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 600, boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }}>Тиждень</div>
+          </div>
+          {/* Today ghost */}
+          <div
+            style={{ height: 44, width: 96, borderRadius: 12, border: '1px solid rgba(0,0,0,0.4)', backgroundColor: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600, color: '#374151' }}
+          >
+            Сьогодні
+          </div>
+        </div>
+      )}
     </div>
   );
 }
