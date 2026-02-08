@@ -2,7 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
-// POST /api/invitations/accept - принять приглашение и создать аккаунт
+// Дефолтний графік роботи (Пн-Пт 9:00-18:00)
+const DEFAULT_WORKING_HOURS = {
+  monday: { start: '09:00', end: '18:00', enabled: true },
+  tuesday: { start: '09:00', end: '18:00', enabled: true },
+  wednesday: { start: '09:00', end: '18:00', enabled: true },
+  thursday: { start: '09:00', end: '18:00', enabled: true },
+  friday: { start: '09:00', end: '18:00', enabled: true },
+  saturday: { start: '10:00', end: '16:00', enabled: false },
+  sunday: { start: '10:00', end: '16:00', enabled: false },
+};
+
+// POST /api/invitations/accept - прийняти запрошення і створити акаунт
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -16,7 +27,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
     }
 
-    // Находим приглашение
+    // Знаходимо запрошення
     const invitation = await prisma.staffInvitation.findUnique({
       where: { token },
     });
@@ -33,65 +44,77 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invitation expired' }, { status: 400 });
     }
 
-    // Хешируем пароль
+    // Хешуємо пароль
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Отримуємо timezone з салону
+    // Отримуємо timezone і кількість мастерів з салону
     const salon = await prisma.salon.findUnique({
       where: { id: invitation.salonId },
       select: { timezone: true }
     });
 
-    // Создаём мастера
-    const master = await prisma.master.create({
-      data: {
-        salonId: invitation.salonId,
-        email: invitation.email,
-        name: name || invitation.name || invitation.email.split('@')[0],
-        role: invitation.role,
-        passwordHash,
-        timezone: salon?.timezone || 'Europe/Kiev', // Копіюємо з салону
-      },
+    const masterCount = await prisma.master.count({
+      where: { salonId: invitation.salonId },
     });
 
-    // Прив'язуємо всі послуги салону до нового мастера
+    // Отримуємо послуги салону до транзакції
     const salonServices = await prisma.service.findMany({
       where: { salonId: invitation.salonId, isActive: true },
       select: { id: true },
     });
 
-    if (salonServices.length > 0) {
-      await prisma.masterService.createMany({
-        data: salonServices.map(s => ({
-          masterId: master.id,
-          serviceId: s.id,
-        })),
-        skipDuplicates: true,
+    // Всё в одній транзакції: master + services + invitation update + audit
+    const master = await prisma.$transaction(async (tx) => {
+      // Створюємо мастера
+      const newMaster = await tx.master.create({
+        data: {
+          salonId: invitation.salonId,
+          email: invitation.email,
+          name: name || invitation.name || invitation.email.split('@')[0],
+          role: invitation.role,
+          passwordHash,
+          timezone: salon?.timezone || 'Europe/Kiev',
+          sortOrder: masterCount, // наступний порядковий номер
+          workingHours: DEFAULT_WORKING_HOURS,
+        },
       });
-    }
 
-    // Помечаем приглашение как использованное
-    await prisma.staffInvitation.update({
-      where: { id: invitation.id },
-      data: {
-        isUsed: true,
-        masterId: master.id,
-      },
-    });
+      // Прив'язуємо всі послуги салону
+      if (salonServices.length > 0) {
+        await tx.masterService.createMany({
+          data: salonServices.map(s => ({
+            masterId: newMaster.id,
+            serviceId: s.id,
+          })),
+          skipDuplicates: true,
+        });
+      }
 
-    // Логируем в AuditLog
-    await prisma.auditLog.create({
-      data: {
-        salonId: invitation.salonId,
-        actorType: 'master',
-        actorId: master.id,
-        actorName: master.name,
-        action: 'CREATE',
-        entityType: 'master',
-        entityId: master.id,
-        entityName: master.name,
-        changes: { event: 'Master registered via invitation' },
-      },
+      // Позначаємо запрошення як використане
+      await tx.staffInvitation.update({
+        where: { id: invitation.id },
+        data: {
+          isUsed: true,
+          masterId: newMaster.id,
+        },
+      });
+
+      // Аудит лог
+      await tx.auditLog.create({
+        data: {
+          salonId: invitation.salonId,
+          actorType: 'master',
+          actorId: newMaster.id,
+          actorName: newMaster.name,
+          action: 'CREATE',
+          entityType: 'master',
+          entityId: newMaster.id,
+          entityName: newMaster.name,
+          changes: { event: 'Master registered via invitation' },
+        },
+      });
+
+      return newMaster;
     });
 
     return NextResponse.json({
@@ -108,7 +131,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET /api/invitations/accept?token=xxx - проверить токен
+// GET /api/invitations/accept?token=xxx - перевірити токен
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -134,7 +157,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ valid: false, error: 'Invitation expired' });
     }
 
-    // Записываем что ссылку открыли
+    // Записуємо що посилання відкрили
     if (!invitation.viewedAt) {
       await prisma.staffInvitation.update({
         where: { id: invitation.id },
