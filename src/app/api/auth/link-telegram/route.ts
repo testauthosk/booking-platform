@@ -104,8 +104,8 @@ export async function GET() {
       },
     })
 
-    // TODO: Отримати username бота динамічно
-    const botUsername = 'BookingPlatformAuthBot' // Замінити на реальний username
+    // Username бота
+    const botUsername = 'tholim_bot'
 
     return NextResponse.json({
       linked: false,
