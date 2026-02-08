@@ -18,6 +18,34 @@ const JWT_SECRET = new TextEncoder().encode(
   JWT_SECRET_RAW || 'staff-secret-key-change-in-production'
 );
 
+// Extract readable device label from User-Agent
+function parseDeviceLabel(ua: string): string {
+  if (!ua) return 'Невідомий пристрій';
+  // Mobile
+  if (/iPhone/.test(ua)) return 'Safari on iPhone';
+  if (/iPad/.test(ua)) return 'Safari on iPad';
+  if (/Android/.test(ua)) {
+    if (/Chrome/.test(ua)) return 'Chrome on Android';
+    if (/Firefox/.test(ua)) return 'Firefox on Android';
+    return 'Browser on Android';
+  }
+  // Desktop
+  if (/Macintosh/.test(ua)) {
+    if (/Chrome/.test(ua)) return 'Chrome on Mac';
+    if (/Safari/.test(ua)) return 'Safari on Mac';
+    if (/Firefox/.test(ua)) return 'Firefox on Mac';
+    return 'Browser on Mac';
+  }
+  if (/Windows/.test(ua)) {
+    if (/Chrome/.test(ua)) return 'Chrome on Windows';
+    if (/Firefox/.test(ua)) return 'Firefox on Windows';
+    if (/Edge/.test(ua)) return 'Edge on Windows';
+    return 'Browser on Windows';
+  }
+  if (/Linux/.test(ua)) return 'Browser on Linux';
+  return 'Невідомий пристрій';
+}
+
 // Rate limit: 5 attempts per 15 minutes per IP+email
 const RATE_LIMIT = { maxAttempts: 5, windowMs: 15 * 60 * 1000 };
 
@@ -77,18 +105,41 @@ export async function POST(request: NextRequest) {
     // Reset rate limit on success
     resetRateLimit(rateLimitKey);
 
-    // IP fingerprint for token binding (reuse ip from rate limit)
+    // Device fingerprint — client sends it, we hash for storage
+    const deviceFingerprint = body.deviceFingerprint || request.headers.get('user-agent') || 'unknown';
+    const fpHash = hashString(deviceFingerprint);
 
-    // Создаём JWT токен with IP fingerprint
+    // Check if this device is trusted
+    const trustedDevice = await prisma.trustedDevice.findUnique({
+      where: { masterId_fingerprint: { masterId: master.id, fingerprint: fpHash } },
+    });
+
+    const isTrusted = !!trustedDevice;
+    const tokenTTL = isTrusted ? '30d' : '7d';
+
+    // Upsert trusted device
+    await prisma.trustedDevice.upsert({
+      where: { masterId_fingerprint: { masterId: master.id, fingerprint: fpHash } },
+      update: { lastUsedAt: new Date(), ip: ip.trim() },
+      create: {
+        masterId: master.id,
+        fingerprint: fpHash,
+        label: parseDeviceLabel(request.headers.get('user-agent') || ''),
+        ip: ip.trim(),
+      },
+    });
+
+    // Create JWT with device binding
     const token = await new SignJWT({
       masterId: master.id,
       salonId: master.salonId,
       email: master.email,
       type: 'staff',
-      ipHash: hashString(ip), // Loose binding — logged for anomaly detection
+      ipHash: hashString(ip),
+      fp: fpHash,
     })
       .setProtectedHeader({ alg: 'HS256' })
-      .setExpirationTime('7d')
+      .setExpirationTime(tokenTTL)
       .sign(JWT_SECRET);
 
     return NextResponse.json({
@@ -101,6 +152,7 @@ export async function POST(request: NextRequest) {
         avatar: master.avatar,
         salonId: master.salonId,
       },
+      trustedDevice: isTrusted,
     });
   } catch (error) {
     console.error('POST /api/staff/login error:', error);

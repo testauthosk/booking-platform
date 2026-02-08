@@ -22,10 +22,18 @@ export default function StaffLoginPage() {
     setLoading(true);
 
     try {
+      // Build device fingerprint from available browser info
+      const fp = [
+        navigator.userAgent,
+        screen.width + 'x' + screen.height,
+        navigator.language,
+        Intl.DateTimeFormat().resolvedOptions().timeZone,
+      ].join('|');
+
       const res = await fetch('/api/staff/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, deviceFingerprint: fp }),
       });
 
       const data = await res.json();
