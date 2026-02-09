@@ -301,7 +301,7 @@ export default function DashboardPage() {
                     <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
                       <Calendar className="w-4 h-4 text-blue-600" />
                     </div>
-                    <span className="text-xs font-medium text-gray-500">Записи</span>
+                    <span className="text-xs font-medium text-gray-500">Записи на сьогодні</span>
                   </div>
                   {today.bookings.total === 0 ? (
                     <p className="text-sm text-gray-400">Немає записів</p>
