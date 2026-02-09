@@ -21,6 +21,13 @@ export default function AdminLoginPage() {
     setError('');
     setLoading(true);
 
+    // Если уже залогинен — сначала выйти, чтобы не было конфликта сессий
+    if (user) {
+      await signOut();
+      // Подождать чтобы сессия очистилась
+      await new Promise(r => setTimeout(r, 500));
+    }
+
     const { error } = await signIn(email, password);
 
     if (error) {
@@ -29,8 +36,12 @@ export default function AdminLoginPage() {
       return;
     }
 
+    // Очистить impersonate cookie если есть
+    document.cookie = 'admin-impersonate-original=; path=/; max-age=0';
+
     // После успешного входа перенаправляем в консоль админа
     router.push('/admin');
+    router.refresh();
   };
 
   const translateError = (error: string) => {
@@ -55,51 +66,17 @@ export default function AdminLoginPage() {
     );
   }
 
-  // Если уже залогинен - показать кнопки навигации
-  if (user) {
+  // Если уже залогинен как SUPER_ADMIN — перейти в консоль
+  if (user && user.role === 'SUPER_ADMIN') {
+    router.push('/admin');
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
-        <div className="w-full max-w-md text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-slate-800 rounded-2xl mb-4">
-            <Shield className="w-8 h-8 text-violet-500" />
-          </div>
-          <h1 className="text-2xl font-bold text-white mb-2">Вы уже вошли</h1>
-          <p className="text-slate-400 mb-6">
-            {user.email} ({user.role === 'super_admin' ? 'Супер админ' : 'Владелец салона'})
-          </p>
-
-          <div className="space-y-3">
-            {user.role === 'super_admin' ? (
-              <Button
-                onClick={() => router.push('/admin')}
-                className="w-full bg-violet-600 hover:bg-violet-500 text-white rounded-xl h-12"
-              >
-                <Shield className="w-5 h-5 mr-2" />
-                Открыть консоль админа
-              </Button>
-            ) : (
-              <Button
-                onClick={() => router.push('/dashboard')}
-                className="w-full bg-slate-700 hover:bg-slate-600 text-white rounded-xl h-12"
-              >
-                <Scissors className="w-5 h-5 mr-2" />
-                Открыть панель салона
-              </Button>
-            )}
-
-            <Button
-              onClick={handleSignOut}
-              variant="outline"
-              className="w-full rounded-xl h-12 border-slate-600 text-slate-300 hover:bg-slate-800"
-            >
-              <LogOut className="w-5 h-5 mr-2" />
-              Выйти и войти другим пользователем
-            </Button>
-          </div>
-        </div>
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
       </div>
     );
   }
+
+  // Для всех остальных (не залогинен / залогинен как owner) — показываем форму
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
