@@ -18,7 +18,6 @@ import {
   Link2,
 } from 'lucide-react';
 import { useSidebar } from '@/components/sidebar-context';
-import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -203,7 +202,7 @@ export default function DashboardPage() {
             <p className="text-sm text-gray-500 capitalize">{formatDate()}</p>
           </div>
         </div>
-        <NotificationBell />
+        {/* Bell is in global Header */}
       </div>
 
       {/* Content */}

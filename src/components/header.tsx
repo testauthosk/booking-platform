@@ -1,10 +1,16 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Wallet } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/notification-bell';
+import { useSession } from 'next-auth/react';
+
+function getInitial(name?: string | null): string {
+  return name?.charAt(0)?.toUpperCase() || '?';
+}
 
 export function Header() {
+  const { data: session } = useSession();
+  const initial = getInitial(session?.user?.name);
+
   return (
     <header className="h-16 border-b bg-background flex items-center justify-between px-6">
       {/* Spacer */}
@@ -13,11 +19,8 @@ export function Header() {
       {/* Right side */}
       <div className="flex items-center gap-2">
         <NotificationBell />
-        <Button variant="ghost" size="icon" className="relative">
-          <Wallet className="h-5 w-5" />
-        </Button>
         <div className="h-9 w-9 rounded-xl bg-orange-500 flex items-center justify-center text-white font-medium ml-2">
-          D
+          {initial}
         </div>
       </div>
     </header>
