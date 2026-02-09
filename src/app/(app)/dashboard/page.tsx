@@ -22,6 +22,14 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
 // ─── Types ───
+interface AlertItem {
+  type: string;
+  title: string;
+  count: number;
+  link: string;
+  icon: string;
+}
+
 interface WeekData {
   revenue: number;
   revenueChange: number;
@@ -148,17 +156,23 @@ export default function DashboardPage() {
   const { data: session } = useSession();
   const [today, setToday] = useState<TodayData | null>(null);
   const [week, setWeek] = useState<WeekData | null>(null);
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const [todayRes, weekRes] = await Promise.all([
+        const [todayRes, weekRes, alertsRes] = await Promise.all([
           fetch('/api/dashboard/today'),
           fetch('/api/dashboard/week'),
+          fetch('/api/dashboard/alerts'),
         ]);
         if (todayRes.ok) setToday(await todayRes.json());
         if (weekRes.ok) setWeek(await weekRes.json());
+        if (alertsRes.ok) {
+          const data = await alertsRes.json();
+          setAlerts(data.alerts || []);
+        }
       } catch (e) {
         console.error('Dashboard load error:', e);
       } finally {
@@ -345,6 +359,37 @@ export default function DashboardPage() {
                     ))}
                   </div>
                 </Card>
+              )}
+
+              {/* Smart Alerts */}
+              {alerts.length > 0 && (
+                <Card className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center">
+                      <span className="text-sm">⚡</span>
+                    </div>
+                    <span className="text-xs font-medium text-gray-500">Потребує уваги</span>
+                  </div>
+                  <div className="space-y-2">
+                    {alerts.map((a, i) => (
+                      <Link
+                        key={i}
+                        href={a.link}
+                        className="flex items-center gap-3 p-2.5 -mx-1 rounded-lg hover:bg-gray-50 transition-colors group"
+                      >
+                        <span className="text-lg flex-shrink-0">{a.icon}</span>
+                        <span className="text-sm flex-1">{a.title}</span>
+                        <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors" />
+                      </Link>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              {!loading && alerts.length === 0 && today && today.bookings.total > 0 && (
+                <div className="text-center py-2">
+                  <span className="text-sm text-green-600">Все під контролем ✅</span>
+                </div>
               )}
 
               {/* Empty state for new salons */}
