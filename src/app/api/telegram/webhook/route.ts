@@ -55,11 +55,17 @@ export async function POST(req: NextRequest) {
     if (text.startsWith('/start')) {
       const parts = text.split(' ')
       
-      // Deep link: /start link_XXXXX
+      // Deep link: /start link_XXXXX (owner linking)
       if (parts.length > 1 && parts[1].startsWith('link_')) {
         const token = parts[1]
         await handleLinkTelegram(telegramId, username, chatId, token)
-      } else {
+      }
+      // Deep link: /start client_XXXXX (client subscribing)
+      else if (parts.length > 1 && parts[1].startsWith('client_')) {
+        const clientId = parts[1].replace('client_', '')
+        await handleClientSubscribe(clientId, chatId, username)
+      }
+      else {
         // Звичайний /start
         await sendWelcomeMessage(chatId)
       }
@@ -156,6 +162,94 @@ async function handleLinkTelegram(
     await sendMessage(chatId,
       '❌ Виникла помилка при підключенні. Спробуйте ще раз.'
     )
+  }
+}
+
+// Client subscribes to Telegram notifications
+async function handleClientSubscribe(
+  clientId: string,
+  chatId: string,
+  username: string | undefined
+) {
+  try {
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { id: true, name: true, salonId: true, telegramChatId: true },
+    })
+
+    if (!client) {
+      await sendMessage(chatId, '❌ Посилання недійсне. Спробуйте записатись через сайт.')
+      return
+    }
+
+    if (client.telegramChatId) {
+      await sendMessage(chatId, `✅ Ви вже підписані на сповіщення!\n\nВам будуть приходити нагадування про записи.`)
+      return
+    }
+
+    // Link Telegram to client
+    await prisma.client.update({
+      where: { id: clientId },
+      data: {
+        telegramChatId: chatId,
+        telegramUsername: username || null,
+      },
+    })
+
+    // Get salon name
+    const salon = await prisma.salon.findUnique({
+      where: { id: client.salonId },
+      select: { name: true },
+    })
+
+    await sendMessage(chatId,
+      `✅ Telegram підключено!\n\n` +
+      `Привіт, ${client.name}! 👋\n\n` +
+      `Тепер ви отримуватимете від ${salon?.name || 'салону'}:\n` +
+      `• 📋 Підтвердження бронювань\n` +
+      `• ⏰ Нагадування перед візитом\n` +
+      `• 📢 Спеціальні пропозиції\n\n` +
+      `Дякуємо! 🎉`
+    )
+
+    // Check if there's a recent unconfirmed booking and send confirmation
+    const recentBooking = await prisma.booking.findFirst({
+      where: {
+        clientId: client.id,
+        createdAt: { gt: new Date(Date.now() - 10 * 60 * 1000) }, // last 10 min
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        serviceName: true,
+        masterName: true,
+        date: true,
+        time: true,
+        duration: true,
+        price: true,
+      },
+    })
+
+    if (recentBooking) {
+      const priceStr = recentBooking.price ? `\n💰 ${recentBooking.price} ₴` : ''
+      await sendMessageWithButtons(chatId,
+        `📋 <b>Ваш запис:</b>\n\n` +
+        `💇 ${recentBooking.serviceName}\n` +
+        `👨‍💼 ${recentBooking.masterName}\n` +
+        `📅 ${recentBooking.date} о ${recentBooking.time}\n` +
+        `⏱ ${recentBooking.duration} хв` +
+        priceStr,
+        [
+          [
+            { text: '✅ Підтверджую', callback_data: `confirm_${recentBooking.id}` },
+            { text: '❌ Скасувати', callback_data: `cancel_${recentBooking.id}` },
+          ],
+        ]
+      )
+    }
+  } catch (error) {
+    console.error('[TELEGRAM] Client subscribe error:', error)
+    await sendMessage(chatId, '❌ Виникла помилка. Спробуйте ще раз.')
   }
 }
 

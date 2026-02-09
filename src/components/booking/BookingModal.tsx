@@ -314,6 +314,7 @@ export function BookingModal({
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [bookedClientId, setBookedClientId] = useState("");
   const [isClosing, setIsClosing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -589,6 +590,9 @@ export function BookingModal({
 
           if (!booking) {
             throw new Error('Помилка створення бронювання');
+          }
+          if (booking.clientId) {
+            setBookedClientId(booking.clientId);
           }
         } catch (error: any) {
           console.error('Booking error:', error);
@@ -1250,7 +1254,7 @@ export function BookingModal({
 
                   <h1 className="text-2xl font-bold text-gray-900 mb-2">Бронювання підтверджено!</h1>
                   <p className="text-gray-500 mb-8">
-                    Ми надіслали підтвердження на ваш телефон
+                    {email ? 'Підтвердження надіслано на вашу пошту' : 'Чекаємо на вас!'}
                   </p>
 
                   {/* Booking details */}
@@ -1287,10 +1291,15 @@ export function BookingModal({
                     <p className="text-sm text-gray-600 mb-4">
                       Якщо ви хочете отримувати нагадування про візити, активуйте нашого бота в Telegram
                     </p>
-                    <button className="w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-full transition-colors cursor-pointer flex items-center justify-center gap-2">
+                    <a
+                      href={`https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT || 'tholim_bot'}?start=client_${bookedClientId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-full transition-colors cursor-pointer flex items-center justify-center gap-2 no-underline"
+                    >
                       <Send className="w-4 h-4" />
-                      Активувати Telegram бота
-                    </button>
+                      Підписатися в Telegram
+                    </a>
                   </div>
                 </div>
               )}

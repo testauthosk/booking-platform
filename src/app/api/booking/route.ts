@@ -424,6 +424,31 @@ export async function POST(request: NextRequest) {
       console.error('Failed to send notification:', e);
     }
 
+    // Send Telegram confirmation to client if subscribed (fire-and-forget)
+    if (booking.clientId) {
+      try {
+        const clientData = await prisma.client.findUnique({
+          where: { id: booking.clientId },
+          select: { telegramChatId: true },
+        });
+        if (clientData?.telegramChatId) {
+          const salonData2 = await prisma.salon.findUnique({ where: { id: salonId }, select: { name: true } });
+          const { notifyClientTelegram } = await import('@/lib/client-notify');
+          notifyClientTelegram({
+            bookingId: booking.id,
+            clientChatId: clientData.telegramChatId,
+            serviceName: serviceName || 'Послуга',
+            masterName: masterName || '',
+            date,
+            time,
+            duration,
+            price,
+            salonName: salonData2?.name || '',
+          }).catch(console.error);
+        }
+      } catch {}
+    }
+
     // Send confirmation email to client if email available (fire-and-forget)
     if (clientEmail || booking.clientId) {
       try {

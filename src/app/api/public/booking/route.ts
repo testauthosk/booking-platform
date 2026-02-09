@@ -239,9 +239,26 @@ export async function POST(request: NextRequest) {
       } catch {}
     }
 
+    // Send Telegram confirmation to client if subscribed (fire-and-forget)
+    if (client.telegramChatId) {
+      const { notifyClientTelegram } = await import('@/lib/client-notify');
+      notifyClientTelegram({
+        bookingId: booking.id,
+        clientChatId: client.telegramChatId,
+        serviceName,
+        masterName,
+        date,
+        time,
+        duration: dur,
+        price,
+        salonName: salon.name,
+      }).catch(console.error);
+    }
+
     // Send confirmation email to client (fire-and-forget)
     if (client.email || clientEmail) {
       const { sendBookingConfirmation } = await import('@/lib/email');
+      const { buildCancelUrl } = await import('@/lib/cancel-token');
       sendBookingConfirmation({
         clientName: trimmedName,
         clientEmail: client.email || clientEmail,
@@ -254,11 +271,13 @@ export async function POST(request: NextRequest) {
         time,
         duration: dur,
         price,
+        cancelUrl: buildCancelUrl(booking.id),
       }).catch(console.error);
     }
 
     return NextResponse.json({
       id: booking.id,
+      clientId: client.id,
       date: booking.date,
       time: booking.time,
       timeEnd: booking.timeEnd,
