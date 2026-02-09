@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -40,6 +41,14 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const [salonName, setSalonName] = useState('');
+
+  useEffect(() => {
+    fetch('/api/salon/settings')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.name) setSalonName(d.name); })
+      .catch(() => {});
+  }, []);
 
   return (
     <aside
@@ -53,7 +62,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     >
       {/* Logo + Close button */}
       <div className="h-16 flex items-center justify-between px-6 border-b">
-        <span className="text-xl font-bold text-primary">BookingPro</span>
+        <span className="text-lg font-bold text-foreground truncate">{salonName || 'Мій салон'}</span>
         <button
           onClick={onClose}
           className="lg:hidden p-2 -mr-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-all active:scale-95"
