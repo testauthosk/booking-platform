@@ -101,13 +101,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Active invitation already exists' }, { status: 400 });
     }
 
-    // Проверяем нет ли уже мастера с таким email
-    const existingMaster = await prisma.master.findFirst({
-      where: { salonId, email },
+    // Проверяем нет ли уже мастера с таким email (глобально — email унікальний)
+    const existingMaster = await prisma.master.findUnique({
+      where: { email },
+      select: { id: true, salonId: true },
     });
 
     if (existingMaster) {
-      return NextResponse.json({ error: 'Master with this email already exists' }, { status: 400 });
+      if (existingMaster.salonId === salonId) {
+        return NextResponse.json({ error: 'Майстер з цим email вже є у вашому салоні' }, { status: 400 });
+      }
+      return NextResponse.json({ error: 'Цей email вже зареєстрований в системі. Використайте інший email.' }, { status: 400 });
     }
 
     // Создаём приглашение (действует 7 дней)
