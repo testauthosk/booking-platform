@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
+// Admin auth is separate from NextAuth — uses /api/admin/auth with its own JWT cookie
 import Link from 'next/link';
 import {
   Loader2,
@@ -106,28 +106,43 @@ const navItems: NavItem[] = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, loading: authLoading, signOut, isSuperAdmin } = useAuth();
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [adminUser, setAdminUser] = useState<{ id: string; email: string; role: string } | null>(null);
+  const [adminLoading, setAdminLoading] = useState(true);
   
   const isLoginPage = pathname === '/admin/login';
 
-  // Redirect if not super admin
+  // Check admin auth via separate cookie (not NextAuth)
   useEffect(() => {
-    if (isLoginPage) return;
-    
-    if (!authLoading && !user) {
-      router.push('/admin/login');
-    } else if (!authLoading && user && !isSuperAdmin) {
-      router.push('/dashboard');
+    if (isLoginPage) {
+      setAdminLoading(false);
+      return;
     }
-  }, [authLoading, user, isSuperAdmin, router, isLoginPage]);
+
+    fetch('/api/admin/auth')
+      .then(res => res.json())
+      .then(data => {
+        if (data.authenticated) {
+          setAdminUser(data.user);
+        } else {
+          router.push('/admin/login');
+        }
+      })
+      .catch(() => router.push('/admin/login'))
+      .finally(() => setAdminLoading(false));
+  }, [isLoginPage, router]);
+
+  const handleAdminSignOut = async () => {
+    await fetch('/api/admin/auth', { method: 'DELETE' });
+    router.push('/admin/login');
+  };
 
   // Skip layout for login page
   if (isLoginPage) {
     return <>{children}</>;
   }
 
-  if (authLoading) {
+  if (adminLoading) {
     return (
       <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
@@ -135,7 +150,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  if (!isSuperAdmin) {
+  if (!adminUser) {
     return null;
   }
 
@@ -236,14 +251,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="p-3 border-t border-white/5">
           <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium">
-              {user?.email?.charAt(0).toUpperCase()}
+              {adminUser?.email?.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">{user?.email}</p>
+              <p className="text-sm font-medium text-white truncate">{adminUser?.email}</p>
               <p className="text-xs text-gray-500">Super Admin</p>
             </div>
             <button
-              onClick={() => signOut()}
+              onClick={handleAdminSignOut}
               className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
             >
               <LogOut className="w-4 h-4" />
