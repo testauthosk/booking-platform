@@ -51,14 +51,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invitation expired' }, { status: 400 });
     }
 
+    // Перевіряємо чи email вже зайнятий іншим мастером
+    const existingMaster = await prisma.master.findUnique({
+      where: { email: invitation.email },
+      select: { id: true, salonId: true },
+    });
+
+    if (existingMaster) {
+      // Якщо мастер вже існує в цьому ж салоні — інвайт зайвий
+      if (existingMaster.salonId === invitation.salonId) {
+        return NextResponse.json({ error: 'Акаунт з цим email вже існує в цьому салоні. Спробуйте увійти.' }, { status: 409 });
+      }
+      // Мастер існує в іншому салоні — email зайнятий
+      return NextResponse.json({ error: 'Цей email вже використовується іншим мастером. Зверніться до адміністратора або використайте інший email.' }, { status: 409 });
+    }
+
     // Хешуємо пароль
     const passwordHash = await bcrypt.hash(password, 10);
 
     // Отримуємо timezone і кількість мастерів з салону
     const salon = await prisma.salon.findUnique({
       where: { id: invitation.salonId },
-      select: { timezone: true }
+      select: { id: true, timezone: true }
     });
+
+    if (!salon) {
+      return NextResponse.json({ error: 'Салон не знайдено. Запрошення недійсне.' }, { status: 404 });
+    }
 
     const masterCount = await prisma.master.count({
       where: { salonId: invitation.salonId },
@@ -118,8 +137,12 @@ export async function POST(request: NextRequest) {
         email: master.email,
       },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('POST /api/invitations/accept error:', error);
+    // Prisma unique constraint violation
+    if (error && typeof error === 'object' && 'code' in error && (error as { code: string }).code === 'P2002') {
+      return NextResponse.json({ error: 'Акаунт з цим email вже існує. Спробуйте увійти.' }, { status: 409 });
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
