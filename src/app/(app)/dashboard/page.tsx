@@ -14,12 +14,16 @@ import {
   Menu,
   ChevronRight,
   User,
-  CircleDot,
+  Plus,
+  Ban,
+  Link2,
+  Copy,
 } from 'lucide-react';
 import { useSidebar } from '@/components/sidebar-context';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 // ─── Types ───
 interface AlertItem {
@@ -154,6 +158,8 @@ function WeekCard({ label, value, change }: { label: string; value: string; chan
 export default function DashboardPage() {
   const { open: openSidebar } = useSidebar();
   const { data: session } = useSession();
+  const router = useRouter();
+  const [copied, setCopied] = useState(false);
   const [today, setToday] = useState<TodayData | null>(null);
   const [week, setWeek] = useState<WeekData | null>(null);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
@@ -205,6 +211,64 @@ export default function DashboardPage() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 lg:p-6 pb-[84px] lg:pb-6">
         <div className="max-w-[1000px] mx-auto space-y-4">
+          {/* Quick Actions */}
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-shrink-0 gap-1.5"
+              onClick={() => router.push('/calendar')}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Запис
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-shrink-0 gap-1.5"
+              onClick={() => router.push('/calendar')}
+            >
+              <Ban className="w-3.5 h-3.5" />
+              Блокувати час
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-shrink-0 gap-1.5"
+              onClick={() => router.push('/calendar')}
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              Календар
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className={`flex-shrink-0 gap-1.5 ${copied ? 'text-green-600 border-green-300' : ''}`}
+              onClick={async () => {
+                try {
+                  // Fetch salon slug
+                  const res = await fetch('/api/salon/settings');
+                  if (res.ok) {
+                    const salon = await res.json();
+                    const url = `${window.location.origin}/salon/${salon.slug}`;
+                    await navigator.clipboard.writeText(url);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }
+                } catch {}
+              }}
+            >
+              {copied ? (
+                <>✓ Скопійовано</>
+              ) : (
+                <>
+                  <Link2 className="w-3.5 h-3.5" />
+                  Посилання
+                </>
+              )}
+            </Button>
+          </div>
+
           {loading ? (
             <DashboardSkeleton />
           ) : !today ? (
