@@ -27,6 +27,16 @@ import {
   Mail,
   ChevronDown,
   ChevronRight,
+  TrendingDown,
+  HeartPulse,
+  Filter,
+  DollarSign,
+  Megaphone,
+  Globe,
+  Zap,
+  Wifi,
+  Gauge,
+  BellRing,
 } from 'lucide-react';
 
 interface NavItem {
@@ -52,8 +62,12 @@ const navItems: NavItem[] = [
   { href: '/admin/bookings', icon: Calendar, label: 'Бронювання' },
   { href: '/admin/inventory', icon: Package, label: 'Склад' },
   
-  // Фінанси
-  { group: true, label: 'Фінанси' },
+  // Аналітика
+  { group: true, label: 'Аналітика' },
+  { href: '/admin/health', icon: Activity, label: 'Health Score' },
+  { href: '/admin/funnel', icon: BarChart3, label: 'Воронка' },
+  { href: '/admin/revenue', icon: CreditCard, label: 'Дохід' },
+  { href: '/admin/churn', icon: TrendingDown, label: 'Churn' },
   { href: '/admin/subscriptions', icon: CreditCard, label: 'Підписки' },
   
   // Комунікації
