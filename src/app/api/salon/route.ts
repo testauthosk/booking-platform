@@ -87,6 +87,17 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    // Validate slug uniqueness
+    if (slug !== undefined && slug) {
+      const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      const existingSlug = await prisma.salon.findFirst({
+        where: { slug: cleanSlug, NOT: { id: salonId } },
+      });
+      if (existingSlug) {
+        return NextResponse.json({ error: 'Цей slug вже зайнятий' }, { status: 400 });
+      }
+    }
+
     // Перевіряємо чи змінилась адреса
     let timezoneData: { timezone: string; lat?: number; lng?: number } | null = null;
     
