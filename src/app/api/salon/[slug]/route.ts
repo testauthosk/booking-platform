@@ -14,6 +14,7 @@ export async function GET(
       select: {
         // Only public-safe fields
         id: true,
+        onboardingCompleted: true,
         name: true,
         slug: true,
         type: true,
@@ -83,13 +84,14 @@ export async function GET(
       },
     });
 
-    if (!salon) {
+    if (!salon || !salon.onboardingCompleted) {
       return NextResponse.json({ error: 'Salon not found' }, { status: 404 });
     }
 
-    // Transform to expected format
+    // Transform to expected format — exclude internal fields
+    const { onboardingCompleted: _, ...publicSalon } = salon;
     const result = {
-      ...salon,
+      ...publicSalon,
       short_address: salon.shortAddress,
       working_hours: salon.workingHours,
       review_count: salon.reviewCount,

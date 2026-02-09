@@ -2,19 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import prisma from '@/lib/prisma'
 import { checkRateLimit } from '@/lib/rate-limit'
-import { generateSlug } from '@/lib/slug'
-
-async function getUniqueSlug(baseName: string): Promise<string> {
-  let slug = generateSlug(baseName)
-  let counter = 0
-  
-  while (true) {
-    const testSlug = counter === 0 ? slug : `${slug}-${counter}`
-    const existing = await prisma.salon.findUnique({ where: { slug: testSlug } })
-    if (!existing) return testSlug
-    counter++
-  }
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -110,8 +97,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Генеруємо унікальний slug для салону
-    const slug = await getUniqueSlug(salonName)
+    // Slug: temporary UUID-based, will be regenerated from real name during onboarding
+    const tempSlug = `s-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 
     // Хешуємо пароль
     const passwordHash = await bcrypt.hash(password, 10)
@@ -122,7 +109,7 @@ export async function POST(request: NextRequest) {
       const salon = await tx.salon.create({
         data: {
           name: salonName.trim(),
-          slug,
+          slug: tempSlug,
           phone: salonPhone || null,
           email: authMethod === 'email' ? loginEmail : null,
           // Дефолтні робочі години
