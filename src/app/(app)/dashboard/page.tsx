@@ -65,6 +65,19 @@ interface MasterStatus {
   nextAt?: string | null;
 }
 
+interface FeedItem {
+  id: string;
+  type: string;
+  label: string;
+  client: string;
+  service: string;
+  master: string;
+  date: string;
+  time: string;
+  price: number;
+  createdAt: string;
+}
+
 // ─── Helpers ───
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -160,21 +173,27 @@ export default function DashboardPage() {
   const [today, setToday] = useState<TodayData | null>(null);
   const [week, setWeek] = useState<WeekData | null>(null);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
+  const [feed, setFeed] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const [todayRes, weekRes, alertsRes] = await Promise.all([
+        const [todayRes, weekRes, alertsRes, feedRes] = await Promise.all([
           fetch('/api/dashboard/today'),
           fetch('/api/dashboard/week'),
           fetch('/api/dashboard/alerts'),
+          fetch('/api/dashboard/feed'),
         ]);
         if (todayRes.ok) setToday(await todayRes.json());
         if (weekRes.ok) setWeek(await weekRes.json());
         if (alertsRes.ok) {
           const data = await alertsRes.json();
           setAlerts(data.alerts || []);
+        }
+        if (feedRes.ok) {
+          const data = await feedRes.json();
+          setFeed(data.feed || []);
         }
       } catch (e) {
         console.error('Dashboard load error:', e);
@@ -300,21 +319,26 @@ export default function DashboardPage() {
                   )}
                 </Card>
 
-                {/* Revenue today */}
+                {/* Recent activity feed */}
                 <Card className="p-4">
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
-                      <DollarSign className="w-4 h-4 text-green-600" />
+                    <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
+                      <Clock className="w-4 h-4 text-purple-600" />
                     </div>
-                    <span className="text-xs font-medium text-gray-500">Виручка</span>
+                    <span className="text-xs font-medium text-gray-500">Останні події</span>
                   </div>
-                  <div className="text-2xl font-bold">
-                    {formatMoney(today.revenue)} <span className="text-base font-normal text-gray-400">₴</span>
-                  </div>
-                  {today.bookings.total > 0 && (
-                    <p className="text-xs text-gray-400 mt-1.5">
-                      ~{formatMoney(Math.round(today.revenue / today.bookings.total))} ₴/запис
-                    </p>
+                  {feed.length === 0 ? (
+                    <p className="text-sm text-gray-400">Поки подій немає</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {feed.slice(0, 3).map(item => (
+                        <div key={item.id} className="flex items-center gap-2 text-xs">
+                          <span className="shrink-0">{item.label.split(' ')[0]}</span>
+                          <span className="truncate text-gray-700 font-medium">{item.client}</span>
+                          <span className="text-gray-400 ml-auto shrink-0">{item.time}</span>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </Card>
               </div>
