@@ -16,11 +16,17 @@ export async function GET(request: NextRequest) {
     const date = searchParams.get('date');
     const masterId = searchParams.get('masterId');
 
-    if (!salonId) {
-      return NextResponse.json({ error: 'salonId required' }, { status: 400 });
+    // Verify user owns this salon
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { salonId: true },
+    });
+    const userSalonId = user?.salonId;
+    if (!userSalonId) {
+      return NextResponse.json({ error: 'No salon' }, { status: 400 });
     }
-
-    const where: any = { salonId };
+    // Always use user's salonId
+    const where: any = { salonId: userSalonId };
     
     if (date) {
       where.date = date;
@@ -50,16 +56,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { salonId, masterId, date, startTime, endTime, title, type, isAllDay, repeat, color } = body;
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { salonId: true },
+    });
+    if (!user?.salonId) {
+      return NextResponse.json({ error: 'No salon' }, { status: 400 });
+    }
 
-    if (!salonId || !date || !startTime || !endTime) {
+    const body = await request.json();
+    const { masterId, date, startTime, endTime, title, type, isAllDay, repeat, color } = body;
+
+    if (!date || !startTime || !endTime) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     const timeBlock = await prisma.timeBlock.create({
       data: {
-        salonId,
+        salonId: user.salonId,
         masterId: masterId || null,
         date,
         startTime,
@@ -92,6 +106,22 @@ export async function DELETE(request: NextRequest) {
 
     if (!id) {
       return NextResponse.json({ error: 'id required' }, { status: 400 });
+    }
+
+    // Verify time block belongs to user's salon
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { salonId: true },
+    });
+    const block = await prisma.timeBlock.findUnique({
+      where: { id },
+      select: { salonId: true },
+    });
+    if (!block) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+    if (block.salonId !== user?.salonId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     await prisma.timeBlock.delete({ where: { id } });

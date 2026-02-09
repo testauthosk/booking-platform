@@ -58,12 +58,10 @@ export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
   const vercelCron = request.headers.get('x-vercel-cron');
   
-  // Allow if: Vercel cron job, or correct CRON_SECRET, or no secret configured
-  const isVercelCron = vercelCron === '1';
+  // Allow if: valid CRON_SECRET only
   const hasValidSecret = CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`;
-  const noSecretConfigured = !CRON_SECRET;
   
-  if (!isVercelCron && !hasValidSecret && !noSecretConfigured) {
+  if (!hasValidSecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

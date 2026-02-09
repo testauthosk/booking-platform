@@ -42,6 +42,12 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // ── Public API endpoints: rate limit via header (enforced app-side) ──
+  if (['/api/catalogue', '/api/slots', '/api/services', '/api/categories'].some(p => pathname.startsWith(p))) {
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    response.headers.set('X-Public-API-IP', ip);
+  }
+
   // ── Sensitive paths: additional headers ──
   if (pathname.startsWith('/api/staff/') || pathname.startsWith('/api/admin/')) {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
