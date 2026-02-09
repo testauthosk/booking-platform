@@ -503,7 +503,6 @@ export default function RegisterPage() {
     input::-webkit-credentials-auto-fill-button,
     input::-webkit-contacts-auto-fill-button,
     input::-webkit-credit-card-auto-fill-button,
-    input::-webkit-textfield-decoration-container,
     input::-webkit-inner-spin-button,
     input::-webkit-outer-spin-button,
     input::-ms-reveal,
@@ -514,7 +513,6 @@ export default function RegisterPage() {
       position: absolute !important;
       right: -9999px !important;
     }
-    /* Removed -webkit-textfield-decoration-container hide — breaks password dots on some mobile browsers */
   `;
 
   return (
