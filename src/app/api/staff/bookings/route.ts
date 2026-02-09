@@ -441,6 +441,32 @@ export async function PATCH(request: NextRequest) {
       changes: { status, previousStatus: booking.status },
     });
 
+    // Send review request when booking is completed
+    if (status === 'COMPLETED' && booking.clientId) {
+      try {
+        const client = await prisma.client.findUnique({
+          where: { id: booking.clientId },
+          select: { email: true, telegramChatId: true },
+        });
+        const salon = await prisma.salon.findUnique({
+          where: { id: booking.salonId },
+          select: { name: true },
+        });
+        if (client && salon) {
+          const { sendReviewRequest } = await import('@/lib/review-request');
+          sendReviewRequest({
+            bookingId,
+            clientName: booking.clientName || 'Клієнт',
+            clientEmail: client.email,
+            clientChatId: client.telegramChatId,
+            serviceName: booking.serviceName || '',
+            masterName: booking.masterName || '',
+            salonName: salon.name,
+          }).catch(console.error);
+        }
+      } catch {}
+    }
+
     return NextResponse.json(updated);
   } catch (error) {
     console.error('Update booking status error:', error);

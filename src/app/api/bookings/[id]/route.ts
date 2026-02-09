@@ -176,6 +176,32 @@ export async function PATCH(
       }
     });
 
+    // Send review request when booking is completed
+    if (status === 'COMPLETED' && existing.clientId) {
+      try {
+        const client = await prisma.client.findUnique({
+          where: { id: existing.clientId },
+          select: { email: true, telegramChatId: true },
+        });
+        const salon = await prisma.salon.findUnique({
+          where: { id: existing.salonId },
+          select: { name: true },
+        });
+        if (client && salon) {
+          const { sendReviewRequest } = await import('@/lib/review-request');
+          sendReviewRequest({
+            bookingId: params.id,
+            clientName: existing.clientName || 'Клієнт',
+            clientEmail: client.email,
+            clientChatId: client.telegramChatId,
+            serviceName: existing.serviceName || '',
+            masterName: existing.masterName || '',
+            salonName: salon.name,
+          }).catch(console.error);
+        }
+      } catch {}
+    }
+
     return NextResponse.json(updated);
   } catch (error) {
     console.error('Update booking error:', error);

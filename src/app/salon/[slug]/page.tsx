@@ -818,7 +818,10 @@ export default function SalonPage() {
                             />
                           ))}
                         </div>
-                        <p className="text-sm text-gray-700">{review.text}</p>
+                        {review.service_name && (
+                          <p className="text-xs text-gray-400 mb-1">💇 {review.service_name}</p>
+                        )}
+                        {review.text && <p className="text-sm text-gray-700">{review.text}</p>}
                       </div>
                     ))}
                   </div>
