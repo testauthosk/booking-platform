@@ -19,18 +19,58 @@ import {
   MessageCircle,
   Package,
   Shield,
+  CreditCard,
+  UserCog,
+  Key,
+  Terminal,
+  Send,
+  Mail,
   ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 
-const navItems = [
+interface NavItem {
+  href?: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  label: string;
+  exact?: boolean;
+  divider?: boolean;
+  group?: boolean;
+  children?: NavItem[];
+}
+
+const navItems: NavItem[] = [
+  // Головна
+  { group: true, label: 'Головна' },
   { href: '/admin', icon: BarChart3, label: 'Дашборд', exact: true },
+  
+  // Дані
+  { group: true, label: 'Дані' },
   { href: '/admin/salons', icon: Store, label: 'Салони' },
   { href: '/admin/users', icon: Users, label: 'Користувачі' },
   { href: '/admin/clients', icon: Users, label: 'Клієнти' },
   { href: '/admin/bookings', icon: Calendar, label: 'Бронювання' },
   { href: '/admin/inventory', icon: Package, label: 'Склад' },
-  { href: '/admin/reminders', icon: MessageCircle, label: 'Напоминання' },
-  { divider: true },
+  
+  // Фінанси
+  { group: true, label: 'Фінанси' },
+  { href: '/admin/subscriptions', icon: CreditCard, label: 'Підписки' },
+  
+  // Комунікації
+  { group: true, label: 'Комунікації' },
+  { href: '/admin/reminders', icon: Bell, label: 'Нагадування' },
+  { href: '/admin/emails', icon: Mail, label: 'Email логи' },
+  { href: '/admin/telegram-logs', icon: MessageCircle, label: 'Telegram логи' },
+  { href: '/admin/broadcast', icon: Send, label: 'Broadcast' },
+  
+  // Інструменти
+  { group: true, label: 'Інструменти' },
+  { href: '/admin/impersonate', icon: UserCog, label: 'Impersonate' },
+  { href: '/admin/otp', icon: Key, label: 'OTP Debug' },
+  { href: '/admin/sql', icon: Terminal, label: 'SQL Console' },
+  
+  // Система
+  { group: true, label: 'Система' },
   { href: '/admin/logs', icon: FileText, label: 'Логи' },
   { href: '/admin/system', icon: Activity, label: 'Система' },
   { href: '/admin/backups', icon: Database, label: 'Бекапи' },
@@ -41,13 +81,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const pathname = usePathname();
   const { user, loading: authLoading, signOut, isSuperAdmin } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   
   const isLoginPage = pathname === '/admin/login';
 
-  // Redirect if not super admin (must be before any conditional returns)
+  // Redirect if not super admin
   useEffect(() => {
-    if (isLoginPage) return; // Don't redirect on login page
+    if (isLoginPage) return;
     
     if (!authLoading && !user) {
       router.push('/admin/login');
@@ -78,6 +118,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return pathname.startsWith(href);
   };
 
+  const toggleGroup = (label: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) {
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
+      return next;
+    });
+  };
+
+  // Group nav items
+  const groupedItems: { group: string; items: NavItem[] }[] = [];
+  let currentGroup = '';
+  
+  for (const item of navItems) {
+    if (item.group) {
+      currentGroup = item.label;
+      groupedItems.push({ group: currentGroup, items: [] });
+    } else if (currentGroup && groupedItems.length > 0) {
+      groupedItems[groupedItems.length - 1].items.push(item);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white flex">
       {/* Sidebar */}
@@ -97,26 +162,48 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {navItems.map((item, i) => {
-            if ('divider' in item) {
-              return <div key={i} className="h-px bg-white/5 my-3" />;
-            }
-            const active = isActive(item.href, item.exact);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  active
-                    ? 'bg-violet-500/20 text-violet-400'
-                    : 'text-gray-400 hover:bg-white/5 hover:text-white'
-                }`}
+          {groupedItems.map(({ group, items }) => (
+            <div key={group} className="mb-2">
+              {/* Group header */}
+              <button
+                onClick={() => toggleGroup(group)}
+                className="w-full flex items-center justify-between px-3 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:text-gray-400"
               >
-                <item.icon className="w-[18px] h-[18px]" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
+                <span>{group}</span>
+                {collapsedGroups.has(group) ? (
+                  <ChevronRight className="w-3 h-3" />
+                ) : (
+                  <ChevronDown className="w-3 h-3" />
+                )}
+              </button>
+              
+              {/* Group items */}
+              {!collapsedGroups.has(group) && (
+                <div className="mt-1 space-y-0.5">
+                  {items.map((item) => {
+                    if (!item.href || !item.icon) return null;
+                    const active = isActive(item.href, item.exact);
+                    const Icon = item.icon;
+                    
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                          active
+                            ? 'bg-violet-500/20 text-violet-400'
+                            : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                        }`}
+                      >
+                        <Icon className="w-[18px] h-[18px]" />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ))}
         </nav>
 
         {/* User section */}

@@ -22,6 +22,9 @@ import {
   Star,
   Calendar,
   MessageCircle,
+  LogIn,
+  Ban,
+  CheckCircle,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -37,13 +40,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
 interface User {
   id: string;
@@ -59,6 +55,7 @@ interface User {
   reviewCount?: number;
   lastLogin?: string | null;
   telegramChatId?: string | null;
+  notificationsEnabled?: boolean;
   salon?: { id: string; name: string; slug: string } | null;
   _count?: { bookings: number };
 }
@@ -90,6 +87,12 @@ export default function UsersPage() {
     role: 'SALON_OWNER',
     salonId: '',
   });
+
+  // Reset password modal
+  const [resetPasswordModal, setResetPasswordModal] = useState<User | null>(null);
+  const [resetPasswordSendVia, setResetPasswordSendVia] = useState<'email' | 'telegram' | 'both' | 'none'>('email');
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -204,6 +207,79 @@ export default function UsersPage() {
       }
     } catch (error) {
       console.error('Error deleting user:', error);
+    }
+  };
+
+  const impersonate = async (userId: string) => {
+    if (!confirm('Увійти як цей користувач?')) return;
+
+    try {
+      const res = await fetch('/api/admin/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        alert(data.message);
+        window.location.href = '/dashboard';
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Помилка');
+      }
+    } catch (error) {
+      console.error('Error impersonating:', error);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetPasswordModal) return;
+    setResettingPassword(true);
+    setNewPassword(null);
+
+    try {
+      const res = await fetch(`/api/admin/users/${resetPasswordModal.id}/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sendVia: resetPasswordSendVia }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.newPassword) {
+          setNewPassword(data.newPassword);
+        } else {
+          alert(data.message);
+          setResetPasswordModal(null);
+        }
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Помилка');
+      }
+    } catch (error) {
+      console.error('Error resetting password:', error);
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
+  const updateUserRole = async (user: User, newRole: string) => {
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: newRole }),
+      });
+
+      if (res.ok) {
+        fetchUsers();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Помилка');
+      }
+    } catch (error) {
+      console.error('Error updating role:', error);
     }
   };
 
@@ -348,6 +424,9 @@ export default function UsersPage() {
                           {user.rating.toFixed(1)}
                         </span>
                       )}
+                      {user.telegramChatId && (
+                        <MessageCircle className="w-4 h-4 text-sky-400" />
+                      )}
                     </div>
                     <div className="flex items-center gap-4 text-sm text-gray-500">
                       {user.email && (
@@ -383,8 +462,37 @@ export default function UsersPage() {
                     )}
                   </div>
 
-                  {/* Status */}
+                  {/* Role badge */}
                   <div>
+                    {user.userType === 'admin' && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer ${
+                            user.role === 'SUPER_ADMIN'
+                              ? 'bg-violet-500/10 text-violet-400'
+                              : 'bg-blue-500/10 text-blue-400'
+                          }`}>
+                            {user.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Власник'}
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-[#1a1a24] border-white/10">
+                          <DropdownMenuItem 
+                            onClick={() => updateUserRole(user, 'SALON_OWNER')}
+                            className="text-gray-300 focus:text-white focus:bg-white/10"
+                          >
+                            <CheckCircle className={`w-4 h-4 mr-2 ${user.role === 'SALON_OWNER' ? 'text-green-400' : 'opacity-0'}`} />
+                            Власник салону
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => updateUserRole(user, 'SUPER_ADMIN')}
+                            className="text-gray-300 focus:text-white focus:bg-white/10"
+                          >
+                            <CheckCircle className={`w-4 h-4 mr-2 ${user.role === 'SUPER_ADMIN' ? 'text-green-400' : 'opacity-0'}`} />
+                            Super Admin
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                     {user.userType === 'master' && (
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
                         user.isActive 
@@ -393,15 +501,6 @@ export default function UsersPage() {
                       }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${user.isActive ? 'bg-green-500' : 'bg-red-500'}`} />
                         {user.isActive ? 'Активний' : 'Неактивний'}
-                      </span>
-                    )}
-                    {user.userType === 'admin' && (
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                        user.role === 'SUPER_ADMIN'
-                          ? 'bg-violet-500/10 text-violet-400'
-                          : 'bg-blue-500/10 text-blue-400'
-                      }`}>
-                        {user.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Власник'}
                       </span>
                     )}
                   </div>
@@ -414,6 +513,15 @@ export default function UsersPage() {
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="bg-[#1a1a24] border-white/10">
+                      {user.userType === 'admin' && user.role !== 'SUPER_ADMIN' && (
+                        <DropdownMenuItem 
+                          onClick={() => impersonate(user.id)}
+                          className="text-gray-300 focus:text-white focus:bg-white/10"
+                        >
+                          <LogIn className="w-4 h-4 mr-2" />
+                          Увійти як
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem 
                         onClick={() => openEditModal(user)}
                         className="text-gray-300 focus:text-white focus:bg-white/10"
@@ -421,10 +529,15 @@ export default function UsersPage() {
                         <Edit2 className="w-4 h-4 mr-2" />
                         Редагувати
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-gray-300 focus:text-white focus:bg-white/10">
-                        <Key className="w-4 h-4 mr-2" />
-                        Скинути пароль
-                      </DropdownMenuItem>
+                      {user.userType === 'admin' && (
+                        <DropdownMenuItem 
+                          onClick={() => setResetPasswordModal(user)}
+                          className="text-gray-300 focus:text-white focus:bg-white/10"
+                        >
+                          <Key className="w-4 h-4 mr-2" />
+                          Скинути пароль
+                        </DropdownMenuItem>
+                      )}
                       {user.telegramChatId && (
                         <DropdownMenuItem className="text-gray-300 focus:text-white focus:bg-white/10">
                           <MessageCircle className="w-4 h-4 mr-2" />
@@ -544,6 +657,98 @@ export default function UsersPage() {
                 {editingUser ? 'Зберегти' : 'Створити'}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Modal */}
+      <Dialog open={!!resetPasswordModal} onOpenChange={() => { setResetPasswordModal(null); setNewPassword(null); }}>
+        <DialogContent className="bg-[#12121a] border-white/10 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle>Скинути пароль</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-4">
+            {newPassword ? (
+              <div className="space-y-4">
+                <p className="text-gray-300">Новий пароль:</p>
+                <div className="p-4 bg-violet-500/10 rounded-lg">
+                  <p className="font-mono text-xl text-violet-400 text-center">{newPassword}</p>
+                </div>
+                <p className="text-sm text-gray-500">
+                  Збережіть цей пароль! Він більше не буде показаний.
+                </p>
+                <Button
+                  onClick={() => { setResetPasswordModal(null); setNewPassword(null); }}
+                  className="w-full bg-violet-600 hover:bg-violet-700"
+                >
+                  Закрити
+                </Button>
+              </div>
+            ) : (
+              <>
+                <p className="text-gray-300">
+                  Скинути пароль для <strong className="text-white">{resetPasswordModal?.name || resetPasswordModal?.email}</strong>?
+                </p>
+
+                <div className="space-y-2">
+                  <Label className="text-gray-400">Надіслати новий пароль через:</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setResetPasswordSendVia('email')}
+                      className={`p-3 rounded-lg border transition-colors ${
+                        resetPasswordSendVia === 'email'
+                          ? 'border-violet-500 bg-violet-500/10'
+                          : 'border-white/10 hover:bg-white/5'
+                      }`}
+                      disabled={!resetPasswordModal?.email}
+                    >
+                      <Mail className={`w-5 h-5 mx-auto mb-1 ${resetPasswordSendVia === 'email' ? 'text-violet-400' : 'text-gray-500'}`} />
+                      <p className="text-sm text-white">Email</p>
+                    </button>
+                    <button
+                      onClick={() => setResetPasswordSendVia('telegram')}
+                      className={`p-3 rounded-lg border transition-colors ${
+                        resetPasswordSendVia === 'telegram'
+                          ? 'border-violet-500 bg-violet-500/10'
+                          : 'border-white/10 hover:bg-white/5'
+                      }`}
+                      disabled={!resetPasswordModal?.telegramChatId}
+                    >
+                      <MessageCircle className={`w-5 h-5 mx-auto mb-1 ${resetPasswordSendVia === 'telegram' ? 'text-violet-400' : 'text-gray-500'}`} />
+                      <p className="text-sm text-white">Telegram</p>
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => setResetPasswordSendVia('none')}
+                    className={`w-full p-2 rounded-lg border transition-colors ${
+                      resetPasswordSendVia === 'none'
+                        ? 'border-violet-500 bg-violet-500/10'
+                        : 'border-white/10 hover:bg-white/5'
+                    }`}
+                  >
+                    <p className="text-sm text-gray-400">Показати пароль (не надсилати)</p>
+                  </button>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setResetPasswordModal(null)}
+                    className="flex-1 bg-transparent border-white/10 text-white hover:bg-white/5"
+                  >
+                    Скасувати
+                  </Button>
+                  <Button
+                    onClick={handleResetPassword}
+                    disabled={resettingPassword}
+                    className="flex-1 bg-violet-600 hover:bg-violet-700"
+                  >
+                    {resettingPassword ? 'Скидання...' : 'Скинути'}
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>

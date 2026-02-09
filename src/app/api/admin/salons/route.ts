@@ -1,8 +1,7 @@
-// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 // GET all salons (admin only)
 export async function GET(request: NextRequest) {
@@ -24,11 +23,32 @@ export async function GET(request: NextRequest) {
     const salons = await prisma.salon.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
-        owner: { select: { email: true } }
+        subscription: {
+          select: { plan: true, status: true }
+        },
+        users: {
+          where: { role: 'SALON_OWNER' },
+          take: 1,
+          select: { id: true, email: true, name: true }
+        },
+        _count: {
+          select: {
+            masters: true,
+            bookings: true,
+            clients: true,
+          }
+        }
       }
     });
 
-    return NextResponse.json(salons);
+    // Transform to include owner field
+    const transformed = salons.map(salon => ({
+      ...salon,
+      owner: salon.users[0] || null,
+      users: undefined,
+    }));
+
+    return NextResponse.json(transformed);
   } catch (error) {
     console.error('Admin salons GET error:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
@@ -73,13 +93,13 @@ export async function POST(request: NextRequest) {
 
     // Create owner if provided
     if (ownerEmail && ownerPassword) {
-      const bcrypt = require('bcryptjs');
+      const bcrypt = await import('bcryptjs');
       const hashedPassword = await bcrypt.hash(ownerPassword, 10);
       
-      await prisma.user.create({
+      const newUser = await prisma.user.create({
         data: {
           email: ownerEmail,
-          password: hashedPassword,
+          passwordHash: hashedPassword,
           name: name,
           role: 'SALON_OWNER',
           salonId: salon.id,
@@ -88,7 +108,7 @@ export async function POST(request: NextRequest) {
 
       await prisma.salon.update({
         where: { id: salon.id },
-        data: { ownerId: salon.id }
+        data: { ownerId: newUser.id }
       });
     }
 
@@ -117,11 +137,18 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, isActive } = body;
+    const { id, isActive, name, slug, address, phone } = body;
+
+    const data: Record<string, unknown> = {};
+    if (isActive !== undefined) data.isActive = isActive;
+    if (name !== undefined) data.name = name;
+    if (slug !== undefined) data.slug = slug;
+    if (address !== undefined) data.address = address;
+    if (phone !== undefined) data.phone = phone;
 
     const salon = await prisma.salon.update({
       where: { id },
-      data: { isActive }
+      data
     });
 
     return NextResponse.json(salon);

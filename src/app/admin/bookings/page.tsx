@@ -11,7 +11,6 @@ import {
   User,
   Scissors,
   Store,
-  DollarSign,
   MoreVertical,
   CheckCircle,
   XCircle,
@@ -20,6 +19,9 @@ import {
   ChevronRight,
   Filter,
   Download,
+  Trash2,
+  CheckSquare,
+  Square,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -53,7 +55,13 @@ interface Salon {
   name: string;
 }
 
-const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
+interface Master {
+  id: string;
+  name: string;
+  salonId: string;
+}
+
+const statusConfig: Record<string, { label: string; color: string; icon: typeof Clock }> = {
   PENDING: { label: 'Очікує', color: 'bg-yellow-500/10 text-yellow-400', icon: Clock },
   CONFIRMED: { label: 'Підтверджено', color: 'bg-blue-500/10 text-blue-400', icon: CheckCircle },
   COMPLETED: { label: 'Виконано', color: 'bg-green-500/10 text-green-400', icon: CheckCircle },
@@ -64,9 +72,11 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [salons, setSalons] = useState<Salon[]>([]);
+  const [masters, setMasters] = useState<Master[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [salonFilter, setSalonFilter] = useState('');
+  const [masterFilter, setMasterFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -77,15 +87,30 @@ export default function BookingsPage() {
     today: 0,
     monthRevenue: 0,
   });
+  
+  // Selection for bulk actions
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
+  
   const perPage = 50;
 
   useEffect(() => {
     fetchBookings();
-  }, [page, salonFilter, statusFilter, dateFrom, dateTo]);
+  }, [page, salonFilter, masterFilter, statusFilter, dateFrom, dateTo]);
 
   useEffect(() => {
     fetchSalons();
   }, []);
+
+  useEffect(() => {
+    // Fetch masters when salon changes
+    if (salonFilter) {
+      fetchMasters(salonFilter);
+    } else {
+      setMasters([]);
+      setMasterFilter('');
+    }
+  }, [salonFilter]);
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -96,6 +121,7 @@ export default function BookingsPage() {
       });
       if (search) params.set('search', search);
       if (salonFilter) params.set('salonId', salonFilter);
+      if (masterFilter) params.set('masterId', masterFilter);
       if (statusFilter) params.set('status', statusFilter);
       if (dateFrom) params.set('dateFrom', dateFrom);
       if (dateTo) params.set('dateTo', dateTo);
@@ -111,6 +137,7 @@ export default function BookingsPage() {
       console.error('Error fetching bookings:', error);
     } finally {
       setLoading(false);
+      setSelectedIds(new Set());
     }
   };
 
@@ -123,6 +150,23 @@ export default function BookingsPage() {
       }
     } catch (error) {
       console.error('Error fetching salons:', error);
+    }
+  };
+
+  const fetchMasters = async (salonId: string) => {
+    try {
+      // Use the salon's masters endpoint or add a simple query
+      const res = await fetch(`/api/admin/users?type=master&salonId=${salonId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setMasters(data.users.map((u: { id: string; name: string; salonId: string }) => ({
+          id: u.id,
+          name: u.name,
+          salonId: u.salonId,
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching masters:', error);
     }
   };
 
@@ -161,8 +205,47 @@ export default function BookingsPage() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Видалити ${selectedIds.size} вибраних записів?`)) return;
+
+    setDeleting(true);
+    try {
+      const ids = Array.from(selectedIds).join(',');
+      const res = await fetch(`/api/admin/bookings?ids=${ids}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        alert(`Видалено ${data.deleted} записів`);
+        fetchBookings();
+      }
+    } catch (error) {
+      console.error('Error bulk deleting:', error);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === bookings.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(bookings.map(b => b.id)));
+    }
+  };
+
   const totalPages = Math.ceil(total / perPage);
-  const totalBookings = Object.values(stats.byStatus).reduce((a, b) => a + b, 0);
 
   return (
     <div className="p-6 space-y-6">
@@ -172,10 +255,23 @@ export default function BookingsPage() {
           <h1 className="text-2xl font-bold text-white">Бронювання</h1>
           <p className="text-gray-400 text-sm">Всі записи всіх салонів</p>
         </div>
-        <Button variant="outline" className="bg-transparent border-white/10 text-white hover:bg-white/5">
-          <Download className="w-4 h-4 mr-2" />
-          Експорт
-        </Button>
+        <div className="flex gap-2">
+          {selectedIds.size > 0 && (
+            <Button 
+              onClick={handleBulkDelete}
+              disabled={deleting}
+              variant="outline" 
+              className="bg-transparent border-red-500/20 text-red-400 hover:bg-red-500/10"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Видалити ({selectedIds.size})
+            </Button>
+          )}
+          <Button variant="outline" className="bg-transparent border-white/10 text-white hover:bg-white/5">
+            <Download className="w-4 h-4 mr-2" />
+            Експорт
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -186,21 +282,21 @@ export default function BookingsPage() {
         </Card>
         <Card 
           className={`bg-[#12121a] border-white/5 p-4 cursor-pointer ${statusFilter === 'CONFIRMED' ? 'border-blue-500' : ''}`}
-          onClick={() => setStatusFilter(statusFilter === 'CONFIRMED' ? '' : 'CONFIRMED')}
+          onClick={() => { setStatusFilter(statusFilter === 'CONFIRMED' ? '' : 'CONFIRMED'); setPage(1); }}
         >
           <p className="text-2xl font-bold text-blue-400">{stats.byStatus.CONFIRMED || 0}</p>
           <p className="text-sm text-gray-500">Підтверджено</p>
         </Card>
         <Card 
           className={`bg-[#12121a] border-white/5 p-4 cursor-pointer ${statusFilter === 'COMPLETED' ? 'border-green-500' : ''}`}
-          onClick={() => setStatusFilter(statusFilter === 'COMPLETED' ? '' : 'COMPLETED')}
+          onClick={() => { setStatusFilter(statusFilter === 'COMPLETED' ? '' : 'COMPLETED'); setPage(1); }}
         >
           <p className="text-2xl font-bold text-green-400">{stats.byStatus.COMPLETED || 0}</p>
           <p className="text-sm text-gray-500">Виконано</p>
         </Card>
         <Card 
           className={`bg-[#12121a] border-white/5 p-4 cursor-pointer ${statusFilter === 'CANCELLED' ? 'border-red-500' : ''}`}
-          onClick={() => setStatusFilter(statusFilter === 'CANCELLED' ? '' : 'CANCELLED')}
+          onClick={() => { setStatusFilter(statusFilter === 'CANCELLED' ? '' : 'CANCELLED'); setPage(1); }}
         >
           <p className="text-2xl font-bold text-red-400">{stats.byStatus.CANCELLED || 0}</p>
           <p className="text-sm text-gray-500">Скасовано</p>
@@ -225,7 +321,7 @@ export default function BookingsPage() {
         </div>
         <select
           value={salonFilter}
-          onChange={(e) => { setSalonFilter(e.target.value); setPage(1); }}
+          onChange={(e) => { setSalonFilter(e.target.value); setMasterFilter(''); setPage(1); }}
           className="px-3 py-2 bg-[#12121a] border border-white/10 rounded-lg text-white text-sm"
         >
           <option value="">Всі салони</option>
@@ -233,6 +329,18 @@ export default function BookingsPage() {
             <option key={s.id} value={s.id}>{s.name}</option>
           ))}
         </select>
+        {salonFilter && masters.length > 0 && (
+          <select
+            value={masterFilter}
+            onChange={(e) => { setMasterFilter(e.target.value); setPage(1); }}
+            className="px-3 py-2 bg-[#12121a] border border-white/10 rounded-lg text-white text-sm"
+          >
+            <option value="">Всі майстри</option>
+            {masters.map(m => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
+        )}
         <Input
           type="date"
           value={dateFrom}
@@ -267,6 +375,15 @@ export default function BookingsPage() {
             <table className="w-full">
               <thead className="bg-white/5">
                 <tr>
+                  <th className="text-left px-4 py-3 w-10">
+                    <button onClick={toggleSelectAll} className="text-gray-400 hover:text-white">
+                      {selectedIds.size === bookings.length ? (
+                        <CheckSquare className="w-4 h-4" />
+                      ) : (
+                        <Square className="w-4 h-4" />
+                      )}
+                    </button>
+                  </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Дата/Час</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Клієнт</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Послуга</th>
@@ -280,9 +397,19 @@ export default function BookingsPage() {
                 {bookings.map((booking) => {
                   const config = statusConfig[booking.status];
                   const StatusIcon = config.icon;
+                  const isSelected = selectedIds.has(booking.id);
                   
                   return (
-                    <tr key={booking.id} className="hover:bg-white/5 transition-colors">
+                    <tr key={booking.id} className={`hover:bg-white/5 transition-colors ${isSelected ? 'bg-violet-500/10' : ''}`}>
+                      <td className="px-4 py-4">
+                        <button onClick={() => toggleSelect(booking.id)} className="text-gray-400 hover:text-white">
+                          {isSelected ? (
+                            <CheckSquare className="w-4 h-4 text-violet-400" />
+                          ) : (
+                            <Square className="w-4 h-4" />
+                          )}
+                        </button>
+                      </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-gray-500" />
@@ -322,10 +449,26 @@ export default function BookingsPage() {
                         <span className="text-white font-medium">{booking.price} ₴</span>
                       </td>
                       <td className="px-4 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${config.color}`}>
-                          <StatusIcon className="w-3 h-3" />
-                          {config.label}
-                        </span>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer ${config.color}`}>
+                              <StatusIcon className="w-3 h-3" />
+                              {config.label}
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-[#1a1a24] border-white/10">
+                            {Object.entries(statusConfig).map(([key, cfg]) => (
+                              <DropdownMenuItem
+                                key={key}
+                                onClick={() => updateStatus(booking, key)}
+                                className={`${booking.status === key ? 'bg-white/10' : ''} focus:bg-white/10`}
+                              >
+                                <cfg.icon className={`w-4 h-4 mr-2 ${cfg.color.split(' ')[1]}`} />
+                                <span className={cfg.color.split(' ')[1]}>{cfg.label}</span>
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </td>
                       <td className="px-4 py-4">
                         <DropdownMenu>
@@ -335,38 +478,11 @@ export default function BookingsPage() {
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="bg-[#1a1a24] border-white/10">
-                            {booking.status !== 'COMPLETED' && (
-                              <DropdownMenuItem 
-                                onClick={() => updateStatus(booking, 'COMPLETED')}
-                                className="text-green-400 focus:text-green-400 focus:bg-green-500/10"
-                              >
-                                <CheckCircle className="w-4 h-4 mr-2" />
-                                Виконано
-                              </DropdownMenuItem>
-                            )}
-                            {booking.status !== 'CANCELLED' && (
-                              <DropdownMenuItem 
-                                onClick={() => updateStatus(booking, 'CANCELLED')}
-                                className="text-red-400 focus:text-red-400 focus:bg-red-500/10"
-                              >
-                                <XCircle className="w-4 h-4 mr-2" />
-                                Скасувати
-                              </DropdownMenuItem>
-                            )}
-                            {booking.status !== 'NO_SHOW' && (
-                              <DropdownMenuItem 
-                                onClick={() => updateStatus(booking, 'NO_SHOW')}
-                                className="text-orange-400 focus:text-orange-400 focus:bg-orange-500/10"
-                              >
-                                <AlertTriangle className="w-4 h-4 mr-2" />
-                                Не з'явився
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator className="bg-white/10" />
                             <DropdownMenuItem 
                               onClick={() => handleDelete(booking)}
                               className="text-red-400 focus:text-red-400 focus:bg-red-500/10"
                             >
+                              <Trash2 className="w-4 h-4 mr-2" />
                               Видалити
                             </DropdownMenuItem>
                           </DropdownMenuContent>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Users,
   Search,
@@ -20,6 +21,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
+  Ban,
+  CheckCircle,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -28,6 +31,12 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface Client {
   id: string;
@@ -41,6 +50,9 @@ interface Client {
   lastVisit: string | null;
   notes: string | null;
   createdAt: string;
+  isBlocked: boolean;
+  blockReason: string | null;
+  noShowCount: number;
   salon: { id: string; name: string; slug: string };
   _count: { bookings: number; reviews: number };
 }
@@ -57,14 +69,28 @@ export default function ClientsPage() {
   const [search, setSearch] = useState('');
   const [salonFilter, setSalonFilter] = useState('');
   const [telegramFilter, setTelegramFilter] = useState<string>('');
+  const [blockedFilter, setBlockedFilter] = useState<string>('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [stats, setStats] = useState({ totalAll: 0, withTelegram: 0 });
   const perPage = 50;
 
+  // Edit modal
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    telegramChatId: '',
+    isBlocked: false,
+    blockReason: '',
+  });
+  const [saving, setSaving] = useState(false);
+
   useEffect(() => {
     fetchClients();
-  }, [page, salonFilter, telegramFilter]);
+  }, [page, salonFilter, telegramFilter, blockedFilter]);
 
   useEffect(() => {
     fetchSalons();
@@ -84,7 +110,16 @@ export default function ClientsPage() {
       const res = await fetch(`/api/admin/clients?${params}`);
       if (res.ok) {
         const data = await res.json();
-        setClients(data.clients);
+        let filteredClients = data.clients;
+        
+        // Filter by blocked status (client-side for now)
+        if (blockedFilter === 'true') {
+          filteredClients = filteredClients.filter((c: Client) => c.isBlocked);
+        } else if (blockedFilter === 'false') {
+          filteredClients = filteredClients.filter((c: Client) => !c.isBlocked);
+        }
+        
+        setClients(filteredClients);
         setTotal(data.total);
         setStats({
           totalAll: data.totalAll,
@@ -115,6 +150,77 @@ export default function ClientsPage() {
     fetchClients();
   };
 
+  const openEditModal = (client: Client) => {
+    setEditingClient(client);
+    setEditForm({
+      name: client.name,
+      phone: client.phone,
+      email: client.email || '',
+      telegramChatId: client.telegramChatId || '',
+      isBlocked: client.isBlocked,
+      blockReason: client.blockReason || '',
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!editingClient) return;
+    setSaving(true);
+
+    try {
+      const res = await fetch('/api/admin/clients', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingClient.id,
+          name: editForm.name,
+          phone: editForm.phone,
+          email: editForm.email || null,
+          telegramChatId: editForm.telegramChatId || null,
+          isBlocked: editForm.isBlocked,
+          blockReason: editForm.isBlocked ? editForm.blockReason : null,
+        }),
+      });
+
+      if (res.ok) {
+        setEditModalOpen(false);
+        fetchClients();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Помилка збереження');
+      }
+    } catch (error) {
+      console.error('Error saving client:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleBlock = async (client: Client) => {
+    const action = client.isBlocked ? 'розблокувати' : 'заблокувати';
+    const reason = client.isBlocked ? null : prompt('Причина блокування:');
+    
+    if (!client.isBlocked && reason === null) return; // Cancelled
+
+    try {
+      const res = await fetch('/api/admin/clients', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: client.id,
+          isBlocked: !client.isBlocked,
+          blockReason: reason,
+        }),
+      });
+
+      if (res.ok) {
+        fetchClients();
+      }
+    } catch (error) {
+      console.error('Error toggling block:', error);
+    }
+  };
+
   const handleDelete = async (client: Client) => {
     if (!confirm(`Видалити клієнта ${client.name}?`)) return;
 
@@ -131,6 +237,7 @@ export default function ClientsPage() {
   };
 
   const totalPages = Math.ceil(total / perPage);
+  const blockedCount = clients.filter(c => c.isBlocked).length;
 
   return (
     <div className="p-6 space-y-6">
@@ -143,7 +250,7 @@ export default function ClientsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-4 gap-4">
         <Card className="bg-[#12121a] border-white/5 p-4">
           <div className="flex items-center gap-3">
             <Users className="w-5 h-5 text-violet-400" />
@@ -155,7 +262,7 @@ export default function ClientsPage() {
         </Card>
         <Card 
           className={`bg-[#12121a] border-white/5 p-4 cursor-pointer transition-colors ${telegramFilter === 'true' ? 'border-sky-500' : ''}`}
-          onClick={() => setTelegramFilter(telegramFilter === 'true' ? '' : 'true')}
+          onClick={() => { setTelegramFilter(telegramFilter === 'true' ? '' : 'true'); setPage(1); }}
         >
           <div className="flex items-center gap-3">
             <MessageCircle className="w-5 h-5 text-sky-400" />
@@ -167,13 +274,25 @@ export default function ClientsPage() {
         </Card>
         <Card 
           className={`bg-[#12121a] border-white/5 p-4 cursor-pointer transition-colors ${telegramFilter === 'false' ? 'border-gray-500' : ''}`}
-          onClick={() => setTelegramFilter(telegramFilter === 'false' ? '' : 'false')}
+          onClick={() => { setTelegramFilter(telegramFilter === 'false' ? '' : 'false'); setPage(1); }}
         >
           <div className="flex items-center gap-3">
             <Users className="w-5 h-5 text-gray-400" />
             <div>
               <p className="text-2xl font-bold text-white">{stats.totalAll - stats.withTelegram}</p>
               <p className="text-sm text-gray-500">Без Telegram</p>
+            </div>
+          </div>
+        </Card>
+        <Card 
+          className={`bg-[#12121a] border-white/5 p-4 cursor-pointer transition-colors ${blockedFilter === 'true' ? 'border-red-500' : ''}`}
+          onClick={() => { setBlockedFilter(blockedFilter === 'true' ? '' : 'true'); setPage(1); }}
+        >
+          <div className="flex items-center gap-3">
+            <Ban className="w-5 h-5 text-red-400" />
+            <div>
+              <p className="text-2xl font-bold text-red-400">{blockedCount}</p>
+              <p className="text-sm text-gray-500">Заблоковано</p>
             </div>
           </div>
         </Card>
@@ -224,20 +343,29 @@ export default function ClientsPage() {
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Контакти</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Салон</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Статистика</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Telegram</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Статус</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Дії</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {clients.map((client) => (
-                  <tr key={client.id} className="hover:bg-white/5 transition-colors">
+                  <tr key={client.id} className={`hover:bg-white/5 transition-colors ${client.isBlocked ? 'opacity-60' : ''}`}>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-violet-500/20 flex items-center justify-center text-violet-400 font-medium">
+                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-medium ${
+                          client.isBlocked 
+                            ? 'bg-red-500/20 text-red-400' 
+                            : 'bg-violet-500/20 text-violet-400'
+                        }`}>
                           {client.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-medium text-white">{client.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-white">{client.name}</p>
+                            {client.isBlocked && (
+                              <Ban className="w-4 h-4 text-red-400" />
+                            )}
+                          </div>
                           <p className="text-xs text-gray-500">
                             з {new Date(client.createdAt).toLocaleDateString('uk-UA')}
                           </p>
@@ -254,6 +382,12 @@ export default function ClientsPage() {
                           <div className="flex items-center gap-2 text-gray-500">
                             <Mail className="w-3 h-3" />
                             {client.email}
+                          </div>
+                        )}
+                        {client.telegramChatId && (
+                          <div className="flex items-center gap-2 text-sky-400">
+                            <MessageCircle className="w-3 h-3" />
+                            {client.telegramUsername || 'Telegram'}
                           </div>
                         )}
                       </div>
@@ -280,13 +414,30 @@ export default function ClientsPage() {
                             {client._count.reviews}
                           </span>
                         )}
+                        {client.noShowCount > 0 && (
+                          <span className="text-red-400 text-xs" title="No-show">
+                            NS: {client.noShowCount}
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-4">
-                      {client.telegramChatId ? (
+                      {client.isBlocked ? (
+                        <div>
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-400">
+                            <Ban className="w-3 h-3" />
+                            Заблоковано
+                          </span>
+                          {client.blockReason && (
+                            <p className="text-xs text-gray-500 mt-1 truncate max-w-[120px]" title={client.blockReason}>
+                              {client.blockReason}
+                            </p>
+                          )}
+                        </div>
+                      ) : client.telegramChatId ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-sky-500/10 text-sky-400">
                           <MessageCircle className="w-3 h-3" />
-                          Підключено
+                          Telegram
                         </span>
                       ) : (
                         <span className="text-gray-600 text-sm">—</span>
@@ -309,9 +460,31 @@ export default function ClientsPage() {
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="bg-[#1a1a24] border-white/10">
-                            <DropdownMenuItem className="text-gray-300 focus:text-white focus:bg-white/10">
+                            <DropdownMenuItem 
+                              onClick={() => openEditModal(client)}
+                              className="text-gray-300 focus:text-white focus:bg-white/10"
+                            >
                               <Edit2 className="w-4 h-4 mr-2" />
                               Редагувати
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => toggleBlock(client)}
+                              className={client.isBlocked 
+                                ? "text-green-400 focus:text-green-400 focus:bg-green-500/10"
+                                : "text-red-400 focus:text-red-400 focus:bg-red-500/10"
+                              }
+                            >
+                              {client.isBlocked ? (
+                                <>
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  Розблокувати
+                                </>
+                              ) : (
+                                <>
+                                  <Ban className="w-4 h-4 mr-2" />
+                                  Заблокувати
+                                </>
+                              )}
                             </DropdownMenuItem>
                             <DropdownMenuItem className="text-gray-300 focus:text-white focus:bg-white/10">
                               <Calendar className="w-4 h-4 mr-2" />
@@ -374,6 +547,95 @@ export default function ClientsPage() {
           </>
         )}
       </Card>
+
+      {/* Edit Modal */}
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent className="bg-[#12121a] border-white/10 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle>Редагувати клієнта</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label className="text-gray-400">Ім'я</Label>
+              <Input
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                className="bg-white/5 border-white/10 text-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-gray-400">Телефон</Label>
+              <Input
+                value={editForm.phone}
+                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                className="bg-white/5 border-white/10 text-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-gray-400">Email</Label>
+              <Input
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                className="bg-white/5 border-white/10 text-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-gray-400">Telegram Chat ID</Label>
+              <Input
+                value={editForm.telegramChatId}
+                onChange={(e) => setEditForm({ ...editForm, telegramChatId: e.target.value })}
+                className="bg-white/5 border-white/10 text-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={editForm.isBlocked}
+                  onChange={(e) => setEditForm({ ...editForm, isBlocked: e.target.checked })}
+                  className="w-4 h-4 rounded border-white/10 bg-white/5 text-violet-500"
+                />
+                <span className="text-gray-300">Заблокувати клієнта</span>
+              </label>
+            </div>
+
+            {editForm.isBlocked && (
+              <div className="space-y-2">
+                <Label className="text-gray-400">Причина блокування</Label>
+                <Input
+                  value={editForm.blockReason}
+                  onChange={(e) => setEditForm({ ...editForm, blockReason: e.target.value })}
+                  className="bg-white/5 border-white/10 text-white"
+                  placeholder="Не з'явився 3 рази"
+                />
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setEditModalOpen(false)}
+                className="flex-1 bg-transparent border-white/10 text-white hover:bg-white/5"
+              >
+                Скасувати
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex-1 bg-violet-600 hover:bg-violet-700"
+              >
+                {saving ? 'Збереження...' : 'Зберегти'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

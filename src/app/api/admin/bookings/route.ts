@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search');
     const salonId = searchParams.get('salonId');
+    const masterId = searchParams.get('masterId');
     const status = searchParams.get('status');
     const dateFrom = searchParams.get('dateFrom');
     const dateTo = searchParams.get('dateTo');
@@ -24,6 +25,7 @@ export async function GET(req: NextRequest) {
     const where: any = {};
 
     if (salonId) where.salonId = salonId;
+    if (masterId) where.masterId = masterId;
     if (status) where.status = status as BookingStatus;
     if (dateFrom) where.date = { ...where.date, gte: dateFrom };
     if (dateTo) where.date = { ...where.date, lte: dateTo };
@@ -125,7 +127,7 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-// DELETE - delete booking
+// DELETE - delete booking(s)
 export async function DELETE(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -135,6 +137,16 @@ export async function DELETE(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
+    const ids = searchParams.get('ids'); // comma-separated IDs for bulk delete
+
+    if (ids) {
+      // Bulk delete
+      const idList = ids.split(',').filter(Boolean);
+      const result = await prisma.booking.deleteMany({
+        where: { id: { in: idList } },
+      });
+      return NextResponse.json({ success: true, deleted: result.count });
+    }
 
     if (!id) {
       return NextResponse.json({ error: 'Missing id' }, { status: 400 });
