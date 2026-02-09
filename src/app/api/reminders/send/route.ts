@@ -54,9 +54,7 @@ function formatTemplate(template: string, data: Record<string, string>): string 
 }
 
 export async function POST(request: NextRequest) {
-  // Verify cron secret (Vercel sends it as CRON_SECRET header)
   const authHeader = request.headers.get('authorization');
-  const vercelCron = request.headers.get('x-vercel-cron');
   
   // Allow if: valid CRON_SECRET only
   const hasValidSecret = CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`;

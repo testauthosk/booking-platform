@@ -12,11 +12,10 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const salonId = searchParams.get('salonId');
     const date = searchParams.get('date');
     const masterId = searchParams.get('masterId');
 
-    // Verify user owns this salon
+    // Always use user's salonId, ignore query param
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { salonId: true },
