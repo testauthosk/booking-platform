@@ -61,14 +61,15 @@ export function NewBookingModal({
   useEffect(() => {
     if (isOpen) {
       setIsVisible(true);
-      setSelectedResource(slotInfo?.resourceId || '');
+      // Auto-select resource from slot or if only one master
+      setSelectedResource(slotInfo?.resourceId || (resources.length === 1 ? resources[0].id : ''));
       requestAnimationFrame(() => setIsAnimating(true));
     } else {
       setIsAnimating(false);
       const timer = setTimeout(() => setIsVisible(false), 300);
       return () => clearTimeout(timer);
     }
-  }, [isOpen, slotInfo?.resourceId]);
+  }, [isOpen, slotInfo?.resourceId, resources]);
 
   if (!isVisible || !slotInfo) return null;
 
@@ -121,14 +122,19 @@ export function NewBookingModal({
         onClick={onClose}
       />
       
-      {/* Modal */}
-      <div className={`fixed inset-x-4 bottom-24 lg:inset-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-md bg-background rounded-2xl shadow-xl z-50 max-h-[70vh] lg:max-h-[85vh] overflow-hidden flex flex-col transition-all duration-300 ${
+      {/* Bottom Sheet Modal */}
+      <div className={`fixed inset-x-0 bottom-0 lg:inset-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-md bg-background rounded-t-3xl lg:rounded-2xl shadow-xl z-50 max-h-[85vh] overflow-hidden flex flex-col transition-all duration-300 ${
         isAnimating 
           ? 'opacity-100 translate-y-0 lg:scale-100' 
-          : 'opacity-0 translate-y-8 lg:translate-y-0 lg:scale-95'
+          : 'opacity-0 translate-y-full lg:translate-y-0 lg:scale-95'
       }`}>
+        {/* Handle bar */}
+        <div className="flex justify-center pt-3 pb-1 lg:hidden">
+          <div className="w-10 h-1 rounded-full bg-gray-300" />
+        </div>
+
         {/* Header */}
-        <div className="p-4 border-b flex items-center justify-between shrink-0">
+        <div className="px-4 pb-4 pt-2 lg:p-4 border-b flex items-center justify-between shrink-0">
           <div>
             <h2 className="text-lg font-semibold">Новий запис</h2>
             <p className="text-sm text-muted-foreground">
@@ -189,38 +195,40 @@ export function NewBookingModal({
                 >
                   <p className="font-medium text-sm">{service.name}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {service.duration} хв · {service.price} €
+                    {service.duration} хв · {service.price} ₴
                   </p>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Master */}
-          <div>
-            <label className="text-sm font-medium mb-1.5 block">Майстер</label>
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {resources.map((resource) => (
-                <button
-                  key={resource.id}
-                  onClick={() => setSelectedResource(resource.id)}
-                  className={`shrink-0 p-3 rounded-xl border text-center transition-all min-w-[80px] ${
-                    selectedResource === resource.id
-                      ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                      : 'border-border hover:border-primary/50'
-                  }`}
-                >
-                  <div 
-                    className="w-8 h-8 rounded-full mx-auto mb-1.5 flex items-center justify-center text-white text-sm font-medium"
-                    style={{ backgroundColor: resource.color || '#8b5cf6' }}
+          {/* Master — hide if only one */}
+          {resources.length > 1 && (
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Майстер</label>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {resources.map((resource) => (
+                  <button
+                    key={resource.id}
+                    onClick={() => setSelectedResource(resource.id)}
+                    className={`shrink-0 p-3 rounded-xl border text-center transition-all min-w-[80px] ${
+                      selectedResource === resource.id
+                        ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                        : 'border-border hover:border-primary/50'
+                    }`}
                   >
-                    {resource.title[0]}
-                  </div>
-                  <p className="font-medium text-xs truncate">{resource.title.split(' ')[0]}</p>
-                </button>
-              ))}
+                    <div 
+                      className="w-8 h-8 rounded-full mx-auto mb-1.5 flex items-center justify-center text-white text-sm font-medium"
+                      style={{ backgroundColor: resource.color || '#8b5cf6' }}
+                    >
+                      {resource.title[0]}
+                    </div>
+                    <p className="font-medium text-xs truncate">{resource.title.split(' ')[0]}</p>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Actions */}
