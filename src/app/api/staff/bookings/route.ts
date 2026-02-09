@@ -290,7 +290,20 @@ export async function PUT(request: NextRequest) {
     
     if (time) updateData.time = time;
     if (duration) updateData.duration = duration;
-    if (status) updateData.status = status;
+    if (status) {
+      updateData.status = status;
+
+      // Decrement client stats when cancelling
+      if (status === 'CANCELLED' && booking.status !== 'CANCELLED' && booking.clientId) {
+        await prisma.client.update({
+          where: { id: booking.clientId },
+          data: {
+            visitsCount: { decrement: 1 },
+            totalSpent: { decrement: booking.price || 0 },
+          },
+        }).catch(console.error);
+      }
+    }
     if (masterId) updateData.masterId = masterId;
     if (masterName) updateData.masterName = masterName;
     if (serviceId) updateData.serviceId = serviceId;
@@ -400,6 +413,17 @@ export async function PATCH(request: NextRequest) {
     const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
     if (!booking || booking.salonId !== auth.salonId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Decrement client stats when cancelling/no-show
+    if (['CANCELLED', 'NO_SHOW'].includes(status) && !['CANCELLED', 'NO_SHOW'].includes(booking.status) && booking.clientId) {
+      await prisma.client.update({
+        where: { id: booking.clientId },
+        data: {
+          visitsCount: { decrement: 1 },
+          totalSpent: { decrement: booking.price || 0 },
+        },
+      }).catch(console.error);
     }
 
     const updated = await prisma.booking.update({

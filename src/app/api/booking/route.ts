@@ -92,7 +92,7 @@ export async function PUT(request: NextRequest) {
     // Get existing booking
     const existingBooking = await prisma.booking.findUnique({
       where: { id },
-      select: { salonId: true, masterId: true, date: true, time: true, duration: true }
+      select: { salonId: true, masterId: true, date: true, time: true, duration: true, status: true, clientId: true, price: true }
     });
 
     if (!existingBooking) {
@@ -113,6 +113,19 @@ export async function PUT(request: NextRequest) {
     
     if (status !== undefined) {
       updateData.status = status.toUpperCase();
+
+      // Decrement client stats when cancelling a non-cancelled booking
+      if (updateData.status === 'CANCELLED' && existingBooking.status !== 'CANCELLED') {
+        if (existingBooking.clientId) {
+          await prisma.client.update({
+            where: { id: existingBooking.clientId },
+            data: {
+              visitsCount: { decrement: 1 },
+              totalSpent: { decrement: existingBooking.price || 0 },
+            },
+          }).catch(console.error);
+        }
+      }
     }
     if (date !== undefined) {
       updateData.date = date;
@@ -211,13 +224,24 @@ export async function DELETE(request: NextRequest) {
     });
     const booking = await prisma.booking.findUnique({
       where: { id },
-      select: { salonId: true },
+      select: { salonId: true, clientId: true, price: true, status: true },
     });
     if (!booking) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
     if (booking.salonId !== user?.salonId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Decrement client stats if booking wasn't already cancelled
+    if (booking.clientId && booking.status !== 'CANCELLED') {
+      await prisma.client.update({
+        where: { id: booking.clientId },
+        data: {
+          visitsCount: { decrement: 1 },
+          totalSpent: { decrement: booking.price || 0 },
+        },
+      }).catch(console.error);
     }
 
     await prisma.booking.delete({ where: { id } });

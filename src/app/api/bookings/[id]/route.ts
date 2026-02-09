@@ -105,7 +105,19 @@ export async function PATCH(
     if (time !== undefined) updateData.time = time;
     if (duration !== undefined) updateData.duration = duration;
     if (extraTime !== undefined) updateData.extraTime = extraTime;
-    if (status !== undefined) updateData.status = status;
+    if (status !== undefined) {
+      updateData.status = status;
+      // Decrement client stats when cancelling/no-show
+      if (['CANCELLED', 'NO_SHOW'].includes(status) && !['CANCELLED', 'NO_SHOW'].includes(existing.status) && existing.clientId) {
+        await prisma.client.update({
+          where: { id: existing.clientId },
+          data: {
+            visitsCount: { decrement: 1 },
+            totalSpent: { decrement: existing.price || 0 },
+          },
+        }).catch(console.error);
+      }
+    }
     if (masterId !== undefined) updateData.masterId = masterId;
 
     // Якщо змінився клієнт
