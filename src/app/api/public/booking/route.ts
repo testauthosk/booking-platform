@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { msUntilBooking, todayInSalonTz, addDays } from '@/lib/salon-time';
 
 // POST /api/public/booking — публічне бронювання (без авторизації)
 export async function POST(request: NextRequest) {
@@ -49,16 +50,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Невірний формат телефону (+380XXXXXXXXX)' }, { status: 400 });
     }
 
-    // Date: YYYY-MM-DD, not in the past
+    // Date: YYYY-MM-DD format check (actual past/future check after salon fetch — needs timezone)
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return NextResponse.json({ error: 'Невірний формат дати' }, { status: 400 });
     }
-    const bookingDate = new Date(`${date}T${time}:00`);
-    const now = new Date();
-    if (bookingDate < now) {
-      return NextResponse.json({ error: 'Неможливо створити запис на минулий час' }, { status: 400 });
-    }
-    // Max advance days check moved to after salon fetch (uses salon.maxAdvanceDays)
 
     // Time: HH:MM
     if (!/^\d{2}:\d{2}$/.test(time)) {
@@ -73,24 +68,34 @@ export async function POST(request: NextRequest) {
       where: { id: salonId },
       select: {
         id: true, name: true, isActive: true, ownerId: true, bufferTime: true, address: true, phone: true,
-        minLeadTimeHours: true, maxAdvanceDays: true, requireConfirmation: true,
+        minLeadTimeHours: true, maxAdvanceDays: true, requireConfirmation: true, timezone: true,
       },
     });
     if (!salon || !salon.isActive) {
       return NextResponse.json({ error: 'Салон не знайдено' }, { status: 404 });
     }
 
-    // === Booking rules check ===
+    // === Booking rules check (timezone-aware) ===
+    const tz = salon.timezone || 'Europe/Kiev';
+
+    // Check: not in the past
+    const msUntil = msUntilBooking(date, time, tz);
+    if (msUntil < 0) {
+      return NextResponse.json({ error: 'Неможливо створити запис на минулий час' }, { status: 400 });
+    }
+
+    // Check: minimum lead time
     const leadMs = salon.minLeadTimeHours * 60 * 60 * 1000;
-    if (bookingDate.getTime() - now.getTime() < leadMs) {
+    if (msUntil < leadMs) {
       return NextResponse.json(
         { error: `Мінімальний час до запису: ${salon.minLeadTimeHours} год` },
         { status: 400 }
       );
     }
-    const maxAdvanceDate = new Date();
-    maxAdvanceDate.setDate(maxAdvanceDate.getDate() + salon.maxAdvanceDays);
-    if (bookingDate > maxAdvanceDate) {
+
+    // Check: max advance days
+    const maxDate = addDays(todayInSalonTz(tz), salon.maxAdvanceDays);
+    if (date > maxDate) {
       return NextResponse.json(
         { error: `Бронювання можливе максимум на ${salon.maxAdvanceDays} днів вперед` },
         { status: 400 }

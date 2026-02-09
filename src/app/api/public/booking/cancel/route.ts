@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifyCancelToken } from '@/lib/cancel-token';
+import { msUntilBooking } from '@/lib/salon-time';
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,18 +45,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Запис вже завершено' }, { status: 400 });
     }
 
-    // Check cancellation policy — uses salon's cancelDeadlineHours
+    // Check cancellation policy — uses salon's cancelDeadlineHours (timezone-aware)
     const salon = await prisma.salon.findUnique({
       where: { id: booking.salonId },
-      select: { cancelDeadlineHours: true, ownerId: true },
+      select: { cancelDeadlineHours: true, ownerId: true, timezone: true },
     });
     const deadlineHours = salon?.cancelDeadlineHours ?? 2;
+    const tz = salon?.timezone || 'Europe/Kiev';
 
-    const [y, m, d] = booking.date.split('-').map(Number);
-    const [h, min] = booking.time.split(':').map(Number);
-    const bookingTime = new Date(y, m - 1, d, h, min);
-    const now = new Date();
-    const hoursUntil = (bookingTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+    const msUntil = msUntilBooking(booking.date, booking.time, tz);
+    const hoursUntil = msUntil / (1000 * 60 * 60);
 
     if (deadlineHours > 0 && hoursUntil < deadlineHours) {
       return NextResponse.json({
