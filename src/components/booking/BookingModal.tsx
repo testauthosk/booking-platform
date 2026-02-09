@@ -7,7 +7,7 @@ import Image from "next/image";
 import { X, ChevronLeft, ChevronRight, Star, Check, Plus, Calendar, Clock, User, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 // supabase removed - using API instead
-import { createBooking, getAvailableSlots } from "@/lib/api";
+import { createBooking } from "@/lib/api";
 
 // Types
 interface Service {
