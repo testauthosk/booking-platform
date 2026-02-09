@@ -4,11 +4,21 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { StockMovementType } from '@prisma/client';
 
-// GET - история движений
+async function getAuthUser() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return null;
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true, salonId: true, name: true, email: true },
+  });
+  return user;
+}
+
+// GET - історія рухів
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.salonId) {
+    const user = await getAuthUser();
+    if (!user?.salonId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -19,15 +29,13 @@ export async function GET(req: Request) {
 
     const movements = await prisma.stockMovement.findMany({
       where: {
-        salonId: session.user.salonId,
+        salonId: user.salonId,
         ...(productId && { productId }),
         ...(type && { type: type as StockMovementType }),
       },
-      include: {
-        product: true,
-      },
+      include: { product: true },
       orderBy: { createdAt: 'desc' },
-      take: limit,
+      take: Math.min(limit, 500),
     });
 
     return NextResponse.json(movements);
@@ -37,32 +45,31 @@ export async function GET(req: Request) {
   }
 }
 
-// POST - создать движение (приход/списание/корректировка)
+// POST - створити рух (прихід/списання/коригування)
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.salonId) {
+    const user = await getAuthUser();
+    if (!user?.salonId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await req.json();
     const { productId, type, quantity, costPrice, sellPrice, note } = body;
 
-    // Получаем текущий товар
+    // Verify product belongs to this salon
     const product = await prisma.product.findFirst({
-      where: { id: productId, salonId: session.user.salonId },
+      where: { id: productId, salonId: user.salonId },
     });
 
     if (!product) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
-    // Рассчитываем новый остаток
+    // Розраховуємо новий залишок
     let quantityChange = quantity;
     if (type === 'OUT' || type === 'WRITE_OFF' || type === 'SERVICE') {
       quantityChange = -Math.abs(quantity);
     } else if (type === 'ADJUSTMENT') {
-      // Для корректировки quantity - это целевое значение
       quantityChange = quantity - product.quantity;
     }
 
@@ -72,11 +79,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Недостатньо товару на складі' }, { status: 400 });
     }
 
-    // Создаём движение и обновляем остаток в транзакции
     const [movement] = await prisma.$transaction([
       prisma.stockMovement.create({
         data: {
-          salonId: session.user.salonId,
+          salonId: user.salonId,
           productId,
           type: type as StockMovementType,
           quantity: quantityChange,
@@ -84,12 +90,10 @@ export async function POST(req: Request) {
           sellPrice,
           note,
           actorType: 'admin',
-          actorId: session.user.id,
-          actorName: session.user.name || session.user.email,
+          actorId: user.id,
+          actorName: user.name || user.email || 'Owner',
         },
-        include: {
-          product: true,
-        },
+        include: { product: true },
       }),
       prisma.product.update({
         where: { id: productId },

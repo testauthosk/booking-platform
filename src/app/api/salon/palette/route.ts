@@ -16,7 +16,15 @@ export async function GET(request: NextRequest) {
 
     // Auth: NextAuth (owner) або JWT (staff)
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (session?.user?.id) {
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { salonId: true },
+      });
+      if (user?.salonId !== salonId) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    } else {
       const staffAuth = await verifyStaffToken(request);
       if (staffAuth instanceof NextResponse) return staffAuth;
       if (staffAuth.salonId !== salonId) {

@@ -3,24 +3,31 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 
+async function getUserSalonId(): Promise<string | null> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return null;
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { salonId: true },
+  });
+  return user?.salonId || null;
+}
+
 // GET - один товар
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.salonId) {
+    const salonId = await getUserSalonId();
+    if (!salonId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await params;
 
     const product = await prisma.product.findFirst({
-      where: { 
-        id,
-        salonId: session.user.salonId,
-      },
+      where: { id, salonId },
       include: {
         category: true,
         movements: {
@@ -28,9 +35,7 @@ export async function GET(
           take: 50,
         },
         serviceProducts: {
-          include: {
-            service: true,
-          },
+          include: { service: true },
         },
       },
     });
@@ -46,18 +51,28 @@ export async function GET(
   }
 }
 
-// PUT - обновить товар
+// PUT - оновити товар
 export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.salonId) {
+    const salonId = await getUserSalonId();
+    if (!salonId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await params;
+
+    // Verify product belongs to this salon
+    const existing = await prisma.product.findFirst({
+      where: { id, salonId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+
     const body = await req.json();
 
     const product = await prisma.product.update({
@@ -75,9 +90,7 @@ export async function PUT(
         image: body.image,
         isActive: body.isActive,
       },
-      include: {
-        category: true,
-      },
+      include: { category: true },
     });
 
     return NextResponse.json(product);
@@ -87,22 +100,29 @@ export async function PUT(
   }
 }
 
-// DELETE - удалить товар
+// DELETE - видалити товар
 export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.salonId) {
+    const salonId = await getUserSalonId();
+    if (!salonId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await params;
 
-    await prisma.product.delete({
-      where: { id },
+    // Verify product belongs to this salon
+    const existing = await prisma.product.findFirst({
+      where: { id, salonId },
+      select: { id: true },
     });
+    if (!existing) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+
+    await prisma.product.delete({ where: { id } });
 
     return NextResponse.json({ success: true });
   } catch (error) {

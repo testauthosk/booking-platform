@@ -3,19 +3,27 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 
-// GET - список товаров
+async function getAuthUser() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return null;
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true, salonId: true, name: true, email: true },
+  });
+  return user;
+}
+
+// GET - список товарів
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.salonId) {
+    const user = await getAuthUser();
+    if (!user?.salonId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const products = await prisma.product.findMany({
-      where: { salonId: session.user.salonId },
-      include: {
-        category: true,
-      },
+      where: { salonId: user.salonId },
+      include: { category: true },
       orderBy: [
         { category: { sortOrder: 'asc' } },
         { sortOrder: 'asc' },
@@ -30,11 +38,11 @@ export async function GET() {
   }
 }
 
-// POST - создать товар
+// POST - створити товар
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.salonId) {
+    const user = await getAuthUser();
+    if (!user?.salonId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -43,7 +51,7 @@ export async function POST(req: Request) {
 
     const product = await prisma.product.create({
       data: {
-        salonId: session.user.salonId,
+        salonId: user.salonId,
         name,
         description,
         sku,
@@ -56,24 +64,22 @@ export async function POST(req: Request) {
         categoryId,
         image,
       },
-      include: {
-        category: true,
-      },
+      include: { category: true },
     });
 
-    // Если есть начальный остаток, создаём движение
+    // Якщо є початковий залишок — створюємо рух
     if (quantity && quantity > 0) {
       await prisma.stockMovement.create({
         data: {
-          salonId: session.user.salonId,
+          salonId: user.salonId,
           productId: product.id,
           type: 'IN',
           quantity,
           costPrice: costPrice || 0,
           note: 'Початковий залишок',
           actorType: 'admin',
-          actorId: session.user.id,
-          actorName: session.user.name || session.user.email,
+          actorId: user.id,
+          actorName: user.name || user.email || 'Owner',
         },
       });
     }

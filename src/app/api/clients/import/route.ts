@@ -41,6 +41,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No clients to import' }, { status: 400 });
     }
 
+    if (clients.length > 5000) {
+      return NextResponse.json({ error: 'Максимум 5000 клієнтів за один імпорт' }, { status: 400 });
+    }
+
     // Отримуємо існуючих клієнтів для перевірки дублікатів
     const existingClients = await prisma.client.findMany({
       where: { salonId: user.salonId },

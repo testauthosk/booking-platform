@@ -7,12 +7,20 @@ import prisma from '@/lib/prisma'
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.salonId) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { salonId: true },
+    })
+    if (!currentUser?.salonId) {
+      return NextResponse.json({ error: 'No salon' }, { status: 400 })
+    }
+
     const salon = await prisma.salon.findUnique({
-      where: { id: session.user.salonId },
+      where: { id: currentUser.salonId },
       select: {
         id: true,
         name: true,
@@ -52,13 +60,21 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.salonId) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { salonId: true },
+    })
+    if (!currentUser?.salonId) {
+      return NextResponse.json({ error: 'No salon' }, { status: 400 })
     }
 
     // Перевіряємо чи онбордінг завершено
     const salonCheck = await prisma.salon.findUnique({
-      where: { id: session.user.salonId },
+      where: { id: currentUser.salonId },
       select: { onboardingCompleted: true },
     })
     if (!salonCheck?.onboardingCompleted) {
@@ -94,7 +110,7 @@ export async function PATCH(request: NextRequest) {
       const existingSlug = await prisma.salon.findFirst({
         where: {
           slug: updateData.slug,
-          NOT: { id: session.user.salonId }
+          NOT: { id: currentUser.salonId }
         }
       })
       if (existingSlug) {
@@ -109,7 +125,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const salon = await prisma.salon.update({
-      where: { id: session.user.salonId },
+      where: { id: currentUser.salonId },
       data: updateData,
       select: {
         id: true,

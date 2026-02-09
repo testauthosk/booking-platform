@@ -16,6 +16,22 @@ export async function GET(
 
     const { id: masterId } = await params;
 
+    // Verify master belongs to user's salon
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { salonId: true },
+    });
+    if (!user?.salonId) {
+      return NextResponse.json({ error: 'No salon' }, { status: 400 });
+    }
+    const master = await prisma.master.findUnique({
+      where: { id: masterId },
+      select: { salonId: true },
+    });
+    if (!master || master.salonId !== user.salonId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     // Get today's date in YYYY-MM-DD format
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];

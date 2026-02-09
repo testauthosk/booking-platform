@@ -271,6 +271,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Verify masterId belongs to this salon
+    if (masterId) {
+      const master = await prisma.master.findUnique({
+        where: { id: masterId },
+        select: { salonId: true },
+      });
+      if (!master || master.salonId !== salonId) {
+        return NextResponse.json({ error: 'Майстер не належить цьому салону' }, { status: 403 });
+      }
+    }
+
+    // Verify serviceId belongs to this salon
+    if (serviceId) {
+      const service = await prisma.service.findUnique({
+        where: { id: serviceId },
+        select: { salonId: true },
+      });
+      if (!service || service.salonId !== salonId) {
+        return NextResponse.json({ error: 'Послуга не належить цьому салону' }, { status: 403 });
+      }
+    }
+
     // Check if booking is in the past
     const bookingDateTime = new Date(`${date}T${time}:00`);
     const now = new Date();
@@ -348,14 +370,32 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Send notification (async)
+    // Send Telegram notification to salon owner (fire-and-forget)
     try {
-      const baseUrl = request.nextUrl.origin;
-      fetch(`${baseUrl}/api/telegram/notify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId: booking.id }),
-      }).catch(console.error);
+      const salon = await prisma.salon.findUnique({
+        where: { id: salonId },
+        select: { name: true, ownerId: true },
+      });
+      if (salon?.ownerId) {
+        const owner = await prisma.user.findUnique({
+          where: { id: salon.ownerId },
+          select: { telegramChatId: true },
+        });
+        if (owner?.telegramChatId) {
+          const { notifySalonOwner } = await import('@/lib/telegram');
+          notifySalonOwner(owner.telegramChatId, {
+            clientName,
+            clientPhone,
+            serviceName: serviceName || 'Послуга',
+            masterName,
+            date,
+            time,
+            duration,
+            price,
+            salonName: salon.name,
+          }).catch(console.error);
+        }
+      }
     } catch (e) {
       console.error('Failed to send notification:', e);
     }

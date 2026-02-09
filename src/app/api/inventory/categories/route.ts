@@ -3,16 +3,26 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 
-// GET - список категорий товаров
+async function getUserSalonId(): Promise<string | null> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return null;
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { salonId: true },
+  });
+  return user?.salonId || null;
+}
+
+// GET - список категорій товарів
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.salonId) {
+    const salonId = await getUserSalonId();
+    if (!salonId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const categories = await prisma.productCategory.findMany({
-      where: { salonId: session.user.salonId },
+      where: { salonId },
       include: {
         _count: {
           select: { products: true },
@@ -28,11 +38,11 @@ export async function GET() {
   }
 }
 
-// POST - создать категорию
+// POST - створити категорію
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.salonId) {
+    const salonId = await getUserSalonId();
+    if (!salonId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -40,10 +50,7 @@ export async function POST(req: Request) {
     const { name } = body;
 
     const category = await prisma.productCategory.create({
-      data: {
-        salonId: session.user.salonId,
-        name,
-      },
+      data: { salonId, name },
     });
 
     return NextResponse.json(category);
