@@ -10,7 +10,7 @@ import { EventModal } from '@/components/calendar/event-modal';
 import { NewBookingModal } from '@/components/calendar/new-booking-modal';
 import { BlockTimeModal } from '@/components/calendar/block-time-modal';
 import { EditBookingModal } from '@/components/calendar/edit-booking-modal';
-import { ColleagueBookingModal } from '@/components/staff/colleague-booking-modal';
+// ColleagueBookingModal removed — uses staffFetch which redirects owner to staff login
 import { ClientCardPanel } from '@/components/staff/client-card-panel';
 import { MasterCardPanel } from '@/components/staff/master-card-panel';
 import dynamic from 'next/dynamic';
@@ -356,7 +356,7 @@ export default function CalendarPage() {
   const [isNewBookingModalOpen, setIsNewBookingModalOpen] = useState(false);
   const [isBlockTimeModalOpen, setIsBlockTimeModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isColleagueBookingOpen, setIsColleagueBookingOpen] = useState(false);
+  // ColleagueBookingModal state removed
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date; resourceId?: string } | null>(null);
   const [clientCardPhone, setClientCardPhone] = useState<string>('');
   const [isClientCardOpen, setIsClientCardOpen] = useState(false);
@@ -514,13 +514,47 @@ export default function CalendarPage() {
   const handleNewBooking = async (booking: {
     clientName: string;
     clientPhone: string;
+    serviceId: string;
     serviceName: string;
+    servicePrice: number;
     start: Date;
     end: Date;
     resourceId: string;
   }) => {
-    // Модалка сама робить POST, просто перезавантажуємо
-    await loadBookings();
+    try {
+      const date = `${booking.start.getFullYear()}-${String(booking.start.getMonth() + 1).padStart(2, '0')}-${String(booking.start.getDate()).padStart(2, '0')}`;
+      const time = `${String(booking.start.getHours()).padStart(2, '0')}:${String(booking.start.getMinutes()).padStart(2, '0')}`;
+      const duration = Math.round((booking.end.getTime() - booking.start.getTime()) / 60000);
+      const master = masters.find(m => m.id === booking.resourceId);
+
+      const res = await fetch('/api/booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          masterId: booking.resourceId,
+          masterName: master?.name || '',
+          serviceId: booking.serviceId,
+          clientName: booking.clientName,
+          clientPhone: booking.clientPhone,
+          serviceName: booking.serviceName,
+          date,
+          time,
+          duration,
+          price: booking.servicePrice,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        alert(err?.error || 'Помилка створення запису');
+        return;
+      }
+
+      await loadBookings();
+    } catch (error) {
+      console.error('Create booking error:', error);
+      alert('Помилка створення запису');
+    }
   };
 
   const handleFabClick = () => {
@@ -528,7 +562,7 @@ export default function CalendarPage() {
     now.setMinutes(Math.ceil(now.getMinutes() / 15) * 15, 0, 0);
     const end = new Date(now.getTime() + 60 * 60000);
     setSelectedSlot({ start: now, end, resourceId: resources[0]?.id || '1' });
-    setIsColleagueBookingOpen(true);
+    setIsNewBookingModalOpen(true);
   };
 
   return (
@@ -962,7 +996,7 @@ export default function CalendarPage() {
                   slotStart.setHours(h, m, 0, 0);
                   const slotEnd = new Date(slotStart.getTime() + 60 * 60000);
                   setSelectedSlot({ start: slotStart, end: slotEnd, resourceId: settingsMenu.resourceId || resources[0]?.id || '' });
-                  setIsColleagueBookingOpen(true);
+                  setIsNewBookingModalOpen(true);
                 }}
               >
                 <Plus className="h-4 w-4 text-gray-500" />
@@ -1211,17 +1245,6 @@ export default function CalendarPage() {
           await loadBookings();
         }}
       />
-
-      {/* Colleague Booking Modal */}
-      {user?.salonId && (
-        <ColleagueBookingModal
-          isOpen={isColleagueBookingOpen}
-          onClose={() => setIsColleagueBookingOpen(false)}
-          salonId={user.salonId}
-          currentMasterId={selectedSlot?.resourceId || null}
-          onSuccess={loadBookings}
-        />
-      )}
 
       {/* Client Card Sidebar */}
       <ClientCardPanel

@@ -15,7 +15,9 @@ interface NewBookingModalProps {
   onSave: (booking: {
     clientName: string;
     clientPhone: string;
+    serviceId: string;
     serviceName: string;
+    servicePrice: number;
     start: Date;
     end: Date;
     resourceId: string;
@@ -79,7 +81,9 @@ export function NewBookingModal({
     onSave({
       clientName,
       clientPhone,
+      serviceId: selectedService,
       serviceName: service?.name || '',
+      servicePrice: service?.price || 0,
       start: slotInfo.start,
       end: endTime,
       resourceId: selectedResource,
