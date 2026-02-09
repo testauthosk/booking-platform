@@ -28,7 +28,7 @@ const navItems = [
   { href: '/catalogue', icon: BookOpen, label: 'Каталог' },
   { href: '/team', icon: UserCircle, label: 'Команда' },
   // { href: '/marketing', icon: Megaphone, label: 'Маркетинг' },  // TODO: потім
-  // { href: '/reports', icon: BarChart3, label: 'Звіти' },  // TODO: потім
+  { href: '/reports', icon: BarChart3, label: 'Аналітика' },
   // { href: '/addons', icon: Grid3X3, label: 'Доповнення' },  // TODO: потім
   { href: '/setup', icon: Settings, label: 'Налаштування' },
 ];
