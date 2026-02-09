@@ -121,34 +121,35 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // ── New device → require OTP ──
-    // Store pending login data in a short-lived session token
-    const pendingToken = await new SignJWT({
-      masterId: master.id,
-      fp: fpHash,
-      type: 'pending-otp',
-    })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setExpirationTime('10m')
-      .sign(JWT_SECRET);
+    // ── New device → auto-trust and issue token (OTP disabled for now) ──
+    // Auto-register as trusted device
+    try {
+      await prisma.trustedDevice.create({
+        data: {
+          masterId: master.id,
+          fingerprint: fpHash,
+          label: parseDeviceLabel(request.headers.get('user-agent') || ''),
+          ip: ip.trim(),
+          lastUsedAt: new Date(),
+        },
+      });
+    } catch {
+      // Ignore if already exists (race condition)
+    }
 
-    // Send OTP
-    // Check if master has telegram linked (we need to look it up since select above doesn't include it)
-    // For now, use email — telegram linking for masters is a future feature
-    const otpResult = await createAndSendOtp(
-      master.id,
-      master.email,
-      master.name,
-      null, // telegramChatId — not available on Master model yet
-    );
+    await prisma.master.update({
+      where: { id: master.id },
+      data: { lastLogin: new Date() },
+    });
+
+    resetRateLimit(rateLimitKey);
+
+    const token = await createStaffToken(master, ip, fpHash, '7d');
 
     return NextResponse.json({
-      requireOtp: true,
-      pendingToken,
-      otpChannel: otpResult.channel,
-      otpTarget: otpResult.maskedTarget,
-      otpSent: otpResult.sent,
-      deviceLabel: parseDeviceLabel(request.headers.get('user-agent') || ''),
+      token,
+      master: masterResponse(master),
+      trustedDevice: false, // first time, shorter token
     });
   } catch (error) {
     console.error('POST /api/staff/login error:', error);
