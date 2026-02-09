@@ -7,20 +7,22 @@ export async function GET(request: NextRequest) {
     const auth = await verifyStaffToken(request);
     if (auth instanceof NextResponse) return auth;
 
-    const services = await prisma.service.findMany({
-      where: { salonId: auth.salonId, isActive: true },
-      orderBy: { name: 'asc' },
+    const salon = await prisma.salon.findUnique({
+      where: { id: auth.salonId },
       select: {
         id: true,
-        name: true,
-        duration: true,
-        price: true,
+        timezone: true,
+        workingHours: true,
       },
     });
 
-    return NextResponse.json(services);
+    if (!salon) {
+      return NextResponse.json({ error: 'Salon not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(salon);
   } catch (error) {
-    console.error('Staff services error:', error);
+    console.error('Staff salon error:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
