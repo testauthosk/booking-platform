@@ -1199,7 +1199,7 @@ export function DayPilotResourceCalendar({
                   return (
                     <div 
                       key={idx} 
-                      className={`flex-1 min-w-[100px] py-2 text-center border-r border-gray-200 cursor-pointer ${isSelectedCol ? 'bg-gray-100' : 'bg-white'}`}
+                      className={`flex-1 min-w-[100px] py-2 text-center border-r border-b border-gray-200 cursor-pointer ${isSelectedCol ? 'bg-gray-100' : 'bg-white'}`}
                       onClick={() => handleDateSelect(day)}
                     >
                       <div className={`text-[10px] font-medium ${isTodayCol ? 'text-red-500' : 'text-gray-500'}`}>
@@ -1216,7 +1216,14 @@ export function DayPilotResourceCalendar({
             {/* Week grid */}
             <div className="relative flex" style={{ minHeight: `${totalMinutes}px` }}>
               {/* Time column */}
-              <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 sticky left-0 bg-white/50 backdrop-blur-lg z-20">
+              <div
+                className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-200/60 sticky left-0 z-20"
+                style={{
+                  background: 'rgba(255,255,255,0.72)',
+                  backdropFilter: 'saturate(180%) blur(20px)',
+                  WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+                }}
+              >
                 {steps.map((i) => {
                   const minutesFromStart = i * timeStep;
                   const absoluteMin = dayStartHour * 60 + minutesFromStart;
@@ -1327,7 +1334,14 @@ export function DayPilotResourceCalendar({
           {/* Сітка часу */}
           <div ref={gridRef} className="relative flex select-none" style={{ minHeight: `${totalMinutes}px`, minWidth: resources.length > 3 ? `${40 + resources.length * 120}px` : '100%', WebkitUserSelect: 'none', userSelect: 'none' }}>
             {/* Колонка часу — sticky left */}
-            <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 sticky left-0 bg-white/50 backdrop-blur-lg z-20">
+            <div
+              className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-200/60 sticky left-0 z-20"
+              style={{
+                background: 'rgba(255,255,255,0.72)',
+                backdropFilter: 'saturate(180%) blur(20px)',
+                WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+              }}
+            >
               {steps.map((i) => {
                 const minutesFromStart = i * timeStep;
                 const absoluteMin = dayStartHour * 60 + minutesFromStart;
