@@ -209,7 +209,7 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col h-full bg-gray-50/50">
       {/* Header */}
-      <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
+      <div className="bg-white border-b px-4 lg:px-8 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={openSidebar}>
             <Menu className="h-5 w-5" />
@@ -225,8 +225,8 @@ export default function DashboardPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 lg:p-6 pb-[84px] lg:pb-6">
-        <div className="max-w-[1000px] mx-auto space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 lg:px-8 lg:py-6 pb-[84px] lg:pb-6">
+        <div className="space-y-4">
           {/* Quick Actions */}
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
             <Button
@@ -330,12 +330,16 @@ export default function DashboardPage() {
                   {feed.length === 0 ? (
                     <p className="text-sm text-gray-400">Поки подій немає</p>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {feed.slice(0, 3).map(item => (
-                        <div key={item.id} className="flex items-center gap-2 text-xs">
-                          <span className="shrink-0">{item.label.split(' ')[0]}</span>
-                          <span className="truncate text-gray-700 font-medium">{item.client}</span>
-                          <span className="text-gray-400 ml-auto shrink-0">{item.time}</span>
+                        <div key={item.id} className="text-xs space-y-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span>{item.label.split(' ')[0]}</span>
+                            <span className="font-medium text-gray-800">{item.client}</span>
+                          </div>
+                          <p className="text-gray-500">
+                            {item.service} · {item.master} · {item.date} {item.time}
+                          </p>
                         </div>
                       ))}
                     </div>
