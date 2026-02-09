@@ -18,5 +18,5 @@ export function generateSlug(name: string): string {
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
-    .substring(0, 50);
+    .substring(0, 30);
 }

@@ -436,17 +436,24 @@ export default function WebsiteEditorPage() {
                 <div>
                   <Label htmlFor="slug">URL адреса (slug)</Label>
                   <div className="flex items-center gap-2 mt-1.5">
-                    <span className="text-sm text-muted-foreground">/salon/</span>
                     <Input
                       id="slug"
                       value={settings.slug}
-                      onChange={(e) => updateField('slug', e.target.value)}
-                      placeholder="the-barber-shop"
+                      onChange={(e) => {
+                        const clean = e.target.value
+                          .toLowerCase()
+                          .replace(/[^a-z0-9-]/g, '')
+                          .replace(/-+/g, '-')
+                          .substring(0, 30);
+                        updateField('slug', clean);
+                      }}
+                      placeholder="the-barber"
                       className="flex-1"
                     />
+                    <span className="text-sm text-muted-foreground flex-shrink-0">.tholim.com</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Тільки латинські літери, цифри та дефіс
+                    Латинські літери, цифри та дефіс. Макс. 30 символів.
                   </p>
                 </div>
 
