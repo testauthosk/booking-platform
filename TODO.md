@@ -1,6 +1,6 @@
 # 📋 TODO — Booking Platform
 
-*Оновлено: 2026-02-04*
+*Оновлено: 2026-02-09*
 
 ---
 
@@ -30,6 +30,37 @@
 - Мастери з команди
 - Вільні слоти
 - Відгуки
+
+---
+
+## 🔧 ТЕХНІЧНИЙ БОРГ (після запуску)
+
+### Код
+- [ ] Прибрати `@ts-nocheck` з 13 файлів (calendar, BookingModal, salon page та ін.)
+- [ ] Замінити `any` типи в admin endpoints на Prisma types
+- [ ] Рефакторинг дублікатів: `/api/booking` vs `/api/bookings` (роблять схоже, ризик розсинхрону)
+
+### Дані
+- [ ] Client `visitsCount` / `totalSpent` — декрементувати при скасуванні/видаленні бронювання
+- [ ] Dashboard: оптимізувати важкий запит (categories+services досі завантажуються повністю)
+- [ ] Auto-complete бронювань з адмін-календаря (зараз тільки staff dashboard + staff calendar)
+
+### Безпека (Phase 2)
+- [ ] Redis rate limiting (для multi-instance production)
+- [ ] Audit log на всі admin дії (зараз тільки частково)
+- [ ] Cloudinary signed uploads замість direct
+- [ ] Обмежити direct DB access (connection pooling, read replicas)
+
+### Інфраструктура
+- [ ] Піддомени `slug.tholim.com` (DNS wildcard + middleware rewrite)
+- [ ] Публічна сторінка як окремий SSG/ISR (або edge-cached)
+- [ ] Генерація статичного одностраничника для салону
+- [ ] `telegramChatId` для Master моделі → OTP через Telegram для мастерів
+- [ ] Очистка осиротілих services коли MasterService видалено і service був `isActive: false`
+
+### UX
+- [ ] `paletteId` — фронт публічної сторінки не використовує тему (дані є, рендер ні)
+- [ ] Показувати серверні помилки бронювання красиво (зараз `alert()`)
 
 ---
 
@@ -76,6 +107,27 @@
 - [x] Owner/admin записи для всіх мастерів
 - [x] Редактор сайту-візитки `/setup/website`
 - [x] Повторний запис клієнта (RepeatBookingModal)
+
+### 09.02.2026 — Security Audit #4
+- [x] 11 endpoints без auth закрито (services, categories, notifications, audit-log, invitations, telegram/notify)
+- [x] `ensureSalonExists` видалено (створював демо-салони з повітря)
+- [x] `passwordHash` прибрано з усіх публічних відповідей
+- [x] Full salon isolation: всі endpoints використовують `salonId` з БД
+- [x] Public booking: `POST /api/public/booking` (rate limit, overlap check, validation)
+- [x] `/api/salon/[slug]`: explicit select, `onboardingCompleted` gate, owner preview
+- [x] Register: temp slug, реальний генерується при onboarding
+- [x] `CRON_SECRET` + `EMAIL_FROM` на Railway
+- [x] Fallback `NEXTAUTH_SECRET` видалено
+- [x] `X-Frame-Options: SAMEORIGIN` (для preview iframe)
+- [x] `DEMO_SALON_ID` хардкод видалено з notification-bell
+- [x] OTP код прибрано з `console.log`
+- [x] Email from уніфіковано: `noreply@tholim.com`
+- [x] Slug uniqueness validation в `PATCH /api/salon`
+- [x] Кнопка «Переглянути сайт» прихована до завершення онбордингу
+- [x] `masterId` ∈ `salonId` перевірка в `/api/slots`
+- [x] `masterId` + `serviceId` ownership в `POST /api/booking`
+- [x] Inventory endpoints: `salonId` з БД + product ownership на PUT/DELETE
+- [x] Telegram notify: inline замість broken HTTP fetch
 
 ### Раніше
 - [x] Базова платформа Next.js + Prisma
