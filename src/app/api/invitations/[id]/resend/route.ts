@@ -61,7 +61,7 @@ export async function POST(
     if (resend) {
       try {
         await resend.emails.send({
-          from: `${salonName} <onboarding@resend.dev>`,
+          from: `${salonName} <noreply@tholim.com>`,
           to: invitation.email,
           subject: `${salonName} запрошує вас приєднатися до команди`,
           html: `

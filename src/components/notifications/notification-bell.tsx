@@ -5,7 +5,6 @@ import { Bell, Check, Calendar, User, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
-const DEMO_SALON_ID = 'demo-salon-id';
 const POLL_INTERVAL = 30000;
 
 interface Notification {
@@ -45,7 +44,7 @@ export function NotificationBell() {
 
   const loadNotifications = useCallback(async () => {
     try {
-      const res = await fetch(`/api/notifications?salonId=${DEMO_SALON_ID}&limit=10`);
+      const res = await fetch('/api/notifications?limit=10');
       if (res.ok) {
         const data = await res.json();
         setNotifications(data.notifications);
@@ -86,7 +85,7 @@ export function NotificationBell() {
       await fetch('/api/notifications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ salonId: DEMO_SALON_ID, markAllRead: true }),
+        body: JSON.stringify({ markAllRead: true }),
       });
       
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));

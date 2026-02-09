@@ -111,9 +111,8 @@ export async function POST(request: NextRequest) {
         // TODO: Twilio SMS send
         response.message = 'Код надіслано на ваш номер';
       } else {
-        // Twilio не підключено — log code server-side only
-        console.log(`[OTP_DEV] Code for ${normalizedPhone}: ${code}`);
-        response.message = 'SMS сервіс в розробці. Зверніться до адміністратора.';
+        // Twilio не підключено
+        response.message = 'SMS сервіс в розробці. Використовуйте Telegram для входу.';
       }
     } else if (channel === 'TELEGRAM') {
       response.message = delivered

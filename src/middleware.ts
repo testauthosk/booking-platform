@@ -5,8 +5,8 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ── Security Headers ──
-  // Prevent clickjacking
-  response.headers.set('X-Frame-Options', 'DENY');
+  // Prevent clickjacking (allow same-origin iframes for preview)
+  response.headers.set('X-Frame-Options', 'SAMEORIGIN');
   // Prevent MIME type sniffing
   response.headers.set('X-Content-Type-Options', 'nosniff');
   // XSS protection (legacy browsers)

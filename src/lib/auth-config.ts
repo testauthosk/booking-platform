@@ -108,5 +108,5 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60, // 30 днів
     updateAge: 24 * 60 * 60,   // Оновлювати JWT кожні 24 години
   },
-  secret: process.env.NEXTAUTH_SECRET || 'development-secret-change-in-production',
+  secret: process.env.NEXTAUTH_SECRET,
 }
