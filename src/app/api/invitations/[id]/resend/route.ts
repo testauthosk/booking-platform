@@ -1,30 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Resend } from 'resend';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
-// POST /api/invitations/[id]/resend - повторная отправка приглашения
+// POST /api/invitations/[id]/resend - повторна відправка запрошення (owner only)
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
 
-    // Находим приглашение
+    // Verify ownership
     const invitation = await prisma.staffInvitation.findUnique({
       where: { id },
     });
-    
-    // Получаем данные салона
-    const salon = invitation ? await prisma.salon.findUnique({
-      where: { id: invitation.salonId },
-    }) : null;
 
     if (!invitation) {
       return NextResponse.json({ error: 'Invitation not found' }, { status: 404 });
     }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { salonId: true },
+    });
+    if (invitation.salonId !== user?.salonId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    
+    // Получаем данные салона
+    const salon = await prisma.salon.findUnique({
+      where: { id: invitation.salonId },
+    });
 
     if (invitation.isUsed) {
       return NextResponse.json({ error: 'Invitation already used' }, { status: 400 });
