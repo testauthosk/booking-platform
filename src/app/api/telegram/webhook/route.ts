@@ -20,6 +20,12 @@ interface TelegramUpdate {
     }
     date: number
     text?: string
+    forward_from?: {
+      id: number
+      first_name?: string
+      last_name?: string
+      username?: string
+    }
   }
   callback_query?: {
     id: string
@@ -50,6 +56,26 @@ export async function POST(req: NextRequest) {
     const telegramId = message.from.id.toString()
     const username = message.from.username
     const text = message.text.trim()
+
+    // Admin command: /chatid — only for platform owner
+    const OWNER_TELEGRAM_ID = process.env.OWNER_TELEGRAM_ID || '5431363643'
+    if (text === '/chatid' && telegramId === OWNER_TELEGRAM_ID) {
+      await sendMessage(chatId, `🆔 <b>Chat ID:</b> <code>${chatId}</code>\n👤 <b>Telegram ID:</b> <code>${telegramId}</code>\n📛 <b>Username:</b> @${username || '—'}`)
+      return NextResponse.json({ ok: true })
+    }
+
+    // Admin: /chatid forwarded message — get chat id of forwarded user
+    if (text === '/id' && telegramId === OWNER_TELEGRAM_ID) {
+      await sendMessage(chatId, `Перешліть мені повідомлення від будь-якого користувача, і я покажу його Chat ID.`)
+      return NextResponse.json({ ok: true })
+    }
+
+    // Handle forwarded messages for admin
+    if (message.forward_from && telegramId === OWNER_TELEGRAM_ID) {
+      const fwd = message.forward_from
+      await sendMessage(chatId, `🆔 <b>Forwarded user:</b>\n👤 ID: <code>${fwd.id}</code>\n📛 ${fwd.first_name || ''} ${fwd.last_name || ''}\n${fwd.username ? '@' + fwd.username : ''}`)
+      return NextResponse.json({ ok: true })
+    }
 
     // Обробка /start
     if (text.startsWith('/start')) {
