@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
+// GET /api/salon/[slug] — публічна сторінка салону
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -10,19 +11,50 @@ export async function GET(
 
     const salon = await prisma.salon.findUnique({
       where: { slug, isActive: true },
-      include: {
+      select: {
+        // Only public-safe fields
+        id: true,
+        name: true,
+        slug: true,
+        type: true,
+        description: true,
+        phone: true,
+        email: true,
+        address: true,
+        shortAddress: true,
+        latitude: true,
+        longitude: true,
+        logo: true,
+        photos: true,
+        workingHours: true,
+        amenities: true,
+        timezone: true,
+        currency: true,
+        rating: true,
+        reviewCount: true,
+        paletteId: true,
+        // Relations with safe selects
         categories: {
-          orderBy: { sortOrder: 'asc' },
+          orderBy: { sortOrder: 'asc' as const },
           include: {
             services: {
               where: { isActive: true },
-              orderBy: { sortOrder: 'asc' }
-            }
-          }
+              orderBy: { sortOrder: 'asc' as const },
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                price: true,
+                priceFrom: true,
+                duration: true,
+                isActive: true,
+              },
+            },
+          },
         },
         masters: {
           where: { isActive: true },
-          orderBy: { sortOrder: 'asc' },
+          orderBy: { sortOrder: 'asc' as const },
           select: {
             id: true,
             name: true,
@@ -31,14 +63,24 @@ export async function GET(
             rating: true,
             reviewCount: true,
             price: true,
-          }
+          },
         },
         reviews: {
           where: { isVisible: true },
-          orderBy: { createdAt: 'desc' },
-          take: 10
-        }
-      }
+          orderBy: { createdAt: 'desc' as const },
+          take: 10,
+          select: {
+            id: true,
+            authorName: true,
+            authorInitial: true,
+            authorColor: true,
+            rating: true,
+            text: true,
+            serviceName: true,
+            createdAt: true,
+          },
+        },
+      },
     });
 
     if (!salon) {
@@ -48,7 +90,6 @@ export async function GET(
     // Transform to expected format
     const result = {
       ...salon,
-      // Map to old field names for compatibility
       short_address: salon.shortAddress,
       working_hours: salon.workingHours,
       review_count: salon.reviewCount,
@@ -67,7 +108,7 @@ export async function GET(
           duration: `${s.duration} хв`,
           duration_minutes: s.duration,
           is_active: s.isActive,
-        }))
+        })),
       })),
       masters: salon.masters.map(m => ({
         id: m.id,
@@ -87,10 +128,14 @@ export async function GET(
         text: r.text,
         service_name: r.serviceName,
         created_at: r.createdAt,
-      }))
+      })),
     };
 
-    return NextResponse.json(result);
+    return NextResponse.json(result, {
+      headers: {
+        'Cache-Control': 'public, max-age=30, stale-while-revalidate=60',
+      },
+    });
   } catch (error) {
     console.error('Error fetching salon:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });

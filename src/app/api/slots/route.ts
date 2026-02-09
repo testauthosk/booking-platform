@@ -17,10 +17,13 @@ export async function GET(request: NextRequest) {
 
     // Get salon settings
     const salon = await prisma.salon.findUnique({
-      where: { id: salonId },
+      where: { id: salonId, isActive: true },
       select: { bufferTime: true, workingHours: true }
     });
-    const bufferTime = salon?.bufferTime || 0;
+    if (!salon) {
+      return NextResponse.json({ error: 'Salon not found' }, { status: 404 });
+    }
+    const bufferTime = salon.bufferTime || 0;
 
     // Determine working hours for this day
     const dayOfWeek = new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
@@ -32,8 +35,12 @@ export async function GET(request: NextRequest) {
     if (masterId && masterId !== 'any') {
       const master = await prisma.master.findUnique({
         where: { id: masterId },
-        select: { workingHours: true },
+        select: { salonId: true, workingHours: true, isActive: true },
       });
+      // Verify master belongs to this salon
+      if (!master || master.salonId !== salonId || !master.isActive) {
+        return NextResponse.json({ error: 'Master not found' }, { status: 404 });
+      }
       if (master?.workingHours) {
         const mwh = master.workingHours as Record<string, { start: string; end: string; enabled: boolean }>;
         const dayConfig = mwh[dayOfWeek];

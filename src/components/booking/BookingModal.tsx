@@ -588,9 +588,10 @@ export function BookingModal({
           if (!booking) {
             throw new Error('Помилка створення бронювання');
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('Booking error:', error);
-          alert('Помилка при створенні бронювання. Спробуйте ще раз.');
+          const msg = error?.message || 'Помилка при створенні бронювання. Спробуйте ще раз.';
+          alert(msg);
           setIsSubmitting(false);
           return;
         }

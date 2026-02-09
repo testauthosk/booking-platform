@@ -84,15 +84,20 @@ export async function createBooking(data: {
   notes?: string;
 }) {
   try {
-    const response = await fetch('/api/booking', {
+    // Use public endpoint — no auth required for customer bookings
+    const response = await fetch('/api/public/booking', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      const err = await response.json().catch(() => null);
+      throw new Error(err?.error || 'Помилка бронювання');
+    }
     return response.json();
-  } catch {
-    return null;
+  } catch (error) {
+    console.error('createBooking error:', error);
+    throw error;
   }
 }
 
