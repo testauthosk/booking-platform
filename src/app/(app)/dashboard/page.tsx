@@ -22,6 +22,15 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
 // ─── Types ───
+interface WeekData {
+  revenue: number;
+  revenueChange: number;
+  bookings: number;
+  bookingsChange: number;
+  newClients: number;
+  avgCheck: number;
+}
+
 interface TodayData {
   bookings: { total: number; completed: number; remaining: number; cancelled: number };
   revenue: number;
@@ -116,20 +125,40 @@ function ProgressRing({ completed, total }: { completed: number; total: number }
   );
 }
 
+// ─── Week Card ───
+function WeekCard({ label, value, change }: { label: string; value: string; change?: number }) {
+  return (
+    <Card className="p-3">
+      <p className="text-xs text-gray-500 mb-1">{label}</p>
+      <div className="flex items-baseline gap-2">
+        <span className="text-lg font-bold">{value}</span>
+        {change !== undefined && change !== 0 && (
+          <span className={`text-xs font-medium ${change > 0 ? 'text-green-600' : 'text-red-500'}`}>
+            {change > 0 ? '↑' : '↓'} {Math.abs(change)}%
+          </span>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 // ─── Page ───
 export default function DashboardPage() {
   const { open: openSidebar } = useSidebar();
   const { data: session } = useSession();
   const [today, setToday] = useState<TodayData | null>(null);
+  const [week, setWeek] = useState<WeekData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch('/api/dashboard/today');
-        if (res.ok) {
-          setToday(await res.json());
-        }
+        const [todayRes, weekRes] = await Promise.all([
+          fetch('/api/dashboard/today'),
+          fetch('/api/dashboard/week'),
+        ]);
+        if (todayRes.ok) setToday(await todayRes.json());
+        if (weekRes.ok) setWeek(await weekRes.json());
       } catch (e) {
         console.error('Dashboard load error:', e);
       } finally {
@@ -214,6 +243,19 @@ export default function DashboardPage() {
                   )}
                 </Card>
               </div>
+
+              {/* Week metrics */}
+              {week && (
+                <div>
+                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Цей тиждень</p>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <WeekCard label="Виручка" value={`${formatMoney(week.revenue)} ₴`} change={week.revenueChange} />
+                    <WeekCard label="Записів" value={String(week.bookings)} change={week.bookingsChange} />
+                    <WeekCard label="Нових клієнтів" value={String(week.newClients)} />
+                    <WeekCard label="Середній чек" value={`${formatMoney(week.avgCheck)} ₴`} />
+                  </div>
+                </div>
+              )}
 
               {/* Next client */}
               <Card className="p-4">
