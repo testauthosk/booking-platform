@@ -25,6 +25,7 @@ interface DashboardData {
     slug: string;
   } | null;
   clients: Array<{ id: string }>;
+  totalClients?: number;
   bookings: Booking[];
 }
 
@@ -101,7 +102,7 @@ function DashboardContent() {
   };
 
   const upcomingBookings = getUpcomingBookings();
-  const totalClients = data?.clients?.length || 0;
+  const totalClients = data?.totalClients ?? data?.clients?.length ?? 0;
   const totalBookings = upcomingBookings.length;
 
   if (loading) {

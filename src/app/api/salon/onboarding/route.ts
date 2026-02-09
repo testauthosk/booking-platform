@@ -79,7 +79,12 @@ export async function POST(request: NextRequest) {
     if (raw.length > 10_000) {
       return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
     }
-    const body = JSON.parse(raw);
+    let body;
+    try {
+      body = JSON.parse(raw);
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
     const { step, data, complete } = body as {
       step?: number;
       data?: Partial<OnboardingData>;

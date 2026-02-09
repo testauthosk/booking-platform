@@ -104,8 +104,8 @@ export async function GET(request: NextRequest) {
         is_active: m.isActive,
         working_hours: m.workingHours,
       })),
-      // Only count for dashboard stats — full list loaded separately via /api/clients
-      clients: Array(salon._count.clients).fill({ id: 'x' }),
+      // Count only — full list loaded via /api/clients
+      clients: [],
       totalClients: salon._count.clients,
       bookings: salon.bookings.map(b => ({
         id: b.id,
