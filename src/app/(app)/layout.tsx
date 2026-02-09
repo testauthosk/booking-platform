@@ -55,7 +55,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       />
       
       {/* Desktop sidebar */}
-      <div className="hidden lg:block">
+      <div className="hidden lg:flex lg:flex-col lg:h-full">
         <Sidebar isOpen={true} onClose={() => {}} />
       </div>
 
