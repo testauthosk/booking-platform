@@ -16,7 +16,7 @@ export function middleware(request: NextRequest) {
     !pathname.startsWith('/salon/')
   ) {
     const slug = hostname.replace(`.${baseDomain}`, '');
-    if (slug && !slug.includes('.')) {
+    if (slug && !slug.includes('.') && slug !== 'app') {
       const url = request.nextUrl.clone();
       url.pathname = `/salon/${slug}${pathname === '/' ? '' : pathname}`;
       return NextResponse.rewrite(url);
@@ -51,10 +51,10 @@ export function middleware(request: NextRequest) {
       const referer = request.headers.get('referer');
       const host = request.headers.get('host');
 
-      // Allow same-origin and server-to-server (no origin = fetch from server)
+      // Allow same-origin, same base domain, and server-to-server (no origin = fetch from server)
       if (origin && host) {
         const originHost = new URL(origin).host;
-        if (originHost !== host) {
+        if (originHost !== host && !originHost.endsWith(`.${baseDomain}`) && originHost !== baseDomain) {
           return NextResponse.json(
             { error: 'Cross-origin request blocked' },
             { status: 403 }
