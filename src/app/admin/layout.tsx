@@ -77,6 +77,12 @@ const navItems: NavItem[] = [
   { href: '/admin/telegram-logs', icon: MessageCircle, label: 'Telegram логи' },
   { href: '/admin/broadcast', icon: Send, label: 'Broadcast' },
   
+  // Управління
+  { group: true, label: 'Управління' },
+  { href: '/admin/content', icon: FileText, label: 'Контент' },
+  { href: '/admin/promo', icon: CreditCard, label: 'Промокоди' },
+  { href: '/admin/features', icon: Zap, label: 'Feature Flags' },
+
   // Інструменти
   { group: true, label: 'Інструменти' },
   { href: '/admin/impersonate', icon: UserCog, label: 'Impersonate' },
