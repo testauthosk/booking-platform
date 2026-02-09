@@ -63,7 +63,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="p-4 space-y-1 overflow-y-auto pb-24 lg:pb-4">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navItems.map((item, index) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
@@ -86,19 +86,19 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </Link>
           );
         })}
-        
-        {/* Help */}
-        <div className="pt-4 mt-4 border-t">
-          <Link
-            href="/help"
-            onClick={onClose}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted transition-all duration-200 active:scale-[0.98]"
-          >
-            <HelpCircle className="h-5 w-5" />
-            <span>Допомога</span>
-          </Link>
-        </div>
       </nav>
+
+      {/* Help — pinned to bottom */}
+      <div className="p-4 border-t">
+        <Link
+          href="/help"
+          onClick={onClose}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted transition-all duration-200 active:scale-[0.98]"
+        >
+          <HelpCircle className="h-5 w-5" />
+          <span>Допомога</span>
+        </Link>
+      </div>
     </aside>
   );
 }
