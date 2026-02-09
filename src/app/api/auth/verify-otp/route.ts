@@ -3,18 +3,21 @@ import prisma from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
-    const { phone, code } = await request.json() as { phone: string; code: string };
+    const { phone, email, code } = await request.json() as { phone?: string; email?: string; code: string };
 
-    if (!phone || !code) {
-      return NextResponse.json({ error: 'Телефон та код обов\'язкові' }, { status: 400 });
+    if (!code || (!phone && !email)) {
+      return NextResponse.json({ error: 'Код та email/телефон обов\'язкові' }, { status: 400 });
     }
 
-    const normalizedPhone = phone.replace(/[\s\-\(\)]/g, '');
+    // Build query
+    const identifier = email
+      ? { email: email.trim().toLowerCase() }
+      : { phone: phone!.replace(/[\s\-\(\)]/g, '') };
 
-    // Шукаємо актуальний OTP
+    // Find valid OTP
     const otp = await prisma.otpCode.findFirst({
       where: {
-        phone: normalizedPhone,
+        ...identifier,
         verified: false,
         expiresAt: { gte: new Date() },
       },
@@ -28,7 +31,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Перевіряємо кількість спроб
+    // Check attempts
     if (otp.attempts >= 5) {
       await prisma.otpCode.delete({ where: { id: otp.id } });
       return NextResponse.json(
@@ -37,22 +40,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Збільшуємо лічильник спроб
+    // Increment attempts
     await prisma.otpCode.update({
       where: { id: otp.id },
       data: { attempts: { increment: 1 } },
     });
 
-    // Перевіряємо код
+    // Verify code
     if (otp.code !== code) {
       const remaining = 4 - otp.attempts;
       return NextResponse.json(
-        { error: `Невірний код. Залишилось спроб: ${remaining}` },
+        { error: `Невірний код`, remainingAttempts: remaining },
         { status: 400 }
       );
     }
 
-    // Код вірний — позначаємо verified
+    // Mark as verified
     await prisma.otpCode.update({
       where: { id: otp.id },
       data: { verified: true },

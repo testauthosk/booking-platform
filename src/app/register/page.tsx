@@ -145,9 +145,10 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // OTP states
+  // OTP states (shared for phone and email)
   const [otpStep, setOtpStep] = useState<'input' | 'verify'>('input');
   const [otpCode, setOtpCode] = useState(['', '', '', '', '', '']);
+  const [emailVerified, setEmailVerified] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [tempCode, setTempCode] = useState('');
@@ -206,7 +207,66 @@ export default function RegisterPage() {
     return digits ? `+380${digits}` : '';
   };
 
-  // OTP functions
+  // OTP functions — email
+  const handleSendEmailOtp = async () => {
+    setError('');
+    setOtpLoading(true);
+    try {
+      const res = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), type: 'register' }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Помилка відправки коду');
+        setOtpLoading(false);
+        return;
+      }
+      setCountdown(60);
+      setOtpStep('verify');
+      setOtpCode(['', '', '', '', '', '']);
+    } catch (err) {
+      console.error('Send email OTP error:', err);
+      setError('Помилка з\'єднання');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleVerifyEmailOtp = async () => {
+    const code = otpCode.join('');
+    if (code.length !== 6) { setError('Введіть 6-значний код'); return; }
+    setError('');
+    setOtpLoading(true);
+    try {
+      const res = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), code }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.remainingAttempts !== undefined ? `Невірний код. Залишилось спроб: ${data.remainingAttempts}` : (data.error || 'Невірний код'));
+        setOtpLoading(false);
+        return;
+      }
+      setEmailVerified(true);
+      setOtpStep('input');
+    } catch (err) {
+      console.error('Verify email OTP error:', err);
+      setError('Помилка з\'єднання');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleResendEmailOtp = async () => {
+    if (countdown > 0) return;
+    await handleSendEmailOtp();
+  };
+
+  // OTP functions — phone
   const handleSendOtp = async () => {
     setError('');
     setOtpLoading(true);
@@ -324,9 +384,9 @@ export default function RegisterPage() {
           if (!email.trim()) return false;
           if (password.length < 6) return false;
           if (password !== confirmPassword) return false;
+          if (!emailVerified) return false; // Must verify email first
           return true;
         } else {
-          // Phone method — OTP не обов'язковий (SMS не підключено)
           if (phone.replace(/\D/g, '').length !== 9) return false;
           if (password.length < 6) return false;
           if (password !== confirmPassword) return false;
@@ -694,15 +754,92 @@ export default function RegisterPage() {
                     </label>
                     
                     {authMethod === 'email' ? (
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="email@example.com"
-                        autoComplete="off"
-                        style={{ fontSize: '16px', height: '50px' }}
-                        className="w-full px-4 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none text-gray-900"
-                      />
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => { setEmail(e.target.value); setEmailVerified(false); setOtpStep('input'); }}
+                            placeholder="email@example.com"
+                            autoComplete="off"
+                            disabled={emailVerified}
+                            style={{ fontSize: '16px', height: '50px' }}
+                            className={`w-full px-4 pr-12 rounded-xl border outline-none text-gray-900 ${
+                              emailVerified
+                                ? 'border-green-300 bg-green-50'
+                                : 'border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20'
+                            }`}
+                          />
+                          {emailVerified && (
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                              <Check className="w-5 h-5 text-green-500" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Email OTP — send button */}
+                        {!emailVerified && otpStep === 'input' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) && (
+                          <button
+                            type="button"
+                            onClick={handleSendEmailOtp}
+                            disabled={otpLoading}
+                            className="w-full py-3 rounded-xl bg-violet-100 text-violet-700 font-semibold text-sm hover:bg-violet-200 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                          >
+                            {otpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                            Підтвердити email
+                          </button>
+                        )}
+
+                        {/* Email OTP — verify */}
+                        {!emailVerified && otpStep === 'verify' && (
+                          <div className="space-y-3 p-4 bg-violet-50 rounded-xl border border-violet-100">
+                            <p className="text-sm text-gray-600">
+                              Код надіслано на <strong>{email}</strong>
+                            </p>
+                            <div className="flex gap-2 justify-center">
+                              {otpCode.map((digit, index) => (
+                                <input
+                                  key={index}
+                                  ref={(el) => { otpInputsRef.current[index] = el; }}
+                                  type="text"
+                                  inputMode="numeric"
+                                  maxLength={1}
+                                  value={digit}
+                                  onChange={(e) => handleOtpChange(index, e.target.value)}
+                                  onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                                  onPaste={index === 0 ? handleOtpPaste : undefined}
+                                  className="w-11 h-12 text-center text-lg font-bold rounded-lg border-2 border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none"
+                                />
+                              ))}
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={handleVerifyEmailOtp}
+                                disabled={otpLoading || otpCode.join('').length !== 6}
+                                className="flex-1 py-2.5 rounded-xl bg-violet-600 text-white font-semibold text-sm hover:bg-violet-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                              >
+                                {otpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                                Підтвердити
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleResendEmailOtp}
+                                disabled={countdown > 0}
+                                className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+                              >
+                                {countdown > 0 ? `${countdown}с` : 'Надіслати знову'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {emailVerified && (
+                          <p className="text-xs text-green-600 font-medium flex items-center gap-1">
+                            <Check className="w-3.5 h-3.5" /> Email підтверджено
+                          </p>
+                        )}
+                      </div>
                     ) : (
                       <div className="space-y-2">
                         <div className="relative">
