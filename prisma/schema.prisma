@@ -37,6 +37,9 @@ model Salon {
   onboardingData      Json?             // Дані онбордінгу: accountType, serviceLocation, website, lastStep
   onboardingCompleted Boolean           @default(false)
   migrationDismissed Boolean         @default(false) // Чи закрив користувач банер міграції
+  customBotToken    String?           // White-label Telegram bot token
+  customBotUsername String?           // White-label Telegram bot username
+  googlePlaceId     String?           // Google Business Profile place ID
   bookings          Booking[]
   clients           Client[]
   masters           Master[]
@@ -46,6 +49,7 @@ model Salon {
   services          Service[]
   categories        ServiceCategory[]
   users             User[]
+  subscription      Subscription?
 
   @@index([slug])
   @@index([isActive])
@@ -515,4 +519,19 @@ model OtpCode {
   @@index([phone])
   @@index([code])
   @@index([expiresAt])
+}
+
+model Subscription {
+  id            String    @id @default(uuid())
+  salonId       String    @unique
+  plan          String    @default("free") // free | pro | business
+  status        String    @default("active") // active | cancelled | past_due
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelledAt   DateTime?
+  paymentMethod String?   // liqpay | monobank | manual
+  externalId    String?   // payment provider subscription id
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  salon         Salon     @relation(fields: [salonId], references: [id], onDelete: Cascade)
 }

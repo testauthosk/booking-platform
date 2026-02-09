@@ -1,8 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  const response = NextResponse.next();
+  const hostname = request.headers.get('host') || '';
   const { pathname } = request.nextUrl;
+
+  // ── Subdomain Routing ──
+  // slug.tholim.com → /salon/slug
+  const baseDomain = process.env.BASE_DOMAIN || 'tholim.com';
+  if (
+    hostname !== baseDomain &&
+    hostname !== `www.${baseDomain}` &&
+    hostname.endsWith(`.${baseDomain}`) &&
+    !pathname.startsWith('/api/') &&
+    !pathname.startsWith('/_next/') &&
+    !pathname.startsWith('/salon/')
+  ) {
+    const slug = hostname.replace(`.${baseDomain}`, '');
+    if (slug && !slug.includes('.')) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/salon/${slug}${pathname === '/' ? '' : pathname}`;
+      return NextResponse.rewrite(url);
+    }
+  }
+
+  const response = NextResponse.next();
+
 
   // ── Security Headers ──
   // Prevent clickjacking (allow same-origin iframes for preview)
