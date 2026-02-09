@@ -244,6 +244,7 @@ export function DayPilotResourceCalendar({
     const relY = clientY - rcRect.top;
 
     // Ширина однієї колонки ресурсу
+    if (resources.length === 0) return null;
     const cellW = resourcesContainer.offsetWidth / resources.length;
     const resourceIdx = Math.max(0, Math.min(resources.length - 1, Math.floor(relX / cellW)));
     const resourceId = resources[resourceIdx]?.id || '';
@@ -366,6 +367,7 @@ export function DayPilotResourceCalendar({
       previewTarget.current.active = false;
       return;
     }
+    if (resources.length === 0) return;
     const totalMinutes = (dayEndHour - dayStartHour) * 60;
     const previewStartMin = d.targetStartMin - dayStartHour * 60;
     const previewEndMin = d.targetEndMin - dayStartHour * 60;
@@ -376,7 +378,7 @@ export function DayPilotResourceCalendar({
     // X в координатах gridRef: 40px (time column) + colIdx * colWidth
     const timeColW = 40;
     const container = grid.querySelector('[data-resources]') as HTMLElement;
-    const colWidth = container ? container.offsetWidth / resources.length : 110;
+    const colWidth = container && resources.length > 0 ? container.offsetWidth / resources.length : 110;
     
     previewTarget.current = {
       x: timeColW + colIdx * colWidth,

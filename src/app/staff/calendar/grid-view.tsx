@@ -218,9 +218,9 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
         />
       </div>
 
-      {/* FABs */}
+      {/* FABs — left side to avoid overlap with view toggle on right */}
       <Button
-        className="fixed right-4 bottom-[108px] w-14 h-14 rounded-2xl shadow-lg z-50 bg-blue-600 hover:bg-blue-700"
+        className="fixed left-4 bottom-[108px] w-14 h-14 rounded-2xl shadow-lg z-50 bg-blue-600 hover:bg-blue-700"
         size="icon"
         onClick={onColleagueCalendar}
         title="Записати колегу"
@@ -233,7 +233,7 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
         </svg>
       </Button>
       <Button
-        className="fixed right-4 bottom-[40px] w-14 h-14 rounded-2xl shadow-lg z-50 bg-gray-900 hover:bg-gray-800"
+        className="fixed left-4 bottom-[40px] w-14 h-14 rounded-2xl shadow-lg z-50 bg-gray-900 hover:bg-gray-800"
         size="icon"
         onClick={() => setAddModalOpen(true)}
       >

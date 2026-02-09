@@ -2,83 +2,38 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { staffFetch } from '@/lib/staff-fetch';
-import { Loader2 } from 'lucide-react';
+import { Loader2, List, Grid3X3 } from 'lucide-react';
 import StaffTimelineView from './timeline-view';
 import StaffGridView from './grid-view';
 import { ColleagueCalendarModal } from '@/components/staff/colleague-calendar-modal';
 
-// ViewModeSegment component — matching main calendar style
-function ViewModeSegment({ viewMode, onChange }: { viewMode: 'list' | 'grid'; onChange: (v: 'list' | 'grid') => void }) {
+// Vertical segment toggle — fixed bottom-right
+function ViewModeToggle({ viewMode, onChange }: { viewMode: 'list' | 'grid'; onChange: (v: 'list' | 'grid') => void }) {
   return (
-    <div
-      className="relative"
-      style={{
-        height: '40px',
-        padding: '3px',
-        borderRadius: '12px',
-        backgroundColor: '#f3f4f6',
-        border: '1px solid rgba(0,0,0,0.15)',
-        display: 'inline-flex',
-        minWidth: '180px',
-      }}
-    >
-      <div className="relative flex items-center" style={{ height: '100%', width: '100%' }}>
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            top: 0,
-            bottom: 0,
-            width: '50%',
-            left: 0,
-            transform: viewMode === 'list' ? 'translateX(0%)' : 'translateX(100%)',
-            transition: 'transform 300ms cubic-bezier(0.25, 0.1, 0.25, 1)',
-          }}
-        >
-          <div
-            style={{
-              width: '100%',
-              height: '100%',
-              borderRadius: '9px',
-              backgroundColor: '#ffffff',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
-            }}
-          />
-        </div>
-        <button
-          className="relative z-10 flex items-center justify-center whitespace-nowrap"
-          style={{
-            width: '50%',
-            height: '100%',
-            fontSize: '13px',
-            fontWeight: 600,
-            color: viewMode === 'list' ? '#111827' : '#6b7280',
-            transition: 'color 200ms',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-          }}
-          onClick={() => onChange('list')}
-        >
-          Список
-        </button>
-        <button
-          className="relative z-10 flex items-center justify-center whitespace-nowrap"
-          style={{
-            width: '50%',
-            height: '100%',
-            fontSize: '13px',
-            fontWeight: 600,
-            color: viewMode === 'grid' ? '#111827' : '#6b7280',
-            transition: 'color 200ms',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-          }}
-          onClick={() => onChange('grid')}
-        >
-          Сітка
-        </button>
-      </div>
+    <div className="fixed right-4 bottom-[180px] z-50 flex flex-col gap-0 rounded-2xl overflow-hidden shadow-lg border border-gray-200/80 bg-white/90 backdrop-blur-md">
+      <button
+        onClick={() => onChange('list')}
+        className={`flex items-center justify-center w-12 h-12 transition-all ${
+          viewMode === 'list'
+            ? 'bg-gray-900 text-white'
+            : 'bg-white text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+        }`}
+        title="Список"
+      >
+        <List className="h-5 w-5" />
+      </button>
+      <div className="h-px bg-gray-200" />
+      <button
+        onClick={() => onChange('grid')}
+        className={`flex items-center justify-center w-12 h-12 transition-all ${
+          viewMode === 'grid'
+            ? 'bg-gray-900 text-white'
+            : 'bg-white text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+        }`}
+        title="Сітка"
+      >
+        <Grid3X3 className="h-5 w-5" />
+      </button>
     </div>
   );
 }
@@ -93,14 +48,12 @@ function StaffCalendarContent() {
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        // Get from localStorage first (fast)
         const localStaffId = localStorage.getItem('staffId');
         const localSalonId = localStorage.getItem('staffSalonId');
         
         if (localStaffId) setStaffId(localStaffId);
         if (localSalonId) setSalonId(localSalonId);
         
-        // Then verify with API
         const res = await staffFetch('/api/staff/profile');
         if (res.ok) {
           const data = await res.json();
@@ -108,19 +61,13 @@ function StaffCalendarContent() {
           setSalonId(data.salonId);
         }
       } catch {
-        // Ignore errors — localStorage fallback
+        // localStorage fallback
       } finally {
         setLoading(false);
       }
     };
     loadProfile();
   }, []);
-
-  const fallback = (
-    <div className="flex-1 flex items-center justify-center">
-      <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-    </div>
-  );
 
   if (loading) {
     return (
@@ -132,18 +79,16 @@ function StaffCalendarContent() {
 
   return (
     <div className="h-full flex flex-col bg-white relative">
-      {/* Floating view mode toggle */}
-      <div className="absolute top-3 right-3 z-50">
-        <ViewModeSegment viewMode={viewMode} onChange={setViewMode} />
-      </div>
-
-      <Suspense fallback={fallback}>
+      <Suspense fallback={<div className="flex-1 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>}>
         {viewMode === 'list' ? (
           <StaffTimelineView />
         ) : (
           <StaffGridView onColleagueCalendar={() => setColleagueOpen(true)} />
         )}
       </Suspense>
+
+      {/* Vertical view mode toggle — bottom right */}
+      <ViewModeToggle viewMode={viewMode} onChange={setViewMode} />
 
       {/* Colleague calendar fullscreen */}
       <ColleagueCalendarModal
