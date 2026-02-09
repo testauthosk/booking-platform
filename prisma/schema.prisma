@@ -596,6 +596,44 @@ model PromoCode {
 }
 
 // ── Admin: Feature flags ──
+// ── Admin: Notification log (all sent notifications) ──
+model NotificationLog {
+  id        String   @id @default(uuid())
+  salonId   String?
+  channel   String   // telegram | email | sms
+  recipient String   // phone, email, or chatId
+  type      String   // reminder_24h | reminder_2h | booking_confirm | review_request | broadcast | otp
+  subject   String?
+  body      String?  @db.Text
+  status    String   @default("sent") // sent | failed | delivered
+  error     String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([salonId])
+  @@index([channel])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// ── Admin: Webhook log ──
+model WebhookLog {
+  id         String   @id @default(uuid())
+  service    String   // telegram | stripe | resend
+  direction  String   // inbound | outbound
+  url        String?
+  method     String?
+  statusCode Int?
+  payload    Json?
+  response   Json?
+  error      String?
+  durationMs Int?
+  createdAt  DateTime @default(now())
+
+  @@index([service])
+  @@index([createdAt])
+}
+
 model FeatureFlag {
   id          String   @id @default(uuid())
   key         String   @unique // e.g. "reviews", "analytics", "custom_bot"

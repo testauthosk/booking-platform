@@ -89,6 +89,12 @@ const navItems: NavItem[] = [
   { href: '/admin/otp', icon: Key, label: 'OTP Debug' },
   { href: '/admin/sql', icon: Terminal, label: 'SQL Console' },
   
+  // Моніторинг
+  { group: true, label: 'Моніторинг' },
+  { href: '/admin/webhooks', icon: Wifi, label: 'Webhooks' },
+  { href: '/admin/rate-limits', icon: Gauge, label: 'API Activity' },
+  { href: '/admin/notifications', icon: BellRing, label: 'Сповіщення' },
+
   // Система
   { group: true, label: 'Система' },
   { href: '/admin/logs', icon: FileText, label: 'Логи' },

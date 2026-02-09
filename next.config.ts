@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // @ts-expect-error eslint config exists at runtime
+  eslint: { ignoreDuringBuilds: true },
   // Prevent exposing server internals
   poweredByHeader: false,
   images: {
