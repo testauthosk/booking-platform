@@ -809,10 +809,10 @@ export default function WebsiteEditorPage() {
                       }`}
                     >
                       <div className="flex gap-1 flex-shrink-0">
-                        {palette.colors.slice(0, 5).map((color, i) => (
+                        {palette.colors.map((color, i) => (
                           <div
                             key={i}
-                            className="w-5 h-5 rounded-full"
+                            className="w-4 h-4 rounded-full"
                             style={{ backgroundColor: color.hex }}
                           />
                         ))}
