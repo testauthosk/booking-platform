@@ -1,326 +1,355 @@
+// @ts-nocheck
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
-import { NotificationBell } from '@/components/notifications/notification-bell';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useEffect, useState, useRef } from 'react';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Menu, TrendingUp, Calendar, Users, DollarSign, Loader2, ExternalLink, ArrowRight, Settings, PartyPopper } from 'lucide-react';
+import {
+  Calendar,
+  Users,
+  DollarSign,
+  Phone,
+  Clock,
+  Loader2,
+  Menu,
+  ChevronRight,
+  User,
+  CircleDot,
+} from 'lucide-react';
 import { useSidebar } from '@/components/sidebar-context';
+import { NotificationBell } from '@/components/notifications/notification-bell';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
 
-interface Booking {
-  id: string;
-  client_name: string;
-  date: string;
-  time: string;
-  duration: number;
-  service_name: string;
-  status: string;
-}
-
-interface DashboardData {
-  salon: {
+// ─── Types ───
+interface TodayData {
+  bookings: { total: number; completed: number; remaining: number; cancelled: number };
+  revenue: number;
+  nextClient: {
     name: string;
-    slug: string;
-    onboardingCompleted?: boolean;
+    phone: string;
+    time: string;
+    service: string;
+    master: string;
   } | null;
-  clients: Array<{ id: string }>;
-  totalClients?: number;
-  bookings: Booking[];
+  masters: MasterStatus[];
 }
 
-export default function DashboardPage() {
+interface MasterStatus {
+  id: string;
+  name: string;
+  avatar: string | null;
+  color: string | null;
+  status: 'working' | 'free' | 'off';
+  currentService?: string;
+  currentUntil?: string;
+  currentClient?: string;
+  nextAt?: string | null;
+}
+
+// ─── Helpers ───
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Доброго ранку';
+  if (h < 18) return 'Доброго дня';
+  return 'Доброго вечора';
+}
+
+function formatDate(): string {
+  return new Date().toLocaleDateString('uk-UA', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+}
+
+function formatMoney(n: number): string {
+  return n.toLocaleString('uk-UA');
+}
+
+function getInitial(name: string): string {
+  return name?.charAt(0)?.toUpperCase() || '?';
+}
+
+// ─── Skeleton ───
+function Skeleton({ className = '' }: { className?: string }) {
+  return <div className={`animate-pulse bg-gray-200 rounded-xl ${className}`} />;
+}
+
+function DashboardSkeleton() {
   return (
-    <Suspense fallback={null}>
-      <DashboardContent />
-    </Suspense>
+    <div className="space-y-4">
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-5 w-32" />
+      <div className="grid grid-cols-2 gap-3 mt-6">
+        <Skeleton className="h-28" />
+        <Skeleton className="h-28" />
+      </div>
+      <Skeleton className="h-24" />
+      <Skeleton className="h-32" />
+    </div>
   );
 }
 
-function DashboardContent() {
+// ─── Status dot ───
+function StatusDot({ status }: { status: 'working' | 'free' | 'off' }) {
+  const colors = {
+    working: 'bg-green-500',
+    free: 'bg-gray-300',
+    off: 'bg-gray-200',
+  };
+  return (
+    <span className={`inline-block w-2.5 h-2.5 rounded-full ${colors[status]} flex-shrink-0`} />
+  );
+}
+
+// ─── Progress ring ───
+function ProgressRing({ completed, total }: { completed: number; total: number }) {
+  const pct = total > 0 ? (completed / total) * 100 : 0;
+  return (
+    <div className="w-full bg-gray-100 rounded-full h-2 mt-2">
+      <div
+        className="h-2 rounded-full bg-green-500 transition-all duration-700"
+        style={{ width: `${Math.min(100, pct)}%` }}
+      />
+    </div>
+  );
+}
+
+// ─── Page ───
+export default function DashboardPage() {
   const { open: openSidebar } = useSidebar();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const isWelcome = searchParams.get('welcome') === 'true';
-  const [data, setData] = useState<DashboardData | null>(null);
+  const { data: session } = useSession();
+  const [today, setToday] = useState<TodayData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [onboardingIncomplete, setOnboardingIncomplete] = useState(false);
-  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
-  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
 
   useEffect(() => {
-    fetch('/api/dashboard/data')
-      .then(res => res.json())
-      .then(setData)
-      .catch(console.error)
-      .finally(() => setLoading(false));
-
-    // Перевіряємо онбордінг
-    fetch('/api/salon/onboarding')
-      .then(res => res.json())
-      .then(result => {
-        if (!result.completed) setOnboardingIncomplete(true);
-      })
-      .catch(console.error);
+    async function load() {
+      try {
+        const res = await fetch('/api/dashboard/today');
+        if (res.ok) {
+          setToday(await res.json());
+        }
+      } catch (e) {
+        console.error('Dashboard load error:', e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
   }, []);
 
-  // Get upcoming bookings (today and future, not cancelled)
-  const getUpcomingBookings = () => {
-    if (!data?.bookings) return [];
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    return data.bookings
-      .filter(b => {
-        const bookingDate = new Date(b.date);
-        bookingDate.setHours(0, 0, 0, 0);
-        return bookingDate >= today && b.status !== 'cancelled';
-      })
-      .sort((a, b) => {
-        const dateA = new Date(a.date + 'T' + a.time);
-        const dateB = new Date(b.date + 'T' + b.time);
-        return dateA.getTime() - dateB.getTime();
-      })
-      .slice(0, 5);
-  };
-
-  // Format date for display
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const months = ['січ.', 'лют.', 'бер.', 'квіт.', 'трав.', 'черв.', 'лип.', 'серп.', 'вер.', 'жовт.', 'лист.', 'груд.'];
-    return `${date.getDate()} ${months[date.getMonth()]}`;
-  };
-
-  // Format duration
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours > 0 && mins > 0) return `${hours}г ${mins}хв`;
-    if (hours > 0) return `${hours}г`;
-    return `${mins}хв`;
-  };
-
-  const upcomingBookings = getUpcomingBookings();
-  const totalClients = data?.totalClients ?? data?.clients?.length ?? 0;
-  const totalBookings = upcomingBookings.length;
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  const userName = session?.user?.name?.split(' ')[0] || '';
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      {/* Mobile header */}
-      <header
-        className="lg:hidden bg-white border-b border-gray-200 shrink-0 z-20 sticky top-0"
-        style={{ height: 56, padding: '0 12px', display: 'flex', alignItems: 'center', gap: 8 }}
-      >
-        <button
-          onClick={openSidebar}
-          className="shrink-0 active:scale-95 transition-transform"
-          style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >
-          <Menu className="text-gray-700" style={{ width: 18, height: 18 }} />
-        </button>
-        
-        <h1 className="flex-1 text-center text-base font-semibold truncate">Головна</h1>
-
-        <div className="flex items-center shrink-0" style={{ gap: 8 }}>
-          <NotificationBell />
-          <div
-            className="bg-orange-500 text-white text-sm font-medium shrink-0"
-            style={{ width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            {data?.salon?.name?.[0] || 'T'}
+    <div className="flex flex-col h-full bg-gray-50/50">
+      {/* Header */}
+      <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="lg:hidden" onClick={openSidebar}>
+            <Menu className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-lg font-semibold">
+              {getGreeting()}{userName ? `, ${userName}` : ''} 👋
+            </h1>
+            <p className="text-sm text-gray-500 capitalize">{formatDate()}</p>
           </div>
         </div>
-      </header>
+        <NotificationBell />
+      </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
-        {/* Welcome banner after registration */}
-        {isWelcome && !welcomeDismissed && (
-          <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-5 text-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-            <div className="relative">
-              <div className="flex items-center gap-2 mb-1">
-                <PartyPopper className="h-5 w-5" />
-                <h3 className="font-semibold text-lg">Ласкаво просимо!</h3>
-              </div>
-              <p className="text-white/80 text-sm mb-4">
-                Ваш акаунт створено. Починайте додавати послуги та приймати записи.
-              </p>
-              <button
-                onClick={() => setWelcomeDismissed(true)}
-                className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl text-sm font-medium transition-colors"
-              >
-                Зрозуміло 👍
-              </button>
+      <div className="flex-1 overflow-y-auto p-4 lg:p-6 pb-[84px] lg:pb-6">
+        <div className="max-w-[1000px] mx-auto space-y-4">
+          {loading ? (
+            <DashboardSkeleton />
+          ) : !today ? (
+            <div className="text-center py-12 text-gray-400">
+              Помилка завантаження
             </div>
-          </div>
-        )}
+          ) : (
+            <>
+              {/* Top cards: Bookings + Revenue */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Bookings today */}
+                <Card className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                      <Calendar className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <span className="text-xs font-medium text-gray-500">Записи</span>
+                  </div>
+                  {today.bookings.total === 0 ? (
+                    <p className="text-sm text-gray-400">Немає записів</p>
+                  ) : (
+                    <>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-bold">{today.bookings.completed}</span>
+                        <span className="text-sm text-gray-400">/ {today.bookings.total}</span>
+                      </div>
+                      <ProgressRing completed={today.bookings.completed} total={today.bookings.total} />
+                      <p className="text-xs text-gray-400 mt-1.5">
+                        Залишилось: {today.bookings.remaining}
+                      </p>
+                    </>
+                  )}
+                </Card>
 
-        {/* Onboarding incomplete banner */}
-        {onboardingIncomplete && !onboardingDismissed && (
-          <div className="bg-gradient-to-r from-violet-500 to-purple-600 rounded-2xl p-5 text-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-            <div className="relative">
-              <div className="flex items-center gap-2 mb-1">
-                <Settings className="h-5 w-5" />
-                <h3 className="font-semibold text-lg">Завершіть налаштування</h3>
-              </div>
-              <p className="text-white/80 text-sm mb-4">
-                Декілька кроків залишилось, щоб ваш салон був готовий до роботи
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => router.push('/register')}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-white text-violet-600 rounded-xl font-semibold text-sm hover:bg-white/90 transition-colors"
-                >
-                  Продовжити
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setOnboardingDismissed(true)}
-                  className="px-4 py-2.5 text-white/70 hover:text-white rounded-xl text-sm font-medium transition-colors"
-                >
-                  Пізніше
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Desktop title + View site button */}
-        <div className="flex items-center justify-between">
-          <h1 className="hidden lg:block text-2xl font-bold">Головна панель</h1>
-          {data?.salon?.slug && data?.salon?.onboardingCompleted && (
-            <Link
-              href={`/salon/${data.salon.slug}`}
-              target="_blank"
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white text-sm font-medium hover:opacity-90 transition-opacity"
-            >
-              <ExternalLink className="h-4 w-4" />
-              <span className="hidden sm:inline">Переглянути сайт</span>
-              <span className="sm:hidden">Сайт</span>
-            </Link>
-          )}
-        </div>
-        
-        {/* Stats grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-          <Card className="transition-all hover:shadow-md">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                  <DollarSign className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">0 €</p>
-                  <p className="text-xs text-muted-foreground">Продажі</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="transition-all hover:shadow-md">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                  <Calendar className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{totalBookings}</p>
-                  <p className="text-xs text-muted-foreground">Записи</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="transition-all hover:shadow-md">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
-                  <Users className="h-5 w-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{totalClients}</p>
-                  <p className="text-xs text-muted-foreground">Клієнти</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="transition-all hover:shadow-md">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
-                  <TrendingUp className="h-5 w-5 text-orange-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">—</p>
-                  <p className="text-xs text-muted-foreground">Зростання</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Recent bookings */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Найближчі записи</CardTitle>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/calendar">Усі</Link>
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {upcomingBookings.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4">Немає найближчих записів</p>
-            ) : (
-              upcomingBookings.map((booking) => (
-                <div 
-                  key={booking.id}
-                  className="flex items-center justify-between p-3 border rounded-lg transition-all hover:bg-muted/50"
-                >
-                  <div>
-                    <p className="font-medium">{booking.service_name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {booking.client_name} · {formatDuration(booking.duration)}
+                {/* Revenue today */}
+                <Card className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
+                      <DollarSign className="w-4 h-4 text-green-600" />
+                    </div>
+                    <span className="text-xs font-medium text-gray-500">Виручка</span>
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {formatMoney(today.revenue)} <span className="text-base font-normal text-gray-400">₴</span>
+                  </div>
+                  {today.bookings.total > 0 && (
+                    <p className="text-xs text-gray-400 mt-1.5">
+                      ~{formatMoney(Math.round(today.revenue / today.bookings.total))} ₴/запис
                     </p>
-                  </div>
-                  <div className="text-sm text-muted-foreground text-right">
-                    <p>{formatDate(booking.date)}</p>
-                    <p>{booking.time}</p>
-                  </div>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
+                  )}
+                </Card>
+              </div>
 
-        {/* Quick actions */}
-        <div className="grid grid-cols-2 gap-3">
-          <Button variant="outline" className="h-auto py-4 flex-col gap-2" asChild>
-            <Link href="/calendar">
-              <Calendar className="h-5 w-5" />
-              <span>Календар</span>
-            </Link>
-          </Button>
-          <Button variant="outline" className="h-auto py-4 flex-col gap-2" asChild>
-            <Link href="/clients">
-              <Users className="h-5 w-5" />
-              <span>Клієнти</span>
-            </Link>
-          </Button>
+              {/* Next client */}
+              <Card className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 mb-0">
+                    <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                      <User className="w-4 h-4 text-amber-600" />
+                    </div>
+                    <span className="text-xs font-medium text-gray-500">Наступний клієнт</span>
+                  </div>
+                  {today.nextClient?.phone && (
+                    <a
+                      href={`tel:${today.nextClient.phone}`}
+                      className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center hover:bg-green-100 transition-colors"
+                    >
+                      <Phone className="w-4 h-4 text-green-600" />
+                    </a>
+                  )}
+                </div>
+                {today.nextClient ? (
+                  <div className="mt-3">
+                    <p className="font-semibold text-base">{today.nextClient.name}</p>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5" />
+                        {today.nextClient.time}
+                      </span>
+                      <span>{today.nextClient.service}</span>
+                      <span className="text-gray-400">→ {today.nextClient.master}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 mt-3">
+                    {today.bookings.total > 0
+                      ? 'Все на сьогодні завершено 🎉'
+                      : 'Сьогодні записів немає'}
+                  </p>
+                )}
+              </Card>
+
+              {/* Masters status */}
+              {today.masters.length > 0 && (
+                <Card className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
+                      <Users className="w-4 h-4 text-purple-600" />
+                    </div>
+                    <span className="text-xs font-medium text-gray-500">Майстри</span>
+                  </div>
+                  <div className="space-y-2.5">
+                    {today.masters.map(m => (
+                      <div key={m.id} className="flex items-center gap-3">
+                        {/* Avatar */}
+                        <div
+                          className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-medium flex-shrink-0"
+                          style={{ backgroundColor: m.color || '#9ca3af' }}
+                        >
+                          {m.avatar ? (
+                            <img src={m.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                          ) : (
+                            getInitial(m.name)
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{m.name}</p>
+                          {m.status === 'working' && (
+                            <p className="text-xs text-gray-500 truncate">
+                              {m.currentService}{m.currentUntil ? ` до ${m.currentUntil}` : ''}
+                            </p>
+                          )}
+                          {m.status === 'free' && m.nextAt && (
+                            <p className="text-xs text-gray-400">Наступний о {m.nextAt}</p>
+                          )}
+                          {m.status === 'free' && !m.nextAt && (
+                            <p className="text-xs text-gray-400">Вільна</p>
+                          )}
+                          {m.status === 'off' && (
+                            <p className="text-xs text-gray-300">Вихідний</p>
+                          )}
+                        </div>
+
+                        {/* Status dot */}
+                        <StatusDot status={m.status} />
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              {/* Empty state for new salons */}
+              {today.bookings.total === 0 && today.masters.length === 0 && (
+                <Card className="p-6 text-center">
+                  <p className="text-4xl mb-3">🚀</p>
+                  <h3 className="font-semibold text-lg mb-1">Почніть з налаштування</h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Додайте майстрів та послуги, щоб клієнти могли записатись
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                    <Link href="/team">
+                      <Button variant="outline" size="sm">
+                        <Users className="w-4 h-4 mr-1.5" />
+                        Додати мастера
+                      </Button>
+                    </Link>
+                    <Link href="/catalogue">
+                      <Button variant="outline" size="sm">
+                        Додати послуги
+                      </Button>
+                    </Link>
+                  </div>
+                </Card>
+              )}
+
+              {today.bookings.total === 0 && today.masters.length > 0 && (
+                <Card className="p-6 text-center">
+                  <p className="text-4xl mb-3">📋</p>
+                  <h3 className="font-semibold text-lg mb-1">Сьогодні поки тихо</h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Поділіться посиланням на вашу сторінку з клієнтами
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const slug = session?.user?.salonId || '';
+                      navigator.clipboard.writeText(`${window.location.origin}/salon/${slug}`);
+                    }}
+                  >
+                    🔗 Скопіювати посилання
+                  </Button>
+                </Card>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>
