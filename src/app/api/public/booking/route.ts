@@ -58,12 +58,7 @@ export async function POST(request: NextRequest) {
     if (bookingDate < now) {
       return NextResponse.json({ error: 'Неможливо створити запис на минулий час' }, { status: 400 });
     }
-    // Max 60 days ahead
-    const maxDate = new Date();
-    maxDate.setDate(maxDate.getDate() + 60);
-    if (bookingDate > maxDate) {
-      return NextResponse.json({ error: 'Бронювання можливе максимум на 60 днів вперед' }, { status: 400 });
-    }
+    // Max advance days check moved to after salon fetch (uses salon.maxAdvanceDays)
 
     // Time: HH:MM
     if (!/^\d{2}:\d{2}$/.test(time)) {
@@ -76,10 +71,30 @@ export async function POST(request: NextRequest) {
     // === Verify salon exists and is active ===
     const salon = await prisma.salon.findUnique({
       where: { id: salonId },
-      select: { id: true, name: true, isActive: true, ownerId: true, bufferTime: true, address: true, phone: true },
+      select: {
+        id: true, name: true, isActive: true, ownerId: true, bufferTime: true, address: true, phone: true,
+        minLeadTimeHours: true, maxAdvanceDays: true, requireConfirmation: true,
+      },
     });
     if (!salon || !salon.isActive) {
       return NextResponse.json({ error: 'Салон не знайдено' }, { status: 404 });
+    }
+
+    // === Booking rules check ===
+    const leadMs = salon.minLeadTimeHours * 60 * 60 * 1000;
+    if (bookingDate.getTime() - now.getTime() < leadMs) {
+      return NextResponse.json(
+        { error: `Мінімальний час до запису: ${salon.minLeadTimeHours} год` },
+        { status: 400 }
+      );
+    }
+    const maxAdvanceDate = new Date();
+    maxAdvanceDate.setDate(maxAdvanceDate.getDate() + salon.maxAdvanceDays);
+    if (bookingDate > maxAdvanceDate) {
+      return NextResponse.json(
+        { error: `Бронювання можливе максимум на ${salon.maxAdvanceDays} днів вперед` },
+        { status: 400 }
+      );
     }
 
     // === Verify masterId belongs to this salon ===
@@ -166,6 +181,14 @@ export async function POST(request: NextRequest) {
       where: { phone: cleanPhone, salonId },
     });
 
+    // Check blacklist
+    if (client?.isBlocked) {
+      return NextResponse.json(
+        { error: 'На жаль, онлайн-запис для вас недоступний. Зверніться до салону напряму.' },
+        { status: 403 }
+      );
+    }
+
     if (!client) {
       client = await prisma.client.create({
         data: {
@@ -202,7 +225,7 @@ export async function POST(request: NextRequest) {
         duration: dur,
         price,
         notes: notes ? String(notes).substring(0, 500) : null,
-        status: 'CONFIRMED',
+        status: salon.requireConfirmation ? 'PENDING' : 'CONFIRMED',
       },
     });
 

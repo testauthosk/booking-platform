@@ -40,6 +40,27 @@ model Salon {
   customBotToken    String?           // White-label Telegram bot token
   customBotUsername String?           // White-label Telegram bot username
   googlePlaceId     String?           // Google Business Profile place ID
+
+  // ── Booking rules ──
+  minLeadTimeHours    Int       @default(2)      // Мін. час до запису (години)
+  maxAdvanceDays      Int       @default(30)     // Макс. наперед (дні)
+  slotStepMinutes     Int       @default(30)     // Крок слотів (хвилини)
+  requireConfirmation Boolean   @default(false)  // Потрібне підтвердження власником
+  bookingWarningText  String?                    // Текст-попередження при бронюванні
+
+  // ── Cancellation policy ──
+  cancelDeadlineHours   Int     @default(4)      // За скільки годин можна скасувати
+  noShowPenaltyPercent  Int     @default(0)      // Штраф за no-show (%)
+  maxNoShowsBeforeBlock Int     @default(3)      // No-show до автоблокування
+
+  // ── Notification settings ──
+  notifyChannels        String[] @default(["telegram", "email"])  // Канали сповіщень
+  notifyReminder24h     Boolean  @default(true)   // Нагадування за 24 год
+  notifyReminder2h      Boolean  @default(true)   // Нагадування за 2 год
+  notifyReminder1h      Boolean  @default(false)  // Нагадування за 1 год
+  notifyAfterVisit      Boolean  @default(true)   // Подяка після візиту
+  notifyBirthday        Boolean  @default(false)  // Привітання з ДН
+  notifyReturnDays      Int      @default(0)      // Повернення клієнтів (0 = вимкнено)
   bookings          Booking[]
   clients           Client[]
   masters           Master[]
@@ -176,6 +197,10 @@ model Client {
   updatedAt        DateTime  @updatedAt
   telegramChatId   String?
   telegramUsername String?
+  birthday         DateTime?          // Дата народження
+  isBlocked        Boolean   @default(false)  // Чорний список
+  blockReason      String?            // Причина блокування
+  noShowCount      Int       @default(0)      // Лічильник no-show
   bookings         Booking[]
   salon            Salon     @relation(fields: [salonId], references: [id], onDelete: Cascade)
   reviews          Review[]

@@ -44,16 +44,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Запис вже завершено' }, { status: 400 });
     }
 
-    // Check cancellation policy — can't cancel less than 2 hours before
+    // Check cancellation policy — uses salon's cancelDeadlineHours
+    const salon = await prisma.salon.findUnique({
+      where: { id: booking.salonId },
+      select: { cancelDeadlineHours: true, ownerId: true },
+    });
+    const deadlineHours = salon?.cancelDeadlineHours ?? 2;
+
     const [y, m, d] = booking.date.split('-').map(Number);
     const [h, min] = booking.time.split(':').map(Number);
     const bookingTime = new Date(y, m - 1, d, h, min);
     const now = new Date();
     const hoursUntil = (bookingTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-    if (hoursUntil < 2) {
+    if (deadlineHours > 0 && hoursUntil < deadlineHours) {
       return NextResponse.json({
-        error: 'Скасування можливе не пізніше ніж за 2 години до візиту',
+        error: `Скасування можливе не пізніше ніж за ${deadlineHours} год до візиту`,
       }, { status: 400 });
     }
 
@@ -76,10 +82,6 @@ export async function POST(request: NextRequest) {
 
     // Notify salon owner
     try {
-      const salon = await prisma.salon.findUnique({
-        where: { id: booking.salonId },
-        select: { ownerId: true },
-      });
       if (salon?.ownerId) {
         const owner = await prisma.user.findUnique({
           where: { id: salon.ownerId },
