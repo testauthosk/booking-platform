@@ -1199,7 +1199,7 @@ export function DayPilotResourceCalendar({
                   return (
                     <div 
                       key={idx} 
-                      className={`flex-1 min-w-[100px] py-2 text-center border-r border-gray-200 cursor-pointer ${isSelectedCol ? 'bg-gray-100' : ''}`}
+                      className={`flex-1 min-w-[100px] py-2 text-center border-r border-gray-200 cursor-pointer ${isSelectedCol ? 'bg-gray-100' : 'bg-white'}`}
                       onClick={() => handleDateSelect(day)}
                     >
                       <div className={`text-[10px] font-medium ${isTodayCol ? 'text-red-500' : 'text-gray-500'}`}>
@@ -1243,7 +1243,7 @@ export function DayPilotResourceCalendar({
                   const dayEvents = events.filter(e => e.start.startsWith(dayStr));
                   const isTodayCol = day.toDateString() === new Date().toDateString();
                   return (
-                    <div key={dIdx} className={`flex-1 min-w-[100px] relative border-r border-gray-200 ${isTodayCol ? 'bg-yellow-50/30' : ''}`}>
+                    <div key={dIdx} className={`flex-1 min-w-[100px] relative border-r border-gray-200 ${isTodayCol ? 'bg-yellow-50/30' : 'bg-white'}`}>
                       {/* Hour lines */}
                       {steps.map((i) => {
                         const minutesFromStart = i * timeStep;
