@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect, Suspense, lazy } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useState, useEffect, Suspense } from 'react';
 import { staffFetch } from '@/lib/staff-fetch';
+import { Loader2 } from 'lucide-react';
+import StaffTimelineView from './timeline-view';
+import StaffGridView from './grid-view';
 import { ColleagueCalendarModal } from '@/components/staff/colleague-calendar-modal';
 
-const StaffTimelineView = lazy(() => import('./timeline-view'));
-const StaffGridView = lazy(() => import('./grid-view'));
-
+// ViewModeSegment component — matching main calendar style
 function ViewModeSegment({ viewMode, onChange }: { viewMode: 'list' | 'grid'; onChange: (v: 'list' | 'grid') => void }) {
   return (
     <div
@@ -26,23 +26,54 @@ function ViewModeSegment({ viewMode, onChange }: { viewMode: 'list' | 'grid'; on
         <div
           className="absolute pointer-events-none"
           style={{
-            top: 0, bottom: 0, width: '50%', left: 0,
+            top: 0,
+            bottom: 0,
+            width: '50%',
+            left: 0,
             transform: viewMode === 'list' ? 'translateX(0%)' : 'translateX(100%)',
             transition: 'transform 300ms cubic-bezier(0.25, 0.1, 0.25, 1)',
           }}
         >
-          <div style={{ width: '100%', height: '100%', borderRadius: '9px', backgroundColor: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }} />
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              borderRadius: '9px',
+              backgroundColor: '#ffffff',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+            }}
+          />
         </div>
         <button
           className="relative z-10 flex items-center justify-center whitespace-nowrap"
-          style={{ width: '50%', height: '100%', fontSize: '13px', fontWeight: 600, color: viewMode === 'list' ? '#111827' : '#6b7280', transition: 'color 200ms', background: 'none', border: 'none', cursor: 'pointer' }}
+          style={{
+            width: '50%',
+            height: '100%',
+            fontSize: '13px',
+            fontWeight: 600,
+            color: viewMode === 'list' ? '#111827' : '#6b7280',
+            transition: 'color 200ms',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+          }}
           onClick={() => onChange('list')}
         >
           Список
         </button>
         <button
           className="relative z-10 flex items-center justify-center whitespace-nowrap"
-          style={{ width: '50%', height: '100%', fontSize: '13px', fontWeight: 600, color: viewMode === 'grid' ? '#111827' : '#6b7280', transition: 'color 200ms', background: 'none', border: 'none', cursor: 'pointer' }}
+          style={{
+            width: '50%',
+            height: '100%',
+            fontSize: '13px',
+            fontWeight: 600,
+            color: viewMode === 'grid' ? '#111827' : '#6b7280',
+            transition: 'color 200ms',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+          }}
           onClick={() => onChange('grid')}
         >
           Сітка
@@ -52,22 +83,35 @@ function ViewModeSegment({ viewMode, onChange }: { viewMode: 'list' | 'grid'; on
   );
 }
 
-export default function StaffCalendarPage() {
+function StaffCalendarContent() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [colleagueOpen, setColleagueOpen] = useState(false);
   const [staffId, setStaffId] = useState('');
   const [salonId, setSalonId] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadProfile = async () => {
       try {
+        // Get from localStorage first (fast)
+        const localStaffId = localStorage.getItem('staffId');
+        const localSalonId = localStorage.getItem('staffSalonId');
+        
+        if (localStaffId) setStaffId(localStaffId);
+        if (localSalonId) setSalonId(localSalonId);
+        
+        // Then verify with API
         const res = await staffFetch('/api/staff/profile');
         if (res.ok) {
           const data = await res.json();
           setStaffId(data.id);
           setSalonId(data.salonId);
         }
-      } catch {}
+      } catch {
+        // Ignore errors — localStorage fallback
+      } finally {
+        setLoading(false);
+      }
     };
     loadProfile();
   }, []);
@@ -77,6 +121,14 @@ export default function StaffCalendarPage() {
       <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
     </div>
   );
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col bg-white relative">
@@ -101,5 +153,19 @@ export default function StaffCalendarPage() {
         salonId={salonId}
       />
     </div>
+  );
+}
+
+export default function StaffCalendarPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      }
+    >
+      <StaffCalendarContent />
+    </Suspense>
   );
 }

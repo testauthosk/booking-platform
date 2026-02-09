@@ -514,9 +514,7 @@ export default function RegisterPage() {
       position: absolute !important;
       right: -9999px !important;
     }
-    input[type="password"]::-webkit-textfield-decoration-container {
-      display: none !important;
-    }
+    /* Removed -webkit-textfield-decoration-container hide — breaks password dots on some mobile browsers */
   `;
 
   return (
