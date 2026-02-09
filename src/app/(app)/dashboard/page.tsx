@@ -216,7 +216,7 @@ export default function DashboardPage() {
           </Button>
           <div>
             <h1 className="text-lg font-semibold">
-              {getGreeting()}{userName ? `, ${userName}` : ''}
+              {getGreeting()}{userName ? `, ${userName}` : ''} 👋
             </h1>
             <p className="text-sm text-gray-500 capitalize">{formatDate()}</p>
           </div>
