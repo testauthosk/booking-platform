@@ -313,6 +313,7 @@ export function BookingModal({
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [isClosing, setIsClosing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -576,6 +577,7 @@ export function BookingModal({
             masterId: selectedSpecialist === 'any' ? specialists[0]?.id : selectedSpecialist!,
             clientName: `${firstName} ${lastName}`,
             clientPhone: `+380${phone.replace(/\s/g, '')}`,
+            ...(email.trim() && email.includes('@') ? { clientEmail: email.trim().toLowerCase() } : {}),
             date: selectedDate!.toISOString().split('T')[0],
             time: selectedTimes[0],
             duration: roundedDuration,
@@ -1172,6 +1174,20 @@ export function BookingModal({
                           className="flex-1 px-4 py-3 rounded-r-xl border border-gray-200 focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none transition-all text-base"
                         />
                       </div>
+                    </div>
+
+                    {/* Email (optional) */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Email <span className="text-gray-400 font-normal">(для підтвердження)</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="email@example.com"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none transition-all text-base"
+                      />
                     </div>
 
                     {/* Booking summary */}

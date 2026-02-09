@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -15,9 +15,28 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#1a1a1a',
+};
+
 export const metadata: Metadata = {
-  title: "Booking Platform",
-  description: "Система бронювання для салонів краси",
+  title: "Tholim — Онлайн бронювання",
+  description: "Платформа онлайн-бронювання для салонів краси та барбершопів",
+  manifest: '/manifest.json',
+  themeColor: '#1a1a1a',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Tholim',
+  },
+  icons: {
+    icon: '/icons/icon-192.png',
+    apple: '/icons/icon-192.png',
+  },
 };
 
 export default function RootLayout({

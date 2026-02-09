@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
       time,
       duration,
       notes,
+      clientEmail,
     } = body;
 
     // === Validation ===
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
     // === Verify salon exists and is active ===
     const salon = await prisma.salon.findUnique({
       where: { id: salonId },
-      select: { id: true, name: true, isActive: true, ownerId: true, bufferTime: true },
+      select: { id: true, name: true, isActive: true, ownerId: true, bufferTime: true, address: true, phone: true },
     });
     if (!salon || !salon.isActive) {
       return NextResponse.json({ error: 'Салон не знайдено' }, { status: 404 });
@@ -171,7 +172,16 @@ export async function POST(request: NextRequest) {
           salonId,
           name: trimmedName,
           phone: cleanPhone,
+          ...(clientEmail && typeof clientEmail === 'string' && clientEmail.includes('@')
+            ? { email: clientEmail.trim().toLowerCase() }
+            : {}),
         },
+      });
+    } else if (clientEmail && !client.email && typeof clientEmail === 'string' && clientEmail.includes('@')) {
+      // Update existing client with email if they didn't have one
+      client = await prisma.client.update({
+        where: { id: client.id },
+        data: { email: clientEmail.trim().toLowerCase() },
       });
     }
 
@@ -227,6 +237,24 @@ export async function POST(request: NextRequest) {
           }).catch(console.error);
         }
       } catch {}
+    }
+
+    // Send confirmation email to client (fire-and-forget)
+    if (client.email || clientEmail) {
+      const { sendBookingConfirmation } = await import('@/lib/email');
+      sendBookingConfirmation({
+        clientName: trimmedName,
+        clientEmail: client.email || clientEmail,
+        salonName: salon.name,
+        salonAddress: salon.address || undefined,
+        salonPhone: salon.phone || undefined,
+        serviceName,
+        masterName,
+        date,
+        time,
+        duration: dur,
+        price,
+      }).catch(console.error);
     }
 
     return NextResponse.json({

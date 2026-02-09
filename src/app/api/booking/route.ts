@@ -424,6 +424,37 @@ export async function POST(request: NextRequest) {
       console.error('Failed to send notification:', e);
     }
 
+    // Send confirmation email to client if email available (fire-and-forget)
+    if (clientEmail || booking.clientId) {
+      try {
+        let email = clientEmail;
+        if (!email && booking.clientId) {
+          const c = await prisma.client.findUnique({ where: { id: booking.clientId }, select: { email: true } });
+          email = c?.email;
+        }
+        if (email) {
+          const salonData = await prisma.salon.findUnique({
+            where: { id: salonId },
+            select: { name: true, address: true, phone: true },
+          });
+          const { sendBookingConfirmation } = await import('@/lib/email');
+          sendBookingConfirmation({
+            clientName: clientName || 'Клієнт',
+            clientEmail: email,
+            salonName: salonData?.name || '',
+            salonAddress: salonData?.address || undefined,
+            salonPhone: salonData?.phone || undefined,
+            serviceName: serviceName || 'Послуга',
+            masterName: masterName || '',
+            date,
+            time,
+            duration,
+            price,
+          }).catch(console.error);
+        }
+      } catch {}
+    }
+
     return NextResponse.json(booking);
   } catch (error) {
     console.error('Booking creation error:', error);

@@ -451,8 +451,30 @@ export default function SalonPage() {
   const masters = salon.masters || [];
   const reviews = salon.reviews || [];
 
+  // JSON-LD for SEO
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BeautySalon',
+    name: salon.name,
+    ...(salon.description ? { description: salon.description } : {}),
+    ...(salon.address ? { address: { '@type': 'PostalAddress', streetAddress: salon.address } } : {}),
+    ...(salon.phone ? { telephone: salon.phone } : {}),
+    ...(salon.logo ? { image: salon.logo } : {}),
+    ...(reviews.length > 0 ? {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: (reviews.reduce((sum: number, r: any) => sum + (r.rating || 5), 0) / reviews.length).toFixed(1),
+        reviewCount: reviews.length,
+      },
+    } : {}),
+  };
+
   return (
     <div className="min-h-screen bg-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Navigation */}
       <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -633,6 +655,23 @@ export default function SalonPage() {
                   Прокласти маршрут
                 </a>
               </div>
+
+              {/* Map */}
+              {salon.address && (
+                <div className="mb-6 rounded-xl overflow-hidden border border-gray-200" style={{ height: '200px' }}>
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={salon.coordinates_lat && salon.coordinates_lng
+                      ? `https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d2000!2d${salon.coordinates_lng}!3d${salon.coordinates_lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sua!4v1`
+                      : `https://www.google.com/maps/embed/v1/place?key=&q=${encodeURIComponent(salon.address)}`
+                    }
+                  />
+                </div>
+              )}
 
               {/* Navigation Tabs */}
               <div className="border-b border-gray-200 mb-8">
