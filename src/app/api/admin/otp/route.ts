@@ -1,120 +1,71 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
-import { prisma } from '@/lib/prisma';
 
-// GET - list OTP codes
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.role || session.user.role !== 'SUPER_ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { searchParams } = new URL(req.url);
-    const filter = searchParams.get('filter') || 'all'; // all | active | used | expired
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const search = searchParams.get('search');
+    const { searchParams } = new URL(request.url);
+    const filter = searchParams.get('filter') || 'all';
+    const search = searchParams.get('search') || '';
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 200);
 
     const now = new Date();
-
     const where: Record<string, unknown> = {};
 
-    // Filter by status
-    if (filter === 'active') {
-      where.verified = false;
-      where.expiresAt = { gt: now };
-    } else if (filter === 'used') {
-      where.verified = true;
-    } else if (filter === 'expired') {
-      where.verified = false;
-      where.expiresAt = { lt: now };
-    }
+    if (filter === 'active') { where.verified = false; where.expiresAt = { gte: now }; }
+    else if (filter === 'verified') { where.verified = true; }
+    else if (filter === 'expired') { where.expiresAt = { lt: now }; where.verified = false; }
 
-    // Search
     if (search) {
       where.OR = [
-        { phone: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search } },
         { email: { contains: search, mode: 'insensitive' } },
         { code: { contains: search } },
       ];
     }
 
-    const [otpCodes, total, stats] = await Promise.all([
+    const [otps, total] = await Promise.all([
       prisma.otpCode.findMany({
         where,
         orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
         take: limit,
-        include: {
-          user: { select: { id: true, email: true, name: true } },
+        skip: (page - 1) * limit,
+        select: {
+          id: true, phone: true, email: true, code: true, type: true,
+          channel: true, verified: true, attempts: true, expiresAt: true, createdAt: true,
         },
       }),
       prisma.otpCode.count({ where }),
-      Promise.all([
-        prisma.otpCode.count(),
-        prisma.otpCode.count({ where: { verified: false, expiresAt: { gt: now } } }),
-        prisma.otpCode.count({ where: { verified: true } }),
-        prisma.otpCode.count({ where: { verified: false, expiresAt: { lt: now } } }),
-      ]),
     ]);
 
-    return NextResponse.json({
-      otpCodes: otpCodes.map((otp) => ({
-        ...otp,
-        isExpired: otp.expiresAt < now,
-        isActive: !otp.verified && otp.expiresAt > now,
-      })),
-      total,
-      page,
-      stats: {
-        total: stats[0],
-        active: stats[1],
-        used: stats[2],
-        expired: stats[3],
-      },
-    });
+    return NextResponse.json({ otps, total, page, limit });
   } catch (error) {
-    console.error('Error fetching OTP codes:', error);
+    console.error('Admin OTP error:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
 
-// DELETE - cleanup expired OTP codes
-export async function DELETE(req: NextRequest) {
+export async function DELETE() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.role || session.user.role !== 'SUPER_ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get('id');
-    const cleanupExpired = searchParams.get('cleanupExpired') === 'true';
+    const result = await prisma.otpCode.deleteMany({
+      where: { expiresAt: { lt: new Date() } },
+    });
 
-    if (id) {
-      // Delete single OTP
-      await prisma.otpCode.delete({ where: { id } });
-      return NextResponse.json({ success: true, deleted: 1 });
-    }
-
-    if (cleanupExpired) {
-      // Delete all expired OTP codes
-      const result = await prisma.otpCode.deleteMany({
-        where: {
-          OR: [
-            { expiresAt: { lt: new Date() } },
-            { verified: true },
-          ],
-        },
-      });
-      return NextResponse.json({ success: true, deleted: result.count });
-    }
-
-    return NextResponse.json({ error: 'Missing id or cleanupExpired' }, { status: 400 });
+    return NextResponse.json({ deleted: result.count });
   } catch (error) {
-    console.error('Error deleting OTP:', error);
+    console.error('Admin OTP cleanup error:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

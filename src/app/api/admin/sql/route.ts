@@ -1,163 +1,93 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
-import { prisma } from '@/lib/prisma';
 
-// Forbidden SQL keywords - these can modify data
 const FORBIDDEN_KEYWORDS = [
-  'INSERT',
-  'UPDATE',
-  'DELETE',
-  'DROP',
-  'ALTER',
-  'TRUNCATE',
-  'CREATE',
-  'GRANT',
-  'REVOKE',
-  'REPLACE',
-  'MERGE',
-  'UPSERT',
-  'EXEC',
-  'EXECUTE',
-  'CALL',
-  'SET ',
-  'COMMIT',
-  'ROLLBACK',
-  'SAVEPOINT',
-  'LOCK',
-  'UNLOCK',
+  'INSERT', 'UPDATE', 'DELETE', 'DROP', 'ALTER', 'TRUNCATE', 'CREATE',
+  'GRANT', 'REVOKE', 'EXEC', 'EXECUTE', 'CALL', 'SET ', 'COPY',
 ];
 
-// Preset queries for common operations
-const PRESET_QUERIES = {
-  all_salons: `SELECT id, name, slug, "isActive", "createdAt", 
-               (SELECT COUNT(*) FROM "Booking" WHERE "salonId" = "Salon".id) as bookings_count,
-               (SELECT COUNT(*) FROM "Client" WHERE "salonId" = "Salon".id) as clients_count
-               FROM "Salon" ORDER BY "createdAt" DESC LIMIT 100`,
-  
-  top_clients: `SELECT c.id, c.name, c.phone, c."visitsCount", c."totalSpent", 
-                s.name as salon_name
-                FROM "Client" c 
-                JOIN "Salon" s ON c."salonId" = s.id
-                ORDER BY c."totalSpent" DESC LIMIT 50`,
-  
-  today_bookings: `SELECT b.id, b.date, b.time, b."clientName", b."clientPhone", 
-                   b."serviceName", b.status, b.price, s.name as salon_name
-                   FROM "Booking" b 
-                   JOIN "Salon" s ON b."salonId" = s.id
-                   WHERE b.date = CURRENT_DATE
-                   ORDER BY b.time ASC`,
-  
-  recent_users: `SELECT id, email, name, role, "createdAt", "telegramChatId" IS NOT NULL as has_telegram
-                 FROM "User" ORDER BY "createdAt" DESC LIMIT 50`,
-  
-  subscriptions: `SELECT sub.id, sub.plan, sub.status, sub."createdAt", 
-                  s.name as salon_name, s.slug
-                  FROM "Subscription" sub
-                  JOIN "Salon" s ON sub."salonId" = s.id
-                  ORDER BY sub."createdAt" DESC`,
-  
-  revenue_by_salon: `SELECT s.name, s.slug, 
-                     COUNT(b.id) as total_bookings,
-                     SUM(CASE WHEN b.status = 'COMPLETED' THEN b.price ELSE 0 END) as revenue
-                     FROM "Salon" s
-                     LEFT JOIN "Booking" b ON b."salonId" = s.id
-                     GROUP BY s.id, s.name, s.slug
-                     ORDER BY revenue DESC NULLS LAST`,
-};
+const PRESETS = [
+  { name: 'Всі салони', query: 'SELECT id, name, slug, "isActive", "createdAt" FROM "Salon" ORDER BY "createdAt" DESC', category: 'salons' },
+  { name: 'Всі користувачі', query: 'SELECT id, email, name, role, "salonId", "createdAt" FROM "User" ORDER BY "createdAt" DESC', category: 'users' },
+  { name: 'Бронювання сьогодні', query: `SELECT b.id, b."clientName", b."serviceName", b.date, b.time, b.status, s.name as salon FROM "Booking" b JOIN "Salon" s ON b."salonId" = s.id WHERE b.date = CURRENT_DATE ORDER BY b.time`, category: 'bookings' },
+  { name: 'Топ клієнти', query: 'SELECT id, name, phone, "visitsCount", "totalSpent", "salonId" FROM "Client" ORDER BY "visitsCount" DESC LIMIT 50', category: 'clients' },
+  { name: 'Активні OTP', query: `SELECT id, phone, email, code, type, channel, verified, attempts, "expiresAt" FROM "OtpCode" WHERE "expiresAt" > NOW() AND verified = false`, category: 'system' },
+  { name: 'Мастера', query: 'SELECT m.id, m.name, m.email, m."isActive", m.color, s.name as salon FROM "Master" m JOIN "Salon" s ON m."salonId" = s.id ORDER BY s.name, m.name', category: 'salons' },
+  { name: 'Підписки', query: 'SELECT sub.id, sub.plan, sub.status, sub."startDate", s.name as salon FROM "Subscription" sub JOIN "Salon" s ON sub."salonId" = s.id', category: 'finance' },
+  { name: 'Розмір таблиць', query: `SELECT schemaname, tablename, pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size FROM pg_tables WHERE schemaname = 'public' ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC`, category: 'system' },
+  { name: 'Відгуки', query: 'SELECT r.id, r."authorName", r.rating, r.text, r."isVisible", s.name as salon FROM "Review" r JOIN "Salon" s ON r."salonId" = s.id ORDER BY r."createdAt" DESC LIMIT 50', category: 'salons' },
+  { name: 'Аудит-лог (останні 50)', query: 'SELECT id, "salonId", "actorType", "actorName", action, "entityType", "createdAt" FROM "AuditLog" ORDER BY "createdAt" DESC LIMIT 50', category: 'system' },
+];
 
-// POST - execute read-only SQL
-export async function POST(req: NextRequest) {
+// GET - return presets
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.role || session.user.role !== 'SUPER_ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const { query, preset } = await req.json();
-    
-    let sqlQuery: string;
-    
-    if (preset && PRESET_QUERIES[preset as keyof typeof PRESET_QUERIES]) {
-      sqlQuery = PRESET_QUERIES[preset as keyof typeof PRESET_QUERIES];
-    } else if (query) {
-      sqlQuery = query.trim();
-    } else {
-      return NextResponse.json({ error: 'Query is required' }, { status: 400 });
-    }
-
-    // Check for forbidden keywords (case-insensitive)
-    const upperQuery = sqlQuery.toUpperCase();
-    for (const keyword of FORBIDDEN_KEYWORDS) {
-      // Check if keyword appears as a word (not part of another word)
-      const regex = new RegExp(`\\b${keyword}\\b`, 'i');
-      if (regex.test(upperQuery)) {
-        return NextResponse.json(
-          { error: `Заборонена операція: ${keyword}. Дозволені тільки SELECT запити.` },
-          { status: 400 }
-        );
-      }
-    }
-
-    // Must start with SELECT or WITH (for CTEs)
-    if (!upperQuery.startsWith('SELECT') && !upperQuery.startsWith('WITH')) {
-      return NextResponse.json(
-        { error: 'Дозволені тільки SELECT запити' },
-        { status: 400 }
-      );
-    }
-
-    // Limit results
-    if (!upperQuery.includes('LIMIT')) {
-      sqlQuery = sqlQuery.replace(/;?\s*$/, '') + ' LIMIT 1000';
-    }
-
-    // Execute query
-    const startTime = Date.now();
-    const result = await prisma.$queryRawUnsafe(sqlQuery);
-    const executionTime = Date.now() - startTime;
-
-    // Convert BigInt to string for JSON serialization
-    const serializedResult = JSON.parse(
-      JSON.stringify(result, (key, value) =>
-        typeof value === 'bigint' ? value.toString() : value
-      )
-    );
-
-    return NextResponse.json({
-      success: true,
-      data: serializedResult,
-      rowCount: Array.isArray(serializedResult) ? serializedResult.length : 0,
-      executionTime,
-      query: sqlQuery,
-    });
-  } catch (error: unknown) {
-    console.error('SQL execution error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json(
-      { error: `SQL помилка: ${errorMessage}` },
-      { status: 400 }
-    );
+    return NextResponse.json({ presets: PRESETS });
+  } catch {
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
 
-// GET - get preset queries
-export async function GET(req: NextRequest) {
+// POST - execute read-only query
+export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.role || session.user.role !== 'SUPER_ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { query } = await request.json();
+    if (!query || typeof query !== 'string') {
+      return NextResponse.json({ error: 'Query required' }, { status: 400 });
+    }
+
+    // Security: only SELECT/WITH/EXPLAIN allowed
+    const upperQuery = query.trim().toUpperCase();
+    if (!upperQuery.startsWith('SELECT') && !upperQuery.startsWith('WITH') && !upperQuery.startsWith('EXPLAIN')) {
+      return NextResponse.json({ error: 'Дозволено тільки SELECT / WITH / EXPLAIN запити' }, { status: 403 });
+    }
+
+    // Check for forbidden keywords (outside quoted strings)
+    const stripped = query.replace(/'[^']*'/g, '').replace(/"[^"]*"/g, '');
+    for (const kw of FORBIDDEN_KEYWORDS) {
+      const regex = new RegExp(`\\b${kw}\\b`, 'i');
+      if (regex.test(stripped)) {
+        return NextResponse.json({ error: `Заборонено: ${kw}` }, { status: 403 });
+      }
+    }
+
+    // Auto-limit
+    const limitedQuery = /\bLIMIT\b/i.test(query) ? query : `${query} LIMIT 500`;
+
+    const start = Date.now();
+    const result = await prisma.$queryRawUnsafe(limitedQuery);
+    const executionTime = Date.now() - start;
+
+    const rows = Array.isArray(result) ? result : [];
+
+    // Serialize BigInt
+    const serialized = rows.map((row: Record<string, unknown>) => {
+      const obj: Record<string, unknown> = {};
+      for (const [key, val] of Object.entries(row)) {
+        obj[key] = typeof val === 'bigint' ? Number(val) : val;
+      }
+      return obj;
+    });
+
     return NextResponse.json({
-      presets: Object.entries(PRESET_QUERIES).map(([key, query]) => ({
-        key,
-        name: key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
-        query,
-      })),
+      data: serialized,
+      rowCount: serialized.length,
+      executionTime,
+      query: limitedQuery,
     });
   } catch (error) {
-    console.error('Error getting presets:', error);
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Query error';
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }
