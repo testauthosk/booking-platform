@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ...master,
       salonName: master.salon?.name || '',
-      paletteId: master.salon?.paletteId || 'earth-harmony',
+      paletteId: master.salon?.paletteId || 'champagne-gold',
       stats: {
         monthBookings,
         avgRating: avgRating._avg.rating ?? 5.0,
