@@ -1,5 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
+
+// Helper: verify user owns the service's salon
+async function verifyServiceOwnership(serviceId: string, userId: string) {
+  const service = await prisma.service.findUnique({
+    where: { id: serviceId },
+    select: { salonId: true },
+  });
+  if (!service) return { error: 'Service not found', status: 404 };
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { salonId: true },
+  });
+  if (service.salonId !== user?.salonId) return { error: 'Forbidden', status: 403 };
+
+  return { salonId: service.salonId };
+}
 
 // GET /api/services/[id]
 export async function GET(
@@ -7,21 +26,31 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
-    
+
+    const check = await verifyServiceOwnership(id, session.user.id);
+    if ('error' in check) {
+      return NextResponse.json({ error: check.error }, { status: check.status });
+    }
+
     const service = await prisma.service.findUnique({
       where: { id },
       include: {
         category: true,
         masters: {
-          include: { master: true },
+          include: {
+            master: {
+              select: { id: true, name: true, avatar: true, role: true },
+            },
+          },
         },
       },
     });
-
-    if (!service) {
-      return NextResponse.json({ error: 'Service not found' }, { status: 404 });
-    }
 
     return NextResponse.json(service);
   } catch (error) {
@@ -30,24 +59,26 @@ export async function GET(
   }
 }
 
-// PATCH /api/services/[id] - обновить услугу
+// PATCH /api/services/[id] - оновити послугу (owner only)
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
+
+    const check = await verifyServiceOwnership(id, session.user.id);
+    if ('error' in check) {
+      return NextResponse.json({ error: check.error }, { status: check.status });
+    }
+
     const body = await request.json();
-    const {
-      categoryId,
-      name,
-      description,
-      price,
-      priceFrom,
-      duration,
-      sortOrder,
-      isActive,
-    } = body;
+    const { categoryId, name, description, price, priceFrom, duration, sortOrder, isActive } = body;
 
     const service = await prisma.service.update({
       where: { id },
@@ -61,9 +92,7 @@ export async function PATCH(
         ...(sortOrder !== undefined && { sortOrder }),
         ...(isActive !== undefined && { isActive }),
       },
-      include: {
-        category: true,
-      },
+      include: { category: true },
     });
 
     return NextResponse.json(service);
@@ -73,15 +102,24 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/services/[id] - мягкое удаление (isActive = false)
+// DELETE /api/services/[id] - мʼяке видалення (owner only)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
-    
-    // Мягкое удаление
+
+    const check = await verifyServiceOwnership(id, session.user.id);
+    if ('error' in check) {
+      return NextResponse.json({ error: check.error }, { status: check.status });
+    }
+
     await prisma.service.update({
       where: { id },
       data: { isActive: false },

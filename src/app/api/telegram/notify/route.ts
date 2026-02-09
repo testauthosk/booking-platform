@@ -2,9 +2,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { sendTelegramMessage, formatBookingNotification } from '@/lib/telegram';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth: must be called by an authenticated user (owner creating booking)
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { bookingId } = await request.json();
 
     if (!bookingId) {

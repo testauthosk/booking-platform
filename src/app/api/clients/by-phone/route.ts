@@ -1,27 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const phone = searchParams.get('phone');
-  const salonId = searchParams.get('salonId');
-
-  if (!phone) {
-    return NextResponse.json({ error: 'Phone required' }, { status: 400 });
-  }
-
   try {
-    // Знайти клієнта за телефоном
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { salonId: true },
+    });
+    if (!user?.salonId) {
+      return NextResponse.json({ error: 'No salon' }, { status: 400 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const phone = searchParams.get('phone');
+
+    if (!phone) {
+      return NextResponse.json({ error: 'Phone required' }, { status: 400 });
+    }
+
+    // Only search within user's salon
     const client = await prisma.client.findFirst({
-      where: { phone },
+      where: { phone, salonId: user.salonId },
     });
 
-    // Отримати всі бронювання цього клієнта (за телефоном)
     const bookings = await prisma.booking.findMany({
       where: {
         clientPhone: phone,
+        salonId: user.salonId,
         status: 'COMPLETED',
-        ...(salonId ? { salonId } : {}),
       },
       orderBy: { date: 'desc' },
       take: 10,
@@ -34,29 +47,26 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Підрахунок статистики
     const stats = await prisma.booking.aggregate({
       where: {
         clientPhone: phone,
+        salonId: user.salonId,
         status: 'COMPLETED',
-        ...(salonId ? { salonId } : {}),
       },
       _count: true,
-      _sum: {
-        price: true,
-      },
+      _sum: { price: true },
     });
 
     return NextResponse.json({
       id: client?.id,
       name: client?.name,
-      phone: phone,
+      phone,
       totalVisits: stats._count || 0,
       totalSpent: stats._sum?.price || 0,
       lastVisits: bookings,
     });
   } catch (error) {
     console.error('Error fetching client:', error);
-    return NextResponse.json({ error: 'Failed to fetch client' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

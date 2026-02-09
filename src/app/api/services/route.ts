@@ -1,25 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
 import { logAudit } from '@/lib/audit';
 
-// Создать или получить демо салон
-async function ensureSalonExists(salonId: string) {
-  const salon = await prisma.salon.findUnique({ where: { id: salonId } });
-  
-  if (!salon) {
-    await prisma.salon.create({
-      data: {
-        id: salonId,
-        name: 'BookingPro Demo',
-        slug: `demo-${Date.now()}`,
-        type: 'Салон краси',
-        description: 'Демонстраційний салон',
-      },
-    });
-  }
-}
-
-// GET /api/services - список услуг
+// GET /api/services - список услуг (public for booking widget)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -55,12 +40,24 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/services - создать услугу
+// POST /api/services - створити послугу (owner only)
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { salonId: true },
+    });
+    if (!user?.salonId) {
+      return NextResponse.json({ error: 'No salon' }, { status: 400 });
+    }
+
     const body = await request.json();
     const {
-      salonId,
       categoryId,
       name,
       description,
@@ -70,19 +67,16 @@ export async function POST(request: NextRequest) {
       sortOrder = 0,
     } = body;
 
-    if (!salonId || !name || price === undefined) {
+    if (!name || price === undefined) {
       return NextResponse.json(
-        { error: 'salonId, name and price required' },
+        { error: 'name and price required' },
         { status: 400 }
       );
     }
 
-    // Убедимся что салон существует
-    await ensureSalonExists(salonId);
-
     const service = await prisma.service.create({
       data: {
-        salonId,
+        salonId: user.salonId,
         categoryId: categoryId || null,
         name,
         description,
@@ -96,11 +90,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Логируем в историю
     await logAudit({
-      salonId,
+      salonId: user.salonId,
       actorType: 'admin',
-      actorName: 'Адміністратор',
+      actorId: session.user.id,
+      actorName: session.user.name || 'Owner',
       action: 'CREATE',
       entityType: 'service',
       entityId: service.id,

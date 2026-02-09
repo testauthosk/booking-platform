@@ -1,24 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
 
-// Создать или получить демо салон
-async function ensureSalonExists(salonId: string) {
-  const salon = await prisma.salon.findUnique({ where: { id: salonId } });
-  
-  if (!salon) {
-    await prisma.salon.create({
-      data: {
-        id: salonId,
-        name: 'BookingPro Demo',
-        slug: `demo-${Date.now()}`,
-        type: 'Салон краси',
-        description: 'Демонстраційний салон',
-      },
-    });
-  }
-}
-
-// GET /api/categories - список категорий
+// GET /api/categories - список категорій (public for booking widget)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -49,22 +34,32 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/categories - создать категорию
+// POST /api/categories - створити категорію (owner only)
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { salonId, name, sortOrder = 0 } = body;
-
-    if (!salonId || !name) {
-      return NextResponse.json({ error: 'salonId and name required' }, { status: 400 });
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Убедимся что салон существует
-    await ensureSalonExists(salonId);
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { salonId: true },
+    });
+    if (!user?.salonId) {
+      return NextResponse.json({ error: 'No salon' }, { status: 400 });
+    }
+
+    const body = await request.json();
+    const { name, sortOrder = 0 } = body;
+
+    if (!name) {
+      return NextResponse.json({ error: 'name required' }, { status: 400 });
+    }
 
     const category = await prisma.serviceCategory.create({
       data: {
-        salonId,
+        salonId: user.salonId,
         name,
         sortOrder,
       },
