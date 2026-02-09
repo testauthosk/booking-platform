@@ -457,11 +457,11 @@ export default function CataloguePage() {
       </div>
 
       {/* Mobile FABs */}
-      <div className="lg:hidden fixed right-4 bottom-24 flex flex-col gap-2">
+      <div className="lg:hidden fixed right-4 bottom-[76px] flex flex-col gap-2">
         <Button
           variant="outline"
           size="icon"
-          className="w-12 h-12 rounded-full shadow-lg bg-background"
+          className="w-14 h-14 rounded-2xl shadow-lg bg-background"
           onClick={() => {
             setEditingCategory(null);
             setCategoryModalOpen(true);
@@ -471,7 +471,7 @@ export default function CataloguePage() {
         </Button>
         <Button
           size="icon"
-          className="w-14 h-14 rounded-full shadow-lg"
+          className="w-14 h-14 rounded-2xl shadow-lg"
           onClick={() => {
             setEditingService(null);
             setServiceModalOpen(true);

@@ -71,7 +71,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         </div>
         
         {/* Main content */}
-        <main className="flex-1 overflow-auto overscroll-none lg:pb-0">
+        <main className={`flex-1 overflow-auto overscroll-none lg:pb-0 ${isCalendar ? '' : 'pb-[68px]'}`}>
           {children}
         </main>
       </div>

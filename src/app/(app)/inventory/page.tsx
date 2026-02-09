@@ -322,7 +322,7 @@ export default function InventoryPage() {
 
         {/* Mobile FAB */}
         <Button
-          className="lg:hidden fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg"
+          className="lg:hidden fixed right-4 bottom-[76px] h-14 w-14 rounded-2xl shadow-lg"
           onClick={handleNewProduct}
         >
           <Plus className="h-6 w-6" />

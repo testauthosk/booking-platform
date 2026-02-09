@@ -410,7 +410,7 @@ export default function TeamPage() {
       {/* Mobile FAB */}
       {!onboardingRequired && (
         <Button 
-          className="lg:hidden fixed right-4 bottom-24 w-14 h-14 rounded-full shadow-lg"
+          className="lg:hidden fixed right-4 bottom-[76px] w-14 h-14 rounded-2xl shadow-lg"
           size="icon"
           onClick={() => setInviteModalOpen(true)}
         >

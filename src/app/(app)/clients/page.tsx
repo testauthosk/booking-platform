@@ -298,7 +298,7 @@ export default function ClientsPage() {
 
       {/* Mobile FAB */}
       <Button 
-        className="lg:hidden fixed right-4 bottom-24 w-14 h-14 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95"
+        className="lg:hidden fixed right-4 bottom-[76px] w-14 h-14 rounded-2xl shadow-lg transition-transform hover:scale-105 active:scale-95"
         size="icon"
       >
         <Plus className="h-6 w-6" />

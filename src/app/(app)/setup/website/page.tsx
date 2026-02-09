@@ -852,7 +852,7 @@ export default function WebsiteEditorPage() {
           )}
 
           {/* Save Button (Mobile) */}
-          <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white border-t">
+          <div className="lg:hidden fixed bottom-[68px] left-0 right-0 p-4 bg-white border-t z-30">
             <Button
               onClick={handleSave}
               disabled={!hasChanges || saving}
