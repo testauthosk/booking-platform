@@ -122,7 +122,7 @@ export function NewBookingModal({
         onClick={onClose}
       />
       
-      {/* Bottom Sheet Modal */}
+      {/* Modal */}
       <div className={`fixed inset-x-0 bottom-0 lg:inset-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-md bg-background rounded-t-3xl lg:rounded-2xl shadow-xl z-50 max-h-[85vh] overflow-hidden flex flex-col transition-all duration-300 ${
         isAnimating 
           ? 'opacity-100 translate-y-0 lg:scale-100' 

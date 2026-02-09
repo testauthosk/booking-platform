@@ -1196,6 +1196,7 @@ export default function CalendarPage() {
         onSave={handleNewBooking}
         slotInfo={selectedSlot}
         resources={resources}
+        services={services}
       />
 
       {/* Block Time Modal */}
