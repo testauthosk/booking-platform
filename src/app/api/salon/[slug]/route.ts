@@ -84,8 +84,20 @@ export async function GET(
       },
     });
 
-    if (!salon || !salon.onboardingCompleted) {
+    if (!salon) {
       return NextResponse.json({ error: 'Salon not found' }, { status: 404 });
+    }
+
+    // Block unpublished salons for public visitors
+    // Allow preview for authenticated salon owners
+    if (!salon.onboardingCompleted) {
+      const { getServerSession } = await import('next-auth');
+      const { authOptions } = await import('@/lib/auth-config');
+      const session = await getServerSession(authOptions);
+      const isOwner = session?.user?.salonId === salon.id;
+      if (!isOwner) {
+        return NextResponse.json({ error: 'Salon not found' }, { status: 404 });
+      }
     }
 
     // Transform to expected format — exclude internal fields

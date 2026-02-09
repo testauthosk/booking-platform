@@ -23,6 +23,7 @@ interface DashboardData {
   salon: {
     name: string;
     slug: string;
+    onboardingCompleted?: boolean;
   } | null;
   clients: Array<{ id: string }>;
   totalClients?: number;
@@ -199,7 +200,7 @@ function DashboardContent() {
         {/* Desktop title + View site button */}
         <div className="flex items-center justify-between">
           <h1 className="hidden lg:block text-2xl font-bold">Головна панель</h1>
-          {data?.salon?.slug && (
+          {data?.salon?.slug && data?.salon?.onboardingCompleted && (
             <Link
               href={`/salon/${data.salon.slug}`}
               target="_blank"
