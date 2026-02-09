@@ -109,7 +109,7 @@ export default function StaffServices() {
 
   const loadCategories = async () => {
     // Use salonId from localStorage or fallback to demo
-    const sid = salonId || localStorage.getItem('staffSalonId') || 'demo-salon-id';
+    const sid = salonId || localStorage.getItem('staffSalonId') || '';
     try {
       const res = await staffFetch(`/api/staff/categories?salonId=${sid}`);
       if (res.ok) {
@@ -197,7 +197,7 @@ export default function StaffServices() {
   };
 
   const createService = async () => {
-    const sid = salonId || localStorage.getItem('staffSalonId') || 'demo-salon-id';
+    const sid = salonId || localStorage.getItem('staffSalonId') || '';
     if (!newServiceName || !newServicePrice) {
       console.log('Missing fields:', { newServiceName, newServicePrice });
       return;

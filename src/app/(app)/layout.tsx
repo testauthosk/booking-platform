@@ -102,7 +102,7 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const { user } = useAuth();
-  const salonId = user?.salonId || 'demo-salon-id';
+  const salonId = user?.salonId || '';
 
   return (
     <SidebarProvider>

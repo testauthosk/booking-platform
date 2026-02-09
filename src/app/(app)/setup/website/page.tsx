@@ -97,20 +97,14 @@ const AVAILABLE_AMENITIES = [
   'Зона очікування',
 ];
 
-// Кольорові палітри
-const COLOR_PALETTES = [
-  { id: 'earth-harmony', name: 'Земляна гармонія', colors: ['#8B7355', '#A0522D', '#DEB887'] },
-  { id: 'ocean-breeze', name: 'Океанський бриз', colors: ['#4A90A4', '#87CEEB', '#E0F4FF'] },
-  { id: 'forest-calm', name: 'Лісовий спокій', colors: ['#2E8B57', '#90EE90', '#F0FFF0'] },
-  { id: 'sunset-glow', name: 'Захід сонця', colors: ['#FF6B6B', '#FFE66D', '#FFF5E1'] },
-  { id: 'lavender-dream', name: 'Лавандова мрія', colors: ['#9370DB', '#DDA0DD', '#F8F0FF'] },
-  { id: 'minimal-mono', name: 'Мінімалізм', colors: ['#1A1A1A', '#666666', '#F5F5F5'] },
-];
+// Кольорові палітри — з lib
+import { COLOR_PALETTES as LIB_PALETTES } from '@/lib/color-palettes';
 
 export default function WebsiteEditorPage() {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingPalette, setSavingPalette] = useState(false);
   const [settings, setSettings] = useState<SalonSettings | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [activeSection, setActiveSection] = useState('basic');
@@ -171,6 +165,56 @@ export default function WebsiteEditorPage() {
       alert('Помилка збереження');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Зберегти палітру + розподілити кольори між майстрами
+  const handlePaletteSave = async () => {
+    if (!settings) return;
+    setSavingPalette(true);
+    try {
+      // 1. Save palette setting
+      const res = await fetch('/api/salon/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paletteId: settings.paletteId }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        alert(err?.error || 'Помилка збереження');
+        return;
+      }
+
+      // 2. Get masters list
+      const mastersRes = await fetch('/api/masters');
+      if (!mastersRes.ok) return;
+      const mastersList = await mastersRes.json();
+
+      // 3. Get palette colors
+      const palette = LIB_PALETTES.find(p => p.id === settings.paletteId);
+      if (!palette || !Array.isArray(mastersList) || mastersList.length === 0) {
+        setHasChanges(false);
+        return;
+      }
+
+      // 4. Shuffle colors and assign to masters
+      const shuffled = [...palette.colors].sort(() => Math.random() - 0.5);
+      const updates = mastersList.map((master: { id: string }, idx: number) => {
+        const color = shuffled[idx % shuffled.length].hex;
+        return fetch(`/api/masters/${master.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ color }),
+        });
+      });
+      await Promise.all(updates);
+
+      setHasChanges(false);
+    } catch (error) {
+      console.error('Failed to save palette:', error);
+      alert('Помилка збереження палітри');
+    } finally {
+      setSavingPalette(false);
     }
   };
 
@@ -751,32 +795,58 @@ export default function WebsiteEditorPage() {
                 <Palette className="w-5 h-5 text-gray-400" />
                 Кольорова тема
               </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {COLOR_PALETTES.map((palette) => {
+              <div className="flex flex-col gap-3">
+                {LIB_PALETTES.map((palette) => {
                   const isSelected = settings.paletteId === palette.id;
                   return (
                     <button
                       key={palette.id}
                       onClick={() => updateField('paletteId', palette.id)}
-                      className={`p-4 rounded-xl border-2 text-left transition-all ${
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 text-left transition-all ${
                         isSelected
-                          ? 'border-gray-900 shadow-lg'
+                          ? 'border-gray-900 bg-gray-50 shadow-sm'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      <div className="flex gap-1 mb-3">
-                        {palette.colors.map((color, i) => (
+                      <div className="flex gap-1 flex-shrink-0">
+                        {palette.colors.slice(0, 5).map((color, i) => (
                           <div
                             key={i}
-                            className="w-6 h-6 rounded-full"
-                            style={{ backgroundColor: color }}
+                            className="w-5 h-5 rounded-full"
+                            style={{ backgroundColor: color.hex }}
                           />
                         ))}
                       </div>
-                      <p className="text-sm font-medium">{palette.name}</p>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{palette.name}</p>
+                        <p className="text-[11px] text-gray-500 truncate">{palette.description}</p>
+                      </div>
+                      {isSelected && (
+                        <Check className="w-4 h-4 text-gray-900 flex-shrink-0 ml-auto" />
+                      )}
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Save palette + distribute colors */}
+              <div className="mt-4 pt-4 border-t">
+                <Button
+                  onClick={handlePaletteSave}
+                  disabled={!hasChanges || savingPalette}
+                  className="w-full"
+                  size="sm"
+                >
+                  {savingPalette ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4 mr-2" />
+                  )}
+                  Зберегти та розподілити кольори
+                </Button>
+                <p className="text-[11px] text-gray-400 mt-2 text-center">
+                  Кольори будуть випадково розподілені між майстрами
+                </p>
               </div>
             </Card>
           )}
