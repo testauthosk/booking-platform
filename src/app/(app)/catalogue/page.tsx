@@ -434,23 +434,33 @@ export default function CataloguePage() {
 
         {/* Empty state */}
         {!loading && filteredServices.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12">
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-              <Search className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <p className="text-muted-foreground mb-4">
-              {search ? 'Послуг не знайдено' : 'Додайте першу послугу'}
-            </p>
-            {!search && (
-              <Button
-                onClick={() => {
-                  setEditingService(null);
-                  setServiceModalOpen(true);
-                }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Додати послугу
-              </Button>
+          <div className="flex flex-col items-center justify-center py-16">
+            {search ? (
+              <>
+                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                  <Search className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground">Послуг не знайдено</p>
+              </>
+            ) : (
+              <>
+                <div className="text-5xl mb-4">✨</div>
+                <h3 className="text-lg font-semibold mb-1">Додайте свою першу послугу ❤️</h3>
+                <p className="text-sm text-muted-foreground mb-6 text-center max-w-xs">
+                  Створіть послуги, щоб клієнти могли записуватись онлайн
+                </p>
+                <Button
+                  onClick={() => {
+                    setEditingService(null);
+                    setServiceModalOpen(true);
+                  }}
+                  size="lg"
+                  className="rounded-xl"
+                >
+                  <Plus className="h-5 w-5 mr-2" />
+                  Додати
+                </Button>
+              </>
             )}
           </div>
         )}
