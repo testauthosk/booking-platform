@@ -27,11 +27,20 @@ export async function GET() {
     }
 
     const salonId = user.salonId;
+
+    // Get salon timezone
+    const salon = await prisma.salon.findUnique({
+      where: { id: salonId },
+      select: { timezone: true },
+    });
+    const tz = salon?.timezone || 'Europe/Kiev';
+
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    const dateFormatter = new Intl.DateTimeFormat('sv-SE', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
+    const today = dateFormatter.format(now);
+    const tomorrowDate = new Date(now);
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrowStr = dateFormatter.format(tomorrowDate);
 
     const alerts: Alert[] = [];
 
@@ -82,7 +91,8 @@ export async function GET() {
       select: { id: true, name: true, workingHours: true },
     });
 
-    const tomorrowDay = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][tomorrow.getDay()];
+    const tomorrowDayFormatter = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'long' });
+    const tomorrowDay = tomorrowDayFormatter.format(tomorrowDate).toLowerCase();
     const tomorrowBookings = await prisma.booking.findMany({
       where: { salonId, date: tomorrowStr, status: { not: 'CANCELLED' } },
       select: { masterId: true, duration: true },

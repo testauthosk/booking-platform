@@ -19,9 +19,20 @@ export async function GET() {
     }
 
     const salonId = user.salonId;
+
+    // Get salon timezone
+    const salon = await prisma.salon.findUnique({
+      where: { id: salonId },
+      select: { timezone: true },
+    });
+    const tz = salon?.timezone || 'Europe/Kiev';
+
+    // Use salon timezone for date/time calculations
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const currentTime = now.toTimeString().slice(0, 5); // "HH:MM"
+    const formatter = new Intl.DateTimeFormat('sv-SE', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
+    const today = formatter.format(now); // "YYYY-MM-DD"
+    const timeFormatter = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
+    const currentTime = timeFormatter.format(now); // "HH:MM"
 
     // All today's bookings (not cancelled)
     const todayBookings = await prisma.booking.findMany({
@@ -78,7 +89,8 @@ export async function GET() {
       },
     });
 
-    const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][now.getDay()];
+    const dayFormatter = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'long' });
+    const dayOfWeek = dayFormatter.format(now).toLowerCase(); // "monday", "tuesday", etc.
 
     const masterStatuses = masters.map(m => {
       const wh = m.workingHours as Record<string, { enabled?: boolean; start?: string; end?: string }> | null;

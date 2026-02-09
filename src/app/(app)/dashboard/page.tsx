@@ -10,14 +10,12 @@ import {
   DollarSign,
   Phone,
   Clock,
-  Loader2,
   Menu,
   ChevronRight,
   User,
   Plus,
   Ban,
   Link2,
-  Copy,
 } from 'lucide-react';
 import { useSidebar } from '@/components/sidebar-context';
 import { NotificationBell } from '@/components/notifications/notification-bell';
@@ -490,9 +488,14 @@ export default function DashboardPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      const slug = session?.user?.salonId || '';
-                      navigator.clipboard.writeText(`${window.location.origin}/salon/${slug}`);
+                    onClick={async () => {
+                      try {
+                        const res = await fetch('/api/salon/settings');
+                        if (res.ok) {
+                          const salon = await res.json();
+                          await navigator.clipboard.writeText(`${window.location.origin}/salon/${salon.slug}`);
+                        }
+                      } catch {}
                     }}
                   >
                     🔗 Скопіювати посилання

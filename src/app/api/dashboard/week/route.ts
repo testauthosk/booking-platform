@@ -19,12 +19,24 @@ export async function GET() {
     }
 
     const salonId = user.salonId;
+
+    // Get salon timezone
+    const salon = await prisma.salon.findUnique({
+      where: { id: salonId },
+      select: { timezone: true },
+    });
+    const tz = salon?.timezone || 'Europe/Kiev';
+
     const now = new Date();
+    // Get current day in salon timezone
+    const dayFormatter = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short' });
+    const dateFormatter = new Intl.DateTimeFormat('sv-SE', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
+    const todayLocal = new Date(dateFormatter.format(now) + 'T12:00:00');
 
     // Current week: Monday to Sunday
-    const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...
+    const dayOfWeek = todayLocal.getDay(); // 0=Sun, 1=Mon...
     const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    const thisMonday = new Date(now);
+    const thisMonday = new Date(todayLocal);
     thisMonday.setDate(now.getDate() + mondayOffset);
     thisMonday.setHours(0, 0, 0, 0);
 
