@@ -75,7 +75,16 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
           setStaffId(data.id);
           setStaffName(data.name);
           setSalonId(data.salonId);
-          if (data.color) setStaffColor(data.color);
+          if (data.color) {
+            setStaffColor(data.color);
+          } else if (data.paletteId) {
+            // Fallback to first color of salon palette
+            const { getPaletteById } = await import('@/lib/color-palettes');
+            const palette = getPaletteById(data.paletteId);
+            if (palette && palette.colors.length > 0) {
+              setStaffColor(palette.colors[0].hex);
+            }
+          }
           if (data.workingHours) setStaffWorkingHours(data.workingHours as Record<string, WorkingDay>);
         }
       } catch (e) { console.error('Load profile error:', e); }

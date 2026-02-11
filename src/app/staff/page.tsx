@@ -226,11 +226,10 @@ export default function StaffDashboard() {
 
   const loadServices = async () => {
     try {
-      const res = await staffFetch(`/api/staff/services?masterId=${staffId}`);
+      const res = await staffFetch(`/api/staff/services`);
       if (res.ok) {
         const data = await res.json();
-        // Only enabled services
-        setServices(data.filter((s: { isEnabled: boolean }) => s.isEnabled));
+        setServices(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error('Load services error:', error);
