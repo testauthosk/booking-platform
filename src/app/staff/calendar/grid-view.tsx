@@ -217,7 +217,7 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
         </div>
         <button
           onClick={() => setAddModalOpen(true)}
-          className="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center shadow-sm"
+          className="w-10 h-10 rounded-2xl bg-gray-900 text-white flex items-center justify-center shadow-sm"
         >
           <Plus className="h-5 w-5" />
         </button>
@@ -248,7 +248,7 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
           );
         })}
       </div>
-      <div className="flex-1 overflow-y-auto overflow-x-hidden relative">
+      <div className="flex-1 min-h-0 overflow-hidden relative">
         {loadingBookings && (
           <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/70 backdrop-blur-[1px]">
             <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
