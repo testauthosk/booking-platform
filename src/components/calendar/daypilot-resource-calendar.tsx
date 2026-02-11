@@ -1281,15 +1281,15 @@ export function DayPilotResourceCalendar({
                             onClick={() => onEventClick?.(event)}
                           >
                             {/* Time bar — solid */}
-                            <div className="px-1 flex items-center gap-0.5" style={{ backgroundColor: bgColor, height: '14px' }}>
-                              <span className="text-[7px] font-bold text-white leading-none">{formatTime(event.start)}–{formatTime(event.end)}</span>
-                              <svg className="w-[7px] h-[7px] text-white/70 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <div className="px-1.5 flex items-center gap-0.5" style={{ backgroundColor: bgColor, height: '18px' }}>
+                              <span className="text-[10px] font-bold text-white leading-none">{formatTime(event.start)} – {formatTime(event.end)}</span>
+                              <svg className="w-2 h-2 text-white/70 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                 <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />
                               </svg>
                             </div>
-                            <div className="px-1 py-0.5">
-                              <div className="text-[9px] font-bold text-gray-900 truncate">{event.clientName || event.text}</div>
-                              <div className="text-[7px] text-gray-500 truncate">{event.serviceName || ''}</div>
+                            <div className="px-1.5 py-0.5">
+                              <div className="text-xs font-bold text-gray-900 truncate">{event.clientName || event.text}</div>
+                              <div className="text-[10px] text-gray-500 truncate">{event.serviceName || ''}</div>
                             </div>
                           </div>
                         );
@@ -1314,7 +1314,7 @@ export function DayPilotResourceCalendar({
               {resources.map((r, idx) => (
                 <div
                   key={r.id}
-                  className={`flex-1 min-w-[120px] py-2 text-center ${idx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
+                  className={`flex-1 min-w-[100px] py-2 text-center ${idx < resources.length - 1 ? 'border-r border-gray-200/40' : ''}`}
                 >
                   {r.avatar ? (
                     <img
@@ -1425,7 +1425,7 @@ export function DayPilotResourceCalendar({
             {resources.map((r, rIdx) => (
               <div
                 key={r.id}
-                className={`flex-1 min-w-[120px] relative ${rIdx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
+                className={`flex-1 min-w-[100px] relative ${rIdx < resources.length - 1 ? 'border-r border-gray-200/40' : ''}`}
                 style={{ backgroundColor: `${r.color}18` }}
               >
               {/* Working hours shading */}
