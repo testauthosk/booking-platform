@@ -869,7 +869,7 @@ function StaffCalendarContent() {
               }`}
             >
               <div className="pt-4">
-          <div className="relative flex pl-1 pr-4">
+          <div className="relative flex pl-2 pr-4">
             {/* Left: Time labels */}
             <div className="w-10 shrink-0 relative" style={{ height: `${(workingHours.end - workingHours.start) * 120}px` }}>
               {Array.from({ length: workingHours.end - workingHours.start + 1 }, (_, i) => {
@@ -1036,18 +1036,10 @@ function StaffCalendarContent() {
                         {isOngoing && (
                           <span className="inline-block text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium animate-pulse">⏱ Зараз</span>
                         )}
-                        
-                        {booking.status === 'COMPLETED' && (
-                          <span className="inline-block text-sm bg-green-200 text-green-700 px-2 py-1 rounded">✓ Завершено</span>
-                        )}
-                        
-                        {booking.status === 'NO_SHOW' && (
-                          <span className="inline-block text-sm bg-orange-200 text-orange-700 px-2 py-1 rounded">Не прийшов</span>
-                        )}
                       </div>
                       
                       {/* Right: Action buttons */}
-                      <div className="flex flex-col gap-1 shrink-0">
+                      <div className="flex flex-col gap-1 shrink-0 justify-start">
                         {/* Call button - always visible for real clients */}
                         {!isBlocked && booking.clientPhone && (
                           <a 
@@ -1057,11 +1049,22 @@ function StaffCalendarContent() {
                             <Phone className="h-3.5 w-3.5" /> Зателефонувати
                           </a>
                         )}
+                        {/* Status badge — same width as call button */}
+                        {booking.status === 'COMPLETED' && (
+                          <div className="h-9 px-3 rounded-lg bg-green-100 text-green-700 text-xs font-semibold flex items-center justify-center gap-1 border border-green-300 whitespace-nowrap">
+                            <Check className="h-3.5 w-3.5" /> Завершено
+                          </div>
+                        )}
+                        {booking.status === 'NO_SHOW' && (
+                          <div className="h-9 px-3 rounded-lg bg-orange-100 text-orange-700 text-xs font-semibold flex items-center justify-center gap-1 border border-orange-300 whitespace-nowrap">
+                            Не прийшов
+                          </div>
+                        )}
                         {/* Complete button for ongoing */}
                         {isOngoing && (
                           <button 
                             onClick={() => handleCompleteBooking(booking.id)}
-                            className="h-9 px-3 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-semibold hover:bg-emerald-200 transition-colors flex items-center justify-center gap-1 border border-emerald-300"
+                            className="h-9 px-3 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-semibold hover:bg-emerald-200 transition-colors flex items-center justify-center gap-1 border border-emerald-300 whitespace-nowrap"
                           >
                             <Check className="h-3.5 w-3.5" /> Завершити
                           </button>
