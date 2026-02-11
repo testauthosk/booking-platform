@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     // Отримуємо timezone і кількість мастерів з салону
     const salon = await prisma.salon.findUnique({
       where: { id: invitation.salonId },
-      select: { id: true, timezone: true }
+      select: { id: true, timezone: true, paletteId: true }
     });
 
     if (!salon) {
@@ -85,6 +85,17 @@ export async function POST(request: NextRequest) {
 
     // Всё в одній транзакції: master + invitation update + audit
     // НЕ прив'язуємо послуги автоматично — майстер сам додасть потрібні
+    // Auto-assign color from salon palette
+    let autoColor: string | undefined;
+    try {
+      const { getPaletteById } = await import('@/lib/color-palettes');
+      const palette = getPaletteById(salon?.paletteId || 'earth-harmony');
+      if (palette && palette.colors.length > 0) {
+        // Pick color based on master count to avoid duplicates
+        autoColor = palette.colors[masterCount % palette.colors.length].hex;
+      }
+    } catch {}
+
     const master = await prisma.$transaction(async (tx) => {
       // Створюємо мастера
       const newMaster = await tx.master.create({
@@ -97,6 +108,7 @@ export async function POST(request: NextRequest) {
           timezone: salon?.timezone || 'Europe/Kiev',
           sortOrder: masterCount, // наступний порядковий номер
           workingHours: DEFAULT_WORKING_HOURS,
+          color: autoColor,
         },
       });
 

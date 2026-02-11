@@ -137,12 +137,23 @@ export async function POST(req: NextRequest) {
       // Create master
       const passwordHash = password ? await bcrypt.hash(password, 10) : null;
       
-      // Отримуємо timezone з салону
+      // Отримуємо timezone і палітру з салону
       const salon = await prisma.salon.findUnique({
         where: { id: salonId },
-        select: { timezone: true }
+        select: { timezone: true, paletteId: true }
       });
       
+      // Auto-assign color from salon palette
+      let autoColor: string | undefined;
+      try {
+        const { getPaletteById } = await import('@/lib/color-palettes');
+        const palette = getPaletteById(salon?.paletteId || 'earth-harmony');
+        if (palette && palette.colors.length > 0) {
+          const masterCount = await prisma.master.count({ where: { salonId } });
+          autoColor = palette.colors[masterCount % palette.colors.length].hex;
+        }
+      } catch {}
+
       const master = await prisma.master.create({
         data: {
           email,
@@ -151,7 +162,8 @@ export async function POST(req: NextRequest) {
           phone,
           role: role || 'Майстер',
           salonId,
-          timezone: salon?.timezone || 'Europe/Kiev', // Копіюємо з салону
+          timezone: salon?.timezone || 'Europe/Kiev',
+          color: autoColor,
         },
       });
       return NextResponse.json(master);
