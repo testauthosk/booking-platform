@@ -13,7 +13,10 @@ export function middleware(request: NextRequest) {
     hostname.endsWith(`.${baseDomain}`) &&
     !pathname.startsWith('/api/') &&
     !pathname.startsWith('/_next/') &&
-    !pathname.startsWith('/salon/')
+    !pathname.startsWith('/salon/') &&
+    !pathname.startsWith('/staff/') &&
+    !pathname.startsWith('/login') &&
+    !pathname.startsWith('/register')
   ) {
     const slug = hostname.replace(`.${baseDomain}`, '');
     if (slug && !slug.includes('.') && slug !== 'app') {
