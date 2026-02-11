@@ -46,6 +46,7 @@ interface DayPilotResourceCalendarProps {
   salonWorkingHours?: Record<string, { start: string; end: string; enabled: boolean }> | null;
   masterWorkingHours?: Record<string, Record<string, { start: string; end: string; enabled: boolean }>>;
   hideResourceHeader?: boolean;
+  columnMinWidth?: number;
 }
 
 // Українські назви днів
@@ -126,6 +127,7 @@ export function DayPilotResourceCalendar({
   salonWorkingHours,
   masterWorkingHours,
   hideResourceHeader = false,
+  columnMinWidth = 120,
 }: DayPilotResourceCalendarProps) {
   const [internalDate, setInternalDate] = useState(startDate);
   const [mounted, setMounted] = useState(false);
@@ -1314,7 +1316,8 @@ export function DayPilotResourceCalendar({
               {resources.map((r, idx) => (
                 <div
                   key={r.id}
-                  className={`flex-1 min-w-[120px] py-2 text-center ${idx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
+                  className={`flex-1 py-2 text-center ${idx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
+                  style={{ minWidth: `${columnMinWidth}px` }}
                 >
                   {r.avatar ? (
                     <img
@@ -1425,8 +1428,8 @@ export function DayPilotResourceCalendar({
             {resources.map((r, rIdx) => (
               <div
                 key={r.id}
-                className={`flex-1 min-w-[120px] relative ${rIdx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
-                style={{ backgroundColor: `${r.color}18` }}
+                className={`flex-1 relative ${rIdx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
+                style={{ minWidth: `${columnMinWidth}px`, backgroundColor: `${r.color}18` }}
               >
               {/* Working hours shading */}
               {(() => {
@@ -1503,9 +1506,9 @@ export function DayPilotResourceCalendar({
                       
                       <div className="h-full relative flex flex-col pointer-events-none">
                         {/* Time bar — solid background */}
-                        <div className="px-1.5 flex items-center gap-1 flex-shrink-0" style={{ backgroundColor: bgColor, height: '18px' }}>
-                          <span className="text-[9px] font-bold text-white leading-none">{formatTime(event.start)} – {formatTime(event.end)}</span>
-                          <svg className="w-[9px] h-[9px] text-white/70 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <div className="px-1.5 flex items-center gap-1 flex-shrink-0" style={{ backgroundColor: bgColor, height: '20px' }}>
+                          <span className="text-[11px] font-bold text-white leading-none">{formatTime(event.start)} – {formatTime(event.end)}</span>
+                          <svg className="w-[10px] h-[10px] text-white/70 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />
                           </svg>
                         </div>
@@ -1513,13 +1516,13 @@ export function DayPilotResourceCalendar({
                         {/* Content */}
                         <div className="px-1.5 py-0.5 flex-1 min-h-0">
                           {/* Client name */}
-                          <div className="text-[11px] font-bold leading-tight truncate text-gray-900">
+                          <div className="text-sm font-bold leading-tight truncate text-gray-900">
                             {event.clientName || event.text}
                           </div>
                           
                           {/* Service */}
                           {event.serviceName && (
-                            <div className="text-[9px] text-gray-500 leading-tight truncate">{event.serviceName}</div>
+                            <div className="text-[11px] text-gray-500 leading-tight truncate">{event.serviceName}</div>
                           )}
                           
                           {/* NEW client badge */}

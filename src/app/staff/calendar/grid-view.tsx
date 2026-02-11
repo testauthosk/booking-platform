@@ -447,6 +447,7 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
           })()}
           timezone={salonTimezone}
           viewMode="day"
+          columnMinWidth={0}
           salonWorkingHours={salonWorkingHours}
           masterWorkingHours={staffWorkingHours ? { [staffId]: staffWorkingHours } : undefined}
         />
