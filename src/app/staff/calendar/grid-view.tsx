@@ -1,11 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import { staffFetch } from '@/lib/staff-fetch';
-import { Loader2, Plus, ChevronLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { StaffBookingModal } from '@/components/staff/staff-booking-modal';
+import { Loader2 } from 'lucide-react';
 import { ClientCardPanel } from '@/components/staff/client-card-panel';
 import dynamic from 'next/dynamic';
 import type { CalendarEvent, CalendarResource } from '@/components/calendar/daypilot-resource-calendar';
@@ -38,11 +35,12 @@ interface WorkingDay {
 }
 
 interface StaffGridViewProps {
-  onColleagueCalendar: () => void;
+  selectedDate: Date;
+  onDateChange: (d: Date) => void;
+  reloadKey?: number;
 }
 
-export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProps) {
-  const router = useRouter();
+export default function StaffGridView({ selectedDate, onDateChange, reloadKey }: StaffGridViewProps) {
   const [staffId, setStaffId] = useState('');
   const [staffName, setStaffName] = useState('');
   const [staffColor, setStaffColor] = useState('#87C2CA');
@@ -50,14 +48,12 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
   const [salonId, setSalonId] = useState('');
   const [salonTimezone, setSalonTimezone] = useState('Europe/Kiev');
   const [salonWorkingHours, setSalonWorkingHours] = useState<Record<string, WorkingDay> | null>(null);
-  const [selectedDate, setSelectedDate] = useState(new Date());
   const [rawBookings, setRawBookings] = useState<BookingFromAPI[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingBookings, setLoadingBookings] = useState(false);
-  const [services, setServices] = useState<{ id: string; name: string; duration: number; price: number }[]>([]);
+  // services loaded by parent
 
   // Modals
-  const [addModalOpen, setAddModalOpen] = useState(false);
   const [clientCardOpen, setClientCardOpen] = useState(false);
   const [clientCardPhone, setClientCardPhone] = useState('');
   const [clientCardName, setClientCardName] = useState('');
@@ -107,15 +103,7 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
     })();
   }, []);
 
-  // Load services
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await staffFetch('/api/staff/services');
-        if (res.ok) setServices(await res.json());
-      } catch (e) { console.error('Load services error:', e); }
-    })();
-  }, []);
+  // services loaded by parent (page.tsx)
 
   // Load bookings
   const loadBookings = useCallback(async () => {
@@ -132,7 +120,7 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
     finally { setLoadingBookings(false); setLoading(false); }
   }, [staffId, selectedDate]);
 
-  useEffect(() => { if (staffId) loadBookings(); }, [staffId, loadBookings]);
+  useEffect(() => { if (staffId) loadBookings(); }, [staffId, loadBookings, reloadKey]);
 
   // Filter only own bookings
   const myBookings = useMemo(() => rawBookings.filter(b => b.masterId === staffId), [rawBookings, staffId]);
@@ -227,24 +215,6 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden relative" style={{ maxWidth: '100vw' }}>
-      {/* Navigation header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <button onClick={() => router.push('/staff')} className="p-1 -ml-1 rounded-lg hover:bg-gray-100">
-            <ChevronLeft className="h-6 w-6 text-gray-700" />
-          </button>
-          <div>
-            <h1 className="text-lg font-semibold text-gray-900">Мій календар</h1>
-            <p className="text-xs text-gray-500">{dayNames[selectedDate.getDay()]} {selectedDate.getDate()} — {dayNames[secondDate.getDay()]} {secondDate.getDate()}</p>
-          </div>
-        </div>
-        <button
-          onClick={() => setAddModalOpen(true)}
-          className="w-11 h-11 rounded-2xl bg-gray-900 text-white flex items-center justify-center shadow-sm flex-shrink-0"
-        >
-          <Plus className="h-5 w-5" />
-        </button>
-      </div>
       {/* Day pair strip — 4 pairs of 2 days */}
       <div className="flex items-center justify-around px-3 py-2 bg-white border-b border-gray-100 flex-shrink-0 gap-2">
         {Array.from({ length: 4 }, (_, pairIdx) => {
@@ -256,7 +226,7 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
           return (
             <button
               key={pairIdx}
-              onClick={() => setSelectedDate(new Date(d1))}
+              onClick={() => onDateChange(new Date(d1))}
               className={`flex flex-1 rounded-xl overflow-hidden transition-all ${
                 isSelected
                   ? 'bg-gray-900 text-white shadow-sm'
@@ -286,11 +256,12 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
           resources={calendarResources}
           events={calendarEvents}
           startDate={selectedDate}
-          onDateChange={setSelectedDate}
+          onDateChange={onDateChange}
           onEventClick={handleEventClick}
           onEventMove={(id, start, end, resourceId) => handleEventMove(id, start, end, resourceId)}
           onEventResize={(id, start, end) => handleEventMove(id, start, end)}
           onTimeRangeSelect={() => {}}
+          accentColor={staffColor}
           timeStep={15}
           dayStartHour={8}
           dayEndHour={21}
@@ -349,17 +320,6 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
           </div>
         </>
       )}
-
-      {/* Add booking modal */}
-      <StaffBookingModal
-        isOpen={addModalOpen}
-        onClose={() => setAddModalOpen(false)}
-        masterId={staffId}
-        salonId={salonId}
-        masterName={staffName}
-        services={services}
-        onSuccess={() => { setAddModalOpen(false); loadBookings(); }}
-      />
 
       {/* Client card */}
       <ClientCardPanel

@@ -1776,7 +1776,13 @@ function StaffCalendarContent() {
   );
 }
 
-export default function StaffTimelineView() {
+interface StaffTimelineViewProps {
+  selectedDate?: Date;
+  onDateChange?: (d: Date) => void;
+  reloadKey?: number;
+}
+
+export default function StaffTimelineView({ selectedDate: externalDate, onDateChange, reloadKey }: StaffTimelineViewProps = {}) {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}>
       <StaffCalendarContent />
