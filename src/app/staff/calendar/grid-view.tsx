@@ -175,6 +175,8 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
           serviceName: b.serviceName || undefined,
           masterName: b.masterName || undefined,
           status: b.status?.toLowerCase(),
+          duration: b.duration,
+          price: b.price,
         };
       });
   }, [myBookings, day1Str, day2Str]);

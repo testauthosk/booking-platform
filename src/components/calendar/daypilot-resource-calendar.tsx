@@ -19,6 +19,8 @@ export interface CalendarEvent {
   masterName?: string;
   isNewClient?: boolean;
   status?: string;
+  duration?: number;
+  price?: number;
 }
 
 export interface CalendarResource {
@@ -1526,15 +1528,15 @@ export function DayPilotResourceCalendar({
                           <svg className="w-[10px] h-[10px] text-white/70 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />
                           </svg>
-                          {/* Status badge */}
+                          {/* Status badge — text */}
                           {event.status === 'completed' && (
-                            <span className="ml-auto px-1 py-px text-[8px] font-bold rounded bg-green-500 text-white leading-none">✓</span>
+                            <span className="ml-auto px-1.5 py-px text-[8px] font-bold rounded bg-green-500 text-white leading-tight whitespace-nowrap">Завершено</span>
                           )}
                           {event.status === 'cancelled' && (
-                            <span className="ml-auto px-1 py-px text-[8px] font-bold rounded bg-red-500 text-white leading-none">✕</span>
+                            <span className="ml-auto px-1.5 py-px text-[8px] font-bold rounded bg-red-500 text-white leading-tight whitespace-nowrap">Відміна</span>
                           )}
                           {event.status === 'no_show' && (
-                            <span className="ml-auto px-1 py-px text-[8px] font-bold rounded bg-orange-500 text-white leading-none">🚫</span>
+                            <span className="ml-auto px-1.5 py-px text-[8px] font-bold rounded bg-yellow-500 text-white leading-tight whitespace-nowrap">Не прийшов</span>
                           )}
                         </div>
                         
@@ -1548,6 +1550,14 @@ export function DayPilotResourceCalendar({
                           {/* Service */}
                           {event.serviceName && (
                             <div className="text-[11px] text-gray-500 leading-tight truncate">{event.serviceName}</div>
+                          )}
+                          
+                          {/* Duration + Price */}
+                          {(event.duration || event.price) && (
+                            <div className="flex items-baseline gap-1.5 mt-0.5">
+                              {event.duration && <span className="text-[10px] text-gray-400">{event.duration} хв</span>}
+                              {event.price !== undefined && event.price > 0 && <span className="text-[11px] font-bold text-gray-700">{event.price} ₴</span>}
+                            </div>
                           )}
                           
                           {/* NEW client badge */}
