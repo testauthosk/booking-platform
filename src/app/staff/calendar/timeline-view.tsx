@@ -506,6 +506,9 @@ function StaffCalendarContent() {
     requestAnimationFrame(() => {
       requestAnimationFrame(updateIndicator);
     });
+    // Fallback: re-measure after scroll animation completes (first render)
+    const timer = setTimeout(updateIndicator, 350);
+    return () => clearTimeout(timer);
   }, [selectedDate]);
 
   // Handle focus on specific booking from URL params

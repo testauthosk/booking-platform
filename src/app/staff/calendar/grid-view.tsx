@@ -217,6 +217,9 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
     requestAnimationFrame(() => {
       requestAnimationFrame(updateIndicator);
     });
+    // Fallback: re-measure after scroll animation completes (first render)
+    const timer = setTimeout(updateIndicator, 350);
+    return () => clearTimeout(timer);
   }, [selectedDate]);
 
   // Handlers
