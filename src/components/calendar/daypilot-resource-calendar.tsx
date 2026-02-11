@@ -1311,7 +1311,7 @@ export function DayPilotResourceCalendar({
           {!hideResourceHeader && (
           <div className="flex border-b border-gray-200 bg-white sticky top-0 z-30" style={{ minWidth: resources.length > 3 ? `${40 + resources.length * 120}px` : '100%', transform: 'translateZ(0)', willChange: 'transform' }}>
             {/* Колонка часу - заголовок */}
-            <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 py-2 sticky left-0 bg-white z-40">
+            <div className={`${columnMinWidth === 0 ? 'w-14' : 'w-10'} lg:w-14 flex-shrink-0 border-r border-gray-300 py-2 sticky left-0 bg-white z-40`}>
             </div>
             
             <div className="flex flex-1" style={{ minWidth: resources.length > 3 ? `${resources.length * 120}px` : undefined }}>
@@ -1345,7 +1345,7 @@ export function DayPilotResourceCalendar({
           <div ref={gridRef} className="relative flex select-none" style={{ minHeight: `${totalMinutes}px`, minWidth: resources.length > 3 ? `${40 + resources.length * 120}px` : '100%', WebkitUserSelect: 'none', userSelect: 'none' }}>
             {/* Колонка часу — sticky left */}
             <div
-              className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-200/60 sticky left-0 z-20"
+              className={`${columnMinWidth === 0 ? 'w-14' : 'w-10'} lg:w-14 flex-shrink-0 border-r border-gray-200/60 sticky left-0 z-20`}
               style={{
                 background: 'rgba(255,255,255,0.72)',
                 backdropFilter: 'saturate(180%) blur(20px)',
@@ -1520,8 +1520,8 @@ export function DayPilotResourceCalendar({
                       </div>
                       
                       <div className="h-full relative flex flex-col pointer-events-none">
-                        {/* Time bar — solid background */}
-                        <div className="px-1.5 flex items-center gap-1 flex-shrink-0" style={{ backgroundColor: bgColor, height: '20px' }}>
+                        {/* Time bar — solid background, same color as border */}
+                        <div className="px-1.5 flex items-center gap-1 flex-shrink-0" style={{ backgroundColor: borderColor, height: '20px' }}>
                           <span className="text-[11px] font-bold text-white leading-none">{formatTime(event.start)} – {formatTime(event.end)}</span>
                           <svg className="w-[10px] h-[10px] text-white/70 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />
@@ -1584,7 +1584,7 @@ export function DayPilotResourceCalendar({
           {/* Червона лінія поточного часу — від границі колонки годин до кінця */}
           {isToday_ && nowMinutes !== null && nowMinutes >= dayStartHour * 60 && nowMinutes <= dayEndHour * 60 && (
             <div
-              className="absolute h-[2px] bg-red-500 pointer-events-none z-[3] left-10 lg:left-14 right-0"
+              className={`absolute h-[2px] bg-red-500 pointer-events-none z-[3] ${columnMinWidth === 0 ? 'left-14' : 'left-10 lg:left-14'} right-0`}
               style={{
                 top: `${((nowMinutes - dayStartHour * 60) / totalMinutes) * 100}%`,
                 transform: 'translateY(-50%)',
