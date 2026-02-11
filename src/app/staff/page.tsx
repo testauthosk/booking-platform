@@ -79,7 +79,7 @@ export default function StaffDashboard() {
   const [allWorkingHours, setAllWorkingHours] = useState<Array<{ day: number; start: string; end: string }>>([]);
   const [staffId, setStaffId] = useState('');
   const [salonId, setSalonId] = useState('');
-  const [accentColor, setAccentColor] = useState('#000000'); // Колір з палітри салону
+  const [accentColor, setAccentColor] = useState(''); // Колір з палітри салону (порожній до завантаження)
   const [lunchDuration, setLunchDuration] = useState(60); // Тривалість обіду в хв
   const [lunchStart, setLunchStart] = useState('13:00'); // Час початку обіду
   const [stats, setStats] = useState<StaffStats | null>(null);
@@ -416,7 +416,7 @@ export default function StaffDashboard() {
     return `через ${diffHours} год`;
   };
 
-  if (loading) {
+  if (loading || !accentColor) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

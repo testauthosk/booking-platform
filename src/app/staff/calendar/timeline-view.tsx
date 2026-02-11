@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { staffFetch } from '@/lib/staff-fetch';
 import { useSearchParams } from 'next/navigation';
 import { useTransitionRouter } from 'next-view-transitions';
@@ -229,6 +229,7 @@ function StaffCalendarContent() {
   const [loadingBookings, setLoadingBookings] = useState(false);
   const [timeBlocks, setTimeBlocks] = useState<Array<{ id: string; startTime: string; endTime: string; title: string; type: string }>>([]);
   const [salonId, setSalonId] = useState('');
+  const [salonTimezone, setSalonTimezone] = useState('Europe/Kiev');
   const [workingHours, setWorkingHours] = useState<{ start: number; end: number }>({ start: 8, end: 21 });
   const [showOnlyBookings, setShowOnlyBookings] = useState(false);
   const [masterColor, setMasterColor] = useState('#87C2CA'); // default color
@@ -375,6 +376,26 @@ function StaffCalendarContent() {
     return date;
   });
 
+  // Хелпер: поточний час в timezone салону
+  const getSalonNow = useCallback(() => {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: salonTimezone,
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    }).formatToParts(now);
+    const h = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
+    const m = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
+    return { hours: h, minutes: m, totalMinutes: h * 60 + m };
+  }, [salonTimezone]);
+
+  // Хелпер: сьогоднішня дата в timezone салону
+  const getSalonToday = useCallback(() => {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: salonTimezone,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(new Date());
+  }, [salonTimezone]);
+
   useEffect(() => {
     const token = localStorage.getItem('staffToken');
     const id = localStorage.getItem('staffId');
@@ -391,6 +412,16 @@ function StaffCalendarContent() {
     setSalonId(salon || '');
     setLoading(false);
   }, [router]);
+
+  // Load salon timezone
+  useEffect(() => {
+    if (!salonId) return;
+    staffFetch('/api/staff/salon').then(res => {
+      if (res.ok) return res.json();
+    }).then(data => {
+      if (data?.timezone) setSalonTimezone(data.timezone);
+    }).catch(() => {});
+  }, [salonId]);
 
   // Auto-complete past bookings once on mount
   useEffect(() => {
@@ -544,8 +575,9 @@ function StaffCalendarContent() {
   };
 
   const isToday = (date: Date) => {
-    const today = new Date();
-    return date.toDateString() === today.toDateString();
+    const salonTodayStr = getSalonToday(); // YYYY-MM-DD in salon timezone
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return dateStr === salonTodayStr;
   };
 
   const isSelected = (date: Date) => {
@@ -669,9 +701,8 @@ function StaffCalendarContent() {
                   const endM = endMins % 60;
                   const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
                   
-                  // Check if booking is ongoing or past
-                  const now = new Date();
-                  const nowMins = now.getHours() * 60 + now.getMinutes();
+                  // Check if booking is ongoing or past (salon timezone)
+                  const nowMins = getSalonNow().totalMinutes;
                   const startMins = h * 60 + m;
                   
                   const isOngoing = isToday(selectedDate) && nowMins >= startMins && nowMins < endMins && booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED';
@@ -844,7 +875,7 @@ function StaffCalendarContent() {
               {Array.from({ length: workingHours.end - workingHours.start + 1 }, (_, i) => {
                 const hour = workingHours.start + i;
                 const timeStr = `${hour.toString().padStart(2, '0')}:00`;
-                const isPastHour = isToday(selectedDate) && hour < new Date().getHours();
+                const isPastHour = isToday(selectedDate) && hour < getSalonNow().hours;
                 const isLastHour = hour === workingHours.end;
                 
                 return (
@@ -904,11 +935,11 @@ function StaffCalendarContent() {
             
             {/* Right: Cards area */}
             <div className="flex-1 relative" style={{ height: `${(workingHours.end - workingHours.start) * 120}px` }}>
-              {/* Current time red line */}
+              {/* Current time red line (salon timezone) */}
               {isToday(selectedDate) && (() => {
-                const now = new Date();
-                const currentHour = now.getHours();
-                const currentMinute = now.getMinutes();
+                const salonNow = getSalonNow();
+                const currentHour = salonNow.hours;
+                const currentMinute = salonNow.minutes;
                 const timeStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
                 // Only show if current time is within working hours
                 if (currentHour >= workingHours.start && currentHour <= workingHours.end) {
@@ -933,9 +964,8 @@ function StaffCalendarContent() {
                 const topPosition = startMinutes * 2; // 2px per minute (120px per hour)
                 const height = booking.duration * 2; // 2px per minute
                 
-                // Calculate current time in minutes
-                const nowTime = new Date();
-                const nowMins = nowTime.getHours() * 60 + nowTime.getMinutes();
+                // Calculate current time in minutes (salon timezone)
+                const nowMins = getSalonNow().totalMinutes;
                 const bookingStartMins = startH * 60 + startM;
                 const bookingEndMins = bookingStartMins + booking.duration;
                 
