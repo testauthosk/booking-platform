@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { staffFetch } from '@/lib/staff-fetch';
 import { Loader2, List, Grid3X3, Plus, Users } from 'lucide-react';
 import StaffTimelineView from './timeline-view';
@@ -17,9 +17,6 @@ function StaffCalendarContent() {
   const [salonId, setSalonId] = useState('');
   const [services, setServices] = useState<{ id: string; name: string; duration: number; price: number }[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Date picker
-  const dateInputRef = useRef<HTMLInputElement>(null);
 
   // Selected date (shared between views)
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -62,19 +59,7 @@ function StaffCalendarContent() {
     }).catch(() => {});
   }, [staffId]);
 
-  const openCalendarPicker = () => {
-    if (dateInputRef.current) {
-      dateInputRef.current.showPicker?.();
-      dateInputRef.current.click();
-    }
-  };
-
-  const handleDatePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.value) {
-      const [y, m, d] = e.target.value.split('-').map(Number);
-      setSelectedDate(new Date(y, m - 1, d));
-    }
-  };
+  // Calendar picker handled by each view internally
 
   const handleBookingSuccess = () => {
     setAddModalOpen(false);
@@ -91,15 +76,6 @@ function StaffCalendarContent() {
 
   return (
     <div className="h-full flex flex-col bg-white relative overflow-hidden">
-      {/* Hidden native date input for calendar picker */}
-      <input
-        ref={dateInputRef}
-        type="date"
-        className="absolute opacity-0 w-0 h-0 pointer-events-none"
-        value={`${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`}
-        onChange={handleDatePickerChange}
-      />
-
       {/* Calendar view */}
       <Suspense fallback={<div className="flex-1 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>}>
         {viewMode === 'list' ? (
@@ -113,7 +89,6 @@ function StaffCalendarContent() {
             selectedDate={selectedDate}
             onDateChange={setSelectedDate}
             onAddBooking={() => setAddModalOpen(true)}
-            onCalendarPicker={openCalendarPicker}
             reloadKey={reloadKey}
           />
         )}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { staffFetch } from '@/lib/staff-fetch';
 import { Loader2, ChevronLeft, Plus } from 'lucide-react';
@@ -41,11 +41,10 @@ interface StaffGridViewProps {
   selectedDate: Date;
   onDateChange: (d: Date) => void;
   onAddBooking: () => void;
-  onCalendarPicker: () => void;
   reloadKey?: number;
 }
 
-export default function StaffGridView({ selectedDate, onDateChange, onAddBooking, onCalendarPicker, reloadKey }: StaffGridViewProps) {
+export default function StaffGridView({ selectedDate, onDateChange, onAddBooking, reloadKey }: StaffGridViewProps) {
   const router = useRouter();
   const [staffId, setStaffId] = useState('');
   const [staffName, setStaffName] = useState('');
@@ -70,6 +69,8 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
   const [actionLoading, setActionLoading] = useState(false);
 
   const isToday = selectedDate.toDateString() === new Date().toDateString();
+  const dateInputRef = useRef<HTMLInputElement>(null);
+  const daysContainerRef = useRef<HTMLDivElement>(null);
 
   const formatDateHeader = (date: Date) => {
     if (date.toDateString() === new Date().toDateString()) return 'Сьогодні';
@@ -183,6 +184,27 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
     return d;
   }), []);
 
+  // Sliding indicator positioning
+  useEffect(() => {
+    const container = daysContainerRef.current;
+    if (!container) return;
+    const selected = container.querySelector('[data-day-selected="true"]') as HTMLElement;
+    const indicator = container.querySelector('#grid-day-indicator') as HTMLElement;
+    if (!selected || !indicator) return;
+    
+    const containerRect = container.getBoundingClientRect();
+    const selectedRect = selected.getBoundingClientRect();
+    
+    indicator.style.left = `${selectedRect.left - containerRect.left + container.scrollLeft}px`;
+    indicator.style.top = `${selectedRect.top - containerRect.top}px`;
+    indicator.style.width = `${selectedRect.width}px`;
+    indicator.style.height = `${selectedRect.height}px`;
+    indicator.style.opacity = '1';
+
+    // Scroll selected into view
+    selected.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }, [selectedDate]);
+
   // Handlers
   const handleEventClick = (event: CalendarEvent) => {
     const booking = myBookings.find(b => b.id === event.id);
@@ -242,15 +264,24 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* Calendar picker */}
-            <button
-              onClick={onCalendarPicker}
-              className="h-10 w-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
-            >
+            {/* Calendar picker — native date input */}
+            <label className="h-10 w-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors cursor-pointer">
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-            </button>
+              <input
+                ref={dateInputRef}
+                type="date"
+                className="absolute opacity-0 w-0 h-0"
+                value={`${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    const [y, m, d] = e.target.value.split('-').map(Number);
+                    onDateChange(new Date(y, m - 1, d));
+                  }
+                }}
+              />
+            </label>
             {/* Today button — checkmark animates in from left like "Записи" */}
             <button
               onClick={() => onDateChange(new Date())}
@@ -270,25 +301,36 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
         </div>
       </header>
 
-      {/* Week strip — same as timeline */}
+      {/* Week strip with sliding indicator */}
       <div className="shrink-0 bg-card border-b">
-        <div className="flex gap-2 px-4 py-3 overflow-x-auto scrollbar-hide items-center">
-          {days.map((date, index) => (
-            <button
-              key={index}
-              onClick={() => onDateChange(date)}
-              className={`flex flex-col items-center min-w-[56px] py-2 px-2 rounded-xl transition-all ${
-                date.toDateString() === selectedDate.toDateString()
-                  ? 'bg-primary text-primary-foreground shadow-lg scale-105'
-                  : date.toDateString() === new Date().toDateString()
-                  ? 'bg-primary/10 text-primary'
-                  : 'hover:bg-muted'
-              }`}
-            >
-              <span className="text-xs font-medium opacity-70">{DAYS_UA[date.getDay()]}</span>
-              <span className="text-xl font-bold">{date.getDate()}</span>
-            </button>
-          ))}
+        <div ref={daysContainerRef} className="flex gap-2 px-4 py-3 overflow-x-auto scrollbar-hide items-center relative">
+          {/* Sliding indicator */}
+          <div
+            id="grid-day-indicator"
+            className="absolute bg-primary rounded-xl shadow-lg z-0 pointer-events-none"
+            style={{ transition: 'left 0.3s ease, top 0.3s ease, width 0.3s ease, height 0.3s ease', opacity: 0 }}
+          />
+          {days.map((date, index) => {
+            const isSelected = date.toDateString() === selectedDate.toDateString();
+            const isTodayDay = date.toDateString() === new Date().toDateString();
+            return (
+              <button
+                key={index}
+                data-day-selected={isSelected ? 'true' : undefined}
+                onClick={() => onDateChange(date)}
+                className={`flex flex-col items-center min-w-[56px] py-2 px-2 rounded-xl transition-colors duration-300 relative z-10 ${
+                  isSelected
+                    ? 'text-primary-foreground'
+                    : isTodayDay
+                    ? 'text-primary'
+                    : 'hover:bg-muted'
+                }`}
+              >
+                <span className="text-xs font-medium opacity-70">{DAYS_UA[date.getDay()]}</span>
+                <span className="text-xl font-bold">{date.getDate()}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
