@@ -864,9 +864,10 @@ function StaffCalendarContent() {
             {/* Timeline view */}
             <div 
               ref={gridRef}
-              className={`absolute inset-0 pb-4 overflow-y-auto bg-background transition-transform duration-500 ease-out ${
+              className={`absolute inset-0 pb-4 overflow-y-auto transition-transform duration-500 ease-out ${
                 showOnlyBookings ? 'translate-y-full z-0' : 'translate-y-0 z-10'
               }`}
+              style={{ backgroundColor: `${masterColor}18` }}
             >
               <div className="pt-4">
           <div className="relative flex pl-2 pr-4">
@@ -950,7 +951,7 @@ function StaffCalendarContent() {
                       className="absolute right-0 flex items-center z-20 pointer-events-none -translate-y-1/2"
                       style={{ top: `${topPosition}px`, left: '-62px' }}
                     >
-                      <span className="text-xs font-medium text-red-500 border border-red-500 rounded px-1 bg-white">{timeStr}</span>
+                      <span className="text-sm font-bold text-white bg-red-500 rounded-r px-1 py-[1px]">{timeStr}</span>
                       <div className="flex-1 h-[2px] bg-red-500" />
                     </div>
                   );

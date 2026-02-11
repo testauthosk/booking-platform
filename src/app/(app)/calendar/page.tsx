@@ -558,6 +558,23 @@ export default function CalendarPage() {
     }
   };
 
+  const handleEventStatusChange = async (eventId: string, newStatus: string) => {
+    // Optimistic update in rawBookings
+    setRawBookings(prev => prev.map(b => b.id === eventId ? { ...b, status: newStatus } : b));
+    try {
+      const res = await fetch('/api/booking', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: eventId, status: newStatus }),
+      });
+      if (!res.ok) throw new Error('Failed to update status');
+      loadBookings();
+    } catch (error) {
+      console.error('Failed to update booking status:', error);
+      loadBookings();
+    }
+  };
+
   const handleFabClick = () => {
     const now = new Date();
     now.setMinutes(Math.ceil(now.getMinutes() / 15) * 15, 0, 0);
@@ -837,6 +854,7 @@ export default function CalendarPage() {
           viewMode={viewMode}
           salonWorkingHours={salonWorkingHours}
           masterWorkingHours={masters.reduce((acc, m) => { if (m.workingHours) acc[m.id] = m.workingHours; return acc; }, {} as Record<string, WorkingHours>)}
+          onEventStatusChange={handleEventStatusChange}
         />
       </div>
 

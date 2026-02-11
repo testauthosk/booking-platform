@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Plus, X, Phone, MessageCircle, User, Clock, Scissors } from 'lucide-react';
 
 export interface CalendarEvent {
@@ -49,6 +49,8 @@ interface DayPilotResourceCalendarProps {
   masterWorkingHours?: Record<string, Record<string, { start: string; end: string; enabled: boolean }>>;
   hideResourceHeader?: boolean;
   columnMinWidth?: number;
+  accentColor?: string;
+  onEventStatusChange?: (eventId: string, newStatus: string) => Promise<void>;
 }
 
 // Українські назви днів
@@ -130,11 +132,19 @@ export function DayPilotResourceCalendar({
   masterWorkingHours,
   hideResourceHeader = false,
   columnMinWidth = 120,
+  onEventStatusChange,
 }: DayPilotResourceCalendarProps) {
   const [internalDate, setInternalDate] = useState(startDate);
   const [mounted, setMounted] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Status dropdown state
+  const [statusDropdown, setStatusDropdown] = useState<{ eventId: string; x: number; y: number } | null>(null);
+  const [statusDropdownVisible, setStatusDropdownVisible] = useState(false);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
+  // Local events for optimistic status updates
+  const [localStatusOverrides, setLocalStatusOverrides] = useState<Record<string, string>>({});
 
   // Поточний час салону (timezone-aware)
   const [nowMinutes, setNowMinutes] = useState<number | null>(null);
@@ -224,6 +234,71 @@ export function DayPilotResourceCalendar({
     setModalOpen(false);
     setTimeout(() => setSelectedEvent(null), 300);
   };
+
+  // Status dropdown handlers
+  const openStatusDropdown = useCallback((eventId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setStatusDropdown({ eventId, x: rect.left, y: rect.bottom + 4 });
+    // Trigger animation on next frame
+    requestAnimationFrame(() => setStatusDropdownVisible(true));
+  }, []);
+
+  const closeStatusDropdown = useCallback(() => {
+    setStatusDropdownVisible(false);
+    setTimeout(() => setStatusDropdown(null), 200);
+  }, []);
+
+  const handleStatusSelect = useCallback(async (eventId: string, newStatus: string) => {
+    // Map display status to API status
+    const statusMap: Record<string, string> = {
+      'completed': 'COMPLETED',
+      'no_show': 'NO_SHOW',
+      'cancelled': 'CANCELLED',
+    };
+    const apiStatus = statusMap[newStatus] || newStatus.toUpperCase();
+
+    // Optimistic update
+    setLocalStatusOverrides(prev => ({ ...prev, [eventId]: newStatus }));
+    closeStatusDropdown();
+
+    if (onEventStatusChange) {
+      try {
+        await onEventStatusChange(eventId, apiStatus);
+      } catch {
+        // Revert on error
+        setLocalStatusOverrides(prev => {
+          const next = { ...prev };
+          delete next[eventId];
+          return next;
+        });
+      }
+    }
+  }, [onEventStatusChange, closeStatusDropdown]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!statusDropdown) return;
+    const handleClick = (e: MouseEvent) => {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(e.target as Node)) {
+        closeStatusDropdown();
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [statusDropdown, closeStatusDropdown]);
+
+  // Compute effective events with local overrides
+  const effectiveEvents: CalendarEvent[] = useMemo(() => {
+    if (Object.keys(localStatusOverrides).length === 0) return events;
+    return events.map((e: CalendarEvent) => localStatusOverrides[e.id] ? { ...e, status: localStatusOverrides[e.id] } : e);
+  }, [events, localStatusOverrides]);
+
+  // Clear overrides when parent events change (they've been saved)
+  useEffect(() => {
+    setLocalStatusOverrides({});
+  }, [events]);
 
   // Отримати ресурс (майстра) за id
   const getResourceById = (resourceId: string) => {
@@ -1128,7 +1203,7 @@ export function DayPilotResourceCalendar({
 
   // Фільтруємо події для поточної дати
   const dateStr = internalDate.toISOString().split('T')[0];
-  const filteredEvents = events.filter(e => e.start.startsWith(dateStr));
+  const filteredEvents = effectiveEvents.filter((e: CalendarEvent) => e.start.startsWith(dateStr));
 
   // Розраховуємо позицію події
   const getEventPosition = (event: CalendarEvent) => {
@@ -1256,7 +1331,7 @@ export function DayPilotResourceCalendar({
               <div className="flex flex-1">
                 {weekViewDays.map((day, dIdx) => {
                   const dayStr = day.toISOString().split('T')[0];
-                  const dayEvents = events.filter(e => e.start.startsWith(dayStr));
+                  const dayEvents = effectiveEvents.filter((e: CalendarEvent) => e.start.startsWith(dayStr));
                   const isTodayCol = day.toDateString() === new Date().toDateString();
                   return (
                     <div key={dIdx} className={`flex-1 min-w-[100px] relative border-r border-gray-200 ${isTodayCol ? 'bg-yellow-50/30' : 'bg-white'}`}>
@@ -1292,6 +1367,31 @@ export function DayPilotResourceCalendar({
                               <svg className="w-2 h-2 text-white/70 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                 <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />
                               </svg>
+                              {/* Status badge */}
+                              {event.status === 'completed' && (
+                                <span
+                                  className="ml-auto px-1 py-px text-[7px] font-bold rounded bg-green-500 text-white leading-tight whitespace-nowrap cursor-pointer hover:bg-green-600 transition-colors"
+                                  onClick={(e) => onEventStatusChange && openStatusDropdown(event.id, e)}
+                                >Виконано</span>
+                              )}
+                              {event.status === 'cancelled' && (
+                                <span
+                                  className="ml-auto px-1 py-px text-[7px] font-bold rounded bg-red-500 text-white leading-tight whitespace-nowrap cursor-pointer hover:bg-red-600 transition-colors"
+                                  onClick={(e) => onEventStatusChange && openStatusDropdown(event.id, e)}
+                                >Відміна</span>
+                              )}
+                              {event.status === 'no_show' && (
+                                <span
+                                  className="ml-auto px-1 py-px text-[7px] font-bold rounded bg-yellow-500 text-white leading-tight whitespace-nowrap cursor-pointer hover:bg-yellow-600 transition-colors"
+                                  onClick={(e) => onEventStatusChange && openStatusDropdown(event.id, e)}
+                                >Не прийшов</span>
+                              )}
+                              {event.status === 'confirmed' && onEventStatusChange && (
+                                <span
+                                  className="ml-auto px-1 py-px text-[7px] font-bold rounded bg-white/30 text-white leading-tight whitespace-nowrap cursor-pointer hover:bg-white/50 transition-colors"
+                                  onClick={(e) => openStatusDropdown(event.id, e)}
+                                >•••</span>
+                              )}
                             </div>
                             <div className="px-1.5 py-0.5">
                               <div className="text-xs font-bold text-gray-900 truncate">{event.clientName || event.text}</div>
@@ -1384,7 +1484,7 @@ export function DayPilotResourceCalendar({
               {/* Червоний бейдж поточного часу — текст вирівняний зі стандартними лейблами */}
               {isToday_ && nowMinutes !== null && nowMinutes >= dayStartHour * 60 && nowMinutes <= dayEndHour * 60 && (
                 <span
-                  className={`absolute right-0 z-30 pointer-events-none font-medium bg-red-500 text-white pr-1 pl-[3px] py-[1px] rounded-l-[3px] ${columnMinWidth === 0 ? 'text-xs' : 'text-[9px] lg:text-xs'}`}
+                  className={`absolute right-0 z-30 pointer-events-none font-bold bg-red-500 text-white pr-1 pl-[3px] py-[1px] rounded-l-[3px] ${columnMinWidth === 0 ? 'text-sm' : 'text-[9px] lg:text-xs'}`}
                   style={{
                     top: `${((nowMinutes - dayStartHour * 60) / totalMinutes) * 100}%`,
                     transform: 'translateY(-50%)',
@@ -1528,15 +1628,30 @@ export function DayPilotResourceCalendar({
                           <svg className="w-[10px] h-[10px] text-white/70 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />
                           </svg>
-                          {/* Status badge — text */}
+                          {/* Status badge — text (clickable for status change) */}
                           {event.status === 'completed' && (
-                            <span className="ml-auto px-1.5 py-px text-[8px] font-bold rounded bg-green-500 text-white leading-tight whitespace-nowrap">Виконано</span>
+                            <span
+                              className="ml-auto px-1.5 py-px text-[8px] font-bold rounded bg-green-500 text-white leading-tight whitespace-nowrap cursor-pointer hover:bg-green-600 transition-colors pointer-events-auto"
+                              onClick={(e) => onEventStatusChange && openStatusDropdown(event.id, e)}
+                            >Виконано</span>
                           )}
                           {event.status === 'cancelled' && (
-                            <span className="ml-auto px-1.5 py-px text-[8px] font-bold rounded bg-red-500 text-white leading-tight whitespace-nowrap">Відміна</span>
+                            <span
+                              className="ml-auto px-1.5 py-px text-[8px] font-bold rounded bg-red-500 text-white leading-tight whitespace-nowrap cursor-pointer hover:bg-red-600 transition-colors pointer-events-auto"
+                              onClick={(e) => onEventStatusChange && openStatusDropdown(event.id, e)}
+                            >Відміна</span>
                           )}
                           {event.status === 'no_show' && (
-                            <span className="ml-auto px-1.5 py-px text-[8px] font-bold rounded bg-yellow-500 text-white leading-tight whitespace-nowrap">Не прийшов</span>
+                            <span
+                              className="ml-auto px-1.5 py-px text-[8px] font-bold rounded bg-yellow-500 text-white leading-tight whitespace-nowrap cursor-pointer hover:bg-yellow-600 transition-colors pointer-events-auto"
+                              onClick={(e) => onEventStatusChange && openStatusDropdown(event.id, e)}
+                            >Не прийшов</span>
+                          )}
+                          {event.status === 'confirmed' && onEventStatusChange && (
+                            <span
+                              className="ml-auto px-1.5 py-px text-[8px] font-bold rounded bg-white/30 text-white leading-tight whitespace-nowrap cursor-pointer hover:bg-white/50 transition-colors pointer-events-auto"
+                              onClick={(e) => openStatusDropdown(event.id, e)}
+                            >•••</span>
                           )}
                         </div>
                         
@@ -1778,6 +1893,44 @@ export function DayPilotResourceCalendar({
           );
         })()}
       </div>
+
+      {/* Status change dropdown */}
+      {statusDropdown && (
+        <div
+          ref={statusDropdownRef}
+          className="fixed z-[200] bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden"
+          style={{
+            left: `${Math.min(statusDropdown.x, window.innerWidth - 160)}px`,
+            top: `${Math.min(statusDropdown.y, window.innerHeight - 140)}px`,
+            minWidth: '140px',
+            transform: statusDropdownVisible ? 'translateY(0) scale(1)' : 'translateY(-8px) scale(0.95)',
+            opacity: statusDropdownVisible ? 1 : 0,
+            transition: 'transform 0.2s ease, opacity 0.2s ease',
+          }}
+        >
+          <button
+            className="w-full px-3 py-2.5 text-left text-sm font-medium flex items-center gap-2 hover:bg-green-50 transition-colors"
+            onClick={() => handleStatusSelect(statusDropdown.eventId, 'completed')}
+          >
+            <span className="w-2.5 h-2.5 rounded-full bg-green-500 shrink-0" />
+            Виконано
+          </button>
+          <button
+            className="w-full px-3 py-2.5 text-left text-sm font-medium flex items-center gap-2 hover:bg-yellow-50 transition-colors"
+            onClick={() => handleStatusSelect(statusDropdown.eventId, 'no_show')}
+          >
+            <span className="w-2.5 h-2.5 rounded-full bg-yellow-500 shrink-0" />
+            Не прийшов
+          </button>
+          <button
+            className="w-full px-3 py-2.5 text-left text-sm font-medium flex items-center gap-2 hover:bg-red-50 transition-colors"
+            onClick={() => handleStatusSelect(statusDropdown.eventId, 'cancelled')}
+          >
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
+            Відміна
+          </button>
+        </div>
+      )}
 
       {/* FAB - кнопка додавання запису */}
     </div>

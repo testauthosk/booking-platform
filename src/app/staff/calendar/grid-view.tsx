@@ -309,6 +309,22 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
     } catch { loadBookings(); }
   };
 
+  const handleEventStatusChange = async (eventId: string, newStatus: string) => {
+    // Optimistic update
+    setRawBookings(prev => prev.map(b => b.id === eventId ? { ...b, status: newStatus } : b));
+    try {
+      const res = await staffFetch('/api/staff/bookings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: eventId, status: newStatus }),
+      });
+      if (!res.ok) throw new Error('Failed to update status');
+      loadBookings();
+    } catch {
+      loadBookings();
+    }
+  };
+
   if (loading) {
     return <div className="flex-1 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>;
   }
@@ -438,6 +454,7 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
           columnMinWidth={0}
           salonWorkingHours={salonWorkingHours}
           masterWorkingHours={staffWorkingHours ? { [staffId]: staffWorkingHours } : undefined}
+          onEventStatusChange={handleEventStatusChange}
         />
       </div>
 
