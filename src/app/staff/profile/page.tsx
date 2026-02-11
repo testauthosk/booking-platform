@@ -83,6 +83,13 @@ export default function StaffProfile() {
     }
   }, [salonId]);
 
+  // When palette loads and color is empty — set first palette color as default
+  useEffect(() => {
+    if (!color && colorPalette.length > 0) {
+      setColor(colorPalette[0].hex);
+    }
+  }, [colorPalette, color]);
+
   const loadSalonPalette = async () => {
     try {
       const res = await fetch(`/api/salon/palette?salonId=${salonId}`);
@@ -121,7 +128,7 @@ export default function StaffProfile() {
         setBio(data.bio || '');
         setAvatar(data.avatar || '');
         setRole(data.role || '');
-        setColor(data.color || colorPalette[0]?.hex || '#f97316');
+        setColor(data.color || '');
         setLunchDuration(data.lunchDuration ?? 60);
         setLunchStart(data.lunchStart ?? '13:00');
         if (data.stats) {
@@ -248,7 +255,7 @@ export default function StaffProfile() {
                 className="h-24 w-24 rounded-2xl object-cover"
               />
             ) : (
-              <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-3xl font-bold">
+              <div className="h-24 w-24 rounded-2xl flex items-center justify-center text-white text-3xl font-bold" style={{ background: color ? `linear-gradient(135deg, ${color}, ${color}dd)` : '#888' }}>
                 {name.charAt(0).toUpperCase() || <User className="h-10 w-10" />}
               </div>
             )}
