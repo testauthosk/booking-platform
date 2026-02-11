@@ -137,30 +137,51 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
   // Filter only own bookings
   const myBookings = useMemo(() => rawBookings.filter(b => b.masterId === staffId), [rawBookings, staffId]);
 
+  // 2-day view: resources = 2 days, events mapped by date
+  const secondDate = useMemo(() => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() + 1);
+    return d;
+  }, [selectedDate]);
+
+  const dayNames = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+
+  const day1Str = useMemo(() => {
+    return `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+  }, [selectedDate]);
+
+  const day2Str = useMemo(() => {
+    return `${secondDate.getFullYear()}-${String(secondDate.getMonth() + 1).padStart(2, '0')}-${String(secondDate.getDate()).padStart(2, '0')}`;
+  }, [secondDate]);
+
   const calendarResources: CalendarResource[] = useMemo(() => [
-    { id: staffId, name: staffName, color: staffColor },
-  ], [staffId, staffName, staffColor]);
+    { id: 'day-0', name: `${dayNames[selectedDate.getDay()]} ${selectedDate.getDate()}`, color: staffColor },
+    { id: 'day-1', name: `${dayNames[secondDate.getDay()]} ${secondDate.getDate()}`, color: staffColor },
+  ], [selectedDate, secondDate, staffColor]);
 
   const calendarEvents: CalendarEvent[] = useMemo(() => {
-    return myBookings.map(b => {
-      const [sh, sm] = b.time.split(':').map(Number);
-      let eh: number, em: number;
-      if (b.timeEnd) { [eh, em] = b.timeEnd.split(':').map(Number); }
-      else { const d = new Date(2000, 0, 1, sh, sm); d.setMinutes(d.getMinutes() + b.duration); eh = d.getHours(); em = d.getMinutes(); }
-      return {
-        id: b.id,
-        text: b.serviceName || 'Запис',
-        start: `${b.date}T${String(sh).padStart(2, '0')}:${String(sm).padStart(2, '0')}:00`,
-        end: `${b.date}T${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}:00`,
-        resource: staffId,
-        clientName: b.clientName,
-        clientPhone: b.clientPhone,
-        serviceName: b.serviceName || undefined,
-        masterName: b.masterName || undefined,
-        status: b.status?.toLowerCase(),
-      };
-    });
-  }, [myBookings, staffId]);
+    return myBookings
+      .filter(b => b.date === day1Str || b.date === day2Str)
+      .map(b => {
+        const [sh, sm] = b.time.split(':').map(Number);
+        let eh: number, em: number;
+        if (b.timeEnd) { [eh, em] = b.timeEnd.split(':').map(Number); }
+        else { const d = new Date(2000, 0, 1, sh, sm); d.setMinutes(d.getMinutes() + b.duration); eh = d.getHours(); em = d.getMinutes(); }
+        const resourceId = b.date === day1Str ? 'day-0' : 'day-1';
+        return {
+          id: b.id,
+          text: b.serviceName || 'Запис',
+          start: `${b.date}T${String(sh).padStart(2, '0')}:${String(sm).padStart(2, '0')}:00`,
+          end: `${b.date}T${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}:00`,
+          resource: resourceId,
+          clientName: b.clientName,
+          clientPhone: b.clientPhone,
+          serviceName: b.serviceName || undefined,
+          masterName: b.masterName || undefined,
+          status: b.status?.toLowerCase(),
+        };
+      });
+  }, [myBookings, staffId, day1Str, day2Str]);
 
   // Handlers
   const handleEventClick = (event: CalendarEvent) => {
@@ -168,17 +189,19 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
     if (booking) { setSelectedEvent(booking); setEventSheetOpen(true); }
   };
 
-  const handleEventMove = async (eventId: string, newStart: Date, newEnd: Date) => {
+  const handleEventMove = async (eventId: string, newStart: Date, newEnd: Date, newResourceId?: string) => {
     const newTime = `${String(newStart.getHours()).padStart(2, '0')}:${String(newStart.getMinutes()).padStart(2, '0')}`;
     const newDuration = Math.round((newEnd.getTime() - newStart.getTime()) / 60000);
+    // Determine new date from resource
+    const newDate = newResourceId === 'day-1' ? day2Str : day1Str;
     setRawBookings(prev => prev.map(b => b.id === eventId
-      ? { ...b, time: newTime, duration: newDuration, timeEnd: `${String(newEnd.getHours()).padStart(2, '0')}:${String(newEnd.getMinutes()).padStart(2, '0')}` }
+      ? { ...b, date: newDate, time: newTime, duration: newDuration, timeEnd: `${String(newEnd.getHours()).padStart(2, '0')}:${String(newEnd.getMinutes()).padStart(2, '0')}` }
       : b));
     try {
       await staffFetch('/api/staff/bookings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId: eventId, time: newTime, duration: newDuration }),
+        body: JSON.stringify({ bookingId: eventId, date: newDate, time: newTime, duration: newDuration }),
       });
       loadBookings();
     } catch { loadBookings(); }
@@ -212,7 +235,7 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
           </button>
           <div>
             <h1 className="text-lg font-semibold text-gray-900">Мій календар</h1>
-            <p className="text-xs text-gray-500">Сьогодні</p>
+            <p className="text-xs text-gray-500">{dayNames[selectedDate.getDay()]} {selectedDate.getDate()} — {dayNames[secondDate.getDay()]} {secondDate.getDate()}</p>
           </div>
         </div>
         <button
@@ -260,7 +283,7 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
           startDate={selectedDate}
           onDateChange={setSelectedDate}
           onEventClick={handleEventClick}
-          onEventMove={(id, start, end) => handleEventMove(id, start, end)}
+          onEventMove={(id, start, end, resourceId) => handleEventMove(id, start, end, resourceId)}
           onEventResize={(id, start, end) => handleEventMove(id, start, end)}
           onTimeRangeSelect={() => setAddModalOpen(true)}
           timeStep={15}
@@ -270,7 +293,6 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
           viewMode="day"
           salonWorkingHours={salonWorkingHours}
           masterWorkingHours={staffWorkingHours ? { [staffId]: staffWorkingHours } : undefined}
-          hideResourceHeader
         />
       </div>
 
