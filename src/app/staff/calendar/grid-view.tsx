@@ -72,6 +72,7 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
 
   const isToday = selectedDate.toDateString() === new Date().toDateString();
   const daysContainerRef = useRef<HTMLDivElement>(null);
+  const indicatorRef = useRef<HTMLDivElement>(null);
 
   const formatDateHeader = (date: Date) => {
     if (date.toDateString() === new Date().toDateString()) return 'Сьогодні';
@@ -185,15 +186,64 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
     return d;
   }), []);
 
-  // Scroll selected day into view on date change
+  // Position sliding indicator over selected 2-day pair
   useEffect(() => {
+    const positionIndicator = () => {
+      const container = daysContainerRef.current;
+      const indicator = indicatorRef.current;
+      if (!container || !indicator) return;
+      
+      const selected = container.querySelector('[data-day-selected="true"]') as HTMLElement;
+      if (!selected) return;
+      
+      const second = container.querySelector('[data-day-second="true"]') as HTMLElement;
+      const containerRect = container.getBoundingClientRect();
+      const selectedRect = selected.getBoundingClientRect();
+      
+      if (selectedRect.width === 0) return; // not laid out yet
+      
+      const endEl = second || selected;
+      const endRect = endEl.getBoundingClientRect();
+      
+      const left = selectedRect.left - containerRect.left + container.scrollLeft;
+      const width = endRect.right - selectedRect.left;
+      const top = selectedRect.top - containerRect.top;
+      const height = selectedRect.height;
+      
+      indicator.style.left = `${left}px`;
+      indicator.style.width = `${width}px`;
+      indicator.style.top = `${top}px`;
+      indicator.style.height = `${height}px`;
+      indicator.style.opacity = '1';
+    };
+
+    // Scroll into view
     const container = daysContainerRef.current;
-    if (!container) return;
-    const selected = container.querySelector('[data-day-selected="true"]') as HTMLElement;
-    if (selected) {
-      selected.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    if (container) {
+      const selected = container.querySelector('[data-day-selected="true"]') as HTMLElement;
+      if (selected) {
+        selected.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
     }
-  }, [selectedDate]);
+
+    // Multiple attempts to catch first render
+    positionIndicator();
+    requestAnimationFrame(positionIndicator);
+    const t1 = setTimeout(positionIndicator, 50);
+    const t2 = setTimeout(positionIndicator, 150);
+    const t3 = setTimeout(positionIndicator, 400);
+    
+    // Also reposition on scroll (scrollIntoView changes offset)
+    const onScroll = () => positionIndicator();
+    container?.addEventListener('scroll', onScroll);
+    
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      container?.removeEventListener('scroll', onScroll);
+    };
+  }, [selectedDate, secondDate]);
 
   // Handlers
   const handleEventClick = (event: CalendarEvent) => {
@@ -284,25 +334,27 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
 
       {/* Week strip with sliding indicator */}
       <div className="shrink-0 bg-card border-b">
-        <div ref={daysContainerRef} className="flex gap-0 px-4 py-3 overflow-x-auto scrollbar-hide items-center">
+        <div ref={daysContainerRef} className="flex gap-2 px-4 py-3 overflow-x-auto scrollbar-hide items-center relative">
+          {/* Sliding indicator — positioned via ref */}
+          <div
+            ref={indicatorRef}
+            className="absolute bg-primary rounded-xl shadow-lg z-0 pointer-events-none"
+            style={{ transition: 'left 0.3s ease, width 0.3s ease, opacity 0.15s ease', opacity: 0 }}
+          />
           {days.map((date, index) => {
             const isSelected = date.toDateString() === selectedDate.toDateString();
             const isSecondDay = date.toDateString() === secondDate.toDateString();
             const isInPair = isSelected || isSecondDay;
             const isTodayDay = date.toDateString() === new Date().toDateString();
-            const rounding = isSelected
-              ? 'rounded-l-xl rounded-r-none'
-              : isSecondDay
-              ? 'rounded-r-xl rounded-l-none'
-              : 'rounded-xl';
             return (
               <button
                 key={index}
                 data-day-selected={isSelected ? 'true' : undefined}
+                data-day-second={isSecondDay ? 'true' : undefined}
                 onClick={() => onDateChange(date)}
-                className={`flex flex-col items-center min-w-[56px] py-2 px-2 transition-all duration-300 ${rounding} ${
+                className={`flex flex-col items-center min-w-[56px] py-2 px-2 rounded-xl transition-colors duration-300 relative z-10 ${
                   isInPair
-                    ? 'bg-primary text-primary-foreground shadow-lg scale-105'
+                    ? 'text-primary-foreground'
                     : isTodayDay
                     ? 'bg-primary/10 text-primary'
                     : 'hover:bg-muted'
