@@ -1390,8 +1390,8 @@ export function DayPilotResourceCalendar({
             {/* Колонки ресурсів */}
             <div
               data-resources
-              className="flex relative"
-              style={{ minWidth: resources.length > 3 ? `${resources.length * 120}px` : '100%' }}
+              className={`flex relative ${resources.length <= 3 && columnMinWidth === 0 ? 'flex-1' : ''}`}
+              style={{ minWidth: resources.length > 3 ? `${resources.length * 120}px` : (columnMinWidth === 0 ? undefined : '100%') }}
               onTouchStart={handleEmptyTouchStart}
               onClick={(e) => {
                 if (!onEmptySlotMenu) return;
