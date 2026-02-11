@@ -189,7 +189,32 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
   // Hybrid indicator: first render = bg on buttons, after first switch = absolute sliding indicator
   const [hasInteracted, setHasInteracted] = useState(false);
   const handleDayClick = useCallback((date: Date) => {
-    if (!hasInteracted) setHasInteracted(true);
+    if (!hasInteracted) {
+      // Position indicator at current pair BEFORE switching hasInteracted
+      const container = daysContainerRef.current;
+      const indicator = indicatorRef.current;
+      if (container && indicator) {
+        const selected = container.querySelector('[data-day-selected="true"]') as HTMLElement;
+        const second = container.querySelector('[data-day-second="true"]') as HTMLElement;
+        if (selected) {
+          const containerRect = container.getBoundingClientRect();
+          const selectedRect = selected.getBoundingClientRect();
+          const endEl = second || selected;
+          const endRect = endEl.getBoundingClientRect();
+          // Place indicator exactly where buttons are, no transition
+          indicator.style.transition = 'none';
+          indicator.style.left = `${selectedRect.left - containerRect.left + container.scrollLeft}px`;
+          indicator.style.width = `${endRect.right - selectedRect.left}px`;
+          indicator.style.top = `${selectedRect.top - containerRect.top}px`;
+          indicator.style.height = `${selectedRect.height}px`;
+          indicator.style.opacity = '1';
+          // Force reflow, then re-enable transition
+          indicator.offsetHeight;
+          indicator.style.transition = 'left 0.3s ease, width 0.3s ease';
+        }
+      }
+      setHasInteracted(true);
+    }
     onDateChange(date);
   }, [hasInteracted, onDateChange]);
 
@@ -381,7 +406,7 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
                 data-day-selected={isSelected ? 'true' : undefined}
                 data-day-second={isSecondDay ? 'true' : undefined}
                 onClick={() => handleDayClick(date)}
-                className={`flex flex-col items-center min-w-[56px] py-2 px-2 ${rounding} transition-all duration-300 relative z-10 ${pairClass}`}
+                className={`flex flex-col items-center min-w-[56px] py-2 px-2 ${rounding} relative z-10 ${pairClass}`}
                 style={!hasInteracted ? (isInPair ? {} : { marginLeft: 4, marginRight: 4 }) : undefined}
               >
                 <span className="text-xs font-medium opacity-70">{DAYS_UA[date.getDay()]}</span>
