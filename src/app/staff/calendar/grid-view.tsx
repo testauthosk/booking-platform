@@ -186,8 +186,17 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
     return d;
   }), []);
 
-  // Position sliding indicator over selected 2-day pair
+  // Hybrid indicator: first render = bg on buttons, after first switch = absolute sliding indicator
+  const [hasInteracted, setHasInteracted] = useState(false);
+  const handleDayClick = useCallback((date: Date) => {
+    if (!hasInteracted) setHasInteracted(true);
+    onDateChange(date);
+  }, [hasInteracted, onDateChange]);
+
+  // Position sliding indicator (only active after first interaction)
   useEffect(() => {
+    if (!hasInteracted) return;
+    
     const positionIndicator = () => {
       const container = daysContainerRef.current;
       const indicator = indicatorRef.current;
@@ -200,7 +209,7 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
       const containerRect = container.getBoundingClientRect();
       const selectedRect = selected.getBoundingClientRect();
       
-      if (selectedRect.width === 0) return; // not laid out yet
+      if (selectedRect.width === 0) return;
       
       const endEl = second || selected;
       const endRect = endEl.getBoundingClientRect();
@@ -226,24 +235,29 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
       }
     }
 
-    // Multiple attempts to catch first render
     positionIndicator();
     requestAnimationFrame(positionIndicator);
-    const t1 = setTimeout(positionIndicator, 50);
-    const t2 = setTimeout(positionIndicator, 150);
-    const t3 = setTimeout(positionIndicator, 400);
+    const t1 = setTimeout(positionIndicator, 100);
     
-    // Also reposition on scroll (scrollIntoView changes offset)
     const onScroll = () => positionIndicator();
     container?.addEventListener('scroll', onScroll);
     
     return () => {
       clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
       container?.removeEventListener('scroll', onScroll);
     };
-  }, [selectedDate, secondDate]);
+  }, [selectedDate, secondDate, hasInteracted]);
+
+  // Scroll selected into view on first render (no indicator, just scroll)
+  useEffect(() => {
+    const container = daysContainerRef.current;
+    if (container) {
+      const selected = container.querySelector('[data-day-selected="true"]') as HTMLElement;
+      if (selected) {
+        selected.scrollIntoView({ behavior: 'instant' as any, inline: 'center', block: 'nearest' });
+      }
+    }
+  }, []);
 
   // Handlers
   const handleEventClick = (event: CalendarEvent) => {
@@ -346,19 +360,21 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
             const isSecondDay = date.toDateString() === secondDate.toDateString();
             const isInPair = isSelected || isSecondDay;
             const isTodayDay = date.toDateString() === new Date().toDateString();
+            // Before first interaction: bg directly on buttons. After: indicator handles bg.
+            const pairClass = isInPair
+              ? hasInteracted
+                ? 'text-primary-foreground'  // indicator provides bg
+                : 'bg-primary text-primary-foreground shadow-lg'  // buttons provide bg
+              : isTodayDay
+              ? 'bg-primary/10 text-primary'
+              : 'hover:bg-muted';
             return (
               <button
                 key={index}
                 data-day-selected={isSelected ? 'true' : undefined}
                 data-day-second={isSecondDay ? 'true' : undefined}
-                onClick={() => onDateChange(date)}
-                className={`flex flex-col items-center min-w-[56px] py-2 px-2 rounded-xl transition-colors duration-300 relative z-10 ${
-                  isInPair
-                    ? 'text-primary-foreground'
-                    : isTodayDay
-                    ? 'bg-primary/10 text-primary'
-                    : 'hover:bg-muted'
-                }`}
+                onClick={() => handleDayClick(date)}
+                className={`flex flex-col items-center min-w-[56px] py-2 px-2 rounded-xl transition-all duration-300 relative z-10 ${pairClass}`}
               >
                 <span className="text-xs font-medium opacity-70">{DAYS_UA[date.getDay()]}</span>
                 <span className="text-xl font-bold">{date.getDate()}</span>
