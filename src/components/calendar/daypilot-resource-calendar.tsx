@@ -1370,7 +1370,7 @@ export function DayPilotResourceCalendar({
                             ? (isHalf ? 'text-[10px] opacity-60' : 'text-sm font-medium')
                             : (isHalf ? 'text-[7px] lg:text-[9px] opacity-60' : 'text-[9px] lg:text-xs font-medium')
                         } text-gray-900`}
-                        style={{ top: '100%', transform: 'translateY(-50%)' }}
+                        style={{ top: 0, transform: 'translateY(-50%)' }}
                       >
                         {label}
                       </span>
