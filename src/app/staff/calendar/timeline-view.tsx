@@ -713,19 +713,21 @@ function StaffCalendarContent() {
                     <div 
                       key={booking.id}
                       className={`rounded-xl overflow-hidden ${
-                        booking.status === 'COMPLETED' 
-                          ? 'bg-green-50' 
-                          : isBlocked
+                        isBlocked
                           ? 'bg-zinc-100'
-                          : isPast 
-                          ? 'opacity-50' 
                           : isOngoing
                           ? 'ring-2 ring-blue-400 shadow-md'
                           : ''
                       }`}
                       style={{ 
-                        backgroundColor: booking.status === 'COMPLETED' ? undefined : isBlocked ? undefined : colors.bg,
-                        borderLeft: `4px solid ${isOngoing ? '#3b82f6' : colors.stripe}`
+                        backgroundColor: isBlocked ? undefined : colors.bg,
+                        borderLeft: `4px solid ${isOngoing ? '#3b82f6' : colors.stripe}`,
+                        border: `1px solid ${colors.stripe}`,
+                        borderLeftWidth: '4px',
+                        backgroundImage: (booking.status === 'COMPLETED' || isPast) 
+                          ? 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.04) 4px, rgba(0,0,0,0.04) 8px)'
+                          : undefined,
+                        opacity: isPast && booking.status !== 'COMPLETED' ? 0.6 : undefined,
                       }}
                     >
                       <div className="p-3 flex justify-between gap-3">
@@ -867,9 +869,9 @@ function StaffCalendarContent() {
               }`}
             >
               <div className="pt-4">
-          <div className="relative flex px-4">
+          <div className="relative flex pl-1 pr-4">
             {/* Left: Time labels */}
-            <div className="w-12 shrink-0 relative" style={{ height: `${(workingHours.end - workingHours.start) * 120}px` }}>
+            <div className="w-10 shrink-0 relative" style={{ height: `${(workingHours.end - workingHours.start) * 120}px` }}>
               {Array.from({ length: workingHours.end - workingHours.start + 1 }, (_, i) => {
                 const hour = workingHours.start + i;
                 const timeStr = `${hour.toString().padStart(2, '0')}:00`;
@@ -883,7 +885,7 @@ function StaffCalendarContent() {
                       className="absolute w-full text-right pr-2 -translate-y-1/2"
                       style={{ top: `${i * 120}px` }}
                     >
-                      <span className={`text-xs font-medium ${isPastHour ? 'text-muted-foreground/40' : 'text-muted-foreground'}`}>
+                      <span className={`text-xs font-medium ${isPastHour ? 'text-gray-400' : 'text-gray-900'}`}>
                         {timeStr}
                       </span>
                     </div>
@@ -995,9 +997,7 @@ function StaffCalendarContent() {
                   <div 
                     key={booking.id}
                     className={`absolute -left-2 right-4 rounded-r-xl transition-all duration-300 ${
-                      booking.status === 'COMPLETED' 
-                        ? 'bg-green-50' 
-                        : isBlocked
+                      isBlocked
                         ? 'bg-zinc-100'
                         : isOngoing
                         ? 'shadow-lg z-10'
@@ -1006,7 +1006,7 @@ function StaffCalendarContent() {
                     style={{ 
                       top: `${topPosition}px`, 
                       height: `${height + 1}px`,
-                      backgroundColor: booking.status === 'COMPLETED' ? undefined : isBlocked ? undefined : colors.bg,
+                      backgroundColor: isBlocked ? undefined : colors.bg,
                       backgroundImage: stripesPattern,
                       borderLeft: `4px solid ${isOngoing ? '#3b82f6' : colors.stripe}`,
                       borderTop: `2px solid ${isOngoing ? '#3b82f6' : colors.stripe}`,
