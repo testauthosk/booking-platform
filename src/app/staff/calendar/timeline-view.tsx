@@ -906,7 +906,7 @@ function StaffCalendarContent() {
             {/* Vertical line with ticks */}
             <div className="relative shrink-0 bg-background z-10" style={{ height: `${(workingHours.end - workingHours.start) * 120}px` }}>
               {/* Main line */}
-              <div className="absolute left-2 top-0 bottom-0 w-px bg-zinc-300" />
+              <div className="absolute left-2 top-0 bottom-0 w-px bg-gray-900" />
               
               {/* Ticks */}
               {Array.from({ length: workingHours.end - workingHours.start + 1 }, (_, i) => {
@@ -915,13 +915,13 @@ function StaffCalendarContent() {
                   <div key={i}>
                     {/* Hour tick - longer */}
                     <div 
-                      className="absolute left-0 w-2 h-px bg-zinc-400"
+                      className="absolute left-0 w-2 h-px bg-gray-900"
                       style={{ top: `${i * 120}px` }}
                     />
                     {/* :30 tick - shorter, only if not last hour */}
                     {!isLastHour && (
                       <div 
-                        className="absolute left-1 w-1 h-px bg-zinc-300"
+                        className="absolute left-1 w-1 h-px bg-gray-900"
                         style={{ top: `${i * 120 + 60}px` }}
                       />
                     )}
