@@ -44,6 +44,7 @@ export default function StaffGridView({ selectedDate, onDateChange, reloadKey }:
   const [staffId, setStaffId] = useState('');
   const [staffName, setStaffName] = useState('');
   const [staffColor, setStaffColor] = useState('#87C2CA');
+  const [staffAvatar, setStaffAvatar] = useState('');
   const [staffWorkingHours, setStaffWorkingHours] = useState<Record<string, WorkingDay> | null>(null);
   const [salonId, setSalonId] = useState('');
   const [salonTimezone, setSalonTimezone] = useState('Europe/Kiev');
@@ -73,6 +74,7 @@ export default function StaffGridView({ selectedDate, onDateChange, reloadKey }:
           setStaffId(data.id);
           setStaffName(data.name);
           setSalonId(data.salonId);
+          if (data.avatar) setStaffAvatar(data.avatar);
           if (data.color) {
             setStaffColor(data.color);
           } else if (data.paletteId) {
@@ -143,9 +145,9 @@ export default function StaffGridView({ selectedDate, onDateChange, reloadKey }:
   }, [secondDate]);
 
   const calendarResources: CalendarResource[] = useMemo(() => [
-    { id: 'day-0', name: `${dayNames[selectedDate.getDay()]} ${selectedDate.getDate()}`, color: staffColor },
-    { id: 'day-1', name: `${dayNames[secondDate.getDay()]} ${secondDate.getDate()}`, color: staffColor },
-  ], [selectedDate, secondDate, staffColor]);
+    { id: 'day-0', name: `${dayNames[selectedDate.getDay()]} ${selectedDate.getDate()}`, color: staffColor, avatar: staffAvatar || undefined },
+    { id: 'day-1', name: `${dayNames[secondDate.getDay()]} ${secondDate.getDate()}`, color: staffColor, avatar: staffAvatar || undefined },
+  ], [selectedDate, secondDate, staffColor, staffAvatar]);
 
   const calendarEvents: CalendarEvent[] = useMemo(() => {
     return myBookings
@@ -269,7 +271,6 @@ export default function StaffGridView({ selectedDate, onDateChange, reloadKey }:
           viewMode="day"
           salonWorkingHours={salonWorkingHours}
           masterWorkingHours={staffWorkingHours ? { [staffId]: staffWorkingHours } : undefined}
-          hideResourceHeader
         />
       </div>
 
