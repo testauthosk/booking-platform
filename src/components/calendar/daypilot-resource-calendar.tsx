@@ -162,8 +162,10 @@ export function DayPilotResourceCalendar({
     };
 
     update();
-    const interval = setInterval(update, 30000); // кожні 30 сек
-    return () => clearInterval(interval);
+    const interval = setInterval(update, 10000); // кожні 10 сек
+    const onVisible = () => { if (document.visibilityState === 'visible') update(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { clearInterval(interval); document.removeEventListener('visibilitychange', onVisible); };
   }, [timezone, internalDate]);
 
   // Drag state — dragActive (boolean) для React, все координати через refs + DOM
@@ -1363,7 +1365,11 @@ export function DayPilotResourceCalendar({
                   <div key={i} className="relative" style={{ height: `${stepHeight}px` }}>
                     {(isHour || isHalf) && (
                       <span
-                        className={`absolute right-1 ${isHalf ? 'text-[7px] lg:text-[9px] opacity-60' : 'text-[9px] lg:text-xs font-medium'} text-gray-900`}
+                        className={`absolute right-1 ${
+                          columnMinWidth === 0
+                            ? (isHalf ? 'text-[10px] opacity-60' : 'text-sm font-medium')
+                            : (isHalf ? 'text-[7px] lg:text-[9px] opacity-60' : 'text-[9px] lg:text-xs font-medium')
+                        } text-gray-900`}
                         style={{ top: '100%', transform: 'translateY(-50%)' }}
                       >
                         {label}
@@ -1376,7 +1382,7 @@ export function DayPilotResourceCalendar({
               {/* Червоний бейдж поточного часу — текст вирівняний зі стандартними лейблами */}
               {isToday_ && nowMinutes !== null && nowMinutes >= dayStartHour * 60 && nowMinutes <= dayEndHour * 60 && (
                 <span
-                  className="absolute right-0 z-30 pointer-events-none text-[9px] lg:text-xs font-medium bg-red-500 text-white pr-1 pl-[3px] py-[1px] rounded-l-[3px]"
+                  className={`absolute right-0 z-30 pointer-events-none font-medium bg-red-500 text-white pr-1 pl-[3px] py-[1px] rounded-l-[3px] ${columnMinWidth === 0 ? 'text-xs' : 'text-[9px] lg:text-xs'}`}
                   style={{
                     top: `${((nowMinutes - dayStartHour * 60) / totalMinutes) * 100}%`,
                     transform: 'translateY(-50%)',
