@@ -185,40 +185,50 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
     return d;
   }), []);
 
-  // Sliding indicator positioning
+  // Sliding indicator positioning — covers 2 days (selected + next)
+  const isFirstRender = useRef(true);
   useEffect(() => {
     const updateIndicator = () => {
       const container = daysContainerRef.current;
       if (!container) return;
       const selected = container.querySelector('[data-day-selected="true"]') as HTMLElement;
+      const next = selected?.nextElementSibling as HTMLElement;
       const indicator = container.querySelector('#grid-day-indicator') as HTMLElement;
       if (!selected || !indicator) return;
 
       const containerRect = container.getBoundingClientRect();
       const selectedRect = selected.getBoundingClientRect();
+      
+      // Width spans 2 days if next exists
+      const endRect = next ? next.getBoundingClientRect() : selectedRect;
+      const totalWidth = endRect.right - selectedRect.left;
 
       indicator.style.left = `${selectedRect.left - containerRect.left + container.scrollLeft}px`;
       indicator.style.top = `${selectedRect.top - containerRect.top}px`;
-      indicator.style.width = `${selectedRect.width}px`;
+      indicator.style.width = `${totalWidth}px`;
       indicator.style.height = `${selectedRect.height}px`;
       indicator.style.opacity = '1';
     };
 
-    // Scroll selected day into view first, then measure position
+    // Scroll selected day into view
     const container = daysContainerRef.current;
     if (container) {
       const selected = container.querySelector('[data-day-selected="true"]') as HTMLElement;
       if (selected) {
-        selected.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        // First render: instant scroll. After: smooth.
+        selected.scrollIntoView({ behavior: isFirstRender.current ? 'instant' as any : 'smooth', inline: 'center', block: 'nearest' });
+        isFirstRender.current = false;
       }
     }
 
-    // Use double rAF to ensure scroll + layout is settled before measuring
+    // Immediate measure attempt
+    updateIndicator();
+    // Double rAF for safety
     requestAnimationFrame(() => {
       requestAnimationFrame(updateIndicator);
     });
-    // Fallback: re-measure after scroll animation completes (first render)
-    const timer = setTimeout(updateIndicator, 350);
+    // Fallback after scroll settles
+    const timer = setTimeout(updateIndicator, 100);
     return () => clearTimeout(timer);
   }, [selectedDate]);
 
@@ -320,6 +330,8 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
           />
           {days.map((date, index) => {
             const isSelected = date.toDateString() === selectedDate.toDateString();
+            const isSecondDay = date.toDateString() === secondDate.toDateString();
+            const isInPair = isSelected || isSecondDay;
             const isTodayDay = date.toDateString() === new Date().toDateString();
             return (
               <button
@@ -327,7 +339,7 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
                 data-day-selected={isSelected ? 'true' : undefined}
                 onClick={() => onDateChange(date)}
                 className={`flex flex-col items-center min-w-[56px] py-2 px-2 rounded-xl transition-colors duration-300 relative z-10 ${
-                  isSelected
+                  isInPair
                     ? 'text-primary-foreground'
                     : isTodayDay
                     ? 'text-primary'
