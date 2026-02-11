@@ -122,26 +122,29 @@ function StaffCalendarContent() {
         >
           <Users className="h-5 w-5" />
         </button>
-        {/* View mode toggle */}
-        <div className="flex flex-col gap-0 rounded-2xl overflow-hidden shadow-lg border border-gray-200/80 bg-white/90 backdrop-blur-md">
+        {/* View mode toggle with sliding indicator */}
+        <div className="relative flex flex-col gap-0 rounded-2xl overflow-hidden shadow-lg border border-gray-200/80 bg-white/90 backdrop-blur-md">
+          {/* Sliding indicator */}
+          <div
+            className="absolute left-0 right-0 h-12 bg-gray-900 rounded-2xl z-0 pointer-events-none"
+            style={{
+              transform: `translateY(${viewMode === 'list' ? '0' : '100'}%)`,
+              transition: 'transform 0.3s ease',
+            }}
+          />
           <button
             onClick={() => setViewMode('list')}
-            className={`flex items-center justify-center w-12 h-12 transition-all ${
-              viewMode === 'list'
-                ? 'bg-gray-900 text-white'
-                : 'bg-white text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+            className={`relative z-10 flex items-center justify-center w-12 h-12 transition-colors duration-300 ${
+              viewMode === 'list' ? 'text-white' : 'text-gray-400 hover:text-gray-600'
             }`}
             title="Список"
           >
             <List className="h-5 w-5" />
           </button>
-          <div className="h-px bg-gray-200" />
           <button
             onClick={() => setViewMode('grid')}
-            className={`flex items-center justify-center w-12 h-12 transition-all ${
-              viewMode === 'grid'
-                ? 'bg-gray-900 text-white'
-                : 'bg-white text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+            className={`relative z-10 flex items-center justify-center w-12 h-12 transition-colors duration-300 ${
+              viewMode === 'grid' ? 'text-white' : 'text-gray-400 hover:text-gray-600'
             }`}
             title="Сітка"
           >
