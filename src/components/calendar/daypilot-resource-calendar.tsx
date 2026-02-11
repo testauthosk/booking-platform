@@ -1606,7 +1606,7 @@ export function DayPilotResourceCalendar({
           <span className="text-sm">Робота закінчилась, час додому ❤️</span>
         </div>
         {/* Spacer для скролу під WeekBar + MobileNav */}
-        <div className="h-[110px] lg:h-0 shrink-0" />
+        <div className={`${columnMinWidth === 0 ? 'h-3' : 'h-[110px]'} lg:h-0 shrink-0`} />
       </div>
         )}
       </div>
