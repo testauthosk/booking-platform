@@ -6,6 +6,7 @@ import { staffFetch } from '@/lib/staff-fetch';
 import { Loader2, ChevronLeft, Plus } from 'lucide-react';
 import { ClientCardPanel } from '@/components/staff/client-card-panel';
 import { CalendarPickerModal } from '@/components/staff/calendar-picker-modal';
+import { BookingDetailsModal } from '@/components/staff/booking-details-modal';
 import dynamic from 'next/dynamic';
 import type { CalendarEvent, CalendarResource } from '@/components/calendar/daypilot-resource-calendar';
 
@@ -68,7 +69,6 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
   // Event details bottom sheet
   const [selectedEvent, setSelectedEvent] = useState<BookingFromAPI | null>(null);
   const [eventSheetOpen, setEventSheetOpen] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
 
   const isToday = selectedDate.toDateString() === new Date().toDateString();
   const daysContainerRef = useRef<HTMLDivElement>(null);
@@ -307,20 +307,6 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
     } catch { loadBookings(); }
   };
 
-  const handleStatusChange = async (bookingId: string, status: string) => {
-    setActionLoading(true);
-    try {
-      const res = await staffFetch('/api/staff/bookings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId, status }),
-      });
-      if (res.ok) { setEventSheetOpen(false); setSelectedEvent(null); await loadBookings(); }
-      else { const err = await res.json().catch(() => ({})); alert(err.error || 'Помилка'); }
-    } catch { alert('Помилка'); }
-    finally { setActionLoading(false); }
-  };
-
   if (loading) {
     return <div className="flex-1 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>;
   }
@@ -453,53 +439,16 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
         />
       </div>
 
-      {/* Event bottom sheet */}
-      {eventSheetOpen && selectedEvent && (
-        <>
-          <div className="fixed inset-0 bg-black/30 z-[60]" onClick={() => setEventSheetOpen(false)} />
-          <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[61] p-5 pb-8 shadow-2xl animate-in slide-in-from-bottom duration-300">
-            <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
-            <div className="space-y-3">
-              <div>
-                <p className="font-semibold text-lg">{selectedEvent.clientName}</p>
-                <p className="text-sm text-gray-500">{selectedEvent.serviceName || 'Запис'}</p>
-              </div>
-              <div className="flex gap-2 text-sm text-gray-500">
-                <span>📅 {selectedEvent.date}</span>
-                <span>⏰ {selectedEvent.time}{selectedEvent.timeEnd ? ` — ${selectedEvent.timeEnd}` : ''}</span>
-                <span>🕐 {selectedEvent.duration} хв</span>
-              </div>
-              {selectedEvent.clientPhone && selectedEvent.clientPhone !== '-' && (
-                <button
-                  onClick={() => { setClientCardPhone(selectedEvent.clientPhone); setClientCardName(selectedEvent.clientName); setClientCardOpen(true); setEventSheetOpen(false); }}
-                  className="text-sm text-blue-600 font-medium"
-                >
-                  📞 {selectedEvent.clientPhone}
-                </button>
-              )}
-              {selectedEvent.status !== 'COMPLETED' && selectedEvent.status !== 'CANCELLED' && (
-                <div className="flex gap-2 pt-2">
-                  <button onClick={() => handleStatusChange(selectedEvent.id, 'COMPLETED')} disabled={actionLoading}
-                    className="flex-1 py-3 rounded-xl bg-green-50 text-green-700 font-semibold text-sm border border-green-200 hover:bg-green-100 disabled:opacity-50">
-                    ✓ Завершити
-                  </button>
-                  <button onClick={() => handleStatusChange(selectedEvent.id, 'CANCELLED')} disabled={actionLoading}
-                    className="flex-1 py-3 rounded-xl bg-red-50 text-red-600 font-semibold text-sm border border-red-200 hover:bg-red-100 disabled:opacity-50">
-                    ✕ Скасувати
-                  </button>
-                  <button onClick={() => handleStatusChange(selectedEvent.id, 'NO_SHOW')} disabled={actionLoading}
-                    className="py-3 px-4 rounded-xl bg-gray-50 text-gray-600 font-semibold text-sm border border-gray-200 hover:bg-gray-100 disabled:opacity-50">
-                    🚫
-                  </button>
-                </div>
-              )}
-              {selectedEvent.status === 'COMPLETED' && (
-                <div className="py-2 px-3 bg-green-50 rounded-xl text-sm text-green-700 font-medium">✅ Завершено</div>
-              )}
-            </div>
-          </div>
-        </>
-      )}
+      {/* Event details modal — same as staff dashboard */}
+      <BookingDetailsModal
+        isOpen={eventSheetOpen}
+        onClose={() => setEventSheetOpen(false)}
+        booking={selectedEvent}
+        accentColor={staffColor}
+        salonId={salonId}
+        staffId={staffId}
+        onStatusChange={() => { setEventSheetOpen(false); onDateChange(selectedDate); }}
+      />
 
       {/* Client card */}
       <ClientCardPanel
