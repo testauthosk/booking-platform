@@ -9,12 +9,19 @@ export async function GET(request: NextRequest) {
 
     const services = await prisma.service.findMany({
       where: { salonId: auth.salonId, isActive: true },
-      orderBy: { name: 'asc' },
+      orderBy: [{ category: { name: 'asc' } }, { name: 'asc' }],
       select: {
         id: true,
         name: true,
         duration: true,
         price: true,
+        categoryId: true,
+        category: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 

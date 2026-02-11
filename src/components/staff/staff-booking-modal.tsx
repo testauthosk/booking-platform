@@ -530,11 +530,43 @@ export function StaffBookingModal({
             ref={contentRef}
             className="p-4"
           >
-          {/* Service Step */}
+          {/* Service Step — grouped by category */}
           {step === 'service' && (
-            <div className="space-y-2">
-              {services.length > 0 ? (
-                services.map((service) => (
+            <div className="space-y-1">
+              {services.length > 0 ? (() => {
+                // Group services by category, sorted alphabetically
+                const grouped = new Map<string, { categoryName: string; items: typeof services }>();
+                const uncategorized: typeof services = [];
+                
+                for (const service of services) {
+                  const cat = (service as any).category;
+                  if (cat?.name) {
+                    const key = cat.id || cat.name;
+                    if (!grouped.has(key)) {
+                      grouped.set(key, { categoryName: cat.name, items: [] });
+                    }
+                    grouped.get(key)!.items.push(service);
+                  } else {
+                    uncategorized.push(service);
+                  }
+                }
+
+                // Sort categories alphabetically
+                const sortedCategories = Array.from(grouped.values())
+                  .sort((a, b) => a.categoryName.localeCompare(b.categoryName, 'uk'));
+
+                // Sort services within each category
+                for (const cat of sortedCategories) {
+                  cat.items.sort((a, b) => a.name.localeCompare(b.name, 'uk'));
+                }
+                uncategorized.sort((a, b) => a.name.localeCompare(b.name, 'uk'));
+
+                // Add uncategorized at the end
+                if (uncategorized.length > 0) {
+                  sortedCategories.push({ categoryName: 'Інше', items: uncategorized });
+                }
+
+                const renderService = (service: typeof services[0]) => (
                   <button
                     key={service.id}
                     onClick={() => {
@@ -554,8 +586,21 @@ export function StaffBookingModal({
                     </div>
                     <p className="font-semibold">{service.price} ₴</p>
                   </button>
-                ))
-              ) : (
+                );
+
+                return sortedCategories.map((cat) => (
+                  <div key={cat.categoryName} className="mb-3">
+                    <div className="flex items-center gap-2 mb-2 px-1">
+                      <div className="h-px flex-1 bg-gray-200" />
+                      <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{cat.categoryName}</span>
+                      <div className="h-px flex-1 bg-gray-200" />
+                    </div>
+                    <div className="space-y-2">
+                      {cat.items.map(renderService)}
+                    </div>
+                  </div>
+                ));
+              })() : (
                 <div className="text-center py-8 text-muted-foreground">
                   Немає активних послуг
                 </div>
