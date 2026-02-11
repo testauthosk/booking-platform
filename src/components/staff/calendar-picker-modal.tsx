@@ -390,7 +390,7 @@ export function CalendarPickerModal({
 
                       {booking.status === 'COMPLETED' && (
                         <span className="inline-block mt-2 text-xs bg-green-200 text-green-700 px-2 py-0.5 rounded">
-                          ✓ Завершено
+                          ✓ Виконано
                         </span>
                       )}
                     </div>

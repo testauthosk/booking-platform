@@ -1530,7 +1530,7 @@ export function DayPilotResourceCalendar({
                           </svg>
                           {/* Status badge — text */}
                           {event.status === 'completed' && (
-                            <span className="ml-auto px-1.5 py-px text-[8px] font-bold rounded bg-green-500 text-white leading-tight whitespace-nowrap">Завершено</span>
+                            <span className="ml-auto px-1.5 py-px text-[8px] font-bold rounded bg-green-500 text-white leading-tight whitespace-nowrap">Виконано</span>
                           )}
                           {event.status === 'cancelled' && (
                             <span className="ml-auto px-1.5 py-px text-[8px] font-bold rounded bg-red-500 text-white leading-tight whitespace-nowrap">Відміна</span>

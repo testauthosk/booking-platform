@@ -767,7 +767,7 @@ function StaffCalendarContent() {
                           )}
                           
                           {booking.status === 'COMPLETED' && (
-                            <span className="inline-block mt-2 text-xs bg-green-200 text-green-700 px-2 py-0.5 rounded">✓ Завершено</span>
+                            <span className="inline-block mt-2 text-xs bg-green-200 text-green-700 px-2 py-0.5 rounded">✓ Виконано</span>
                           )}
                           
                           {booking.status === 'NO_SHOW' && (
@@ -1052,7 +1052,7 @@ function StaffCalendarContent() {
                         {/* Status badge — same width as call button */}
                         {booking.status === 'COMPLETED' && (
                           <div className="h-9 px-3 rounded-lg bg-green-100 text-green-700 text-xs font-semibold flex items-center justify-center gap-1 border border-green-300 whitespace-nowrap">
-                            <Check className="h-3.5 w-3.5" /> Завершено
+                            <Check className="h-3.5 w-3.5" /> Виконано
                           </div>
                         )}
                         {booking.status === 'NO_SHOW' && (
