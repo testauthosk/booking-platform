@@ -871,7 +871,7 @@ function StaffCalendarContent() {
               <div className="pt-4">
           <div className="relative flex pl-2 pr-4">
             {/* Left: Time labels */}
-            <div className="w-10 shrink-0 relative" style={{ height: `${(workingHours.end - workingHours.start) * 120}px` }}>
+            <div className="w-10 shrink-0 relative bg-background z-10" style={{ height: `${(workingHours.end - workingHours.start) * 120}px` }}>
               {Array.from({ length: workingHours.end - workingHours.start + 1 }, (_, i) => {
                 const hour = workingHours.start + i;
                 const timeStr = `${hour.toString().padStart(2, '0')}:00`;
@@ -904,7 +904,7 @@ function StaffCalendarContent() {
             </div>
             
             {/* Vertical line with ticks */}
-            <div className="relative shrink-0" style={{ height: `${(workingHours.end - workingHours.start) * 120}px` }}>
+            <div className="relative shrink-0 bg-background z-10" style={{ height: `${(workingHours.end - workingHours.start) * 120}px` }}>
               {/* Main line */}
               <div className="absolute left-2 top-0 bottom-0 w-px bg-zinc-300" />
               
