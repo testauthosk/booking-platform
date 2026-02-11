@@ -348,7 +348,7 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
 
       {/* Week strip with sliding indicator */}
       <div className="shrink-0 bg-card border-b">
-        <div ref={daysContainerRef} className="flex gap-2 px-4 py-3 overflow-x-auto scrollbar-hide items-center relative">
+        <div ref={daysContainerRef} className={`flex ${hasInteracted ? 'gap-2' : 'gap-0'} px-4 py-3 overflow-x-auto scrollbar-hide items-center relative`}>
           {/* Sliding indicator — positioned via ref */}
           <div
             ref={indicatorRef}
@@ -360,21 +360,29 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
             const isSecondDay = date.toDateString() === secondDate.toDateString();
             const isInPair = isSelected || isSecondDay;
             const isTodayDay = date.toDateString() === new Date().toDateString();
-            // Before first interaction: bg directly on buttons. After: indicator handles bg.
-            const pairClass = isInPair
-              ? hasInteracted
-                ? 'text-primary-foreground'  // indicator provides bg
-                : 'bg-primary text-primary-foreground shadow-lg'  // buttons provide bg
-              : isTodayDay
-              ? 'bg-primary/10 text-primary'
-              : 'hover:bg-muted';
+            // Before first interaction: bg directly on buttons (no gap, shared shape).
+            // After: indicator handles bg.
+            let pairClass: string;
+            let rounding = 'rounded-xl';
+            if (isInPair) {
+              if (hasInteracted) {
+                pairClass = 'text-primary-foreground'; // indicator provides bg
+              } else {
+                pairClass = 'bg-primary text-primary-foreground shadow-lg';
+                // Make pair look like one rectangle: no rounding on inner sides
+                rounding = isSelected ? 'rounded-l-xl rounded-r-none' : 'rounded-r-xl rounded-l-none';
+              }
+            } else {
+              pairClass = isTodayDay ? 'bg-primary/10 text-primary' : 'hover:bg-muted';
+            }
             return (
               <button
                 key={index}
                 data-day-selected={isSelected ? 'true' : undefined}
                 data-day-second={isSecondDay ? 'true' : undefined}
                 onClick={() => handleDayClick(date)}
-                className={`flex flex-col items-center min-w-[56px] py-2 px-2 rounded-xl transition-all duration-300 relative z-10 ${pairClass}`}
+                className={`flex flex-col items-center min-w-[56px] py-2 px-2 ${rounding} transition-all duration-300 relative z-10 ${pairClass}`}
+                style={!hasInteracted ? (isInPair ? {} : { marginLeft: 4, marginRight: 4 }) : undefined}
               >
                 <span className="text-xs font-medium opacity-70">{DAYS_UA[date.getDay()]}</span>
                 <span className="text-xl font-bold">{date.getDate()}</span>
