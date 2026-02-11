@@ -132,15 +132,17 @@ function StaffCalendarContent() {
             value={`${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`}
             onChange={handleDatePickerChange}
           />
-          {/* Today button */}
-          {!isToday && (
-            <button
-              onClick={goToToday}
-              className="px-3 h-10 rounded-2xl bg-gray-900 text-white text-sm font-medium flex items-center justify-center hover:bg-gray-800 transition-colors"
-            >
-              Сьогодні
-            </button>
-          )}
+          {/* Today button — always visible, checkmark when today */}
+          <button
+            onClick={goToToday}
+            className={`h-10 px-3 rounded-2xl text-sm font-medium flex items-center justify-center transition-all ${
+              isToday
+                ? 'bg-green-50 text-green-600'
+                : 'bg-gray-900 text-white hover:bg-gray-800'
+            }`}
+          >
+            {isToday ? '✓' : 'Сьогодні'}
+          </button>
         </div>
       </div>
 

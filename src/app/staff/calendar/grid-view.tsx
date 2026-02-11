@@ -218,7 +218,7 @@ export default function StaffGridView({ selectedDate, onDateChange, reloadKey }:
   return (
     <div className="flex-1 flex flex-col overflow-hidden relative" style={{ maxWidth: '100vw' }}>
       {/* Day pair strip — 4 pairs of 2 days */}
-      <div className="flex items-center justify-around px-3 py-2 bg-white border-b border-gray-100 flex-shrink-0 gap-2">
+      <div className="flex items-center px-3 py-2 bg-white border-b border-gray-100 flex-shrink-0 gap-2">
         {Array.from({ length: 4 }, (_, pairIdx) => {
           const d1 = new Date();
           d1.setDate(d1.getDate() + pairIdx * 2);
@@ -265,8 +265,16 @@ export default function StaffGridView({ selectedDate, onDateChange, reloadKey }:
           onTimeRangeSelect={() => {}}
           accentColor={staffColor}
           timeStep={15}
-          dayStartHour={8}
-          dayEndHour={21}
+          dayStartHour={(() => {
+            if (!staffWorkingHours) return 8;
+            const hours = Object.values(staffWorkingHours).filter(d => d.enabled).map(d => parseInt(d.start?.split(':')[0] || '8'));
+            return hours.length > 0 ? Math.min(...hours) : 8;
+          })()}
+          dayEndHour={(() => {
+            if (!staffWorkingHours) return 21;
+            const hours = Object.values(staffWorkingHours).filter(d => d.enabled).map(d => parseInt(d.end?.split(':')[0] || '21'));
+            return hours.length > 0 ? Math.max(...hours) : 21;
+          })()}
           timezone={salonTimezone}
           viewMode="day"
           salonWorkingHours={salonWorkingHours}
