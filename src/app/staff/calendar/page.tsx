@@ -11,7 +11,7 @@ import { ColleagueCalendarModal } from '@/components/staff/colleague-calendar-mo
 // Vertical segment toggle — fixed bottom-right
 function ViewModeToggle({ viewMode, onChange }: { viewMode: 'list' | 'grid'; onChange: (v: 'list' | 'grid') => void }) {
   return (
-    <div className="fixed right-4 bottom-[100px] z-50 flex flex-col gap-0 rounded-2xl overflow-hidden shadow-lg border border-gray-200/80 bg-white/90 backdrop-blur-md">
+    <div className="fixed right-4 bottom-[120px] z-50 flex flex-col gap-0 rounded-2xl overflow-hidden shadow-lg border border-gray-200/80 bg-white/90 backdrop-blur-md">
       <button
         onClick={() => onChange('list')}
         className={`flex items-center justify-center w-12 h-12 transition-all ${

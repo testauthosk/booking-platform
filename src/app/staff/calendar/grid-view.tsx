@@ -222,6 +222,32 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
           <Plus className="h-5 w-5" />
         </button>
       </div>
+      {/* Week day strip */}
+      <div className="flex items-center justify-around px-2 py-2 bg-white border-b border-gray-100 flex-shrink-0">
+        {Array.from({ length: 7 }, (_, i) => {
+          const d = new Date();
+          d.setDate(d.getDate() + i);
+          const dayNames = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+          const isSelected = d.toDateString() === selectedDate.toDateString();
+          const isToday = d.toDateString() === new Date().toDateString();
+          return (
+            <button
+              key={i}
+              onClick={() => setSelectedDate(new Date(d))}
+              className={`flex flex-col items-center rounded-xl px-2 py-1.5 min-w-[40px] transition-all ${
+                isSelected
+                  ? 'bg-gray-900 text-white'
+                  : isToday
+                    ? 'text-gray-900 font-bold'
+                    : 'text-gray-500'
+              }`}
+            >
+              <span className="text-[10px] leading-tight">{dayNames[d.getDay()]}</span>
+              <span className="text-base font-semibold leading-tight">{d.getDate()}</span>
+            </button>
+          );
+        })}
+      </div>
       <div className="flex-1 overflow-y-auto overflow-x-hidden relative">
         {loadingBookings && (
           <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/70 backdrop-blur-[1px]">
@@ -244,17 +270,9 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
           viewMode="day"
           salonWorkingHours={salonWorkingHours}
           masterWorkingHours={staffWorkingHours ? { [staffId]: staffWorkingHours } : undefined}
+          hideResourceHeader
         />
       </div>
-
-      {/* FAB — add booking, bottom right */}
-      <Button
-        className="fixed right-4 bottom-[40px] w-12 h-12 rounded-2xl shadow-lg z-50 bg-gray-900 hover:bg-gray-800"
-        size="icon"
-        onClick={() => setAddModalOpen(true)}
-      >
-        <Plus className="h-6 w-6" />
-      </Button>
 
       {/* Event bottom sheet */}
       {eventSheetOpen && selectedEvent && (

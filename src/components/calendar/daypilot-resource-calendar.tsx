@@ -45,6 +45,7 @@ interface DayPilotResourceCalendarProps {
   viewMode?: 'day' | 'week';
   salonWorkingHours?: Record<string, { start: string; end: string; enabled: boolean }> | null;
   masterWorkingHours?: Record<string, Record<string, { start: string; end: string; enabled: boolean }>>;
+  hideResourceHeader?: boolean;
 }
 
 // Українські назви днів
@@ -124,6 +125,7 @@ export function DayPilotResourceCalendar({
   viewMode = 'day',
   salonWorkingHours,
   masterWorkingHours,
+  hideResourceHeader = false,
 }: DayPilotResourceCalendarProps) {
   const [internalDate, setInternalDate] = useState(startDate);
   const [mounted, setMounted] = useState(false);
@@ -1302,6 +1304,7 @@ export function DayPilotResourceCalendar({
         ) : (
         <div ref={scrollContainerRef} className="h-full overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
           {/* Заголовки ресурсів — sticky top, скролиться разом з grid */}
+          {!hideResourceHeader && (
           <div className="flex border-b border-gray-200 bg-white sticky top-0 z-30" style={{ minWidth: resources.length > 3 ? `${40 + resources.length * 120}px` : '100%', transform: 'translateZ(0)', willChange: 'transform' }}>
             {/* Колонка часу - заголовок */}
             <div className="w-10 lg:w-14 flex-shrink-0 border-r border-gray-300 py-2 sticky left-0 bg-white z-40">
@@ -1332,6 +1335,7 @@ export function DayPilotResourceCalendar({
               ))}
             </div>
           </div>
+          )}
           {/* Сітка часу */}
           <div ref={gridRef} className="relative flex select-none" style={{ minHeight: `${totalMinutes}px`, minWidth: resources.length > 3 ? `${40 + resources.length * 120}px` : '100%', WebkitUserSelect: 'none', userSelect: 'none' }}>
             {/* Колонка часу — sticky left */}
