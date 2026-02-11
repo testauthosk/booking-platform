@@ -1492,7 +1492,7 @@ export function DayPilotResourceCalendar({
                           : 'transform 300ms ease-out, top 300ms ease-out, height 300ms ease-out',
                         backgroundColor: tintColor(bgColor, 10),
                         backgroundImage: isPastEvent
-                          ? 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.04) 4px, rgba(0,0,0,0.04) 8px)'
+                          ? 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.08) 4px, rgba(0,0,0,0.08) 8px)'
                           : undefined,
                         borderLeft: `4px solid ${bgColor}`,
                         border: `1px solid ${borderColor}`,

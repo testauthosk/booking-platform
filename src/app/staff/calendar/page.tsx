@@ -9,7 +9,17 @@ import { ColleagueCalendarModal } from '@/components/staff/colleague-calendar-mo
 import { StaffBookingModal } from '@/components/staff/staff-booking-modal';
 
 function StaffCalendarContent() {
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('staff-calendar-view') as 'list' | 'grid') || 'grid';
+    }
+    return 'grid';
+  });
+  
+  // Persist view mode
+  useEffect(() => {
+    localStorage.setItem('staff-calendar-view', viewMode);
+  }, [viewMode]);
   const [colleagueOpen, setColleagueOpen] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [staffId, setStaffId] = useState('');

@@ -725,7 +725,7 @@ function StaffCalendarContent() {
                         border: `1px solid ${colors.stripe}`,
                         borderLeftWidth: '4px',
                         backgroundImage: (booking.status === 'COMPLETED' || isPast) 
-                          ? 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.04) 4px, rgba(0,0,0,0.04) 8px)'
+                          ? 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.08) 4px, rgba(0,0,0,0.08) 8px)'
                           : undefined,
                         opacity: isPast && booking.status !== 'COMPLETED' ? 0.6 : undefined,
                       }}
@@ -986,9 +986,9 @@ function StaffCalendarContent() {
                 const stripesPattern = (isPast || booking.status === 'COMPLETED') ? `repeating-linear-gradient(
                   45deg,
                   transparent,
-                  transparent 5px,
-                  rgba(0,0,0,0.07) 5px,
-                  rgba(0,0,0,0.07) 10px
+                  transparent 4px,
+                  rgba(0,0,0,0.08) 4px,
+                  rgba(0,0,0,0.08) 8px
                 )` : undefined;
                 
                 const isFocused = focusBookingId === booking.id;
