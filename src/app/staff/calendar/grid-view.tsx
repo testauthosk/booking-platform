@@ -245,28 +245,33 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
           <Plus className="h-5 w-5" />
         </button>
       </div>
-      {/* Week day strip */}
-      <div className="flex items-center justify-around px-2 py-2 bg-white border-b border-gray-100 flex-shrink-0">
-        {Array.from({ length: 7 }, (_, i) => {
-          const d = new Date();
-          d.setDate(d.getDate() + i);
-          const dayNames = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-          const isSelected = d.toDateString() === selectedDate.toDateString();
-          const isToday = d.toDateString() === new Date().toDateString();
+      {/* Day pair strip — 4 pairs of 2 days */}
+      <div className="flex items-center justify-around px-3 py-2 bg-white border-b border-gray-100 flex-shrink-0 gap-2">
+        {Array.from({ length: 4 }, (_, pairIdx) => {
+          const d1 = new Date();
+          d1.setDate(d1.getDate() + pairIdx * 2);
+          const d2 = new Date(d1);
+          d2.setDate(d2.getDate() + 1);
+          const isSelected = d1.toDateString() === selectedDate.toDateString();
           return (
             <button
-              key={i}
-              onClick={() => setSelectedDate(new Date(d))}
-              className={`flex flex-col items-center rounded-xl px-2 py-1.5 min-w-[40px] transition-all ${
+              key={pairIdx}
+              onClick={() => setSelectedDate(new Date(d1))}
+              className={`flex flex-1 rounded-xl overflow-hidden transition-all ${
                 isSelected
-                  ? 'bg-gray-900 text-white'
-                  : isToday
-                    ? 'text-gray-900 font-bold'
-                    : 'text-gray-500'
+                  ? 'bg-gray-900 text-white shadow-sm'
+                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
               }`}
             >
-              <span className="text-[10px] leading-tight">{dayNames[d.getDay()]}</span>
-              <span className="text-base font-semibold leading-tight">{d.getDate()}</span>
+              <div className="flex-1 flex flex-col items-center py-1.5">
+                <span className="text-[9px] leading-tight opacity-70">{dayNames[d1.getDay()]}</span>
+                <span className="text-sm font-semibold leading-tight">{d1.getDate()}</span>
+              </div>
+              <div className={`w-px ${isSelected ? 'bg-white/20' : 'bg-gray-200'}`} />
+              <div className="flex-1 flex flex-col items-center py-1.5">
+                <span className="text-[9px] leading-tight opacity-70">{dayNames[d2.getDay()]}</span>
+                <span className="text-sm font-semibold leading-tight">{d2.getDate()}</span>
+              </div>
             </button>
           );
         })}
