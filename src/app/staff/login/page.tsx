@@ -25,6 +25,15 @@ export default function StaffLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // If already logged in — redirect to dashboard
+  useEffect(() => {
+    const token = localStorage.getItem('staffToken');
+    const id = localStorage.getItem('staffId');
+    if (token && id) {
+      router.replace('/staff');
+    }
+  }, [router]);
+
   // OTP state
   const [otpStep, setOtpStep] = useState(false);
   const [otpCode, setOtpCode] = useState('');
