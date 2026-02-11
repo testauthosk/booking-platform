@@ -163,7 +163,7 @@ export function StaffBookingModal({
       const res = await staffFetch(`/api/staff/clients/all?${params}`);
       if (res.ok) {
         const data = await res.json();
-        setClients(data);
+        setClients(Array.isArray(data) ? data : data.clients || []);
       }
     } catch (error) {
       console.error('Error loading clients:', error);
