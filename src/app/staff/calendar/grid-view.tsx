@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { staffFetch } from '@/lib/staff-fetch';
 import { Loader2, ChevronLeft, Plus } from 'lucide-react';
 import { ClientCardPanel } from '@/components/staff/client-card-panel';
+import { CalendarPickerModal } from '@/components/staff/calendar-picker-modal';
 import dynamic from 'next/dynamic';
 import type { CalendarEvent, CalendarResource } from '@/components/calendar/daypilot-resource-calendar';
 
@@ -62,6 +63,7 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
   const [clientCardOpen, setClientCardOpen] = useState(false);
   const [clientCardPhone, setClientCardPhone] = useState('');
   const [clientCardName, setClientCardName] = useState('');
+  const [calendarPickerOpen, setCalendarPickerOpen] = useState(false);
 
   // Event details bottom sheet
   const [selectedEvent, setSelectedEvent] = useState<BookingFromAPI | null>(null);
@@ -69,7 +71,6 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
   const [actionLoading, setActionLoading] = useState(false);
 
   const isToday = selectedDate.toDateString() === new Date().toDateString();
-  const dateInputRef = useRef<HTMLInputElement>(null);
   const daysContainerRef = useRef<HTMLDivElement>(null);
 
   const formatDateHeader = (date: Date) => {
@@ -186,23 +187,36 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
 
   // Sliding indicator positioning
   useEffect(() => {
-    const container = daysContainerRef.current;
-    if (!container) return;
-    const selected = container.querySelector('[data-day-selected="true"]') as HTMLElement;
-    const indicator = container.querySelector('#grid-day-indicator') as HTMLElement;
-    if (!selected || !indicator) return;
-    
-    const containerRect = container.getBoundingClientRect();
-    const selectedRect = selected.getBoundingClientRect();
-    
-    indicator.style.left = `${selectedRect.left - containerRect.left + container.scrollLeft}px`;
-    indicator.style.top = `${selectedRect.top - containerRect.top}px`;
-    indicator.style.width = `${selectedRect.width}px`;
-    indicator.style.height = `${selectedRect.height}px`;
-    indicator.style.opacity = '1';
+    const updateIndicator = () => {
+      const container = daysContainerRef.current;
+      if (!container) return;
+      const selected = container.querySelector('[data-day-selected="true"]') as HTMLElement;
+      const indicator = container.querySelector('#grid-day-indicator') as HTMLElement;
+      if (!selected || !indicator) return;
 
-    // Scroll selected into view
-    selected.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      const containerRect = container.getBoundingClientRect();
+      const selectedRect = selected.getBoundingClientRect();
+
+      indicator.style.left = `${selectedRect.left - containerRect.left + container.scrollLeft}px`;
+      indicator.style.top = `${selectedRect.top - containerRect.top}px`;
+      indicator.style.width = `${selectedRect.width}px`;
+      indicator.style.height = `${selectedRect.height}px`;
+      indicator.style.opacity = '1';
+    };
+
+    // Scroll selected day into view first, then measure position
+    const container = daysContainerRef.current;
+    if (container) {
+      const selected = container.querySelector('[data-day-selected="true"]') as HTMLElement;
+      if (selected) {
+        selected.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+
+    // Use double rAF to ensure scroll + layout is settled before measuring
+    requestAnimationFrame(() => {
+      requestAnimationFrame(updateIndicator);
+    });
   }, [selectedDate]);
 
   // Handlers
@@ -264,24 +278,15 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* Calendar picker — native date input */}
-            <label className="h-10 w-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors cursor-pointer">
+            {/* Calendar picker button */}
+            <button
+              onClick={() => setCalendarPickerOpen(true)}
+              className="h-10 w-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
+            >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <input
-                ref={dateInputRef}
-                type="date"
-                className="absolute opacity-0 w-0 h-0"
-                value={`${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    const [y, m, d] = e.target.value.split('-').map(Number);
-                    onDateChange(new Date(y, m - 1, d));
-                  }
-                }}
-              />
-            </label>
+            </button>
             {/* Today button — checkmark animates in from left like "Записи" */}
             <button
               onClick={() => onDateChange(new Date())}
@@ -426,6 +431,24 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
         masterId={staffId}
         salonId={salonId}
         accentColor={staffColor}
+      />
+
+      {/* Calendar Picker Modal */}
+      <CalendarPickerModal
+        isOpen={calendarPickerOpen}
+        onClose={() => setCalendarPickerOpen(false)}
+        onDateSelect={(d) => {
+          onDateChange(d);
+          setCalendarPickerOpen(false);
+        }}
+        staffId={staffId}
+        salonId={salonId}
+        masterColor={staffColor}
+        onClientTap={(name, phone) => {
+          setClientCardPhone(phone);
+          setClientCardName(name);
+          setClientCardOpen(true);
+        }}
       />
     </div>
   );
