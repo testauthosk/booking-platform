@@ -1130,9 +1130,8 @@ export function DayPilotResourceCalendar({
     const endMinutes = end.getHours() * 60 + end.getMinutes() - dayStartHour * 60;
     const totalMinutes = (dayEndHour - dayStartHour) * 60;
     
-    // +timeStep — мітки часу зміщені на 1 step (top:100% в step div)
-    return {
-      top: ((startMinutes + timeStep) / totalMinutes) * 100,
+        return {
+      top: (startMinutes / totalMinutes) * 100,
       height: ((endMinutes - startMinutes) / totalMinutes) * 100,
     };
   };
@@ -1372,7 +1371,7 @@ export function DayPilotResourceCalendar({
                 <span
                   className="absolute right-0 z-30 pointer-events-none text-[9px] lg:text-xs font-medium bg-red-500 text-white pr-1 pl-[3px] py-[1px] rounded-l-[3px]"
                   style={{
-                    top: `${((nowMinutes - dayStartHour * 60 + timeStep) / totalMinutes) * 100}%`,
+                    top: `${((nowMinutes - dayStartHour * 60) / totalMinutes) * 100}%`,
                     transform: 'translateY(-50%)',
                   }}
                 >
@@ -1565,7 +1564,7 @@ export function DayPilotResourceCalendar({
             <div
               className="absolute h-[2px] bg-red-500 pointer-events-none z-[3] left-10 lg:left-14 right-0"
               style={{
-                top: `${((nowMinutes - dayStartHour * 60 + timeStep) / totalMinutes) * 100}%`,
+                top: `${((nowMinutes - dayStartHour * 60) / totalMinutes) * 100}%`,
                 transform: 'translateY(-50%)',
               }}
             />
