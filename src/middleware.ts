@@ -14,9 +14,12 @@ export function middleware(request: NextRequest) {
     !pathname.startsWith('/api/') &&
     !pathname.startsWith('/_next/') &&
     !pathname.startsWith('/salon/') &&
-    !pathname.startsWith('/staff/') &&
+    !pathname.startsWith('/staff') &&
     !pathname.startsWith('/login') &&
-    !pathname.startsWith('/register')
+    !pathname.startsWith('/register') &&
+    !pathname.startsWith('/join') &&
+    !pathname.startsWith('/review') &&
+    !pathname.startsWith('/booking')
   ) {
     const slug = hostname.replace(`.${baseDomain}`, '');
     if (slug && !slug.includes('.') && slug !== 'app') {
