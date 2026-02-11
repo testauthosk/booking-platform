@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     if (auth instanceof NextResponse) return auth;
 
     const { searchParams } = new URL(request.url);
-    const masterId = searchParams.get('masterId');
+    const masterId = searchParams.get('masterId') || auth.masterId;
 
     const denied = assertOwnMaster(auth, masterId);
     if (denied) return denied;
