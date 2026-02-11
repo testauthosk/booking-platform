@@ -185,51 +185,14 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
     return d;
   }), []);
 
-  // Sliding indicator positioning — covers 2 days (selected + next)
-  const isFirstRender = useRef(true);
+  // Scroll selected day into view on date change
   useEffect(() => {
-    const updateIndicator = () => {
-      const container = daysContainerRef.current;
-      if (!container) return;
-      const selected = container.querySelector('[data-day-selected="true"]') as HTMLElement;
-      const next = selected?.nextElementSibling as HTMLElement;
-      const indicator = container.querySelector('#grid-day-indicator') as HTMLElement;
-      if (!selected || !indicator) return;
-
-      const containerRect = container.getBoundingClientRect();
-      const selectedRect = selected.getBoundingClientRect();
-      
-      // Width spans 2 days if next exists
-      const endRect = next ? next.getBoundingClientRect() : selectedRect;
-      const totalWidth = endRect.right - selectedRect.left;
-
-      indicator.style.left = `${selectedRect.left - containerRect.left + container.scrollLeft}px`;
-      indicator.style.top = `${selectedRect.top - containerRect.top}px`;
-      indicator.style.width = `${totalWidth}px`;
-      indicator.style.height = `${selectedRect.height}px`;
-      indicator.style.opacity = '1';
-    };
-
-    // Scroll selected day into view
     const container = daysContainerRef.current;
-    if (container) {
-      const selected = container.querySelector('[data-day-selected="true"]') as HTMLElement;
-      if (selected) {
-        // First render: instant scroll. After: smooth.
-        selected.scrollIntoView({ behavior: isFirstRender.current ? 'instant' as any : 'smooth', inline: 'center', block: 'nearest' });
-        isFirstRender.current = false;
-      }
+    if (!container) return;
+    const selected = container.querySelector('[data-day-selected="true"]') as HTMLElement;
+    if (selected) {
+      selected.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     }
-
-    // Immediate measure attempt
-    updateIndicator();
-    // Double rAF for safety
-    requestAnimationFrame(() => {
-      requestAnimationFrame(updateIndicator);
-    });
-    // Fallback after scroll settles
-    const timer = setTimeout(updateIndicator, 100);
-    return () => clearTimeout(timer);
   }, [selectedDate]);
 
   // Handlers
@@ -321,28 +284,27 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
 
       {/* Week strip with sliding indicator */}
       <div className="shrink-0 bg-card border-b">
-        <div ref={daysContainerRef} className="flex gap-2 px-4 py-3 overflow-x-auto scrollbar-hide items-center relative">
-          {/* Sliding indicator */}
-          <div
-            id="grid-day-indicator"
-            className="absolute bg-primary rounded-xl shadow-lg z-0 pointer-events-none"
-            style={{ transition: 'left 0.3s ease, top 0.3s ease, width 0.3s ease, height 0.3s ease', opacity: 0 }}
-          />
+        <div ref={daysContainerRef} className="flex gap-0 px-4 py-3 overflow-x-auto scrollbar-hide items-center">
           {days.map((date, index) => {
             const isSelected = date.toDateString() === selectedDate.toDateString();
             const isSecondDay = date.toDateString() === secondDate.toDateString();
             const isInPair = isSelected || isSecondDay;
             const isTodayDay = date.toDateString() === new Date().toDateString();
+            const rounding = isSelected
+              ? 'rounded-l-xl rounded-r-none'
+              : isSecondDay
+              ? 'rounded-r-xl rounded-l-none'
+              : 'rounded-xl';
             return (
               <button
                 key={index}
                 data-day-selected={isSelected ? 'true' : undefined}
                 onClick={() => onDateChange(date)}
-                className={`flex flex-col items-center min-w-[56px] py-2 px-2 rounded-xl transition-colors duration-300 relative z-10 ${
+                className={`flex flex-col items-center min-w-[56px] py-2 px-2 transition-all duration-300 ${rounding} ${
                   isInPair
-                    ? 'text-primary-foreground'
+                    ? 'bg-primary text-primary-foreground shadow-lg scale-105'
                     : isTodayDay
-                    ? 'text-primary'
+                    ? 'bg-primary/10 text-primary'
                     : 'hover:bg-muted'
                 }`}
               >
