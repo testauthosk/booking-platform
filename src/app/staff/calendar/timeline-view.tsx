@@ -864,10 +864,9 @@ function StaffCalendarContent() {
             {/* Timeline view */}
             <div 
               ref={gridRef}
-              className={`absolute inset-0 pb-4 overflow-y-auto transition-transform duration-500 ease-out ${
+              className={`absolute inset-0 pb-4 overflow-y-auto bg-background transition-transform duration-500 ease-out ${
                 showOnlyBookings ? 'translate-y-full z-0' : 'translate-y-0 z-10'
               }`}
-              style={{ backgroundColor: `${masterColor}18` }}
             >
               <div className="pt-4">
           <div className="relative flex pl-2 pr-4">
@@ -935,7 +934,7 @@ function StaffCalendarContent() {
             </div>
             
             {/* Right: Cards area */}
-            <div className="flex-1 relative" style={{ height: `${(workingHours.end - workingHours.start) * 120}px` }}>
+            <div className="flex-1 relative rounded-lg" style={{ height: `${(workingHours.end - workingHours.start) * 120}px`, backgroundColor: `${masterColor}18` }}>
               {/* Current time red line (salon timezone) */}
               {isToday(selectedDate) && (() => {
                 const salonNow = getSalonNow();
