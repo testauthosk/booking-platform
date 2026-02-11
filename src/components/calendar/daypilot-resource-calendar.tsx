@@ -1314,7 +1314,7 @@ export function DayPilotResourceCalendar({
               {resources.map((r, idx) => (
                 <div
                   key={r.id}
-                  className={`flex-1 min-w-[100px] py-2 text-center ${idx < resources.length - 1 ? 'border-r border-gray-200/40' : ''}`}
+                  className={`flex-1 min-w-[120px] py-2 text-center ${idx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
                 >
                   {r.avatar ? (
                     <img
@@ -1425,7 +1425,7 @@ export function DayPilotResourceCalendar({
             {resources.map((r, rIdx) => (
               <div
                 key={r.id}
-                className={`flex-1 min-w-[100px] relative ${rIdx < resources.length - 1 ? 'border-r border-gray-200/40' : ''}`}
+                className={`flex-1 min-w-[120px] relative ${rIdx < resources.length - 1 ? 'border-r border-gray-300' : ''}`}
                 style={{ backgroundColor: `${r.color}18` }}
               >
               {/* Working hours shading */}
