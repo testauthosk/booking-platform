@@ -142,9 +142,10 @@ export function CalendarPickerModal({
             setPickerViewDate(new Date());
             loadPickerBookings(new Date());
           }}
-          className="h-10 px-4 rounded-xl bg-primary/10 text-primary font-medium text-sm"
+          className="h-10 w-[100px] rounded-xl text-sm font-medium border border-zinc-200 bg-white transition-colors duration-300 flex items-center justify-center gap-1 relative"
         >
-          Сьогодні
+          <span className={`transition-all duration-300 ease-out absolute left-2.5 ${pickerViewDate.toDateString() === new Date().toDateString() ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}>✓</span>
+          <span className={`transition-transform duration-300 ease-out ${pickerViewDate.toDateString() === new Date().toDateString() ? 'translate-x-2' : 'translate-x-0'}`}>Сьогодні</span>
         </button>
       </div>
 
