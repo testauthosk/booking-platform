@@ -240,7 +240,7 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
         </div>
         <button
           onClick={() => setAddModalOpen(true)}
-          className="w-10 h-10 rounded-2xl bg-gray-900 text-white flex items-center justify-center shadow-sm"
+          className="w-11 h-11 rounded-2xl bg-gray-900 text-white flex items-center justify-center shadow-sm flex-shrink-0"
         >
           <Plus className="h-5 w-5" />
         </button>
@@ -290,7 +290,7 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
           onEventClick={handleEventClick}
           onEventMove={(id, start, end, resourceId) => handleEventMove(id, start, end, resourceId)}
           onEventResize={(id, start, end) => handleEventMove(id, start, end)}
-          onTimeRangeSelect={() => setAddModalOpen(true)}
+          onTimeRangeSelect={() => {}}
           timeStep={15}
           dayStartHour={8}
           dayEndHour={21}
@@ -298,6 +298,7 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
           viewMode="day"
           salonWorkingHours={salonWorkingHours}
           masterWorkingHours={staffWorkingHours ? { [staffId]: staffWorkingHours } : undefined}
+          hideResourceHeader
         />
       </div>
 

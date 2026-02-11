@@ -65,7 +65,7 @@ class StaffErrorBoundary extends Component<
 
 export default function StaffLayout({ children }: { children: ReactNode }) {
   return (
-    <div style={{ viewTransitionName: 'page' }}>
+    <div className="h-dvh flex flex-col" style={{ viewTransitionName: 'page' }}>
       <StaffErrorBoundary>
         {children}
       </StaffErrorBoundary>
