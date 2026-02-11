@@ -1,16 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
 import { staffFetch } from '@/lib/staff-fetch';
-import { Loader2, List, Grid3X3, ChevronLeft, Plus, CalendarDays, Users } from 'lucide-react';
+import { Loader2, List, Grid3X3, Plus, Users } from 'lucide-react';
 import StaffTimelineView from './timeline-view';
 import StaffGridView from './grid-view';
 import { ColleagueCalendarModal } from '@/components/staff/colleague-calendar-modal';
 import { StaffBookingModal } from '@/components/staff/staff-booking-modal';
 
 function StaffCalendarContent() {
-  const router = useRouter();
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [colleagueOpen, setColleagueOpen] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -21,7 +19,6 @@ function StaffCalendarContent() {
   const [loading, setLoading] = useState(true);
 
   // Date picker
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   // Selected date (shared between views)
@@ -65,13 +62,7 @@ function StaffCalendarContent() {
     }).catch(() => {});
   }, [staffId]);
 
-  const isToday = selectedDate.toDateString() === new Date().toDateString();
-  const dayNames = ['неділя', 'понеділок', 'вівторок', 'середа', 'четвер', "п'ятниця", 'субота'];
-  const monthNames = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
-
-  const goToToday = () => setSelectedDate(new Date());
-
-  const openDatePicker = () => {
+  const openCalendarPicker = () => {
     if (dateInputRef.current) {
       dateInputRef.current.showPicker?.();
       dateInputRef.current.click();
@@ -98,55 +89,18 @@ function StaffCalendarContent() {
     );
   }
 
-  const subtitle = isToday
-    ? 'Сьогодні'
-    : `${selectedDate.getDate()} ${monthNames[selectedDate.getMonth()]}, ${dayNames[selectedDate.getDay()]}`;
-
   return (
     <div className="h-full flex flex-col bg-white relative overflow-hidden">
-      {/* === UNIFIED HEADER === */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <button onClick={() => router.push('/staff')} className="p-1 -ml-1 rounded-lg hover:bg-gray-100">
-            <ChevronLeft className="h-6 w-6 text-gray-700" />
-          </button>
-          <div>
-            <h1 className="text-lg font-semibold text-gray-900">Мій календар</h1>
-            <p className="text-xs text-gray-500">{subtitle}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Date picker */}
-          <button
-            onClick={openDatePicker}
-            className="w-10 h-10 rounded-2xl bg-gray-100 text-gray-700 flex items-center justify-center hover:bg-gray-200 transition-colors"
-            title="Обрати дату"
-          >
-            <CalendarDays className="h-5 w-5" />
-          </button>
-          {/* Hidden native date input */}
-          <input
-            ref={dateInputRef}
-            type="date"
-            className="absolute opacity-0 w-0 h-0 pointer-events-none"
-            value={`${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`}
-            onChange={handleDatePickerChange}
-          />
-          {/* Today button — always visible, checkmark when today */}
-          <button
-            onClick={goToToday}
-            className={`h-10 px-3 rounded-2xl text-sm font-medium flex items-center justify-center transition-all ${
-              isToday
-                ? 'bg-green-50 text-green-600'
-                : 'bg-gray-900 text-white hover:bg-gray-800'
-            }`}
-          >
-            {isToday ? '✓' : 'Сьогодні'}
-          </button>
-        </div>
-      </div>
+      {/* Hidden native date input for calendar picker */}
+      <input
+        ref={dateInputRef}
+        type="date"
+        className="absolute opacity-0 w-0 h-0 pointer-events-none"
+        value={`${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`}
+        onChange={handleDatePickerChange}
+      />
 
-      {/* === CALENDAR VIEW === */}
+      {/* Calendar view */}
       <Suspense fallback={<div className="flex-1 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>}>
         {viewMode === 'list' ? (
           <StaffTimelineView
@@ -158,12 +112,14 @@ function StaffCalendarContent() {
           <StaffGridView
             selectedDate={selectedDate}
             onDateChange={setSelectedDate}
+            onAddBooking={() => setAddModalOpen(true)}
+            onCalendarPicker={openCalendarPicker}
             reloadKey={reloadKey}
           />
         )}
       </Suspense>
 
-      {/* === BOTTOM RIGHT BUTTONS === */}
+      {/* Bottom right buttons */}
       <div className="fixed right-4 bottom-6 z-50 flex flex-col gap-2 items-center">
         {/* Add booking */}
         <button
@@ -209,7 +165,7 @@ function StaffCalendarContent() {
         </div>
       </div>
 
-      {/* === MODALS === */}
+      {/* Modals */}
       <StaffBookingModal
         isOpen={addModalOpen}
         onClose={() => setAddModalOpen(false)}

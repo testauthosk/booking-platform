@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { staffFetch } from '@/lib/staff-fetch';
-import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, ChevronLeft, Plus } from 'lucide-react';
 import { ClientCardPanel } from '@/components/staff/client-card-panel';
 import dynamic from 'next/dynamic';
 import type { CalendarEvent, CalendarResource } from '@/components/calendar/daypilot-resource-calendar';
@@ -11,6 +12,8 @@ const DayPilotResourceCalendar = dynamic(
   () => import('@/components/calendar/daypilot-resource-calendar').then(mod => mod.DayPilotResourceCalendar),
   { ssr: false, loading: () => <div className="flex-1 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div> }
 );
+
+const DAYS_UA = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
 interface BookingFromAPI {
   id: string;
@@ -37,10 +40,13 @@ interface WorkingDay {
 interface StaffGridViewProps {
   selectedDate: Date;
   onDateChange: (d: Date) => void;
+  onAddBooking: () => void;
+  onCalendarPicker: () => void;
   reloadKey?: number;
 }
 
-export default function StaffGridView({ selectedDate, onDateChange, reloadKey }: StaffGridViewProps) {
+export default function StaffGridView({ selectedDate, onDateChange, onAddBooking, onCalendarPicker, reloadKey }: StaffGridViewProps) {
+  const router = useRouter();
   const [staffId, setStaffId] = useState('');
   const [staffName, setStaffName] = useState('');
   const [staffColor, setStaffColor] = useState('#87C2CA');
@@ -52,7 +58,6 @@ export default function StaffGridView({ selectedDate, onDateChange, reloadKey }:
   const [rawBookings, setRawBookings] = useState<BookingFromAPI[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingBookings, setLoadingBookings] = useState(false);
-  // services loaded by parent
 
   // Modals
   const [clientCardOpen, setClientCardOpen] = useState(false);
@@ -63,55 +68,14 @@ export default function StaffGridView({ selectedDate, onDateChange, reloadKey }:
   const [selectedEvent, setSelectedEvent] = useState<BookingFromAPI | null>(null);
   const [eventSheetOpen, setEventSheetOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  const weekStripRef = useRef<HTMLDivElement>(null);
-  const [stripWidth, setStripWidth] = useState(335); // default fallback
 
-  // Week strip state
-  const [weekStart, setWeekStart] = useState(() => {
-    const d = new Date(selectedDate);
-    const day = d.getDay();
-    const diff = day === 0 ? -6 : 1 - day; // Start from Monday
-    d.setDate(d.getDate() + diff);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  });
+  const isToday = selectedDate.toDateString() === new Date().toDateString();
 
-  const monthNamesShort = ['січ', 'лют', 'бер', 'кві', 'тра', 'чер', 'лип', 'сер', 'вер', 'жов', 'лис', 'гру'];
-
-  const weekDays = useMemo(() => {
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(weekStart);
-      d.setDate(d.getDate() + i);
-      return d;
-    });
-  }, [weekStart]);
-
-  const weekSelectedIdx = useMemo(() => {
-    return weekDays.findIndex(d => d.toDateString() === selectedDate.toDateString());
-  }, [weekDays, selectedDate]);
-
-  // Sync weekStart when selectedDate goes out of current week
-  useEffect(() => {
-    if (weekSelectedIdx === -1) {
-      const d = new Date(selectedDate);
-      const day = d.getDay();
-      const diff = day === 0 ? -6 : 1 - day;
-      d.setDate(d.getDate() + diff);
-      d.setHours(0, 0, 0, 0);
-      setWeekStart(d);
-    }
-  }, [selectedDate, weekSelectedIdx]);
-
-  // Measure strip width
-  useEffect(() => {
-    const el = weekStripRef.current;
-    if (!el) return;
-    const measure = () => setStripWidth(el.offsetWidth - 40); // minus time column padding
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+  const formatDateHeader = (date: Date) => {
+    if (date.toDateString() === new Date().toDateString()) return 'Сьогодні';
+    const monthNames = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
+    return `${date.getDate()} ${monthNames[date.getMonth()]}`;
+  };
 
   // Load profile
   useEffect(() => {
@@ -127,7 +91,6 @@ export default function StaffGridView({ selectedDate, onDateChange, reloadKey }:
           if (data.color) {
             setStaffColor(data.color);
           } else if (data.paletteId) {
-            // Fallback to first color of salon palette
             const { getPaletteById } = await import('@/lib/color-palettes');
             const palette = getPaletteById(data.paletteId);
             if (palette && palette.colors.length > 0) {
@@ -154,8 +117,6 @@ export default function StaffGridView({ selectedDate, onDateChange, reloadKey }:
     })();
   }, []);
 
-  // services loaded by parent (page.tsx)
-
   // Load bookings
   const loadBookings = useCallback(async () => {
     if (!staffId) return;
@@ -176,26 +137,19 @@ export default function StaffGridView({ selectedDate, onDateChange, reloadKey }:
   // Filter only own bookings
   const myBookings = useMemo(() => rawBookings.filter(b => b.masterId === staffId), [rawBookings, staffId]);
 
-  // 2-day view: resources = 2 days, events mapped by date
+  // 2-day view
   const secondDate = useMemo(() => {
     const d = new Date(selectedDate);
     d.setDate(d.getDate() + 1);
     return d;
   }, [selectedDate]);
 
-  const dayNames = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-
-  const day1Str = useMemo(() => {
-    return `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
-  }, [selectedDate]);
-
-  const day2Str = useMemo(() => {
-    return `${secondDate.getFullYear()}-${String(secondDate.getMonth() + 1).padStart(2, '0')}-${String(secondDate.getDate()).padStart(2, '0')}`;
-  }, [secondDate]);
+  const day1Str = useMemo(() => `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`, [selectedDate]);
+  const day2Str = useMemo(() => `${secondDate.getFullYear()}-${String(secondDate.getMonth() + 1).padStart(2, '0')}-${String(secondDate.getDate()).padStart(2, '0')}`, [secondDate]);
 
   const calendarResources: CalendarResource[] = useMemo(() => [
-    { id: 'day-0', name: `${dayNames[selectedDate.getDay()]} ${selectedDate.getDate()}`, color: staffColor, avatar: staffAvatar || undefined },
-    { id: 'day-1', name: `${dayNames[secondDate.getDay()]} ${secondDate.getDate()}`, color: staffColor, avatar: staffAvatar || undefined },
+    { id: 'day-0', name: `${DAYS_UA[selectedDate.getDay()]} ${selectedDate.getDate()}`, color: staffColor, avatar: staffAvatar || undefined },
+    { id: 'day-1', name: `${DAYS_UA[secondDate.getDay()]} ${secondDate.getDate()}`, color: staffColor, avatar: staffAvatar || undefined },
   ], [selectedDate, secondDate, staffColor, staffAvatar]);
 
   const calendarEvents: CalendarEvent[] = useMemo(() => {
@@ -220,7 +174,14 @@ export default function StaffGridView({ selectedDate, onDateChange, reloadKey }:
           status: b.status?.toLowerCase(),
         };
       });
-  }, [myBookings, staffId, day1Str, day2Str]);
+  }, [myBookings, day1Str, day2Str]);
+
+  // Days for week strip (14 days from today)
+  const days = useMemo(() => Array.from({ length: 14 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    return d;
+  }), []);
 
   // Handlers
   const handleEventClick = (event: CalendarEvent) => {
@@ -231,7 +192,6 @@ export default function StaffGridView({ selectedDate, onDateChange, reloadKey }:
   const handleEventMove = async (eventId: string, newStart: Date, newEnd: Date, newResourceId?: string) => {
     const newTime = `${String(newStart.getHours()).padStart(2, '0')}:${String(newStart.getMinutes()).padStart(2, '0')}`;
     const newDuration = Math.round((newEnd.getTime() - newStart.getTime()) / 60000);
-    // Determine new date from resource
     const newDate = newResourceId === 'day-1' ? day2Str : day1Str;
     setRawBookings(prev => prev.map(b => b.id === eventId
       ? { ...b, date: newDate, time: newTime, duration: newDuration, timeEnd: `${String(newEnd.getHours()).padStart(2, '0')}:${String(newEnd.getMinutes()).padStart(2, '0')}` }
@@ -266,68 +226,73 @@ export default function StaffGridView({ selectedDate, onDateChange, reloadKey }:
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden relative" style={{ maxWidth: '100vw' }}>
-      {/* Week strip — 7 days with sliding indicator + week nav */}
-      <div className="flex-shrink-0 bg-white border-b border-gray-100">
-        {/* Week navigation arrows */}
-        <div className="flex items-center justify-between px-4 pt-1 pb-0">
-          <button
-            onClick={() => {
-              const d = new Date(weekStart);
-              d.setDate(d.getDate() - 7);
-              setWeekStart(d);
-            }}
-            className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <span className="text-[11px] text-gray-400 font-medium">
-            {weekStart.getDate()} — {(() => { const e = new Date(weekStart); e.setDate(e.getDate() + 6); return e.getDate(); })()} {monthNamesShort[weekStart.getMonth()]}
-          </span>
-          <button
-            onClick={() => {
-              const d = new Date(weekStart);
-              d.setDate(d.getDate() + 7);
-              setWeekStart(d);
-            }}
-            className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
+      {/* Header — same style as timeline */}
+      <header className="bg-card border-b px-4 py-3 shrink-0 z-10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push('/staff')}
+              className="h-10 w-10 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center justify-center transition-colors shadow-sm"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <div>
+              <h1 className="font-semibold text-lg">Мій календар</h1>
+              <p className="text-sm text-muted-foreground">{formatDateHeader(selectedDate)}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Calendar picker */}
+            <button
+              onClick={onCalendarPicker}
+              className="h-10 w-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </button>
+            {/* Today button — checkmark animates in from left like "Записи" */}
+            <button
+              onClick={() => onDateChange(new Date())}
+              className="h-10 w-[100px] rounded-xl text-sm font-medium border border-zinc-200 bg-white transition-colors duration-300 flex items-center justify-center gap-1 relative"
+            >
+              <span className={`transition-all duration-300 ease-out absolute left-2.5 ${isToday ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}>✓</span>
+              <span className={`transition-transform duration-300 ease-out ${isToday ? 'translate-x-2' : 'translate-x-0'}`}>Сьогодні</span>
+            </button>
+            {/* Add booking */}
+            <button
+              onClick={onAddBooking}
+              className="h-10 w-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+          </div>
         </div>
-        {/* Days row with sliding indicator */}
-        <div ref={weekStripRef} className="flex relative" style={{ paddingLeft: '40px' }}>
-          {/* Sliding indicator */}
-          {weekSelectedIdx >= 0 && (
-            <div
-              className="absolute h-[calc(100%-4px)] top-[2px] rounded-xl bg-gray-900 transition-all duration-300 ease-out z-0"
-              style={{
-                left: `${40 + weekSelectedIdx * (stripWidth / 7)}px`,
-                width: `${stripWidth / 7}px`,
-              }}
-            />
-          )}
-          {weekDays.map((d, i) => {
-            const isSelected = d.toDateString() === selectedDate.toDateString();
-            const isTodayDay = d.toDateString() === new Date().toDateString();
-            return (
-              <button
-                key={i}
-                onClick={() => onDateChange(new Date(d))}
-                className={`flex-1 flex flex-col items-center py-2 relative z-10 transition-colors duration-300 ${
-                  isSelected
-                    ? 'text-white'
-                    : isTodayDay
-                      ? 'text-gray-900 font-bold'
-                      : 'text-gray-500'
-                }`}
-              >
-                <span className="text-[9px] leading-tight">{dayNames[d.getDay()]}</span>
-                <span className="text-sm font-bold leading-tight">{d.getDate()}</span>
-              </button>
-            );
-          })}
+      </header>
+
+      {/* Week strip — same as timeline */}
+      <div className="shrink-0 bg-card border-b">
+        <div className="flex gap-2 px-4 py-3 overflow-x-auto scrollbar-hide items-center">
+          {days.map((date, index) => (
+            <button
+              key={index}
+              onClick={() => onDateChange(date)}
+              className={`flex flex-col items-center min-w-[56px] py-2 px-2 rounded-xl transition-all ${
+                date.toDateString() === selectedDate.toDateString()
+                  ? 'bg-primary text-primary-foreground shadow-lg scale-105'
+                  : date.toDateString() === new Date().toDateString()
+                  ? 'bg-primary/10 text-primary'
+                  : 'hover:bg-muted'
+              }`}
+            >
+              <span className="text-xs font-medium opacity-70">{DAYS_UA[date.getDay()]}</span>
+              <span className="text-xl font-bold">{date.getDate()}</span>
+            </button>
+          ))}
         </div>
       </div>
+
+      {/* DayPilot 2-column grid */}
       <div className="flex-1 min-h-0 overflow-hidden relative">
         {loadingBookings && (
           <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/70 backdrop-blur-[1px]">
