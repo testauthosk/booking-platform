@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { staffFetch } from '@/lib/staff-fetch';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StaffBookingModal } from '@/components/staff/staff-booking-modal';
 import { ClientCardPanel } from '@/components/staff/client-card-panel';
@@ -41,6 +42,7 @@ interface StaffGridViewProps {
 }
 
 export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProps) {
+  const router = useRouter();
   const [staffId, setStaffId] = useState('');
   const [staffName, setStaffName] = useState('');
   const [staffColor, setStaffColor] = useState('#87C2CA');
@@ -201,8 +203,26 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden relative">
-      <div className="flex-1 overflow-hidden relative">
+    <div className="flex-1 flex flex-col overflow-hidden relative" style={{ maxWidth: '100vw' }}>
+      {/* Navigation header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <button onClick={() => router.push('/staff')} className="p-1 -ml-1 rounded-lg hover:bg-gray-100">
+            <ChevronLeft className="h-6 w-6 text-gray-700" />
+          </button>
+          <div>
+            <h1 className="text-lg font-semibold text-gray-900">Мій календар</h1>
+            <p className="text-xs text-gray-500">Сьогодні</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setAddModalOpen(true)}
+          className="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center shadow-sm"
+        >
+          <Plus className="h-5 w-5" />
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto overflow-x-hidden relative">
         {loadingBookings && (
           <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/70 backdrop-blur-[1px]">
             <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
@@ -227,26 +247,13 @@ export default function StaffGridView({ onColleagueCalendar }: StaffGridViewProp
         />
       </div>
 
-      {/* FABs — left side to avoid overlap with view toggle on right */}
+      {/* FAB — add booking, bottom right */}
       <Button
-        className="fixed left-4 bottom-[108px] w-14 h-14 rounded-2xl shadow-lg z-50 bg-blue-600 hover:bg-blue-700"
-        size="icon"
-        onClick={onColleagueCalendar}
-        title="Записати колегу"
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <line x1="19" y1="8" x2="19" y2="14" />
-          <line x1="22" y1="11" x2="16" y2="11" />
-        </svg>
-      </Button>
-      <Button
-        className="fixed left-4 bottom-[40px] w-14 h-14 rounded-2xl shadow-lg z-50 bg-gray-900 hover:bg-gray-800"
+        className="fixed right-4 bottom-[40px] w-12 h-12 rounded-2xl shadow-lg z-50 bg-gray-900 hover:bg-gray-800"
         size="icon"
         onClick={() => setAddModalOpen(true)}
       >
-        <Plus className="h-7 w-7" />
+        <Plus className="h-6 w-6" />
       </Button>
 
       {/* Event bottom sheet */}

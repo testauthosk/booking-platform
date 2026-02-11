@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import { staffFetch } from '@/lib/staff-fetch';
-import { Loader2, List, Grid3X3 } from 'lucide-react';
+import { Loader2, List, Grid3X3, ChevronLeft, Plus, CalendarDays } from 'lucide-react';
 import StaffTimelineView from './timeline-view';
 import StaffGridView from './grid-view';
 import { ColleagueCalendarModal } from '@/components/staff/colleague-calendar-modal';
@@ -10,7 +11,7 @@ import { ColleagueCalendarModal } from '@/components/staff/colleague-calendar-mo
 // Vertical segment toggle — fixed bottom-right
 function ViewModeToggle({ viewMode, onChange }: { viewMode: 'list' | 'grid'; onChange: (v: 'list' | 'grid') => void }) {
   return (
-    <div className="fixed right-4 bottom-[180px] z-50 flex flex-col gap-0 rounded-2xl overflow-hidden shadow-lg border border-gray-200/80 bg-white/90 backdrop-blur-md">
+    <div className="fixed right-4 bottom-[100px] z-50 flex flex-col gap-0 rounded-2xl overflow-hidden shadow-lg border border-gray-200/80 bg-white/90 backdrop-blur-md">
       <button
         onClick={() => onChange('list')}
         className={`flex items-center justify-center w-12 h-12 transition-all ${
@@ -39,6 +40,7 @@ function ViewModeToggle({ viewMode, onChange }: { viewMode: 'list' | 'grid'; onC
 }
 
 function StaffCalendarContent() {
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [colleagueOpen, setColleagueOpen] = useState(false);
   const [staffId, setStaffId] = useState('');
@@ -78,7 +80,7 @@ function StaffCalendarContent() {
   }
 
   return (
-    <div className="h-full flex flex-col bg-white relative">
+    <div className="h-full flex flex-col bg-white relative overflow-hidden">
       <Suspense fallback={<div className="flex-1 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>}>
         {viewMode === 'list' ? (
           <StaffTimelineView />

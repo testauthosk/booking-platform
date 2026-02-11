@@ -1300,7 +1300,7 @@ export function DayPilotResourceCalendar({
             <div className="h-[110px] lg:h-0 shrink-0" />
           </div>
         ) : (
-        <div ref={scrollContainerRef} className="h-full overflow-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div ref={scrollContainerRef} className="h-full overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
           {/* Заголовки ресурсів — sticky top, скролиться разом з grid */}
           <div className="flex border-b border-gray-200 bg-white sticky top-0 z-30" style={{ minWidth: resources.length > 3 ? `${40 + resources.length * 120}px` : '100%', transform: 'translateZ(0)', willChange: 'transform' }}>
             {/* Колонка часу - заголовок */}
