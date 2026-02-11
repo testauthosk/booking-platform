@@ -1471,6 +1471,10 @@ export function DayPilotResourceCalendar({
                   const bgColor = event.backColor || r.color || '#22c55e';
                   const borderColor = darkenColor(bgColor, 25);
                   const isBeingDragged = dragActive?.eventId === event.id;
+                  // Past event: completed or end time passed
+                  const nowMs = Date.now();
+                  const eventEndMs = new Date(event.end).getTime();
+                  const isPastEvent = event.status === 'COMPLETED' || eventEndMs < nowMs;
                   return (
                     <div
                       key={event.id}
@@ -1487,7 +1491,12 @@ export function DayPilotResourceCalendar({
                           ? 'none'
                           : 'transform 300ms ease-out, top 300ms ease-out, height 300ms ease-out',
                         backgroundColor: tintColor(bgColor, 10),
-                        borderLeft: `2px solid ${bgColor}`,
+                        backgroundImage: isPastEvent
+                          ? 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.04) 4px, rgba(0,0,0,0.04) 8px)'
+                          : undefined,
+                        borderLeft: `4px solid ${bgColor}`,
+                        border: `1px solid ${borderColor}`,
+                        borderLeftWidth: '4px',
                         borderRadius: '0 6px 6px 0',
                         boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
                         WebkitUserSelect: 'none',
