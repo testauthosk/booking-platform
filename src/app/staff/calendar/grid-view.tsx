@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { staffFetch } from '@/lib/staff-fetch';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ClientCardPanel } from '@/components/staff/client-card-panel';
 import dynamic from 'next/dynamic';
 import type { CalendarEvent, CalendarResource } from '@/components/calendar/daypilot-resource-calendar';
@@ -63,6 +63,55 @@ export default function StaffGridView({ selectedDate, onDateChange, reloadKey }:
   const [selectedEvent, setSelectedEvent] = useState<BookingFromAPI | null>(null);
   const [eventSheetOpen, setEventSheetOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const weekStripRef = useRef<HTMLDivElement>(null);
+  const [stripWidth, setStripWidth] = useState(335); // default fallback
+
+  // Week strip state
+  const [weekStart, setWeekStart] = useState(() => {
+    const d = new Date(selectedDate);
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : 1 - day; // Start from Monday
+    d.setDate(d.getDate() + diff);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
+
+  const monthNamesShort = ['січ', 'лют', 'бер', 'кві', 'тра', 'чер', 'лип', 'сер', 'вер', 'жов', 'лис', 'гру'];
+
+  const weekDays = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(weekStart);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+  }, [weekStart]);
+
+  const weekSelectedIdx = useMemo(() => {
+    return weekDays.findIndex(d => d.toDateString() === selectedDate.toDateString());
+  }, [weekDays, selectedDate]);
+
+  // Sync weekStart when selectedDate goes out of current week
+  useEffect(() => {
+    if (weekSelectedIdx === -1) {
+      const d = new Date(selectedDate);
+      const day = d.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      d.setDate(d.getDate() + diff);
+      d.setHours(0, 0, 0, 0);
+      setWeekStart(d);
+    }
+  }, [selectedDate, weekSelectedIdx]);
+
+  // Measure strip width
+  useEffect(() => {
+    const el = weekStripRef.current;
+    if (!el) return;
+    const measure = () => setStripWidth(el.offsetWidth - 40); // minus time column padding
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Load profile
   useEffect(() => {
@@ -217,36 +266,67 @@ export default function StaffGridView({ selectedDate, onDateChange, reloadKey }:
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden relative" style={{ maxWidth: '100vw' }}>
-      {/* Day pair strip — 4 pairs of 2 days */}
-      <div className="flex items-center px-3 py-2 bg-white border-b border-gray-100 flex-shrink-0 gap-2">
-        {Array.from({ length: 4 }, (_, pairIdx) => {
-          const d1 = new Date();
-          d1.setDate(d1.getDate() + pairIdx * 2);
-          const d2 = new Date(d1);
-          d2.setDate(d2.getDate() + 1);
-          const isSelected = d1.toDateString() === selectedDate.toDateString();
-          return (
-            <button
-              key={pairIdx}
-              onClick={() => onDateChange(new Date(d1))}
-              className={`flex flex-1 rounded-xl overflow-hidden transition-all ${
-                isSelected
-                  ? 'bg-gray-900 text-white shadow-sm'
-                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <div className="flex-1 flex flex-col items-center py-1.5">
-                <span className="text-[9px] leading-tight opacity-70">{dayNames[d1.getDay()]}</span>
-                <span className="text-sm font-semibold leading-tight">{d1.getDate()}</span>
-              </div>
-              <div className={`w-px ${isSelected ? 'bg-white/20' : 'bg-gray-200'}`} />
-              <div className="flex-1 flex flex-col items-center py-1.5">
-                <span className="text-[9px] leading-tight opacity-70">{dayNames[d2.getDay()]}</span>
-                <span className="text-sm font-semibold leading-tight">{d2.getDate()}</span>
-              </div>
-            </button>
-          );
-        })}
+      {/* Week strip — 7 days with sliding indicator + week nav */}
+      <div className="flex-shrink-0 bg-white border-b border-gray-100">
+        {/* Week navigation arrows */}
+        <div className="flex items-center justify-between px-4 pt-1 pb-0">
+          <button
+            onClick={() => {
+              const d = new Date(weekStart);
+              d.setDate(d.getDate() - 7);
+              setWeekStart(d);
+            }}
+            className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <span className="text-[11px] text-gray-400 font-medium">
+            {weekStart.getDate()} — {(() => { const e = new Date(weekStart); e.setDate(e.getDate() + 6); return e.getDate(); })()} {monthNamesShort[weekStart.getMonth()]}
+          </span>
+          <button
+            onClick={() => {
+              const d = new Date(weekStart);
+              d.setDate(d.getDate() + 7);
+              setWeekStart(d);
+            }}
+            className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+        {/* Days row with sliding indicator */}
+        <div ref={weekStripRef} className="flex relative" style={{ paddingLeft: '40px' }}>
+          {/* Sliding indicator */}
+          {weekSelectedIdx >= 0 && (
+            <div
+              className="absolute h-[calc(100%-4px)] top-[2px] rounded-xl bg-gray-900 transition-all duration-300 ease-out z-0"
+              style={{
+                left: `${40 + weekSelectedIdx * (stripWidth / 7)}px`,
+                width: `${stripWidth / 7}px`,
+              }}
+            />
+          )}
+          {weekDays.map((d, i) => {
+            const isSelected = d.toDateString() === selectedDate.toDateString();
+            const isTodayDay = d.toDateString() === new Date().toDateString();
+            return (
+              <button
+                key={i}
+                onClick={() => onDateChange(new Date(d))}
+                className={`flex-1 flex flex-col items-center py-2 relative z-10 transition-colors duration-300 ${
+                  isSelected
+                    ? 'text-white'
+                    : isTodayDay
+                      ? 'text-gray-900 font-bold'
+                      : 'text-gray-500'
+                }`}
+              >
+                <span className="text-[9px] leading-tight">{dayNames[d.getDay()]}</span>
+                <span className="text-sm font-bold leading-tight">{d.getDate()}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
       <div className="flex-1 min-h-0 overflow-hidden relative">
         {loadingBookings && (
