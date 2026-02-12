@@ -1040,14 +1040,22 @@ export default function WebsiteEditorPage() {
               <div className="space-y-4 lg:space-y-6">
                 <div>
                   <Label htmlFor="phone">Телефон</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={settings.phone || ''}
-                    onChange={(e) => updateField('phone', e.target.value)}
-                    placeholder="+380 XX XXX XX XX"
-                    className="mt-1.5"
-                  />
+                  <div className="flex items-center gap-0 mt-1.5">
+                    <span className="inline-flex items-center px-3 h-10 rounded-l-md border border-r-0 bg-gray-50 text-sm text-gray-600 select-none shrink-0">+380</span>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      inputMode="numeric"
+                      value={(settings.phone || '').replace(/^\+?3?8?0?/, '').replace(/\D/g, '').replace(/(\d{2})(\d{3})?(\d{2})?(\d{2})?/, (_, a, b, c, d) => [a, b, c, d].filter(Boolean).join(' ')).trim()}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '').slice(0, 9);
+                        updateField('phone', digits ? `+380${digits}` : null);
+                      }}
+                      placeholder="12 345 67 89"
+                      className="rounded-l-none"
+                      maxLength={12}
+                    />
+                  </div>
                 </div>
 
                 <div>
