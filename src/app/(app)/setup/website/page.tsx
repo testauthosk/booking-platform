@@ -154,11 +154,7 @@ export default function WebsiteEditorPage() {
   // Confetti explosion state: 'none' | 'small' | 'medium' | 'big'
   const [confettiType, setConfettiType] = useState<'none' | 'small' | 'medium' | 'big'>('none');
 
-  // ── Confetti tracking refs ──
-  const prevCompletedRef = useRef<number>(-1);
-  const prevMinimumDoneRef = useRef<boolean>(false);
-  const prevAllDoneRef = useRef<boolean>(false);
-  const initialLoadRef = useRef(true);
+  // ── Confetti tracking ──
 
   // Завантаження даних
   useEffect(() => {
@@ -295,36 +291,34 @@ export default function WebsiteEditorPage() {
       ? 'bg-green-500'
       : 'bg-amber-500';
 
-  // ── Track initial state (confetti triggers on save only) ──
-  useEffect(() => {
-    if (initialLoadRef.current) {
-      initialLoadRef.current = false;
-      prevCompletedRef.current = completedCount;
-      prevMinimumDoneRef.current = minimumDone;
-      prevAllDoneRef.current = progressPercent === 100;
-    }
+  // ── Confetti: snapshot state before save, compare after ──
+  const preSaveSnapshotRef = useRef({ completed: 0, minimumDone: false, allDone: false });
+
+  const snapshotBeforeSave = useCallback(() => {
+    preSaveSnapshotRef.current = {
+      completed: completedCount,
+      minimumDone,
+      allDone: progressPercent === 100,
+    };
   }, [completedCount, minimumDone, progressPercent]);
 
-  // Called after successful save to check for confetti
+  // Called after successful save — compares with pre-save snapshot
   const checkConfetti = useCallback(() => {
-    const prev = prevCompletedRef.current;
+    const snap = preSaveSnapshotRef.current;
 
-    if (progressPercent === 100 && !prevAllDoneRef.current) {
+    if (progressPercent === 100 && !snap.allDone) {
       setConfettiType('big');
-    } else if (minimumDone && !prevMinimumDoneRef.current) {
+    } else if (minimumDone && !snap.minimumDone) {
       setConfettiType('medium');
-    } else if (completedCount > prev && prev >= 0) {
+    } else if (completedCount > snap.completed) {
       setConfettiType('small');
     }
-
-    prevCompletedRef.current = completedCount;
-    prevMinimumDoneRef.current = minimumDone;
-    prevAllDoneRef.current = progressPercent === 100;
   }, [completedCount, minimumDone, progressPercent]);
 
   // Збереження
   const handleSave = async () => {
     if (!settings) return;
+    snapshotBeforeSave();
     setSaving(true);
     try {
       const res = await fetch('/api/salon/settings', {
@@ -352,6 +346,7 @@ export default function WebsiteEditorPage() {
   // Publish / Update
   const handlePublish = async () => {
     if (!settings) return;
+    snapshotBeforeSave();
     setPublishing(true);
     try {
       // First save current changes if any
@@ -606,7 +601,7 @@ export default function WebsiteEditorPage() {
             duration={confettiType === 'big' ? 3500 : confettiType === 'medium' ? 3000 : 2500}
             particleCount={confettiType === 'big' ? 150 : confettiType === 'medium' ? 80 : 30}
             width={confettiType === 'big' ? 1600 : confettiType === 'medium' ? 1000 : 600}
-            colors={['#8b5cf6', '#7c3aed', '#a78bfa', '#c084fc', '#ddd6fe', '#6d28d9', '#f472b6', '#fbbf24']}
+            colors={['#22c55e', '#10b981', '#34d399', '#6ee7b7', '#fbbf24', '#f472b6', '#60a5fa', '#a78bfa']}
             onComplete={() => setConfettiType('none')}
           />
         </div>
@@ -1388,8 +1383,8 @@ export default function WebsiteEditorPage() {
                 Години роботи
               </h2>
 
-              {/* Quick presets */}
-              <div className="flex flex-wrap gap-2 mb-4">
+              {/* Quick presets — horizontal scroll */}
+              <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-hide -mx-1 px-1">
                 {[
                   { label: '9–18', start: '09:00', end: '18:00' },
                   { label: '9–21', start: '09:00', end: '21:00' },
@@ -1400,19 +1395,18 @@ export default function WebsiteEditorPage() {
                     key={preset.label}
                     type="button"
                     onClick={() => {
-                      // Mon-Sat enabled with preset hours, Sun off
                       const days = ['Понеділок', 'Вівторок', 'Середа', 'Четвер', "П'ятниця", 'Субота', 'Неділя'];
                       const newHours = days.map((day, i) => ({
                         day,
-                        enabled: i < 6, // Mon-Sat
+                        enabled: i < 6,
                         start: i < 6 ? preset.start : '',
                         end: i < 6 ? preset.end : '',
                       }));
                       updateField('workingHours', newHours);
                     }}
-                    className="px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 bg-white hover:bg-violet-50 hover:border-violet-300 hover:text-violet-700 transition-colors"
+                    className="shrink-0 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 bg-gray-50 hover:bg-green-50 hover:border-green-300 hover:text-green-700 transition-colors whitespace-nowrap"
                   >
-                    🕐 Пн-Сб {preset.label}
+                    {preset.label}
                   </button>
                 ))}
               </div>
