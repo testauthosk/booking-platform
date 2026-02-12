@@ -2,8 +2,9 @@
 // No external dependencies, no extra Railway services
 
 const CRON_SECRET = process.env.CRON_SECRET || '';
-const APP_URL = process.env.RAILWAY_PUBLIC_DOMAIN
-  ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+// Use internal private domain for server-to-server calls, or fall back to app URL
+const APP_URL = process.env.RAILWAY_PRIVATE_DOMAIN
+  ? `http://${process.env.RAILWAY_PRIVATE_DOMAIN}`
   : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 let started = false;
