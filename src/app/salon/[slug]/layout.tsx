@@ -17,11 +17,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       logo: true,
       address: true,
       phone: true,
-      onboardingCompleted: true,
+      isPublished: true,
     },
   });
 
-  if (!salon || !salon.onboardingCompleted) {
+  if (!salon || !salon.isPublished) {
     return { title: 'Салон не знайдено' };
   }
 

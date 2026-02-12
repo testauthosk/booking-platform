@@ -36,6 +36,7 @@ model Salon {
   previousPlatform  String?           // Платформа з якої мігрують (altegio, booksy, fresha...)
   onboardingData      Json?             // Дані онбордінгу: accountType, serviceLocation, website, lastStep
   onboardingCompleted Boolean           @default(false)
+  isPublished         Boolean           @default(false)
   migrationDismissed Boolean         @default(false) // Чи закрив користувач банер міграції
   customBotToken    String?           // White-label Telegram bot token
   customBotUsername String?           // White-label Telegram bot username

@@ -42,6 +42,13 @@ export async function GET(request: NextRequest) {
         paletteId: true,
         rating: true,
         reviewCount: true,
+        isPublished: true,
+        _count: {
+          select: {
+            services: { where: { isActive: true } },
+            masters: { where: { isActive: true } },
+          },
+        },
       }
     })
 
@@ -49,7 +56,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Salon not found' }, { status: 404 })
     }
 
-    return NextResponse.json(salon)
+    // Flatten _count into top-level fields
+    const { _count, ...rest } = salon
+    return NextResponse.json({
+      ...rest,
+      servicesCount: _count.services,
+      mastersCount: _count.masters,
+    })
   } catch (error) {
     console.error('[SALON_SETTINGS_GET]', error)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
@@ -81,7 +94,8 @@ export async function PATCH(request: NextRequest) {
       'latitude', 'longitude',
       'logo', 'photos',
       'workingHours', 'amenities',
-      'timezone', 'currency', 'paletteId'
+      'timezone', 'currency', 'paletteId',
+      'isPublished',
     ]
 
     // Фільтруємо тільки дозволені поля
@@ -134,10 +148,22 @@ export async function PATCH(request: NextRequest) {
         timezone: true,
         currency: true,
         paletteId: true,
+        isPublished: true,
+        _count: {
+          select: {
+            services: { where: { isActive: true } },
+            masters: { where: { isActive: true } },
+          },
+        },
       }
     })
 
-    return NextResponse.json(salon)
+    const { _count, ...rest } = salon
+    return NextResponse.json({
+      ...rest,
+      servicesCount: _count.services,
+      mastersCount: _count.masters,
+    })
   } catch (error) {
     console.error('[SALON_SETTINGS_PATCH]', error)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })

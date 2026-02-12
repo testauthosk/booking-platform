@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,9 +24,13 @@ import {
   Sparkles,
   Upload,
   X,
-  GripVertical,
   Plus,
   Check,
+  CheckCircle2,
+  Circle,
+  Lightbulb,
+  RefreshCw,
+  Eye,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -51,6 +55,9 @@ interface SalonSettings {
   timezone: string;
   currency: string;
   paletteId: string;
+  isPublished: boolean;
+  servicesCount: number;
+  mastersCount: number;
 }
 
 interface WorkingHoursDay {
@@ -58,6 +65,15 @@ interface WorkingHoursDay {
   enabled: boolean;
   start: string;
   end: string;
+}
+
+// Checklist item type
+interface ChecklistItem {
+  id: string;
+  label: string;
+  completed: boolean;
+  hint?: string;
+  detail?: string;
 }
 
 // Дні тижня
@@ -104,12 +120,14 @@ export default function WebsiteEditorPage() {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [savingPalette, setSavingPalette] = useState(false);
   const [settings, setSettings] = useState<SalonSettings | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [activeSection, setActiveSection] = useState('basic');
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [showChecklist, setShowChecklist] = useState(true);
 
   // Завантаження даних
   useEffect(() => {
@@ -144,6 +162,83 @@ export default function WebsiteEditorPage() {
     setHasChanges(true);
   }, []);
 
+  // Checklist logic
+  const checklist = useMemo<ChecklistItem[]>(() => {
+    if (!settings) return [];
+
+    const hasWorkingHours = Array.isArray(settings.workingHours) &&
+      settings.workingHours.some((d) => d.enabled);
+
+    return [
+      {
+        id: 'name',
+        label: 'Назва закладу',
+        completed: !!settings.name && settings.name.trim().length > 0,
+        hint: 'Вкажіть назву вашого закладу',
+      },
+      {
+        id: 'type',
+        label: 'Тип закладу',
+        completed: !!settings.type && settings.type.trim().length > 0,
+        hint: 'Оберіть тип вашого закладу',
+      },
+      {
+        id: 'contacts',
+        label: 'Контакти',
+        completed: !!(settings.phone || settings.email),
+        hint: 'Додайте телефон або email для зв\'язку з клієнтами',
+      },
+      {
+        id: 'address',
+        label: 'Адреса',
+        completed: !!settings.address && settings.address.trim().length > 0,
+        hint: 'Клієнти зможуть прокласти маршрут до вас',
+      },
+      {
+        id: 'photos',
+        label: 'Фото',
+        completed: settings.photos.length >= 3,
+        hint: 'Додайте мінімум 3 фото для привабливого вигляду',
+        detail: `${settings.photos.length}/3`,
+      },
+      {
+        id: 'hours',
+        label: 'Години роботи',
+        completed: hasWorkingHours,
+        hint: 'Вкажіть графік роботи',
+      },
+      {
+        id: 'services',
+        label: 'Хоча б 1 послуга',
+        completed: settings.servicesCount > 0,
+        hint: 'Додайте послуги, щоб клієнти могли записатися',
+        detail: settings.servicesCount > 0 ? `${settings.servicesCount}` : '0',
+      },
+      {
+        id: 'masters',
+        label: 'Хоча б 1 майстер',
+        completed: settings.mastersCount > 0,
+        hint: 'Додайте майстрів для бронювання',
+        detail: settings.mastersCount > 0 ? `${settings.mastersCount}` : '0',
+      },
+    ];
+  }, [settings]);
+
+  const completedCount = checklist.filter((c) => c.completed).length;
+  const totalCount = checklist.length;
+  const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+  // Minimum requirements for publishing: name + 1 service + 1 master
+  const canPublish = useMemo(() => {
+    if (!settings) return false;
+    return (
+      !!settings.name &&
+      settings.name.trim().length > 0 &&
+      settings.servicesCount > 0 &&
+      settings.mastersCount > 0
+    );
+  }, [settings]);
+
   // Збереження
   const handleSave = async () => {
     if (!settings) return;
@@ -155,6 +250,8 @@ export default function WebsiteEditorPage() {
         body: JSON.stringify(settings),
       });
       if (res.ok) {
+        const updated = await res.json();
+        setSettings((prev) => prev ? { ...prev, ...updated } : null);
         setHasChanges(false);
       } else {
         const err = await res.json();
@@ -168,12 +265,39 @@ export default function WebsiteEditorPage() {
     }
   };
 
+  // Publish / Update
+  const handlePublish = async () => {
+    if (!settings) return;
+    setPublishing(true);
+    try {
+      // First save current changes if any
+      const saveData = { ...settings, isPublished: true };
+      const res = await fetch('/api/salon/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(saveData),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setSettings((prev) => prev ? { ...prev, ...updated } : null);
+        setHasChanges(false);
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Помилка публікації');
+      }
+    } catch (error) {
+      console.error('Failed to publish:', error);
+      alert('Помилка публікації');
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   // Зберегти палітру + розподілити кольори між майстрами
   const handlePaletteSave = async () => {
     if (!settings) return;
     setSavingPalette(true);
     try {
-      // 1. Save palette setting
       const res = await fetch('/api/salon/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -185,19 +309,16 @@ export default function WebsiteEditorPage() {
         return;
       }
 
-      // 2. Get masters list
       const mastersRes = await fetch('/api/masters');
       if (!mastersRes.ok) return;
       const mastersList = await mastersRes.json();
 
-      // 3. Get palette colors
-      const palette = LIB_PALETTES.find(p => p.id === settings.paletteId);
+      const palette = LIB_PALETTES.find((p) => p.id === settings.paletteId);
       if (!palette || !Array.isArray(mastersList) || mastersList.length === 0) {
         setHasChanges(false);
         return;
       }
 
-      // 4. Shuffle colors and assign to masters
       const shuffled = [...palette.colors].sort(() => Math.random() - 0.5);
       const updates = mastersList.map((master: { id: string }, idx: number) => {
         const color = shuffled[idx % shuffled.length].hex;
@@ -222,17 +343,12 @@ export default function WebsiteEditorPage() {
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploadingLogo(true);
     const formData = new FormData();
     formData.append('file', file);
     formData.append('folder', 'logos');
-
     try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
       if (res.ok) {
         const { url } = await res.json();
         updateField('logo', url);
@@ -248,20 +364,14 @@ export default function WebsiteEditorPage() {
   const handlePhotosUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-
     setUploadingPhotos(true);
     const newPhotos: string[] = [];
-
     for (const file of Array.from(files)) {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('folder', 'gallery');
-
       try {
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
         if (res.ok) {
           const { url } = await res.json();
           newPhotos.push(url);
@@ -270,7 +380,6 @@ export default function WebsiteEditorPage() {
         console.error('Upload failed:', error);
       }
     }
-
     if (newPhotos.length > 0) {
       updateField('photos', [...(settings?.photos || []), ...newPhotos]);
     }
@@ -295,10 +404,7 @@ export default function WebsiteEditorPage() {
   const toggleAmenity = (amenity: string) => {
     const current = settings?.amenities || [];
     if (current.includes(amenity)) {
-      updateField(
-        'amenities',
-        current.filter((a) => a !== amenity)
-      );
+      updateField('amenities', current.filter((a) => a !== amenity));
     } else {
       updateField('amenities', [...current, amenity]);
     }
@@ -329,6 +435,34 @@ export default function WebsiteEditorPage() {
     { id: 'theme', label: 'Тема', icon: Palette },
   ];
 
+  // Section-specific hints
+  const sectionHints: Record<string, { show: boolean; text: string }> = {
+    basic: {
+      show: !settings.description || settings.description.trim().length === 0,
+      text: '💡 Розкажіть чим ваш заклад особливий — це підвищує довіру',
+    },
+    contacts: {
+      show: !settings.address || settings.address.trim().length === 0,
+      text: '💡 Клієнти зможуть прокласти маршрут до вас',
+    },
+    media: {
+      show: settings.photos.length < 3,
+      text: `💡 Додайте мінімум 3 фото для привабливого вигляду (${settings.photos.length}/3)`,
+    },
+    hours: {
+      show: !Array.isArray(settings.workingHours) || !settings.workingHours.some((d) => d.enabled),
+      text: '💡 Вкажіть графік — клієнти бачитимуть чи ви працюєте зараз',
+    },
+    amenities: { show: false, text: '' },
+    theme: { show: false, text: '' },
+  };
+
+  const progressColor = progressPercent === 100
+    ? 'bg-green-500'
+    : progressPercent >= 60
+      ? 'bg-blue-500'
+      : 'bg-amber-500';
+
   return (
     <div className="min-h-screen bg-gray-50/50">
       {/* Header */}
@@ -348,26 +482,94 @@ export default function WebsiteEditorPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <a
-              href={`/salon/${settings.slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden sm:flex"
+            {settings.isPublished && (
+              <a
+                href={`/salon/${settings.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden sm:flex"
+              >
+                <Button variant="outline" size="sm">
+                  <Eye className="w-4 h-4 mr-2" />
+                  Переглянути
+                </Button>
+              </a>
+            )}
+            <Button
+              onClick={handleSave}
+              disabled={!hasChanges || saving}
+              size="sm"
+              variant="outline"
             >
-              <Button variant="outline" size="sm">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Переглянути
-              </Button>
-            </a>
-            <Button onClick={handleSave} disabled={!hasChanges || saving} size="sm">
               {saving ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : (
                 <Save className="w-4 h-4 mr-2" />
               )}
-              Зберегти
+              <span className="hidden sm:inline">Зберегти</span>
             </Button>
           </div>
+        </div>
+      </div>
+
+      {/* Progress Bar — sticky under header */}
+      <div className="sticky top-16 z-10 bg-white border-b shadow-sm">
+        <div className="px-4 sm:px-6 py-3">
+          <div className="flex items-center justify-between mb-2">
+            <button
+              onClick={() => setShowChecklist(!showChecklist)}
+              className="text-sm font-medium text-gray-700 flex items-center gap-1.5 hover:text-gray-900 transition-colors"
+            >
+              {progressPercent === 100 ? (
+                <CheckCircle2 className="w-4 h-4 text-green-500" />
+              ) : (
+                <Circle className="w-4 h-4 text-gray-400" />
+              )}
+              Ваш сайт готовий на {progressPercent}%
+            </button>
+            <span className="text-xs text-muted-foreground">
+              {completedCount}/{totalCount}
+            </span>
+          </div>
+          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full animate-progress ${progressColor}`}
+              style={{
+                width: `${progressPercent}%`,
+                transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+            />
+          </div>
+
+          {/* Checklist */}
+          {showChecklist && (
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              {checklist.map((item, index) => (
+                <div
+                  key={item.id}
+                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm transition-colors ${
+                    item.completed ? 'text-gray-500' : 'text-gray-700 bg-amber-50/60'
+                  }`}
+                >
+                  {item.completed ? (
+                    <div className="animate-check-in">
+                      <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                    </div>
+                  ) : (
+                    <Circle className="w-4 h-4 text-gray-300 shrink-0" />
+                  )}
+                  <span className={item.completed ? 'line-through' : 'font-medium'}>
+                    {item.label}
+                  </span>
+                  {item.detail && !item.completed && (
+                    <span className="text-xs text-amber-600 ml-auto font-medium">
+                      {item.detail}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -393,9 +595,9 @@ export default function WebsiteEditorPage() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 p-4 sm:p-6 lg:p-8 max-w-3xl">
+        <div className="flex-1 p-4 sm:p-6 lg:p-8 max-w-3xl pb-40 lg:pb-8">
           {/* Mobile Section Tabs */}
-          <div className="lg:hidden mb-6 overflow-x-auto -mx-4 px-4">
+          <div className="lg:hidden mb-6 overflow-x-auto -mx-4 px-4 scrollbar-hide">
             <div className="flex gap-2">
               {sections.map((section) => (
                 <button
@@ -413,6 +615,14 @@ export default function WebsiteEditorPage() {
               ))}
             </div>
           </div>
+
+          {/* Section Hint */}
+          {sectionHints[activeSection]?.show && (
+            <div className="mb-4 flex items-start gap-2.5 px-4 py-3 rounded-xl bg-amber-50 border border-amber-100 text-sm text-amber-800">
+              <Lightbulb className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+              <span>{sectionHints[activeSection].text}</span>
+            </div>
+          )}
 
           {/* Basic Info Section */}
           {activeSection === 'basic' && (
@@ -482,6 +692,12 @@ export default function WebsiteEditorPage() {
                     placeholder="Розкажіть про ваш заклад..."
                     className="mt-1.5 min-h-[120px]"
                   />
+                  {(!settings.description || settings.description.trim().length === 0) && (
+                    <p className="text-xs text-amber-600 mt-1.5 flex items-center gap-1">
+                      <Lightbulb className="w-3 h-3" />
+                      Розкажіть чим ваш заклад особливий — це підвищує довіру
+                    </p>
+                  )}
                 </div>
               </div>
             </Card>
@@ -528,6 +744,12 @@ export default function WebsiteEditorPage() {
                     placeholder="вул. Хрещатик, 1, Київ, 01001"
                     className="mt-1.5"
                   />
+                  {(!settings.address || settings.address.trim().length === 0) && (
+                    <p className="text-xs text-amber-600 mt-1.5 flex items-center gap-1">
+                      <Lightbulb className="w-3 h-3" />
+                      Клієнти зможуть прокласти маршрут до вас
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -655,7 +877,14 @@ export default function WebsiteEditorPage() {
 
                 {/* Gallery */}
                 <div>
-                  <Label>Галерея фото</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Галерея фото</Label>
+                    {settings.photos.length < 3 && (
+                      <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                        {settings.photos.length}/3 мінімум
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground mt-1 mb-3">
                     Перше фото буде головним на сторінці
                   </p>
@@ -857,22 +1086,6 @@ export default function WebsiteEditorPage() {
               </div>
             </Card>
           )}
-
-          {/* Save Button (Mobile) */}
-          <div className="lg:hidden fixed bottom-[68px] left-0 right-0 p-4 bg-white border-t z-30">
-            <Button
-              onClick={handleSave}
-              disabled={!hasChanges || saving}
-              className="w-full"
-            >
-              {saving ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4 mr-2" />
-              )}
-              Зберегти зміни
-            </Button>
-          </div>
         </div>
 
         {/* Preview Panel */}
@@ -897,6 +1110,145 @@ export default function WebsiteEditorPage() {
                 title="Preview"
               />
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Bottom Bar — publish / save */}
+      <div className="lg:hidden fixed bottom-[68px] left-0 right-0 bg-white border-t z-30 safe-area-bottom">
+        <div className="flex items-center gap-2 px-4 py-3">
+          {/* Save draft */}
+          <Button
+            onClick={handleSave}
+            disabled={!hasChanges || saving}
+            variant="outline"
+            className="flex-1"
+            size="sm"
+          >
+            {saving ? (
+              <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4 mr-1.5" />
+            )}
+            Зберегти
+          </Button>
+
+          {/* Publish / Update */}
+          {!settings.isPublished ? (
+            <Button
+              onClick={handlePublish}
+              disabled={!canPublish || publishing}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white animate-pulse-glow"
+              size="sm"
+            >
+              {publishing ? (
+                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+              ) : (
+                <Globe className="w-4 h-4 mr-1.5" />
+              )}
+              Опублікувати
+            </Button>
+          ) : (
+            <>
+              <Button
+                onClick={handlePublish}
+                disabled={publishing}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                size="sm"
+              >
+                {publishing ? (
+                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-1.5" />
+                )}
+                Оновити
+              </Button>
+              <a
+                href={`/salon/${settings.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="outline" size="sm">
+                  <Eye className="w-4 h-4" />
+                </Button>
+              </a>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Desktop Bottom Publish Bar */}
+      <div className="hidden lg:block fixed bottom-0 left-56 right-0 xl:right-[420px] bg-white border-t z-30">
+        <div className="flex items-center justify-between px-8 py-3 max-w-3xl">
+          <div className="flex items-center gap-3">
+            {settings.isPublished ? (
+              <span className="flex items-center gap-1.5 text-sm text-green-600 font-medium">
+                <CheckCircle2 className="w-4 h-4" />
+                Сторінка опублікована
+              </span>
+            ) : (
+              <span className="text-sm text-muted-foreground">
+                {canPublish
+                  ? 'Готово до публікації'
+                  : 'Заповніть мінімум: назва, 1 послуга, 1 майстер'}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleSave}
+              disabled={!hasChanges || saving}
+              variant="outline"
+              size="sm"
+            >
+              {saving ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              Зберегти
+            </Button>
+            {!settings.isPublished ? (
+              <Button
+                onClick={handlePublish}
+                disabled={!canPublish || publishing}
+                className="bg-green-600 hover:bg-green-700 text-white"
+                size="sm"
+              >
+                {publishing ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Globe className="w-4 h-4 mr-2" />
+                )}
+                🌐 Створити публічну сторінку
+              </Button>
+            ) : (
+              <>
+                <Button
+                  onClick={handlePublish}
+                  disabled={publishing}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  size="sm"
+                >
+                  {publishing ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                  )}
+                  🔄 Оновити дані
+                </Button>
+                <a
+                  href={`/salon/${settings.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="outline" size="sm">
+                    <Eye className="w-4 h-4 mr-2" />
+                    👁 Переглянути
+                  </Button>
+                </a>
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -14,7 +14,7 @@ export async function GET(
       select: {
         // Only public-safe fields
         id: true,
-        onboardingCompleted: true,
+        isPublished: true,
         name: true,
         slug: true,
         type: true,
@@ -104,7 +104,7 @@ export async function GET(
 
     // Block unpublished salons for public visitors
     // Allow preview for authenticated salon owners
-    if (!salon.onboardingCompleted) {
+    if (!salon.isPublished) {
       const { getServerSession } = await import('next-auth');
       const { authOptions } = await import('@/lib/auth-config');
       const session = await getServerSession(authOptions);
@@ -115,7 +115,7 @@ export async function GET(
     }
 
     // Transform to expected format — exclude internal fields
-    const { onboardingCompleted: _, categories: _cats, services: _svcs, ...publicSalon } = salon;
+    const { isPublished: _, categories: _cats, services: _svcs, ...publicSalon } = salon;
     const result = {
       ...publicSalon,
       short_address: salon.shortAddress,
