@@ -29,6 +29,7 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
     "bcryptjs": "^3.0.3",
+    "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.9.0",
     "clsx": "^2.1.1",
@@ -45,7 +46,6 @@
     "prisma": "^5.22.0",
     "react": "19.2.3",
     "react-big-calendar": "^1.19.4",
-    "react-confetti-explosion": "^3.0.3",
     "react-day-picker": "^9.13.0",
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
@@ -59,6 +59,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

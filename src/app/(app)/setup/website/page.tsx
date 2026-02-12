@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-// confetti removed
+import confetti from 'canvas-confetti';
 import {
   ArrowLeft,
   Save,
@@ -153,7 +153,8 @@ export default function WebsiteEditorPage() {
   // Track milestone dismissed
   const [milestoneDismissed, setMilestoneDismissed] = useState(false);
 
-  // confetti removed
+  // ── Confetti (canvas-confetti) ──
+  const savedProgressRef = useRef({ completed: 0, minimumDone: false, allDone: false });
 
   // Custom business type dropdown
   const [businessTypeOpen, setBusinessTypeOpen] = useState(false);
@@ -163,8 +164,6 @@ export default function WebsiteEditorPage() {
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [tabIndicator, setTabIndicator] = useState({ left: 0, width: 0 });
-
-  // confetti refs removed
 
   // Завантаження даних
   useEffect(() => {
@@ -183,7 +182,25 @@ export default function WebsiteEditorPage() {
             }));
           }
           setSettings(data);
-          // confetti init removed
+          // Init confetti baseline from server state
+          const hasHrs = Array.isArray(data.workingHours) &&
+            data.workingHours.some((d: any) => d.enabled && d.start && d.end && d.start !== d.end);
+          const initCompleted = [
+            data.name && data.name.trim().length >= 2,
+            data.servicesCount > 0,
+            data.mastersCount > 0,
+            data.type && data.type.trim().length > 0,
+            data.phone || data.email,
+            data.address && data.address.trim().length > 0,
+            data.photos?.length >= 3,
+            hasHrs,
+          ].filter(Boolean).length;
+          const initMinimum = !!(data.name && data.name.trim().length >= 2) && data.servicesCount > 0 && data.mastersCount > 0;
+          savedProgressRef.current = {
+            completed: initCompleted,
+            minimumDone: initMinimum,
+            allDone: initCompleted === 8,
+          };
         }
       } catch (error) {
         console.error('Failed to load settings:', error);
@@ -315,7 +332,41 @@ export default function WebsiteEditorPage() {
       ? 'bg-green-500'
       : 'bg-amber-500';
 
-  // confetti logic removed
+  // ── Confetti: fire green celebration after successful save ──
+  const curProgressRef = useRef({ completedCount, minimumDone, progressPercent });
+  curProgressRef.current = { completedCount, minimumDone, progressPercent };
+
+  const fireConfetti = useCallback(() => {
+    const saved = savedProgressRef.current;
+    const cur = curProgressRef.current;
+
+    const greenColors = ['#22c55e', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0'];
+
+    if (cur.progressPercent === 100 && !saved.allDone) {
+      // BIG — all 100%
+      const end = Date.now() + 2000;
+      const frame = () => {
+        confetti({ particleCount: 4, angle: 60, spread: 80, origin: { x: 0, y: 0.6 }, colors: greenColors });
+        confetti({ particleCount: 4, angle: 120, spread: 80, origin: { x: 1, y: 0.6 }, colors: greenColors });
+        if (Date.now() < end) requestAnimationFrame(frame);
+      };
+      frame();
+    } else if (cur.minimumDone && !saved.minimumDone) {
+      // MEDIUM — minimum reached
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: greenColors });
+      setTimeout(() => confetti({ particleCount: 60, spread: 100, origin: { y: 0.5 }, colors: greenColors }), 300);
+    } else if (cur.completedCount > saved.completed) {
+      // SMALL — any new field completed
+      confetti({ particleCount: 40, spread: 55, origin: { y: 0.7 }, colors: greenColors });
+    }
+
+    // Update baseline
+    savedProgressRef.current = {
+      completed: cur.completedCount,
+      minimumDone: cur.minimumDone,
+      allDone: cur.progressPercent === 100,
+    };
+  }, []);
 
   // ── Glass tabs: measure active tab position ──
   const updateTabIndicator = useCallback((sectionId?: string) => {
@@ -353,6 +404,8 @@ export default function WebsiteEditorPage() {
         const updated = await res.json();
         setSettings((prev) => prev ? { ...prev, ...updated } : null);
         setHasChanges(false);
+        // Wait a tick so React updates checklist, then fire confetti
+        setTimeout(() => fireConfetti(), 50);
       } else {
         const err = await res.json();
         alert(err.error || 'Помилка збереження');
@@ -380,6 +433,7 @@ export default function WebsiteEditorPage() {
         const updated = await res.json();
         setSettings((prev) => prev ? { ...prev, ...updated } : null);
         setHasChanges(false);
+        setTimeout(() => fireConfetti(), 50);
       } else {
         const err = await res.json();
         alert(err.error || 'Помилка публікації');
@@ -610,7 +664,6 @@ export default function WebsiteEditorPage() {
 
   return (
     <div className="min-h-screen bg-gray-50/50 overflow-x-hidden max-w-full">
-      {/* confetti removed */}
       {/* Header */}
       <div className="sticky top-0 z-20 bg-white border-b">
         <div className="flex items-center justify-between px-4 sm:px-6 h-14 lg:h-16">
