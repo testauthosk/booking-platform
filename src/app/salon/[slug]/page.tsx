@@ -505,22 +505,26 @@ export default function SalonPage() {
                 </h1>
 
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-base">
-                  <div className="flex items-center gap-2">
-                    <div className="flex gap-0.5">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star key={star} className="w-5 h-5 fill-amber-400 text-amber-400" />
-                      ))}
-                    </div>
-                    <span className="font-semibold text-gray-900 text-lg">{salon.rating}</span>
-                    <button
-                      onClick={scrollToReviews}
-                      className="text-blue-600 hover:text-blue-700 hover:underline cursor-pointer transition-colors"
-                    >
-                      ({salon.review_count?.toLocaleString() || 0} відгуків)
-                    </button>
-                  </div>
+                  {salon.review_count > 0 && (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-0.5">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star key={star} className="w-5 h-5 fill-amber-400 text-amber-400" />
+                          ))}
+                        </div>
+                        <span className="font-semibold text-gray-900 text-lg">{salon.rating}</span>
+                        <button
+                          onClick={scrollToReviews}
+                          className="text-blue-600 hover:text-blue-700 hover:underline cursor-pointer transition-colors"
+                        >
+                          ({salon.review_count.toLocaleString()} відгуків)
+                        </button>
+                      </div>
+                      <span className="text-gray-300 text-lg">•</span>
+                    </>
+                  )}
 
-                  <span className="text-gray-300 text-lg">•</span>
                   <span className="text-gray-600">{salon.type}</span>
                   <span className="text-gray-300 text-lg">•</span>
 
@@ -793,13 +797,19 @@ export default function SalonPage() {
                   <h2 className="text-xl font-bold text-gray-900 mb-4">Відгуки</h2>
 
                   <div className="flex items-center gap-2 mb-6">
-                    <div className="flex">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star key={star} className="w-6 h-6 fill-yellow-400 text-yellow-400" />
-                      ))}
-                    </div>
-                    <span className="text-lg font-semibold text-gray-900">{Number(salon.rating).toFixed(1).replace('.', ',')}</span>
-                    <span className="text-blue-600">({salon.review_count?.toLocaleString() || 0} відгуків)</span>
+                    {salon.review_count > 0 ? (
+                      <>
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star key={star} className="w-6 h-6 fill-yellow-400 text-yellow-400" />
+                          ))}
+                        </div>
+                        <span className="text-lg font-semibold text-gray-900">{Number(salon.rating).toFixed(1).replace('.', ',')}</span>
+                        <span className="text-blue-600">({salon.review_count.toLocaleString()} відгуків)</span>
+                      </>
+                    ) : (
+                      <span className="text-gray-500">Поки немає відгуків</span>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
@@ -927,17 +937,21 @@ export default function SalonPage() {
                   <div className={`overflow-hidden transition-all duration-300 ease-out ${isScrolled ? "max-h-[170px] opacity-100" : "max-h-0 opacity-0"}`}>
                     <div className="px-5 pt-5 space-y-2 pb-4 border-b border-gray-200 h-[121px]">
                       <h3 className="font-bold text-gray-900 text-[28px] leading-tight">{salon.name}</h3>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-gray-900 text-lg">{Number(salon.rating).toFixed(1).replace('.', ',')}</span>
-                        <div className="flex gap-0.5">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star key={star} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                          ))}
+                      {salon.review_count > 0 ? (
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-900 text-lg">{Number(salon.rating).toFixed(1).replace('.', ',')}</span>
+                          <div className="flex gap-0.5">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star key={star} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                            ))}
+                          </div>
+                          <button onClick={scrollToReviews} className="text-blue-600 font-medium text-base hover:underline cursor-pointer">
+                            ({salon.review_count.toLocaleString()} відгуків)
+                          </button>
                         </div>
-                        <button onClick={scrollToReviews} className="text-blue-600 font-medium text-base hover:underline cursor-pointer">
-                          ({salon.review_count?.toLocaleString() || 0} відгуків)
-                        </button>
-                      </div>
+                      ) : (
+                        <p className="text-sm text-gray-500">Новий заклад</p>
+                      )}
                     </div>
                   </div>
 

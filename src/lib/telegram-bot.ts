@@ -245,7 +245,7 @@ export async function setWebhook(webhookUrl: string): Promise<boolean> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         url: webhookUrl,
-        allowed_updates: ['message'],
+        allowed_updates: ['message', 'callback_query'],
       }),
     });
 
@@ -260,6 +260,30 @@ export async function setWebhook(webhookUrl: string): Promise<boolean> {
     return true;
   } catch (error) {
     console.error('[TELEGRAM] Помилка встановлення webhook:', error);
+    return false;
+  }
+}
+
+/**
+ * Встановлює команди бота (кнопка Menu)
+ */
+export async function setMyCommands(): Promise<boolean> {
+  if (!BOT_TOKEN) return false;
+  try {
+    const response = await fetch(`${TELEGRAM_API}/setMyCommands`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        commands: [
+          { command: 'start', description: 'Головне меню' },
+          { command: 'bookings', description: 'Мої записи' },
+          { command: 'help', description: 'Допомога' },
+        ],
+      }),
+    });
+    const data: TelegramResponse = await response.json();
+    return data.ok || false;
+  } catch {
     return false;
   }
 }

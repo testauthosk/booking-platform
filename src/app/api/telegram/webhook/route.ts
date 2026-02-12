@@ -77,6 +77,42 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
+    // /bookings — список записів
+    if (text === '/bookings') {
+      const client = await prisma.client.findFirst({
+        where: { telegramChatId: chatId },
+      })
+      if (client) {
+        const bookings = await prisma.booking.findMany({
+          where: {
+            clientId: client.id,
+            status: { in: ['CONFIRMED', 'PENDING'] },
+            date: { gte: new Date().toISOString().split('T')[0] },
+          },
+          orderBy: { date: 'asc' },
+          take: 5,
+          select: { serviceName: true, masterName: true, date: true, time: true, timeEnd: true },
+        })
+        if (bookings.length === 0) {
+          await sendMessage(chatId, '📋 У вас немає майбутніх записів.')
+        } else {
+          const list = bookings.map(b =>
+            `📅 <b>${b.date}</b> о ${b.time}${b.timeEnd ? `-${b.timeEnd}` : ''}\n💇 ${b.serviceName}\n👨‍💼 ${b.masterName}`
+          ).join('\n\n')
+          await sendMessage(chatId, `📋 <b>Ваші записи:</b>\n\n${list}`)
+        }
+      } else {
+        await sendMessage(chatId, '❌ Ваш акаунт не знайдено. Запишіться через сайт щоб підключитися.')
+      }
+      return NextResponse.json({ ok: true })
+    }
+
+    // /help
+    if (text === '/help') {
+      await sendMessage(chatId, `❓ <b>Допомога</b>\n\n/start — Головне меню\n/bookings — Мої записи\n/help — Ця довідка\n\nПри виникненні проблем зверніться до адміністратора салону.`)
+      return NextResponse.json({ ok: true })
+    }
+
     // Обробка /start
     if (text.startsWith('/start')) {
       const parts = text.split(' ')
@@ -105,20 +141,42 @@ export async function POST(req: NextRequest) {
 }
 
 async function sendWelcomeMessage(chatId: string) {
-  const welcomeText = `👋 Вітаємо в Booking Platform!
+  // Check if this user is already a client
+  const client = await prisma.client.findFirst({
+    where: { telegramChatId: chatId },
+    include: {
+      salon: { select: { name: true, slug: true } },
+    },
+  });
 
-Цей бот допомагає:
-• 🔐 Входити в акаунт через OTP код
-• 🔔 Отримувати сповіщення про записи
+  if (client?.salon) {
+    const text = `👋 Привіт, <b>${client.name}</b>!
 
-Щоб прив'язати Telegram до вашого акаунту:
-1. Увійдіть на сайт
-2. Перейдіть в налаштування профілю
-3. Натисніть "Підключити Telegram"
+Ви підключені до <b>${client.salon.name}</b>.
 
-Потрібна допомога? Звертайтесь до підтримки.`
+Оберіть дію:`;
 
-  await sendMessage(chatId, welcomeText)
+    const buttons = [
+      [{ text: '📋 Мої записи', callback_data: 'my_bookings' }],
+      [{ text: '📅 Записатися', callback_data: 'new_booking' }],
+      [{ text: 'ℹ️ Про заклад', callback_data: 'salon_info' }],
+    ];
+
+    await sendMessageWithButtons(chatId, text, buttons);
+  } else {
+    const text = `👋 Вітаємо у <b>Booking</b>!
+
+Цей бот допомагає записатися до салону та отримувати нагадування.
+
+Щоб підключитися:
+1. Перейдіть на сайт салону
+2. Зробіть запис
+3. Вкажіть цей Telegram при реєстрації
+
+Або попросіть адміністратора надіслати вам посилання.`;
+
+    await sendMessage(chatId, text);
+  }
 }
 
 async function handleLinkTelegram(
@@ -409,6 +467,99 @@ async function handleCallbackQuery(query: NonNullable<TelegramUpdate['callback_q
             `🕐 <b>Клієнт запізнюється на ${minutes} хв</b>\n\n👤 ${booking.client?.name || 'Клієнт'}\n📅 ${booking.date} о ${booking.time}`)
         }
       }
+      return
+    }
+
+    // my_bookings — список записів клієнта
+    if (data === 'my_bookings') {
+      await answerCallbackQuery(query.id)
+      const client = await prisma.client.findFirst({
+        where: { telegramChatId: chatId },
+        select: { id: true, salonId: true },
+      })
+      if (!client) {
+        await sendMessage(chatId, '❌ Ваш акаунт не знайдено.')
+        return
+      }
+      const bookings = await prisma.booking.findMany({
+        where: {
+          clientId: client.id,
+          status: { in: ['CONFIRMED', 'PENDING'] },
+          date: { gte: new Date().toISOString().split('T')[0] },
+        },
+        orderBy: { date: 'asc' },
+        take: 5,
+        select: { serviceName: true, masterName: true, date: true, time: true, timeEnd: true, status: true },
+      })
+      if (bookings.length === 0) {
+        await sendMessageWithButtons(chatId, '📋 У вас немає майбутніх записів.', [
+          [{ text: '📅 Записатися', callback_data: 'new_booking' }],
+          [{ text: '◀️ Назад', callback_data: 'back_menu' }],
+        ])
+      } else {
+        const list = bookings.map(b =>
+          `📅 <b>${b.date}</b> о ${b.time}${b.timeEnd ? `-${b.timeEnd}` : ''}\n💇 ${b.serviceName}\n👨‍💼 ${b.masterName}`
+        ).join('\n\n')
+        await sendMessageWithButtons(chatId, `📋 <b>Ваші записи:</b>\n\n${list}`, [
+          [{ text: '📅 Записатися', callback_data: 'new_booking' }],
+          [{ text: '◀️ Назад', callback_data: 'back_menu' }],
+        ])
+      }
+      return
+    }
+
+    // new_booking — перенаправити на сайт
+    if (data === 'new_booking') {
+      await answerCallbackQuery(query.id)
+      const client = await prisma.client.findFirst({
+        where: { telegramChatId: chatId },
+        include: { salon: { select: { slug: true, name: true } } },
+      })
+      if (client?.salon) {
+        const url = `https://${client.salon.slug}.tholim.com`
+        await sendMessageWithButtons(chatId,
+          `📅 Для запису перейдіть на сторінку <b>${client.salon.name}</b>:`,
+          [[{ text: '🌐 Перейти на сайт', url } as any]],
+        )
+      } else {
+        await sendMessage(chatId, '❌ Салон не знайдено. Зверніться до адміністратора.')
+      }
+      return
+    }
+
+    // salon_info — інформація про салон
+    if (data === 'salon_info') {
+      await answerCallbackQuery(query.id)
+      const client = await prisma.client.findFirst({
+        where: { telegramChatId: chatId },
+        include: {
+          salon: {
+            select: { name: true, slug: true, address: true, phone: true, type: true, workingHours: true },
+          },
+        },
+      })
+      if (client?.salon) {
+        const s = client.salon
+        const hours = Array.isArray(s.workingHours)
+          ? (s.workingHours as any[]).map((wh: any) =>
+              `${wh.day}: ${wh.enabled === false ? 'Зачинено' : `${wh.start}-${wh.end}`}`
+            ).join('\n')
+          : ''
+        const text = `ℹ️ <b>${s.name}</b>\n${s.type ? `📌 ${s.type}\n` : ''}${s.address ? `📍 ${s.address}\n` : ''}${s.phone ? `📞 ${s.phone}\n` : ''}\n${hours ? `\n🕐 <b>Графік:</b>\n${hours}` : ''}`
+        await sendMessageWithButtons(chatId, text, [
+          [{ text: '📅 Записатися', callback_data: 'new_booking' }],
+          [{ text: '◀️ Назад', callback_data: 'back_menu' }],
+        ])
+      } else {
+        await sendMessage(chatId, '❌ Салон не знайдено.')
+      }
+      return
+    }
+
+    // back_menu — повернутися в головне меню
+    if (data === 'back_menu') {
+      await answerCallbackQuery(query.id)
+      await sendWelcomeMessage(chatId)
       return
     }
 
