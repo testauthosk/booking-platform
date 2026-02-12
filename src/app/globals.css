@@ -127,6 +127,12 @@
     position: fixed;
     width: 100%;
   }
+  /* Public salon pages need normal scroll */
+  html.salon-public, html.salon-public body {
+    overflow: auto;
+    position: static;
+    height: auto;
+  }
 }
 
 /* Hide scrollbar but keep functionality */

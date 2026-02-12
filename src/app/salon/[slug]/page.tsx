@@ -288,6 +288,12 @@ export default function SalonPage() {
   const [underlineStyle, setUnderlineStyle] = useState({ left: 0, width: 0 });
   const reviewsRef = useRef<HTMLDivElement>(null);
 
+  // Enable normal scrolling for public salon page
+  useEffect(() => {
+    document.documentElement.classList.add('salon-public');
+    return () => { document.documentElement.classList.remove('salon-public'); };
+  }, []);
+
   // Load salon data
   useEffect(() => {
     async function loadSalon() {
