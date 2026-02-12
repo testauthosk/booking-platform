@@ -143,6 +143,11 @@ export default function WebsiteEditorPage() {
   const [unpublishHint, setUnpublishHint] = useState('');
   const [unpublishError, setUnpublishError] = useState('');
 
+  // Address autocomplete (Nominatim / OpenStreetMap)
+  const [addressSuggestions, setAddressSuggestions] = useState<Array<{ display_name: string; lat: string; lon: string }>>([]);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const addressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Track milestone dismissed
   const [milestoneDismissed, setMilestoneDismissed] = useState(false);
 
@@ -195,15 +200,15 @@ export default function WebsiteEditorPage() {
     if (!settings) return [];
 
     const hasWorkingHours = Array.isArray(settings.workingHours) &&
-      settings.workingHours.some((d) => d.enabled);
+      settings.workingHours.some((d) => d.enabled && d.start && d.end && d.start !== d.end);
 
     return [
       // ── Minimum (required for publish) ──
       {
         id: 'name',
         label: 'Назва закладу',
-        completed: !!settings.name && settings.name.trim().length > 0,
-        hint: 'Вкажіть назву вашого закладу',
+        completed: !!settings.name && settings.name.trim().length >= 2,
+        hint: 'Вкажіть назву (мінімум 2 символи)',
         required: true,
       },
       {
@@ -290,28 +295,25 @@ export default function WebsiteEditorPage() {
       ? 'bg-green-500'
       : 'bg-amber-500';
 
-  // ── Confetti trigger ──
+  // ── Track initial state (confetti triggers on save only) ──
   useEffect(() => {
     if (initialLoadRef.current) {
       initialLoadRef.current = false;
       prevCompletedRef.current = completedCount;
       prevMinimumDoneRef.current = minimumDone;
       prevAllDoneRef.current = progressPercent === 100;
-      return;
     }
+  }, [completedCount, minimumDone, progressPercent]);
 
+  // Called after successful save to check for confetti
+  const checkConfetti = useCallback(() => {
     const prev = prevCompletedRef.current;
 
-    // 100% — big explosion
     if (progressPercent === 100 && !prevAllDoneRef.current) {
       setConfettiType('big');
-    }
-    // Minimum reached — medium explosion
-    else if (minimumDone && !prevMinimumDoneRef.current) {
+    } else if (minimumDone && !prevMinimumDoneRef.current) {
       setConfettiType('medium');
-    }
-    // Single checkmark — small burst
-    else if (completedCount > prev && prev >= 0) {
+    } else if (completedCount > prev && prev >= 0) {
       setConfettiType('small');
     }
 
@@ -334,6 +336,7 @@ export default function WebsiteEditorPage() {
         const updated = await res.json();
         setSettings((prev) => prev ? { ...prev, ...updated } : null);
         setHasChanges(false);
+        setTimeout(() => checkConfetti(), 300);
       } else {
         const err = await res.json();
         alert(err.error || 'Помилка збереження');
@@ -362,6 +365,7 @@ export default function WebsiteEditorPage() {
         const updated = await res.json();
         setSettings((prev) => prev ? { ...prev, ...updated } : null);
         setHasChanges(false);
+        setTimeout(() => checkConfetti(), 300);
       } else {
         const err = await res.json();
         alert(err.error || 'Помилка публікації');
@@ -599,7 +603,7 @@ export default function WebsiteEditorPage() {
             duration={confettiType === 'big' ? 3500 : confettiType === 'medium' ? 3000 : 2500}
             particleCount={confettiType === 'big' ? 150 : confettiType === 'medium' ? 80 : 30}
             width={confettiType === 'big' ? 1600 : confettiType === 'medium' ? 1000 : 600}
-            colors={['#22c55e', '#10b981', '#fbbf24', '#f472b6', '#60a5fa', '#a78bfa', '#fb923c', '#f59e0b']}
+            colors={['#8b5cf6', '#7c3aed', '#a78bfa', '#c084fc', '#ddd6fe', '#6d28d9', '#f472b6', '#fbbf24']}
             onComplete={() => setConfettiType('none')}
           />
         </div>
@@ -1141,19 +1145,65 @@ export default function WebsiteEditorPage() {
                   />
                 </div>
 
-                <div>
+                <div className="relative">
                   <Label htmlFor="address">Повна адреса</Label>
                   <Input
                     id="address"
                     value={settings.address || ''}
-                    onChange={(e) => updateField('address', e.target.value)}
-                    placeholder="вул. Хрещатик, 1, Київ, 01001"
+                    onChange={(e) => {
+                      updateField('address', e.target.value);
+                      const q = e.target.value.trim();
+                      if (addressTimeoutRef.current) clearTimeout(addressTimeoutRef.current);
+                      if (q.length < 3) { setAddressSuggestions([]); setShowAddressSuggestions(false); return; }
+                      addressTimeoutRef.current = setTimeout(async () => {
+                        try {
+                          const res = await fetch(
+                            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&addressdetails=1`,
+                            { headers: { 'Accept-Language': 'uk,en' } }
+                          );
+                          const data = await res.json();
+                          setAddressSuggestions(data);
+                          setShowAddressSuggestions(data.length > 0);
+                        } catch { setAddressSuggestions([]); }
+                      }, 400);
+                    }}
+                    onFocus={() => { if (addressSuggestions.length > 0) setShowAddressSuggestions(true); }}
+                    onBlur={() => setTimeout(() => setShowAddressSuggestions(false), 200)}
+                    placeholder="вул. Хрещатик, 1, Київ"
                     className="mt-1.5"
+                    autoComplete="off"
                   />
+                  {showAddressSuggestions && addressSuggestions.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {addressSuggestions.map((s, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-b-0 truncate"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            updateField('address', s.display_name);
+                            updateField('latitude', parseFloat(s.lat));
+                            updateField('longitude', parseFloat(s.lon));
+                            // Auto-fill short address (city + street part)
+                            const parts = s.display_name.split(',');
+                            if (parts.length >= 2) {
+                              updateField('shortAddress', parts.slice(0, 2).join(',').trim());
+                            }
+                            setShowAddressSuggestions(false);
+                            setAddressSuggestions([]);
+                          }}
+                        >
+                          <MapPin className="w-3 h-3 inline mr-1.5 text-gray-400" />
+                          {s.display_name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   {(!settings.address || settings.address.trim().length === 0) && (
                     <p className="text-xs text-amber-600 mt-1.5 flex items-center gap-1">
                       <Lightbulb className="w-3 h-3" />
-                      Клієнти зможуть прокласти маршрут до вас
+                      Почніть вводити — підберемо адресу автоматично
                     </p>
                   )}
                 </div>
@@ -1172,43 +1222,7 @@ export default function WebsiteEditorPage() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 lg:gap-4">
-                  <div>
-                    <Label htmlFor="latitude">Широта</Label>
-                    <Input
-                      id="latitude"
-                      type="number"
-                      step="any"
-                      value={settings.latitude || ''}
-                      onChange={(e) => updateField('latitude', parseFloat(e.target.value) || null)}
-                      placeholder="50.4501"
-                      className="mt-1.5"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="longitude">Довгота</Label>
-                    <Input
-                      id="longitude"
-                      type="number"
-                      step="any"
-                      value={settings.longitude || ''}
-                      onChange={(e) => updateField('longitude', parseFloat(e.target.value) || null)}
-                      placeholder="30.5234"
-                      className="mt-1.5"
-                    />
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground -mt-2 lg:-mt-4 break-words">
-                  Для відображення на карті. Знайдіть координати на{' '}
-                  <a
-                    href="https://www.google.com/maps"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
-                  >
-                    Google Maps
-                  </a>
-                </p>
+                {/* Lat/lng auto-filled from address geocoding */}
               </div>
             </Card>
           )}
