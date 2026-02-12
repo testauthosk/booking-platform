@@ -593,7 +593,7 @@ export default function CalendarPage() {
         {/* Burger */}
         <button
           onClick={openSidebar}
-          className="shrink-0 active:scale-95 transition-transform"
+          className="shrink-0 active:scale-95 transition-transform p-2 rounded-xl border border-gray-200 hover:bg-gray-50"
           style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
           <Menu className="text-gray-700" style={{ width: '18px', height: '18px' }} />

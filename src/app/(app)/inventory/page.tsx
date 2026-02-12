@@ -133,7 +133,7 @@ export default function InventoryPage() {
       >
         <button
           onClick={openSidebar}
-          className="shrink-0 active:scale-95 transition-transform"
+          className="shrink-0 active:scale-95 transition-transform p-2 rounded-xl border border-gray-200 hover:bg-gray-50"
           style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
           <Menu className="text-gray-700" style={{ width: 18, height: 18 }} />

@@ -211,7 +211,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="bg-white border-b px-4 lg:px-8 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={openSidebar}>
+          <Button variant="outline" size="icon" className="lg:hidden rounded-xl" onClick={openSidebar}>
             <Menu className="h-5 w-5" />
           </Button>
           <div>
