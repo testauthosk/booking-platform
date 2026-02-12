@@ -97,12 +97,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         })}
       </nav>
 
-      {/* Help — pinned to bottom, matches desktop bottom bar height */}
-      <div className="px-4 py-3 border-t">
+      {/* Help — pinned to bottom, exact same height as desktop bottom bar (60px) */}
+      <div className="h-[60px] flex items-center px-4 border-t">
         <Link
           href="/help"
           onClick={onClose}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-all duration-200 active:scale-[0.98]"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted transition-all duration-200 active:scale-[0.98] w-full"
         >
           <HelpCircle className="h-5 w-5" />
           <span>Допомога</span>

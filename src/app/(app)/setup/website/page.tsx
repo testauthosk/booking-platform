@@ -819,19 +819,19 @@ export default function WebsiteEditorPage() {
       )}
 
       <div className="flex overflow-hidden max-w-full">
-        {/* Sidebar Navigation — Desktop — glass morphism */}
-        <div className="hidden lg:block w-56 shrink-0 border-r bg-white min-h-[calc(100vh-64px)] sticky top-16">
+        {/* Sidebar Navigation — Desktop — same style as main sidebar */}
+        <div className="hidden lg:block w-56 shrink-0 border-r bg-background min-h-[calc(100vh-64px)] sticky top-16">
           <nav className="p-4 space-y-1">
             {sections.map((section) => (
               <button
                 key={section.id}
                 onClick={() => setActiveSection(section.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 active:scale-[0.98] ${
                   activeSection === section.id
-                    ? 'bg-white/70 backdrop-blur-sm shadow-sm border border-white/50 text-gray-900 font-semibold'
+                    ? 'bg-primary/10 text-primary font-medium'
                     : section.done
-                      ? 'text-green-700 bg-green-50/80 hover:bg-green-100'
-                      : 'text-gray-600 hover:bg-gray-100'
+                      ? 'text-green-700 hover:bg-muted'
+                      : 'text-gray-600 hover:bg-muted'
                 }`}
               >
                 {section.done && activeSection !== section.id ? (
@@ -1544,8 +1544,8 @@ export default function WebsiteEditorPage() {
       </div>
 
       {/* Desktop Bottom Bar — right-aligned */}
-      <div className="hidden lg:block fixed bottom-0 left-56 right-0 bg-white border-t z-30">
-        <div className="flex items-center justify-end gap-2 px-6 py-3">
+      <div className="hidden lg:block fixed bottom-0 left-56 right-0 bg-white border-t z-30 h-[60px]">
+        <div className="flex items-center justify-end gap-2 px-6 h-full">
           <Button
             onClick={handleSave}
             disabled={!hasChanges || saving}
