@@ -701,7 +701,9 @@ export default function WebsiteEditorPage() {
               <div className="mb-2.5 flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-green-50 border border-green-200">
                 <span className="text-base shrink-0 animate-check-in">🎉</span>
                 <p className="text-xs font-medium text-green-800 flex-1 min-w-0">
-                  Мінімум заповнено! Можна публікувати.
+                  {progressPercent === 100
+                    ? 'Сайт повністю заповнений! Можна публікувати.'
+                    : 'Мінімум заповнено! Можна публікувати.'}
                 </p>
                 <button
                   onClick={(e) => { e.stopPropagation(); setMilestoneDismissed(true); }}
@@ -856,10 +858,12 @@ export default function WebsiteEditorPage() {
                 <span className="text-xl shrink-0 animate-check-in">🎉</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-green-800">
-                    Мінімум заповнено!
+                    {progressPercent === 100 ? 'Сайт повністю заповнений! 🎉' : 'Мінімум заповнено!'}
                   </p>
                   <p className="text-xs text-green-700 mt-0.5">
-                    Ви можете створити публічну сторінку або продовжити заповнення для кращого результату.
+                    {progressPercent === 100
+                      ? 'Все готово — натисніть "Опублікувати" щоб створити сторінку.'
+                      : 'Ви можете створити публічну сторінку або продовжити заповнення для кращого результату.'}
                   </p>
                 </div>
                 <button
@@ -957,10 +961,12 @@ export default function WebsiteEditorPage() {
             <div className="text-2xl animate-check-in">🎉</div>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-green-800 text-sm">
-                Мінімум заповнено!
+                {progressPercent === 100 ? 'Сайт повністю заповнений! 🎉' : 'Мінімум заповнено!'}
               </p>
               <p className="text-xs text-green-600 mt-0.5">
-                Ви вже можете створити публічну сторінку або продовжити заповнення для кращого результату
+                {progressPercent === 100
+                  ? 'Все готово — натисніть "Опублікувати" щоб створити сторінку.'
+                  : 'Ви вже можете створити публічну сторінку або продовжити заповнення для кращого результату'}
               </p>
             </div>
             <Button
@@ -981,7 +987,9 @@ export default function WebsiteEditorPage() {
           <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl px-3 py-2.5 flex items-center gap-2.5 animate-fade-in">
             <span className="text-lg animate-check-in">🎉</span>
             <p className="text-xs font-medium text-green-800 flex-1 min-w-0">
-              Мінімум заповнено! Можна публікувати.
+              {progressPercent === 100
+                ? 'Сайт повністю заповнений! Можна публікувати.'
+                : 'Мінімум заповнено! Можна публікувати.'}
             </p>
           </div>
         </div>
