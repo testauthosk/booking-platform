@@ -53,6 +53,20 @@ export async function GET(
             },
           },
         },
+        // Uncategorized services (no category)
+        services: {
+          where: { isActive: true, categoryId: null },
+          orderBy: { sortOrder: 'asc' as const },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            price: true,
+            priceFrom: true,
+            duration: true,
+            isActive: true,
+          },
+        },
         masters: {
           where: { isActive: true },
           orderBy: { sortOrder: 'asc' as const },
@@ -101,7 +115,7 @@ export async function GET(
     }
 
     // Transform to expected format — exclude internal fields
-    const { onboardingCompleted: _, ...publicSalon } = salon;
+    const { onboardingCompleted: _, categories: _cats, services: _svcs, ...publicSalon } = salon;
     const result = {
       ...publicSalon,
       short_address: salon.shortAddress,
@@ -114,21 +128,43 @@ export async function GET(
       review_count: salon.reviewCount,
       coordinates_lat: salon.latitude,
       coordinates_lng: salon.longitude,
-      services: salon.categories.map(cat => ({
-        id: cat.id,
-        name: cat.name,
-        sort_order: cat.sortOrder,
-        items: cat.services.map(s => ({
-          id: s.id,
-          name: s.name,
-          description: s.description,
-          price: s.price,
-          price_from: s.priceFrom,
-          duration: `${s.duration} хв`,
-          duration_minutes: s.duration,
-          is_active: s.isActive,
-        })),
-      })),
+      services: (() => {
+        // Categories with their services
+        const cats = salon.categories.map(cat => ({
+          id: cat.id,
+          name: cat.name,
+          sort_order: cat.sortOrder,
+          items: cat.services.map(s => ({
+            id: s.id,
+            name: s.name,
+            description: s.description,
+            price: s.price,
+            price_from: s.priceFrom,
+            duration: `${s.duration} хв`,
+            duration_minutes: s.duration,
+            is_active: s.isActive,
+          })),
+        }));
+        // Uncategorized services (categoryId = null)
+        if (salon.services?.length) {
+          cats.push({
+            id: 'uncategorized',
+            name: 'Послуги',
+            sort_order: 999,
+            items: salon.services.map((s: any) => ({
+              id: s.id,
+              name: s.name,
+              description: s.description,
+              price: s.price,
+              price_from: s.priceFrom,
+              duration: `${s.duration} хв`,
+              duration_minutes: s.duration,
+              is_active: s.isActive,
+            })),
+          });
+        }
+        return cats.filter(c => c.items.length > 0);
+      })(),
       masters: salon.masters.map(m => ({
         id: m.id,
         name: m.name,
