@@ -21,6 +21,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const { selectedDate, setSelectedDate } = useCalendarDate();
 
   const isCalendar = pathname === '/calendar' || pathname.startsWith('/calendar/') || pathname === '/calendar-test';
+  const isWebsiteSetup = pathname === '/setup/website' || pathname.startsWith('/setup/website/');
   // No exit animation — only enter
 
   // Redirect to login if not authenticated
@@ -89,7 +90,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       />
 
       {/* Mobile bottom navigation */}
-      <MobileNav isCalendar={isCalendar} />
+      <MobileNav isCalendar={isCalendar} hasTopBar={isWebsiteSetup} />
 
       {/* No exit animation for calendar header elements */}
     </div>

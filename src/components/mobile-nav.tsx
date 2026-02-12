@@ -22,9 +22,10 @@ const navItems = [
 
 interface MobileNavProps {
   isCalendar?: boolean;
+  hasTopBar?: boolean;
 }
 
-export function MobileNav({ isCalendar = false }: MobileNavProps) {
+export function MobileNav({ isCalendar = false, hasTopBar = false }: MobileNavProps) {
   const pathname = usePathname();
   const navRef = useRef<HTMLDivElement>(null);
   const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
@@ -64,7 +65,7 @@ export function MobileNav({ isCalendar = false }: MobileNavProps) {
         "lg:hidden fixed bottom-1 left-[23px] right-[23px] z-40",
         "bg-white border border-black/10 shadow-lg",
         "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-        isCalendar
+        (isCalendar || hasTopBar)
           ? "rounded-b-2xl rounded-t-none border-t-0"
           : "rounded-2xl border-t"
       )}

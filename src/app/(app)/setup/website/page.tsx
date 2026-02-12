@@ -1708,20 +1708,23 @@ export default function WebsiteEditorPage() {
       </div>
 
       {/* Mobile Bottom Bar — publish / save */}
-      <div className="lg:hidden fixed bottom-[68px] left-0 right-0 z-30 safe-area-bottom">
-        <div className="flex items-center gap-2 mx-4 mb-1 px-3 py-2.5 rounded-2xl bg-white/70 backdrop-blur-xl border border-black/10 shadow-lg">
+      {/* Mobile Save Bar — monolith with bottom nav (like WeekBar on calendar) */}
+      <div
+        className="lg:hidden fixed bottom-[63px] left-[23px] right-[23px] z-40 bg-white border border-black/10 border-b-0 rounded-t-2xl rounded-b-none"
+      >
+        <div className="flex items-center gap-2 px-3 py-2">
           {/* Save draft */}
           <Button
             onClick={handleSave}
             disabled={!hasChanges || saving}
             variant="outline"
-            className="flex-1 rounded-xl"
+            className="flex-1 h-9 rounded-xl text-xs"
             size="sm"
           >
             {saving ? (
-              <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
             ) : (
-              <Save className="w-4 h-4 mr-1.5" />
+              <Save className="w-3.5 h-3.5 mr-1" />
             )}
             Зберегти
           </Button>
@@ -1731,13 +1734,13 @@ export default function WebsiteEditorPage() {
             <Button
               onClick={handlePublish}
               disabled={!canPublish || publishing}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white animate-pulse-glow rounded-xl"
+              className="flex-1 h-9 bg-green-500 hover:bg-green-600 text-white rounded-xl text-xs"
               size="sm"
             >
               {publishing ? (
-                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
               ) : (
-                <Globe className="w-4 h-4 mr-1.5" />
+                <Globe className="w-3.5 h-3.5 mr-1" />
               )}
               Опублікувати
             </Button>
@@ -1746,13 +1749,13 @@ export default function WebsiteEditorPage() {
               <Button
                 onClick={handlePublish}
                 disabled={publishing}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
+                className="flex-1 h-9 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs"
                 size="sm"
               >
                 {publishing ? (
-                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
                 ) : (
-                  <RefreshCw className="w-4 h-4 mr-1.5" />
+                  <RefreshCw className="w-3.5 h-3.5 mr-1" />
                 )}
                 Оновити
               </Button>
@@ -1761,17 +1764,17 @@ export default function WebsiteEditorPage() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Button variant="outline" size="sm" className="rounded-xl">
-                  <Eye className="w-4 h-4" />
+                <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl shrink-0">
+                  <Eye className="w-3.5 h-3.5" />
                 </Button>
               </a>
               <Button
                 onClick={() => { setShowUnpublishModal(true); setUnpublishStep('confirm'); setUnpublishError(''); setUnpublishOtp(''); }}
                 variant="outline"
-                size="sm"
-                className="text-red-500 border-red-200 rounded-xl"
+                size="icon"
+                className="h-9 w-9 text-red-500 border-red-200 rounded-xl shrink-0"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </Button>
             </>
           )}
