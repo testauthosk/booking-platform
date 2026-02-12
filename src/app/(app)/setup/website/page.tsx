@@ -31,6 +31,7 @@ import {
   Lightbulb,
   RefreshCw,
   Eye,
+  ChevronDown,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -129,6 +130,8 @@ export default function WebsiteEditorPage() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [showChecklist, setShowChecklist] = useState(true);
+  // Mobile: checklist collapsed by default
+  const [mobileChecklistOpen, setMobileChecklistOpen] = useState(false);
 
   // Unpublish (delete page) state
   const [showUnpublishModal, setShowUnpublishModal] = useState(false);
@@ -138,6 +141,14 @@ export default function WebsiteEditorPage() {
   const [unpublishVerifying, setUnpublishVerifying] = useState(false);
   const [unpublishHint, setUnpublishHint] = useState('');
   const [unpublishError, setUnpublishError] = useState('');
+
+  // Track milestone dismissed
+  const [milestoneDismissed, setMilestoneDismissed] = useState(false);
+
+  // Refs for tracking progress changes (no confetti, just tracking for color transitions)
+  const initialLoadRef = useRef(true);
+  const prevMinimumDoneRef = useRef<boolean>(false);
+  const prevAllDoneRef = useRef<boolean>(false);
 
   // Завантаження даних
   useEffect(() => {
@@ -252,129 +263,7 @@ export default function WebsiteEditorPage() {
   const canPublish = minimumDone;
 
   // Track if we should show the milestone celebration banner
-  const [milestoneDismissed, setMilestoneDismissed] = useState(false);
   const showMilestoneBanner = minimumDone && !settings?.isPublished && !milestoneDismissed;
-
-  // ── Confetti system ──
-  const prevCompletedRef = useRef<number>(-1);
-  const prevMinimumDoneRef = useRef<boolean>(false);
-  const prevAllDoneRef = useRef<boolean>(false);
-  const initialLoadRef = useRef(true);
-
-  useEffect(() => {
-    // Skip confetti on initial page load (don't fire for already-completed items)
-    if (initialLoadRef.current) {
-      initialLoadRef.current = false;
-      prevCompletedRef.current = completedCount;
-      prevMinimumDoneRef.current = minimumDone;
-      prevAllDoneRef.current = progressPercent === 100;
-      return;
-    }
-
-    const prev = prevCompletedRef.current;
-    const shouldFire =
-      (progressPercent === 100 && !prevAllDoneRef.current) ||
-      (minimumDone && !prevMinimumDoneRef.current) ||
-      (completedCount > prev && prev >= 0);
-
-    if (!shouldFire) {
-      prevCompletedRef.current = completedCount;
-      prevMinimumDoneRef.current = minimumDone;
-      prevAllDoneRef.current = progressPercent === 100;
-      return;
-    }
-
-    // CSS confetti — create particles in DOM
-    const fireConfetti = (count: number, origins: {x: number, y: number}[]) => {
-      const colors = ['#22c55e', '#10b981', '#34d399', '#fbbf24', '#f472b6', '#60a5fa', '#a78bfa'];
-      const container = document.createElement('div');
-      container.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden';
-      document.body.appendChild(container);
-
-      for (let i = 0; i < count; i++) {
-        const origin = origins[Math.floor(Math.random() * origins.length)];
-        const particle = document.createElement('div');
-        const color = colors[Math.floor(Math.random() * colors.length)];
-        const size = 6 + Math.random() * 6;
-        const isRect = Math.random() > 0.5;
-        const angle = (Math.random() - 0.5) * 120;
-        const velocity = 200 + Math.random() * 400;
-        const vx = Math.sin(angle * Math.PI / 180) * velocity;
-        const vy = -Math.cos(angle * Math.PI / 180) * velocity;
-
-        particle.style.cssText = `
-          position:absolute;
-          left:${origin.x * 100}%;
-          top:${origin.y * 100}%;
-          width:${isRect ? size * 2.5 : size}px;
-          height:${size}px;
-          background:${color};
-          border-radius:${isRect ? '1px' : '50%'};
-          opacity:1;
-          pointer-events:none;
-        `;
-        container.appendChild(particle);
-
-        // Animate with physics
-        let x = 0, y = 0, vxCur = vx, vyCur = vy;
-        let opacity = 1;
-        const rotation = Math.random() * 720 - 360;
-        let rot = 0;
-        const startTime = performance.now();
-
-        const animate = (time: number) => {
-          const dt = Math.min((time - startTime) / 1000, 0.05);
-          const elapsed = (time - startTime) / 1000;
-          vyCur += 800 * dt; // gravity
-          vxCur *= 0.99; // air resistance
-          x += vxCur * dt;
-          y += vyCur * dt;
-          rot += rotation * dt;
-          opacity = Math.max(0, 1 - elapsed / 2.5);
-
-          particle.style.transform = `translate(${x}px, ${y}px) rotate(${rot}deg)`;
-          particle.style.opacity = String(opacity);
-
-          if (elapsed < 2.5 && opacity > 0) {
-            requestAnimationFrame(animate);
-          } else {
-            particle.remove();
-          }
-        };
-        // Stagger start
-        setTimeout(() => requestAnimationFrame(animate), Math.random() * 200);
-      }
-
-      // Cleanup container
-      setTimeout(() => container.remove(), 3000);
-    };
-
-    // 🎯 100% — full blast from all sides
-    if (progressPercent === 100 && !prevAllDoneRef.current) {
-      fireConfetti(80, [
-        { x: 0, y: 0 }, { x: 1, y: 0 },
-        { x: 0, y: 0.5 }, { x: 1, y: 0.5 },
-        { x: 0.5, y: 0 },
-      ]);
-    }
-    // 🎯 Minimum reached — two shots from top corners
-    else if (minimumDone && !prevMinimumDoneRef.current) {
-      fireConfetti(40, [{ x: 0, y: 0 }, { x: 1, y: 0 }]);
-    }
-    // 🎯 Single checkmark — mini burst from random point
-    else if (completedCount > prev && prev >= 0) {
-      const pts = [
-        { x: 0.1, y: 0.3 }, { x: 0.9, y: 0.3 },
-        { x: 0.2, y: 0.1 }, { x: 0.8, y: 0.1 },
-        { x: 0.5, y: 0.2 },
-      ];
-      fireConfetti(15, [pts[Math.floor(Math.random() * pts.length)]]);
-    }
-
-    prevCompletedRef.current = completedCount;
-    prevMinimumDoneRef.current = minimumDone;
-    prevAllDoneRef.current = progressPercent === 100;
-  }, [completedCount, minimumDone, progressPercent]);
 
   // Visual progress: 0-50% for minimum items, 50-100% for recommended
   const MILESTONE_PERCENT = 50;
@@ -389,11 +278,24 @@ export default function WebsiteEditorPage() {
     return MILESTONE_PERCENT + Math.round((recCompleted / recTotal) * (100 - MILESTONE_PERCENT));
   }, [minimumDone, minimumItems, recommendedItems]);
 
+  // Progress bar color — smooth transition via CSS (green at 100%, green at >=50%, amber otherwise)
   const progressColor = visualProgress === 100
     ? 'bg-green-500'
     : visualProgress >= MILESTONE_PERCENT
       ? 'bg-green-500'
       : 'bg-amber-500';
+
+  // Track progress state changes (for initial load skip)
+  useEffect(() => {
+    if (initialLoadRef.current) {
+      initialLoadRef.current = false;
+      prevMinimumDoneRef.current = minimumDone;
+      prevAllDoneRef.current = progressPercent === 100;
+      return;
+    }
+    prevMinimumDoneRef.current = minimumDone;
+    prevAllDoneRef.current = progressPercent === 100;
+  }, [completedCount, minimumDone, progressPercent]);
 
   // Збереження
   const handleSave = async () => {
@@ -668,21 +570,21 @@ export default function WebsiteEditorPage() {
     <div className="min-h-screen bg-gray-50/50 overflow-x-hidden max-w-full">
       {/* Header */}
       <div className="sticky top-0 z-20 bg-white border-b">
-        <div className="flex items-center justify-between px-4 sm:px-6 h-16">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between px-4 sm:px-6 h-14 lg:h-16">
+          <div className="flex items-center gap-3 min-w-0">
             <Link href="/setup">
               <Button variant="ghost" size="icon" className="shrink-0">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             </Link>
-            <div>
-              <h1 className="font-semibold text-lg">Редактор сайту</h1>
+            <div className="min-w-0">
+              <h1 className="font-semibold text-base lg:text-lg truncate">Редактор сайту</h1>
               <p className="text-xs text-muted-foreground hidden sm:block">
                 Налаштуйте публічну сторінку вашого салону
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {settings.isPublished && (
               <a
                 href={`/salon/${settings.slug}`}
@@ -713,8 +615,136 @@ export default function WebsiteEditorPage() {
         </div>
       </div>
 
-      {/* Progress Bar — sticky under header */}
-      <div className="sticky top-16 z-10 bg-white border-b shadow-sm">
+      {/* ═══════════════════════════════════════════ */}
+      {/* Progress Bar — MOBILE compact version      */}
+      {/* ═══════════════════════════════════════════ */}
+      <div className="lg:hidden sticky top-14 z-10 bg-white border-b">
+        <button
+          onClick={() => setMobileChecklistOpen(!mobileChecklistOpen)}
+          className="w-full px-4 py-2.5 flex items-center gap-3"
+        >
+          {/* Icon */}
+          {visualProgress === 100 ? (
+            <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+          ) : minimumDone ? (
+            <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+          ) : (
+            <Circle className="w-4 h-4 text-gray-400 shrink-0" />
+          )}
+          {/* Bar */}
+          <div className="flex-1 min-w-0">
+            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-700 ease-out ${progressColor}`}
+                style={{ width: `${visualProgress}%` }}
+              />
+            </div>
+          </div>
+          {/* Percent */}
+          <span className="text-xs font-medium text-gray-500 tabular-nums shrink-0">
+            {visualProgress}%
+          </span>
+          {/* Chevron */}
+          <ChevronDown
+            className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 ${
+              mobileChecklistOpen ? 'rotate-180' : ''
+            }`}
+          />
+        </button>
+
+        {/* Expandable mobile checklist */}
+        {mobileChecklistOpen && (
+          <div className="px-4 pb-3 animate-fade-in">
+            {/* Milestone celebration — compact mobile */}
+            {showMilestoneBanner && (
+              <div className="mb-2.5 flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-green-50 border border-green-200 animate-fade-in">
+                <span className="text-base shrink-0 animate-check-in">🎉</span>
+                <p className="text-xs font-medium text-green-800 flex-1 min-w-0">
+                  Мінімум заповнено! Можна публікувати.
+                </p>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setMilestoneDismissed(true); }}
+                  className="shrink-0 text-green-400 hover:text-green-600 p-0.5"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            {/* Minimum items */}
+            <div className="mb-2">
+              <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold mb-1 flex items-center gap-1">
+                {minimumDone ? (
+                  <CheckCircle2 className="w-3 h-3 text-green-500" />
+                ) : (
+                  <span className="w-3 h-3 rounded-full border-2 border-amber-400 inline-block" />
+                )}
+                Обов&apos;язково
+              </p>
+              <div className="space-y-1">
+                {minimumItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`flex items-center gap-2 px-2 py-1 rounded-lg text-sm ${
+                      item.completed ? 'text-gray-500' : 'text-gray-700 bg-amber-50/60'
+                    }`}
+                  >
+                    {item.completed ? (
+                      <div className="animate-check-in">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                      </div>
+                    ) : (
+                      <Circle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    )}
+                    <span className={`text-xs ${item.completed ? 'line-through' : 'font-medium'}`}>
+                      {item.label}
+                    </span>
+                    {item.detail && !item.completed && (
+                      <span className="text-[10px] text-amber-600 ml-auto font-medium">{item.detail}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Recommended items */}
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold mb-1">
+                Рекомендовано
+              </p>
+              <div className="space-y-1">
+                {recommendedItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`flex items-center gap-2 px-2 py-1 rounded-lg text-sm ${
+                      item.completed ? 'text-gray-500' : 'text-gray-700'
+                    }`}
+                  >
+                    {item.completed ? (
+                      <div className="animate-check-in">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                      </div>
+                    ) : (
+                      <Circle className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                    )}
+                    <span className={`text-xs ${item.completed ? 'line-through' : ''}`}>
+                      {item.label}
+                    </span>
+                    {item.detail && !item.completed && (
+                      <span className="text-[10px] text-gray-500 ml-auto font-medium">{item.detail}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ═══════════════════════════════════════════ */}
+      {/* Progress Bar — DESKTOP full version         */}
+      {/* ═══════════════════════════════════════════ */}
+      <div className="hidden lg:block sticky top-16 z-10 bg-white border-b shadow-sm">
         <div className="px-4 sm:px-6 py-3">
           {/* Title row */}
           <div className="flex items-center justify-between mb-2">
@@ -743,7 +773,7 @@ export default function WebsiteEditorPage() {
                 className={`h-full rounded-full ${progressColor}`}
                 style={{
                   width: `${visualProgress}%`,
-                  transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+                  transition: 'width 0.8s ease, background-color 0.6s ease',
                 }}
               />
             </div>
@@ -753,7 +783,7 @@ export default function WebsiteEditorPage() {
               style={{ left: `${MILESTONE_PERCENT}%`, transform: `translateX(-50%) translateY(-50%)` }}
             >
               <div
-                className={`w-4 h-4 rounded-full border-2 border-white shadow-sm flex items-center justify-center ${
+                className={`w-4 h-4 rounded-full border-2 border-white shadow-sm flex items-center justify-center transition-colors duration-500 ${
                   minimumDone ? 'bg-green-500' : 'bg-gray-300'
                 }`}
               >
@@ -775,9 +805,9 @@ export default function WebsiteEditorPage() {
             </div>
           </div>
 
-          {/* Milestone celebration banner */}
+          {/* Milestone celebration banner — desktop */}
           {showMilestoneBanner && (
-            <div className="mt-3 animate-milestone-banner">
+            <div className="mt-3 animate-fade-in">
               <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-green-50 border border-green-200">
                 <span className="text-xl shrink-0 animate-check-in">🎉</span>
                 <div className="flex-1 min-w-0">
@@ -798,7 +828,7 @@ export default function WebsiteEditorPage() {
             </div>
           )}
 
-          {/* Checklist */}
+          {/* Checklist — desktop */}
           {showChecklist && (
             <div className="mt-3 space-y-3">
               {/* Minimum items */}
@@ -876,10 +906,10 @@ export default function WebsiteEditorPage() {
         </div>
       </div>
 
-      {/* Celebration banner when minimum is met but not yet published */}
+      {/* Celebration banner when minimum is met but not yet published — DESKTOP only */}
       {canPublish && !settings.isPublished && (
-        <div className="mx-4 sm:mx-6 mt-3 mb-0">
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 flex items-center gap-3 animate-section-expand">
+        <div className="hidden lg:block mx-4 sm:mx-6 mt-3 mb-0">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 flex items-center gap-3 animate-fade-in">
             <div className="text-2xl animate-check-in">🎉</div>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-green-800 text-sm">
@@ -901,7 +931,19 @@ export default function WebsiteEditorPage() {
         </div>
       )}
 
-      <div className="flex overflow-hidden">
+      {/* Mobile celebration banner — compact, no button (button is in bottom bar) */}
+      {canPublish && !settings.isPublished && (
+        <div className="lg:hidden mx-4 mt-3 mb-0">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl px-3 py-2.5 flex items-center gap-2.5 animate-fade-in">
+            <span className="text-lg animate-check-in">🎉</span>
+            <p className="text-xs font-medium text-green-800 flex-1 min-w-0">
+              Мінімум заповнено! Можна публікувати.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="flex overflow-hidden max-w-full">
         {/* Sidebar Navigation */}
         <div className="hidden lg:block w-56 shrink-0 border-r bg-white min-h-[calc(100vh-64px)] sticky top-16">
           <nav className="p-4 space-y-1">
@@ -923,21 +965,21 @@ export default function WebsiteEditorPage() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 p-4 sm:p-6 lg:p-8 max-w-3xl pb-40 lg:pb-8">
-          {/* Mobile Section Tabs */}
-          <div className="lg:hidden mb-6 overflow-x-auto -mx-4 px-4 scrollbar-hide">
-            <div className="flex gap-2">
+        <div className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-3xl pb-[180px] lg:pb-8">
+          {/* Mobile Section Tabs — horizontal scroll */}
+          <div className="lg:hidden mb-4 -mx-4 px-4 overflow-x-auto scrollbar-hide">
+            <div className="flex gap-2 w-max">
               {sections.map((section) => (
                 <button
                   key={section.id}
                   onClick={() => setActiveSection(section.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                     activeSection === section.id
                       ? 'bg-gray-900 text-white'
                       : 'bg-white text-gray-600 border'
                   }`}
                 >
-                  <section.icon className="w-4 h-4" />
+                  <section.icon className="w-3.5 h-3.5" />
                   {section.label}
                 </button>
               ))}
@@ -946,20 +988,20 @@ export default function WebsiteEditorPage() {
 
           {/* Section Hint */}
           {sectionHints[activeSection]?.show && (
-            <div className="mb-4 flex items-start gap-2.5 px-4 py-3 rounded-xl bg-amber-50 border border-amber-100 text-sm text-amber-800">
+            <div className="mb-4 flex items-start gap-2.5 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl bg-amber-50 border border-amber-100 text-sm text-amber-800 break-words">
               <Lightbulb className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-              <span>{sectionHints[activeSection].text}</span>
+              <span className="min-w-0">{sectionHints[activeSection].text}</span>
             </div>
           )}
 
           {/* Basic Info Section */}
           {activeSection === 'basic' && (
-            <Card className="p-6">
-              <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-gray-400" />
-                Основна інформація
+            <Card className="p-4 lg:p-6 max-w-full">
+              <h2 className="text-base lg:text-lg font-semibold mb-4 lg:mb-6 flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-gray-400 shrink-0" />
+                <span className="break-words">Основна інформація</span>
               </h2>
-              <div className="space-y-6">
+              <div className="space-y-4 lg:space-y-6">
                 <div>
                   <Label htmlFor="name">Назва закладу</Label>
                   <Input
@@ -986,9 +1028,9 @@ export default function WebsiteEditorPage() {
                         updateField('slug', clean);
                       }}
                       placeholder="the-barber"
-                      className="flex-1"
+                      className="flex-1 min-w-0"
                     />
-                    <span className="text-sm text-muted-foreground flex-shrink-0">.tholim.com</span>
+                    <span className="text-sm text-muted-foreground shrink-0">.tholim.com</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     Латинські літери, цифри та дефіс. Макс. 30 символів.
@@ -1033,12 +1075,12 @@ export default function WebsiteEditorPage() {
 
           {/* Contacts Section */}
           {activeSection === 'contacts' && (
-            <Card className="p-6">
-              <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                <Phone className="w-5 h-5 text-gray-400" />
+            <Card className="p-4 lg:p-6 max-w-full">
+              <h2 className="text-base lg:text-lg font-semibold mb-4 lg:mb-6 flex items-center gap-2">
+                <Phone className="w-5 h-5 text-gray-400 shrink-0" />
                 Контактна інформація
               </h2>
-              <div className="space-y-6">
+              <div className="space-y-4 lg:space-y-6">
                 <div>
                   <Label htmlFor="phone">Телефон</Label>
                   <Input
@@ -1094,7 +1136,7 @@ export default function WebsiteEditorPage() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3 lg:gap-4">
                   <div>
                     <Label htmlFor="latitude">Широта</Label>
                     <Input
@@ -1120,7 +1162,7 @@ export default function WebsiteEditorPage() {
                     />
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground -mt-4">
+                <p className="text-xs text-muted-foreground -mt-2 lg:-mt-4 break-words">
                   Для відображення на карті. Знайдіть координати на{' '}
                   <a
                     href="https://www.google.com/maps"
@@ -1137,17 +1179,17 @@ export default function WebsiteEditorPage() {
 
           {/* Media Section */}
           {activeSection === 'media' && (
-            <Card className="p-6">
-              <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                <ImageIcon className="w-5 h-5 text-gray-400" />
+            <Card className="p-4 lg:p-6 max-w-full overflow-hidden">
+              <h2 className="text-base lg:text-lg font-semibold mb-4 lg:mb-6 flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-gray-400 shrink-0" />
                 Медіа
               </h2>
-              <div className="space-y-8">
+              <div className="space-y-6 lg:space-y-8">
                 {/* Logo */}
                 <div>
                   <Label>Логотип</Label>
-                  <div className="mt-3 flex items-start gap-4">
-                    <div className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center bg-gray-50 overflow-hidden">
+                  <div className="mt-3 flex items-start gap-3 lg:gap-4">
+                    <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center bg-gray-50 overflow-hidden shrink-0">
                       {settings.logo ? (
                         <Image
                           src={settings.logo}
@@ -1160,7 +1202,7 @@ export default function WebsiteEditorPage() {
                         <Globe className="w-8 h-8 text-gray-300" />
                       )}
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <input
                         type="file"
                         accept="image/*"
@@ -1205,10 +1247,10 @@ export default function WebsiteEditorPage() {
 
                 {/* Gallery */}
                 <div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <Label>Галерея фото</Label>
                     {settings.photos.length < 3 && (
-                      <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                      <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full shrink-0">
                         {settings.photos.length}/3 мінімум
                       </span>
                     )}
@@ -1216,7 +1258,8 @@ export default function WebsiteEditorPage() {
                   <p className="text-xs text-muted-foreground mt-1 mb-3">
                     Перше фото буде головним на сторінці
                   </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {/* Photo grid — on mobile use horizontal scroll if many photos */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 lg:gap-3">
                     {settings.photos.map((photo, index) => (
                       <div
                         key={index}
@@ -1268,16 +1311,16 @@ export default function WebsiteEditorPage() {
 
           {/* Working Hours Section */}
           {activeSection === 'hours' && (
-            <Card className="p-6">
-              <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                <Clock className="w-5 h-5 text-gray-400" />
+            <Card className="p-4 lg:p-6 max-w-full">
+              <h2 className="text-base lg:text-lg font-semibold mb-4 lg:mb-6 flex items-center gap-2">
+                <Clock className="w-5 h-5 text-gray-400 shrink-0" />
                 Години роботи
               </h2>
-              <div className="space-y-3">
+              <div className="space-y-2 lg:space-y-3">
                 {settings.workingHours?.map((day, index) => (
                   <div
                     key={day.day}
-                    className={`flex items-center gap-4 p-3 rounded-lg transition-colors ${
+                    className={`flex items-center gap-2 lg:gap-4 p-2.5 lg:p-3 rounded-lg transition-colors ${
                       day.enabled ? 'bg-white border' : 'bg-gray-50'
                     }`}
                   >
@@ -1286,30 +1329,30 @@ export default function WebsiteEditorPage() {
                       onCheckedChange={(checked) => updateWorkingHours(index, 'enabled', checked)}
                     />
                     <span
-                      className={`w-28 text-sm font-medium ${
+                      className={`w-20 lg:w-28 text-xs lg:text-sm font-medium shrink-0 ${
                         day.enabled ? 'text-gray-900' : 'text-gray-400'
                       }`}
                     >
                       {day.day}
                     </span>
                     {day.enabled ? (
-                      <div className="flex items-center gap-2 flex-1">
+                      <div className="flex items-center gap-1.5 lg:gap-2 flex-1 min-w-0">
                         <Input
                           type="time"
                           value={day.start}
                           onChange={(e) => updateWorkingHours(index, 'start', e.target.value)}
-                          className="w-28"
+                          className="w-[5.5rem] lg:w-28 text-xs lg:text-sm"
                         />
-                        <span className="text-gray-400">—</span>
+                        <span className="text-gray-400 shrink-0">—</span>
                         <Input
                           type="time"
                           value={day.end}
                           onChange={(e) => updateWorkingHours(index, 'end', e.target.value)}
-                          className="w-28"
+                          className="w-[5.5rem] lg:w-28 text-xs lg:text-sm"
                         />
                       </div>
                     ) : (
-                      <span className="text-sm text-gray-400">Зачинено</span>
+                      <span className="text-xs lg:text-sm text-gray-400">Зачинено</span>
                     )}
                   </div>
                 ))}
@@ -1319,32 +1362,32 @@ export default function WebsiteEditorPage() {
 
           {/* Amenities Section */}
           {activeSection === 'amenities' && (
-            <Card className="p-6">
-              <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-gray-400" />
+            <Card className="p-4 lg:p-6 max-w-full">
+              <h2 className="text-base lg:text-lg font-semibold mb-4 lg:mb-6 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-gray-400 shrink-0" />
                 Зручності
               </h2>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2 lg:gap-3">
                 {AVAILABLE_AMENITIES.map((amenity) => {
                   const isSelected = settings.amenities?.includes(amenity);
                   return (
                     <button
                       key={amenity}
                       onClick={() => toggleAmenity(amenity)}
-                      className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all ${
+                      className={`flex items-center gap-2 lg:gap-3 p-2.5 lg:p-3 rounded-lg border text-left transition-all ${
                         isSelected
                           ? 'border-gray-900 bg-gray-900 text-white'
                           : 'border-gray-200 hover:border-gray-300 bg-white'
                       }`}
                     >
                       <div
-                        className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
+                        className={`w-4 h-4 lg:w-5 lg:h-5 rounded-full flex items-center justify-center shrink-0 ${
                           isSelected ? 'bg-white' : 'border-2 border-gray-300'
                         }`}
                       >
-                        {isSelected && <Check className="w-3 h-3 text-gray-900" />}
+                        {isSelected && <Check className="w-2.5 h-2.5 lg:w-3 lg:h-3 text-gray-900" />}
                       </div>
-                      <span className="text-sm font-medium">{amenity}</span>
+                      <span className="text-xs lg:text-sm font-medium break-words min-w-0">{amenity}</span>
                     </button>
                   );
                 })}
@@ -1354,12 +1397,12 @@ export default function WebsiteEditorPage() {
 
           {/* Theme Section */}
           {activeSection === 'theme' && (
-            <Card className="p-6">
-              <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                <Palette className="w-5 h-5 text-gray-400" />
+            <Card className="p-4 lg:p-6 max-w-full">
+              <h2 className="text-base lg:text-lg font-semibold mb-4 lg:mb-6 flex items-center gap-2">
+                <Palette className="w-5 h-5 text-gray-400 shrink-0" />
                 Кольорова тема
               </h2>
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2 lg:gap-3">
                 {LIB_PALETTES.map((palette) => {
                   const isSelected = settings.paletteId === palette.id;
                   return (
@@ -1372,7 +1415,7 @@ export default function WebsiteEditorPage() {
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      <div className="flex gap-1 flex-shrink-0">
+                      <div className="flex gap-1 shrink-0">
                         {palette.colors.map((color, i) => (
                           <div
                             key={i}
@@ -1381,12 +1424,12 @@ export default function WebsiteEditorPage() {
                           />
                         ))}
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium truncate">{palette.name}</p>
                         <p className="text-[11px] text-gray-500 truncate">{palette.description}</p>
                       </div>
                       {isSelected && (
-                        <Check className="w-4 h-4 text-gray-900 flex-shrink-0 ml-auto" />
+                        <Check className="w-4 h-4 text-gray-900 shrink-0 ml-auto" />
                       )}
                     </button>
                   );
@@ -1600,16 +1643,16 @@ export default function WebsiteEditorPage() {
       {/* Unpublish Confirmation Modal */}
       {showUnpublishModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-section-expand">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-fade-in">
             {unpublishStep === 'confirm' ? (
-              <div className="p-6">
+              <div className="p-5 lg:p-6">
                 <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl">⚠️</span>
                 </div>
                 <h3 className="text-lg font-bold text-center text-gray-900 mb-2">
                   Видалити публічну сторінку?
                 </h3>
-                <p className="text-sm text-gray-500 text-center mb-6">
+                <p className="text-sm text-gray-500 text-center mb-6 break-words">
                   Ваш сайт <b>{settings.slug}.tholim.com</b> стане недоступним для клієнтів. Дані залишаться — ви зможете опублікувати знову.
                 </p>
                 {unpublishError && (
@@ -1636,7 +1679,7 @@ export default function WebsiteEditorPage() {
                 </div>
               </div>
             ) : (
-              <div className="p-6">
+              <div className="p-5 lg:p-6">
                 <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl">🔐</span>
                 </div>
