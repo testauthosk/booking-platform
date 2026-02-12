@@ -640,7 +640,7 @@ export default function WebsiteEditorPage() {
         <div className="flex items-center justify-between px-4 sm:px-6 h-14 lg:h-16">
           <div className="flex items-center gap-3 min-w-0">
             <Link href="/setup">
-              <Button variant="ghost" size="icon" className="shrink-0">
+              <Button variant="outline" size="icon" className="shrink-0 rounded-xl border-gray-200 hover:bg-gray-50">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             </Link>
@@ -651,34 +651,7 @@ export default function WebsiteEditorPage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {settings.isPublished && (
-              <a
-                href={`https://${settings.slug}.tholim.com`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden sm:flex"
-              >
-                <Button variant="outline" size="sm">
-                  <Eye className="w-4 h-4 mr-2" />
-                  Переглянути
-                </Button>
-              </a>
-            )}
-            <Button
-              onClick={handleSave}
-              disabled={!hasChanges || saving}
-              size="icon"
-              variant="outline"
-              className="rounded-xl"
-            >
-              {saving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-            </Button>
-          </div>
+          {/* Header save button removed — save is in bottom bar */}
         </div>
       </div>
 
