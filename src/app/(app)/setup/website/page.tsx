@@ -74,6 +74,7 @@ interface ChecklistItem {
   completed: boolean;
   hint?: string;
   detail?: string;
+  required?: boolean;
 }
 
 // Дні тижня
@@ -162,7 +163,9 @@ export default function WebsiteEditorPage() {
     setHasChanges(true);
   }, []);
 
-  // Checklist logic
+  // Checklist logic — split into minimum (required) and recommended
+  const MINIMUM_IDS = ['name', 'services', 'masters'] as const;
+
   const checklist = useMemo<ChecklistItem[]>(() => {
     if (!settings) return [];
 
@@ -170,12 +173,31 @@ export default function WebsiteEditorPage() {
       settings.workingHours.some((d) => d.enabled);
 
     return [
+      // ── Minimum (required for publish) ──
       {
         id: 'name',
         label: 'Назва закладу',
         completed: !!settings.name && settings.name.trim().length > 0,
         hint: 'Вкажіть назву вашого закладу',
+        required: true,
       },
+      {
+        id: 'services',
+        label: 'Хоча б 1 послуга',
+        completed: settings.servicesCount > 0,
+        hint: 'Додайте послуги, щоб клієнти могли записатися',
+        detail: settings.servicesCount > 0 ? `${settings.servicesCount}` : '0',
+        required: true,
+      },
+      {
+        id: 'masters',
+        label: 'Хоча б 1 майстер',
+        completed: settings.mastersCount > 0,
+        hint: 'Додайте майстрів для бронювання',
+        detail: settings.mastersCount > 0 ? `${settings.mastersCount}` : '0',
+        required: true,
+      },
+      // ── Recommended (for full completion) ──
       {
         id: 'type',
         label: 'Тип закладу',
@@ -207,37 +229,22 @@ export default function WebsiteEditorPage() {
         completed: hasWorkingHours,
         hint: 'Вкажіть графік роботи',
       },
-      {
-        id: 'services',
-        label: 'Хоча б 1 послуга',
-        completed: settings.servicesCount > 0,
-        hint: 'Додайте послуги, щоб клієнти могли записатися',
-        detail: settings.servicesCount > 0 ? `${settings.servicesCount}` : '0',
-      },
-      {
-        id: 'masters',
-        label: 'Хоча б 1 майстер',
-        completed: settings.mastersCount > 0,
-        hint: 'Додайте майстрів для бронювання',
-        detail: settings.mastersCount > 0 ? `${settings.mastersCount}` : '0',
-      },
     ];
   }, [settings]);
 
+  const minimumItems = checklist.filter((c) => MINIMUM_IDS.includes(c.id as any));
+  const recommendedItems = checklist.filter((c) => !MINIMUM_IDS.includes(c.id as any));
+  const minimumDone = minimumItems.every((c) => c.completed);
   const completedCount = checklist.filter((c) => c.completed).length;
   const totalCount = checklist.length;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  // Minimum requirements for publishing: name + 1 service + 1 master
-  const canPublish = useMemo(() => {
-    if (!settings) return false;
-    return (
-      !!settings.name &&
-      settings.name.trim().length > 0 &&
-      settings.servicesCount > 0 &&
-      settings.mastersCount > 0
-    );
-  }, [settings]);
+  // canPublish = minimum items all done
+  const canPublish = minimumDone;
+
+  // Track if we should show the milestone celebration banner
+  const [milestoneDismissed, setMilestoneDismissed] = useState(false);
+  const showMilestoneBanner = minimumDone && !settings?.isPublished && !milestoneDismissed;
 
   // Збереження
   const handleSave = async () => {
@@ -457,10 +464,26 @@ export default function WebsiteEditorPage() {
     theme: { show: false, text: '' },
   };
 
-  const progressColor = progressPercent === 100
+  // The milestone sits at 50% visually (minimum = 3 items out of 8 ≈ 37.5%, but we show it at 50% mark)
+  const MILESTONE_PERCENT = 50;
+  // Visual progress: if minimum not done, scale within 0-50%; if done, scale within 50-100%
+  const visualProgress = useMemo(() => {
+    if (!minimumDone) {
+      // Scale minimum progress into 0–50% range
+      const minCompleted = minimumItems.filter((c) => c.completed).length;
+      const minTotal = minimumItems.length;
+      return Math.round((minCompleted / minTotal) * MILESTONE_PERCENT);
+    }
+    // Minimum done → 50% base + recommended progress scaled to 50-100%
+    const recCompleted = recommendedItems.filter((c) => c.completed).length;
+    const recTotal = recommendedItems.length;
+    return MILESTONE_PERCENT + Math.round((recCompleted / recTotal) * (100 - MILESTONE_PERCENT));
+  }, [minimumDone, minimumItems, recommendedItems]);
+
+  const progressColor = visualProgress === 100
     ? 'bg-green-500'
-    : progressPercent >= 60
-      ? 'bg-blue-500'
+    : visualProgress >= MILESTONE_PERCENT
+      ? 'bg-green-500'
       : 'bg-amber-500';
 
   return (
@@ -515,59 +538,161 @@ export default function WebsiteEditorPage() {
       {/* Progress Bar — sticky under header */}
       <div className="sticky top-16 z-10 bg-white border-b shadow-sm">
         <div className="px-4 sm:px-6 py-3">
+          {/* Title row */}
           <div className="flex items-center justify-between mb-2">
             <button
               onClick={() => setShowChecklist(!showChecklist)}
               className="text-sm font-medium text-gray-700 flex items-center gap-1.5 hover:text-gray-900 transition-colors"
             >
-              {progressPercent === 100 ? (
+              {visualProgress === 100 ? (
+                <CheckCircle2 className="w-4 h-4 text-green-500" />
+              ) : minimumDone ? (
                 <CheckCircle2 className="w-4 h-4 text-green-500" />
               ) : (
                 <Circle className="w-4 h-4 text-gray-400" />
               )}
-              Ваш сайт готовий на {progressPercent}%
+              Ваш сайт готовий на {visualProgress}%
             </button>
             <span className="text-xs text-muted-foreground">
               {completedCount}/{totalCount}
             </span>
           </div>
-          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+
+          {/* Two-zone progress bar */}
+          <div className="relative">
+            <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full ${progressColor}`}
+                style={{
+                  width: `${visualProgress}%`,
+                  transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+                }}
+              />
+            </div>
+            {/* Milestone marker at 50% */}
             <div
-              className={`h-full rounded-full animate-progress ${progressColor}`}
-              style={{
-                width: `${progressPercent}%`,
-                transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
-              }}
-            />
+              className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center"
+              style={{ left: `${MILESTONE_PERCENT}%`, transform: `translateX(-50%) translateY(-50%)` }}
+            >
+              <div
+                className={`w-4 h-4 rounded-full border-2 border-white shadow-sm flex items-center justify-center ${
+                  minimumDone ? 'bg-green-500' : 'bg-gray-300'
+                }`}
+              >
+                {minimumDone && (
+                  <Check className="w-2.5 h-2.5 text-white" />
+                )}
+              </div>
+            </div>
+            {/* Labels under the bar */}
+            <div className="flex justify-between mt-1.5">
+              <span className="text-[10px] text-gray-400">Мінімум</span>
+              <span
+                className="text-[10px] text-gray-400 absolute"
+                style={{ left: `${MILESTONE_PERCENT}%`, transform: 'translateX(-50%)' }}
+              >
+                {minimumDone ? '✓ Готово' : 'Мінімум'}
+              </span>
+              <span className="text-[10px] text-gray-400">100%</span>
+            </div>
           </div>
+
+          {/* Milestone celebration banner */}
+          {showMilestoneBanner && (
+            <div className="mt-3 animate-milestone-banner">
+              <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-green-50 border border-green-200">
+                <span className="text-xl shrink-0 animate-check-in">🎉</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-green-800">
+                    Мінімум заповнено!
+                  </p>
+                  <p className="text-xs text-green-700 mt-0.5">
+                    Ви можете створити публічну сторінку або продовжити заповнення для кращого результату.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setMilestoneDismissed(true)}
+                  className="shrink-0 text-green-400 hover:text-green-600 transition-colors p-1"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Checklist */}
           {showChecklist && (
-            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-              {checklist.map((item, index) => (
-                <div
-                  key={item.id}
-                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm transition-colors ${
-                    item.completed ? 'text-gray-500' : 'text-gray-700 bg-amber-50/60'
-                  }`}
-                >
-                  {item.completed ? (
-                    <div className="animate-check-in">
-                      <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-                    </div>
+            <div className="mt-3 space-y-3">
+              {/* Minimum items */}
+              <div>
+                <p className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold mb-1.5 flex items-center gap-1.5">
+                  {minimumDone ? (
+                    <CheckCircle2 className="w-3 h-3 text-green-500" />
                   ) : (
-                    <Circle className="w-4 h-4 text-gray-300 shrink-0" />
+                    <span className="w-3 h-3 rounded-full border-2 border-amber-400 inline-block" />
                   )}
-                  <span className={item.completed ? 'line-through' : 'font-medium'}>
-                    {item.label}
-                  </span>
-                  {item.detail && !item.completed && (
-                    <span className="text-xs text-amber-600 ml-auto font-medium">
-                      {item.detail}
-                    </span>
-                  )}
+                  Обов&apos;язково
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                  {minimumItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm transition-colors ${
+                        item.completed ? 'text-gray-500' : 'text-gray-700 bg-amber-50/60'
+                      }`}
+                    >
+                      {item.completed ? (
+                        <div className="animate-check-in">
+                          <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                        </div>
+                      ) : (
+                        <Circle className="w-4 h-4 text-amber-400 shrink-0" />
+                      )}
+                      <span className={item.completed ? 'line-through' : 'font-medium'}>
+                        {item.label}
+                      </span>
+                      {item.detail && !item.completed && (
+                        <span className="text-xs text-amber-600 ml-auto font-medium">
+                          {item.detail}
+                        </span>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+
+              {/* Recommended items */}
+              <div>
+                <p className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold mb-1.5">
+                  Рекомендовано
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {recommendedItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm transition-colors ${
+                        item.completed ? 'text-gray-500' : 'text-gray-700 bg-gray-50'
+                      }`}
+                    >
+                      {item.completed ? (
+                        <div className="animate-check-in">
+                          <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                        </div>
+                      ) : (
+                        <Circle className="w-4 h-4 text-gray-300 shrink-0" />
+                      )}
+                      <span className={item.completed ? 'line-through' : ''}>
+                        {item.label}
+                      </span>
+                      {item.detail && !item.completed && (
+                        <span className="text-xs text-gray-500 ml-auto font-medium">
+                          {item.detail}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>
