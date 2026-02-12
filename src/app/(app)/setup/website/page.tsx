@@ -376,6 +376,25 @@ export default function WebsiteEditorPage() {
     prevAllDoneRef.current = progressPercent === 100;
   }, [completedCount, minimumDone, progressPercent]);
 
+  // Visual progress: 0-50% for minimum items, 50-100% for recommended
+  const MILESTONE_PERCENT = 50;
+  const visualProgress = useMemo(() => {
+    if (!minimumDone) {
+      const minCompleted = minimumItems.filter((c) => c.completed).length;
+      const minTotal = minimumItems.length || 1;
+      return Math.round((minCompleted / minTotal) * MILESTONE_PERCENT);
+    }
+    const recCompleted = recommendedItems.filter((c) => c.completed).length;
+    const recTotal = recommendedItems.length || 1;
+    return MILESTONE_PERCENT + Math.round((recCompleted / recTotal) * (100 - MILESTONE_PERCENT));
+  }, [minimumDone, minimumItems, recommendedItems]);
+
+  const progressColor = visualProgress === 100
+    ? 'bg-green-500'
+    : visualProgress >= MILESTONE_PERCENT
+      ? 'bg-green-500'
+      : 'bg-amber-500';
+
   // Збереження
   const handleSave = async () => {
     if (!settings) return;
@@ -644,28 +663,6 @@ export default function WebsiteEditorPage() {
     amenities: { show: false, text: '' },
     theme: { show: false, text: '' },
   };
-
-  // The milestone sits at 50% visually (minimum = 3 items out of 8 ≈ 37.5%, but we show it at 50% mark)
-  const MILESTONE_PERCENT = 50;
-  // Visual progress: if minimum not done, scale within 0-50%; if done, scale within 50-100%
-  const visualProgress = useMemo(() => {
-    if (!minimumDone) {
-      // Scale minimum progress into 0–50% range
-      const minCompleted = minimumItems.filter((c) => c.completed).length;
-      const minTotal = minimumItems.length;
-      return Math.round((minCompleted / minTotal) * MILESTONE_PERCENT);
-    }
-    // Minimum done → 50% base + recommended progress scaled to 50-100%
-    const recCompleted = recommendedItems.filter((c) => c.completed).length;
-    const recTotal = recommendedItems.length;
-    return MILESTONE_PERCENT + Math.round((recCompleted / recTotal) * (100 - MILESTONE_PERCENT));
-  }, [minimumDone, minimumItems, recommendedItems]);
-
-  const progressColor = visualProgress === 100
-    ? 'bg-green-500'
-    : visualProgress >= MILESTONE_PERCENT
-      ? 'bg-green-500'
-      : 'bg-amber-500';
 
   return (
     <div className="min-h-screen bg-gray-50/50">
