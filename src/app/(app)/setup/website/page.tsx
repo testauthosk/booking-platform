@@ -1536,69 +1536,55 @@ export default function WebsiteEditorPage() {
         </div>
       </div>
 
-      {/* Desktop Bottom Bar */}
-      <div className="hidden lg:block fixed bottom-0 left-56 right-0 bg-white border-t z-30">
-        <div className="flex items-center justify-between px-8 py-3 max-w-3xl">
-          <div className="flex items-center gap-2">
-            {settings.isPublished ? (
-              <span className="flex items-center gap-1.5 text-sm text-green-600 font-medium">
-                <CheckCircle2 className="w-4 h-4" />
-                Опубліковано
-              </span>
-            ) : (
-              <span className="text-sm text-muted-foreground">
-                {canPublish ? 'Готово до публікації' : 'Заповніть: назва, послуга, майстер'}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
+      {/* Desktop Bottom Bar — right-aligned */}
+      <div className="hidden lg:block fixed bottom-0 right-0 z-30">
+        <div className="flex items-center gap-2 px-6 py-3">
+          <Button
+            onClick={handleSave}
+            disabled={!hasChanges || saving}
+            variant="outline"
+            size="sm"
+            className="rounded-xl"
+          >
+            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+            Зберегти
+          </Button>
+          {!settings.isPublished ? (
             <Button
-              onClick={handleSave}
-              disabled={!hasChanges || saving}
-              variant="outline"
+              onClick={handlePublish}
+              disabled={!canPublish || publishing}
+              className="bg-green-600 hover:bg-green-700 text-white rounded-xl"
               size="sm"
-              className="rounded-xl"
             >
-              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-              Зберегти
+              {publishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Globe className="w-4 h-4 mr-2" />}
+              Опублікувати
             </Button>
-            {!settings.isPublished ? (
+          ) : (
+            <>
               <Button
                 onClick={handlePublish}
-                disabled={!canPublish || publishing}
-                className="bg-green-600 hover:bg-green-700 text-white rounded-xl"
+                disabled={publishing}
+                className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
                 size="sm"
               >
-                {publishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Globe className="w-4 h-4 mr-2" />}
-                Опублікувати
+                {publishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+                Оновити
               </Button>
-            ) : (
-              <>
-                <Button
-                  onClick={handlePublish}
-                  disabled={publishing}
-                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
-                  size="sm"
-                >
-                  {publishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-                  Оновити
+              <a href={`https://${settings.slug}.tholim.com`} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl">
+                  <Eye className="w-4 h-4" />
                 </Button>
-                <a href={`https://${settings.slug}.tholim.com`} target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl">
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                </a>
-                <Button
-                  onClick={() => { setShowUnpublishModal(true); setUnpublishStep('confirm'); setUnpublishError(''); setUnpublishOtp(''); }}
-                  variant="outline"
-                  size="icon"
-                  className="h-9 w-9 rounded-xl text-red-500 border-red-200 hover:bg-red-50"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </>
-            )}
-          </div>
+              </a>
+              <Button
+                onClick={() => { setShowUnpublishModal(true); setUnpublishStep('confirm'); setUnpublishError(''); setUnpublishOtp(''); }}
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 rounded-xl text-red-500 border-red-200 hover:bg-red-50"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
