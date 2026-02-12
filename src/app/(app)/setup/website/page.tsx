@@ -1537,8 +1537,8 @@ export default function WebsiteEditorPage() {
       </div>
 
       {/* Desktop Bottom Bar — right-aligned */}
-      <div className="hidden lg:block fixed bottom-0 right-0 z-30">
-        <div className="flex items-center gap-2 px-6 py-3">
+      <div className="hidden lg:block fixed bottom-0 left-56 right-0 bg-white border-t z-30">
+        <div className="flex items-center justify-end gap-2 px-6 py-3">
           <Button
             onClick={handleSave}
             disabled={!hasChanges || saving}
