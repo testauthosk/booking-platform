@@ -145,10 +145,11 @@ export default function WebsiteEditorPage() {
   // Track milestone dismissed
   const [milestoneDismissed, setMilestoneDismissed] = useState(false);
 
-  // Refs for tracking progress changes (no confetti, just tracking for color transitions)
-  const initialLoadRef = useRef(true);
+  // ── Confetti tracking refs ──
+  const prevCompletedRef = useRef<number>(-1);
   const prevMinimumDoneRef = useRef<boolean>(false);
   const prevAllDoneRef = useRef<boolean>(false);
+  const initialLoadRef = useRef(true);
 
   // Завантаження даних
   useEffect(() => {
@@ -285,14 +286,110 @@ export default function WebsiteEditorPage() {
       ? 'bg-green-500'
       : 'bg-amber-500';
 
-  // Track progress state changes (for initial load skip)
+  // ── Confetti system ──
   useEffect(() => {
     if (initialLoadRef.current) {
       initialLoadRef.current = false;
+      prevCompletedRef.current = completedCount;
       prevMinimumDoneRef.current = minimumDone;
       prevAllDoneRef.current = progressPercent === 100;
       return;
     }
+
+    const prev = prevCompletedRef.current;
+    const shouldFire =
+      (progressPercent === 100 && !prevAllDoneRef.current) ||
+      (minimumDone && !prevMinimumDoneRef.current) ||
+      (completedCount > prev && prev >= 0);
+
+    if (shouldFire) {
+      const colors = ['#22c55e', '#10b981', '#34d399', '#fbbf24', '#f472b6', '#60a5fa', '#a78bfa', '#fb923c'];
+      const shapes = ['rect', 'circle', 'square', 'strip'];
+
+      const fireConfetti = (count: number, origins: { x: number; y: number }[]) => {
+        const container = document.createElement('div');
+        container.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden';
+        document.body.appendChild(container);
+
+        for (let i = 0; i < count; i++) {
+          const origin = origins[Math.floor(Math.random() * origins.length)];
+          const color = colors[Math.floor(Math.random() * colors.length)];
+          const shape = shapes[Math.floor(Math.random() * shapes.length)];
+          const size = 5 + Math.random() * 7;
+
+          let w: string, h: string, br: string;
+          if (shape === 'rect') { w = `${size * 2.5}px`; h = `${size * 0.8}px`; br = '1px'; }
+          else if (shape === 'strip') { w = `${size * 3}px`; h = `${size * 0.4}px`; br = '2px'; }
+          else if (shape === 'circle') { w = `${size}px`; h = `${size}px`; br = '50%'; }
+          else { w = `${size}px`; h = `${size}px`; br = '2px'; }
+
+          const el = document.createElement('div');
+          el.style.cssText = `position:absolute;left:${origin.x * 100}%;top:${origin.y * 100}%;width:${w};height:${h};background:${color};border-radius:${br};opacity:0;pointer-events:none;will-change:transform,opacity;`;
+          container.appendChild(el);
+
+          const angle = (Math.random() - 0.5) * 140;
+          const speed = 250 + Math.random() * 350;
+          let vx = Math.sin(angle * Math.PI / 180) * speed;
+          let vy = -Math.cos(angle * Math.PI / 180) * speed;
+          let x = 0, y = 0, rot = 0;
+          const rotSpeed = (Math.random() - 0.5) * 400;
+          const delay = Math.random() * 300;
+          const startTime = performance.now() + delay;
+
+          const tick = (now: number) => {
+            const elapsed = (now - startTime) / 1000;
+            if (elapsed < 0) { requestAnimationFrame(tick); return; }
+
+            // Ease-in gravity — starts slow, accelerates
+            const gravity = 400 + elapsed * 200;
+            const dt = 1 / 60;
+            vy += gravity * dt;
+            vx *= 0.985;
+            x += vx * dt;
+            y += vy * dt;
+            rot += rotSpeed * dt;
+
+            // Smooth opacity: fade in fast, hold, fade out slowly
+            let opacity: number;
+            if (elapsed < 0.15) opacity = elapsed / 0.15;
+            else if (elapsed < 2) opacity = 1;
+            else opacity = Math.max(0, 1 - (elapsed - 2) / 1.5);
+
+            el.style.transform = `translate(${x}px,${y}px) rotate(${rot}deg)`;
+            el.style.opacity = String(opacity);
+
+            if (elapsed < 3.5 && opacity > 0) requestAnimationFrame(tick);
+            else el.remove();
+          };
+          requestAnimationFrame(tick);
+        }
+        setTimeout(() => container.remove(), 4000);
+      };
+
+      // 🎯 100% — blast from all sides
+      if (progressPercent === 100 && !prevAllDoneRef.current) {
+        fireConfetti(80, [
+          { x: 0, y: 0 }, { x: 1, y: 0 },
+          { x: 0, y: 0.5 }, { x: 1, y: 0.5 },
+          { x: 0.5, y: 0 },
+        ]);
+      }
+      // 🎯 Minimum — two shots from top corners
+      else if (minimumDone && !prevMinimumDoneRef.current) {
+        fireConfetti(40, [{ x: 0, y: 0 }, { x: 1, y: 0 }]);
+      }
+      // 🎯 Single checkmark — mini burst
+      else if (completedCount > prev && prev >= 0) {
+        const pts = [
+          { x: 0.15, y: 0.25 }, { x: 0.85, y: 0.25 },
+          { x: 0.3, y: 0.15 }, { x: 0.7, y: 0.15 },
+          { x: 0.5, y: 0.2 },
+        ];
+        fireConfetti(18, [pts[Math.floor(Math.random() * pts.length)]]);
+      }
+    }
+
+    prevCompletedRef.current = completedCount;
     prevMinimumDoneRef.current = minimumDone;
     prevAllDoneRef.current = progressPercent === 100;
   }, [completedCount, minimumDone, progressPercent]);
