@@ -506,7 +506,7 @@ export default function WebsiteEditorPage() {
               ) : (
                 <Save className="w-4 h-4 mr-2" />
               )}
-              <span className="hidden sm:inline">Зберегти</span>
+              <span className="hidden sm:inline">💾 Зберегти чернетку</span>
             </Button>
           </div>
         </div>
@@ -1130,7 +1130,7 @@ export default function WebsiteEditorPage() {
             ) : (
               <Save className="w-4 h-4 mr-1.5" />
             )}
-            Зберегти
+            💾 Зберегти чернетку
           </Button>
 
           {/* Publish / Update */}
@@ -1206,7 +1206,7 @@ export default function WebsiteEditorPage() {
               ) : (
                 <Save className="w-4 h-4 mr-2" />
               )}
-              Зберегти
+              💾 Зберегти чернетку
             </Button>
             {!settings.isPublished ? (
               <Button
