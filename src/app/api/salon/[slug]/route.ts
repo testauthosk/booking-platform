@@ -105,7 +105,12 @@ export async function GET(
     const result = {
       ...publicSalon,
       short_address: salon.shortAddress,
-      working_hours: salon.workingHours,
+      working_hours: Array.isArray(salon.workingHours)
+        ? (salon.workingHours as any[]).map((wh: any) => ({
+            day: wh.day,
+            hours: wh.enabled === false ? 'Зачинено' : `${wh.start || '09:00'} - ${wh.end || '18:00'}`,
+          }))
+        : salon.workingHours,
       review_count: salon.reviewCount,
       coordinates_lat: salon.latitude,
       coordinates_lng: salon.longitude,
