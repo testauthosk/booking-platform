@@ -679,7 +679,7 @@ export default function WebsiteEditorPage() {
           <div className="flex items-center gap-2 shrink-0">
             {settings.isPublished && (
               <a
-                href={`/salon/${settings.slug}`}
+                href={`https://${settings.slug}.tholim.com`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hidden sm:flex"
@@ -1686,7 +1686,7 @@ export default function WebsiteEditorPage() {
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium text-gray-600">Попередній перегляд</span>
               <a
-                href={`/salon/${settings.slug}`}
+                href={`https://${settings.slug}.tholim.com`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-blue-600 hover:underline flex items-center gap-1"
@@ -1697,7 +1697,7 @@ export default function WebsiteEditorPage() {
             </div>
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
               <iframe
-                src={`/salon/${settings.slug}?preview=true`}
+                src={`https://${settings.slug}.tholim.com?preview=true`}
                 className="w-full h-[600px] border-0"
                 title="Preview"
               />
@@ -1756,7 +1756,7 @@ export default function WebsiteEditorPage() {
                 Оновити
               </Button>
               <a
-                href={`/salon/${settings.slug}`}
+                href={`https://${settings.slug}.tholim.com`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -1838,7 +1838,7 @@ export default function WebsiteEditorPage() {
                   🔄 Оновити дані
                 </Button>
                 <a
-                  href={`/salon/${settings.slug}`}
+                  href={`https://${settings.slug}.tholim.com`}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
