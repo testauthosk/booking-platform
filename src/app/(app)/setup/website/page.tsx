@@ -337,24 +337,29 @@ export default function WebsiteEditorPage() {
       : 'bg-amber-500';
 
   // ── Confetti: called directly after successful save ──
+  // Uses refs to avoid stale closure issues
+  const completedRef = useRef({ completedCount, minimumDone, progressPercent });
+  completedRef.current = { completedCount, minimumDone, progressPercent };
+
   const fireConfettiIfNeeded = useCallback(() => {
     const saved = savedStateRef.current;
-    console.log('[CONFETTI] check:', { completedCount, savedCompleted: saved.completed, minimumDone, savedMinimum: saved.minimumDone, progressPercent, savedAllDone: saved.allDone });
-    if (progressPercent === 100 && !saved.allDone) {
+    const cur = completedRef.current;
+    console.log('[CONFETTI] check:', { cur, saved });
+    if (cur.progressPercent === 100 && !saved.allDone) {
       console.log('[CONFETTI] → BIG');
       setConfettiType('big');
-    } else if (minimumDone && !saved.minimumDone) {
+    } else if (cur.minimumDone && !saved.minimumDone) {
       console.log('[CONFETTI] → MEDIUM');
       setConfettiType('medium');
-    } else if (completedCount > saved.completed) {
+    } else if (cur.completedCount > saved.completed) {
       console.log('[CONFETTI] → SMALL');
       setConfettiType('small');
     } else {
       console.log('[CONFETTI] → none (no change)');
     }
     // Update saved state to current
-    savedStateRef.current = { completed: completedCount, minimumDone, allDone: progressPercent === 100 };
-  }, [completedCount, minimumDone, progressPercent]);
+    savedStateRef.current = { completed: cur.completedCount, minimumDone: cur.minimumDone, allDone: cur.progressPercent === 100 };
+  }, []);
 
   // ── Glass tabs: measure active tab position ──
   const updateTabIndicator = useCallback((sectionId?: string) => {
@@ -1617,8 +1622,8 @@ export default function WebsiteEditorPage() {
             </Card>
           )}
 
-          {/* Theme Section — shown inside "basic" */}
-          {activeSection === 'basic' && (
+          {/* Theme Section — shown inside amenities */}
+          {activeSection === 'amenities' && (
             <Card className="p-4 lg:p-6 max-w-full">
               <h2 className="text-base lg:text-lg font-semibold mb-4 lg:mb-6 flex items-center gap-2">
                 <Palette className="w-5 h-5 text-gray-400 shrink-0" />
