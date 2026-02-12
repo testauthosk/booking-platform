@@ -665,7 +665,7 @@ export default function WebsiteEditorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
+    <div className="min-h-screen bg-gray-50/50 overflow-x-hidden max-w-full">
       {/* Header */}
       <div className="sticky top-0 z-20 bg-white border-b">
         <div className="flex items-center justify-between px-4 sm:px-6 h-16">
@@ -901,7 +901,7 @@ export default function WebsiteEditorPage() {
         </div>
       )}
 
-      <div className="flex">
+      <div className="flex overflow-hidden">
         {/* Sidebar Navigation */}
         <div className="hidden lg:block w-56 shrink-0 border-r bg-white min-h-[calc(100vh-64px)] sticky top-16">
           <nav className="p-4 space-y-1">
