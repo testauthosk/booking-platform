@@ -150,11 +150,10 @@ export default function WebsiteEditorPage() {
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const addressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Track milestone dismissed
-  const [milestoneDismissed, setMilestoneDismissed] = useState(false);
+  // (milestone removed — linear progress now)
 
   // ── Confetti (canvas-confetti) ──
-  const savedProgressRef = useRef({ completed: 0, minimumDone: false, allDone: false });
+  const savedProgressRef = useRef({ completed: 0, allDone: false });
 
   // Custom business type dropdown
   const [businessTypeOpen, setBusinessTypeOpen] = useState(false);
@@ -195,10 +194,8 @@ export default function WebsiteEditorPage() {
             data.photos?.length >= 3,
             hasHrs,
           ].filter(Boolean).length;
-          const initMinimum = !!(data.name && data.name.trim().length >= 2) && data.servicesCount > 0 && data.mastersCount > 0;
           savedProgressRef.current = {
             completed: initCompleted,
-            minimumDone: initMinimum,
             allDone: initCompleted === 8,
           };
         }
@@ -230,8 +227,7 @@ export default function WebsiteEditorPage() {
     setHasChanges(true);
   }, []);
 
-  // Checklist logic — split into minimum (required) and recommended
-  const MINIMUM_IDS = ['name', 'services', 'masters'] as const;
+  // Checklist logic — linear progress
 
   const checklist = useMemo<ChecklistItem[]>(() => {
     if (!settings) return [];
@@ -299,42 +295,19 @@ export default function WebsiteEditorPage() {
     ];
   }, [settings]);
 
-  const minimumItems = checklist.filter((c) => MINIMUM_IDS.includes(c.id as any));
-  const recommendedItems = checklist.filter((c) => !MINIMUM_IDS.includes(c.id as any));
-  const minimumDone = minimumItems.every((c) => c.completed);
   const completedCount = checklist.filter((c) => c.completed).length;
   const totalCount = checklist.length;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  // canPublish = minimum items all done
-  const canPublish = minimumDone;
+  // canPublish = name + at least 1 service + at least 1 master
+  const canPublish = !!(settings?.name && settings.name.trim().length >= 2) && (settings?.servicesCount ?? 0) > 0 && (settings?.mastersCount ?? 0) > 0;
 
-  // Track if we should show the milestone celebration banner
-  const showMilestoneBanner = minimumDone && !settings?.isPublished && !milestoneDismissed;
-
-  // Visual progress: 0-50% for minimum items, 50-100% for recommended
-  const MILESTONE_PERCENT = 50;
-  const visualProgress = useMemo(() => {
-    if (!minimumDone) {
-      const minCompleted = minimumItems.filter((c) => c.completed).length;
-      const minTotal = minimumItems.length || 1;
-      return Math.round((minCompleted / minTotal) * MILESTONE_PERCENT);
-    }
-    const recCompleted = recommendedItems.filter((c) => c.completed).length;
-    const recTotal = recommendedItems.length || 1;
-    return MILESTONE_PERCENT + Math.round((recCompleted / recTotal) * (100 - MILESTONE_PERCENT));
-  }, [minimumDone, minimumItems, recommendedItems]);
-
-  // Progress bar color — smooth transition via CSS (green at 100%, green at >=50%, amber otherwise)
-  const progressColor = visualProgress === 100
-    ? 'bg-green-500'
-    : visualProgress >= MILESTONE_PERCENT
-      ? 'bg-green-500'
-      : 'bg-amber-500';
+  // Linear progress color
+  const progressColor = progressPercent === 100 ? 'bg-green-500' : progressPercent >= 50 ? 'bg-green-500' : 'bg-amber-500';
 
   // ── Confetti: fire green celebration after successful save ──
-  const curProgressRef = useRef({ completedCount, minimumDone, progressPercent });
-  curProgressRef.current = { completedCount, minimumDone, progressPercent };
+  const curProgressRef = useRef({ completedCount, progressPercent });
+  curProgressRef.current = { completedCount, progressPercent };
 
   const fireConfetti = useCallback(() => {
     const saved = savedProgressRef.current;
@@ -351,19 +324,14 @@ export default function WebsiteEditorPage() {
         if (Date.now() < end) requestAnimationFrame(frame);
       };
       frame();
-    } else if (cur.minimumDone && !saved.minimumDone) {
-      // MEDIUM — minimum reached
-      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: greenColors });
-      setTimeout(() => confetti({ particleCount: 60, spread: 100, origin: { y: 0.5 }, colors: greenColors }), 300);
     } else if (cur.completedCount > saved.completed) {
-      // SMALL — any new field completed
-      confetti({ particleCount: 40, spread: 55, origin: { y: 0.7 }, colors: greenColors });
+      // Progress grew — celebrate
+      confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 }, colors: greenColors });
     }
 
     // Update baseline
     savedProgressRef.current = {
       completed: cur.completedCount,
-      minimumDone: cur.minimumDone,
       allDone: cur.progressPercent === 100,
     };
   }, []);
@@ -719,28 +687,22 @@ export default function WebsiteEditorPage() {
           onClick={() => setMobileChecklistOpen(!mobileChecklistOpen)}
           className="w-full px-4 py-2.5 flex items-center gap-3"
         >
-          {/* Icon */}
-          {visualProgress === 100 ? (
-            <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-          ) : minimumDone ? (
+          {progressPercent === 100 ? (
             <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
           ) : (
             <Circle className="w-4 h-4 text-gray-400 shrink-0" />
           )}
-          {/* Bar */}
           <div className="flex-1 min-w-0">
             <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-700 ease-out ${progressColor}`}
-                style={{ width: `${visualProgress}%` }}
+                style={{ width: `${progressPercent}%` }}
               />
             </div>
           </div>
-          {/* Percent */}
           <span className="text-xs font-medium text-gray-500 tabular-nums shrink-0">
-            {visualProgress}%
+            {progressPercent}%
           </span>
-          {/* Chevron */}
           <ChevronDown
             className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 ${
               mobileChecklistOpen ? 'rotate-180' : ''
@@ -748,95 +710,31 @@ export default function WebsiteEditorPage() {
           />
         </button>
 
-        {/* Expandable mobile checklist */}
         {mobileChecklistOpen && (
           <div className="px-4 pb-3 animate-fade-in">
-            {/* Milestone celebration — compact mobile (smooth expand) */}
-            <div
-              className="overflow-hidden transition-all duration-500 ease-out"
-              style={{ maxHeight: showMilestoneBanner ? '80px' : '0px', opacity: showMilestoneBanner ? 1 : 0 }}
-            >
-              <div className="mb-2.5 flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-green-50 border border-green-200">
-                <span className="text-base shrink-0 animate-check-in">🎉</span>
-                <p className="text-xs font-medium text-green-800 flex-1 min-w-0">
-                  {progressPercent === 100
-                    ? 'Сайт повністю заповнений! Можна публікувати.'
-                    : 'Мінімум заповнено! Можна публікувати.'}
-                </p>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setMilestoneDismissed(true); }}
-                  className="shrink-0 text-green-400 hover:text-green-600 p-0.5"
+            <div className="space-y-1">
+              {checklist.map((item) => (
+                <div
+                  key={item.id}
+                  className={`flex items-center gap-2 px-2 py-1 rounded-lg text-sm ${
+                    item.completed ? 'text-gray-500' : 'text-gray-700'
+                  }`}
                 >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Minimum items */}
-            <div className="mb-2">
-              <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold mb-1 flex items-center gap-1">
-                {minimumDone ? (
-                  <CheckCircle2 className="w-3 h-3 text-green-500" />
-                ) : (
-                  <span className="w-3 h-3 rounded-full border-2 border-amber-400 inline-block" />
-                )}
-                Обов&apos;язково
-              </p>
-              <div className="space-y-1">
-                {minimumItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className={`flex items-center gap-2 px-2 py-1 rounded-lg text-sm ${
-                      item.completed ? 'text-gray-500' : 'text-gray-700 bg-amber-50/60'
-                    }`}
-                  >
-                    {item.completed ? (
-                      <div className="animate-check-in">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
-                      </div>
-                    ) : (
-                      <Circle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    )}
-                    <span className={`text-xs ${item.completed ? 'line-through' : 'font-medium'}`}>
-                      {item.label}
-                    </span>
-                    {item.detail && !item.completed && (
-                      <span className="text-[10px] text-amber-600 ml-auto font-medium">{item.detail}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Recommended items */}
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold mb-1">
-                Рекомендовано
-              </p>
-              <div className="space-y-1">
-                {recommendedItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className={`flex items-center gap-2 px-2 py-1 rounded-lg text-sm ${
-                      item.completed ? 'text-gray-500' : 'text-gray-700'
-                    }`}
-                  >
-                    {item.completed ? (
-                      <div className="animate-check-in">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
-                      </div>
-                    ) : (
-                      <Circle className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-                    )}
-                    <span className={`text-xs ${item.completed ? 'line-through' : ''}`}>
-                      {item.label}
-                    </span>
-                    {item.detail && !item.completed && (
-                      <span className="text-[10px] text-gray-500 ml-auto font-medium">{item.detail}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
+                  {item.completed ? (
+                    <div className="animate-check-in">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                    </div>
+                  ) : (
+                    <Circle className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                  )}
+                  <span className={`text-xs ${item.completed ? 'line-through' : ''}`}>
+                    {item.label}
+                  </span>
+                  {item.detail && !item.completed && (
+                    <span className="text-[10px] text-gray-500 ml-auto font-medium">{item.detail}</span>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -906,202 +804,79 @@ export default function WebsiteEditorPage() {
               onClick={() => setShowChecklist(!showChecklist)}
               className="text-sm font-medium text-gray-700 flex items-center gap-1.5 hover:text-gray-900 transition-colors"
             >
-              {visualProgress === 100 ? (
-                <CheckCircle2 className="w-4 h-4 text-green-500" />
-              ) : minimumDone ? (
+              {progressPercent === 100 ? (
                 <CheckCircle2 className="w-4 h-4 text-green-500" />
               ) : (
                 <Circle className="w-4 h-4 text-gray-400" />
               )}
-              Ваш сайт готовий на {visualProgress}%
+              Ваш сайт готовий на {progressPercent}%
             </button>
             <span className="text-xs text-muted-foreground">
               {completedCount}/{totalCount}
             </span>
           </div>
 
-          {/* Two-zone progress bar */}
-          <div className="relative">
-            <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full ${progressColor}`}
-                style={{
-                  width: `${visualProgress}%`,
-                  transition: 'width 0.8s ease, background-color 0.6s ease',
-                }}
-              />
-            </div>
-            {/* Milestone marker at 50% */}
+          {/* Linear progress bar */}
+          <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
             <div
-              className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center"
-              style={{ left: `${MILESTONE_PERCENT}%`, transform: `translateX(-50%) translateY(-50%)` }}
-            >
-              <div
-                className={`w-4 h-4 rounded-full border-2 border-white shadow-sm flex items-center justify-center transition-colors duration-500 ${
-                  minimumDone ? 'bg-green-500' : 'bg-gray-300'
-                }`}
-              >
-                {minimumDone && (
-                  <Check className="w-2.5 h-2.5 text-white" />
-                )}
-              </div>
-            </div>
-            {/* Labels under the bar */}
-            <div className="flex justify-between mt-1.5">
-              <span className="text-[10px] text-gray-400">Мінімум</span>
-              <span
-                className="text-[10px] text-gray-400 absolute"
-                style={{ left: `${MILESTONE_PERCENT}%`, transform: 'translateX(-50%)' }}
-              >
-                {minimumDone ? '✓ Готово' : 'Мінімум'}
-              </span>
-              <span className="text-[10px] text-gray-400">100%</span>
-            </div>
-          </div>
-
-          {/* Milestone celebration banner — desktop (smooth expand) */}
-          <div
-            className="overflow-hidden transition-all duration-500 ease-out"
-            style={{ maxHeight: showMilestoneBanner ? '120px' : '0px', opacity: showMilestoneBanner ? 1 : 0 }}
-          >
-            <div className="mt-3">
-              <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-green-50 border border-green-200">
-                <span className="text-xl shrink-0 animate-check-in">🎉</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-green-800">
-                    {progressPercent === 100 ? 'Сайт повністю заповнений! 🎉' : 'Мінімум заповнено!'}
-                  </p>
-                  <p className="text-xs text-green-700 mt-0.5">
-                    {progressPercent === 100
-                      ? 'Все готово — натисніть "Опублікувати" щоб створити сторінку.'
-                      : 'Ви можете створити публічну сторінку або продовжити заповнення для кращого результату.'}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setMilestoneDismissed(true)}
-                  className="shrink-0 text-green-400 hover:text-green-600 transition-colors p-1"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+              className={`h-full rounded-full ${progressColor}`}
+              style={{
+                width: `${progressPercent}%`,
+                transition: 'width 0.8s ease, background-color 0.6s ease',
+              }}
+            />
           </div>
 
           {/* Checklist — desktop */}
           {showChecklist && (
-            <div className="mt-3 space-y-3">
-              {/* Minimum items */}
-              <div>
-                <p className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold mb-1.5 flex items-center gap-1.5">
-                  {minimumDone ? (
-                    <CheckCircle2 className="w-3 h-3 text-green-500" />
-                  ) : (
-                    <span className="w-3 h-3 rounded-full border-2 border-amber-400 inline-block" />
-                  )}
-                  Обов&apos;язково
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                  {minimumItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm transition-colors ${
-                        item.completed ? 'text-gray-500' : 'text-gray-700 bg-amber-50/60'
-                      }`}
-                    >
-                      {item.completed ? (
-                        <div className="animate-check-in">
-                          <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-                        </div>
-                      ) : (
-                        <Circle className="w-4 h-4 text-amber-400 shrink-0" />
-                      )}
-                      <span className={item.completed ? 'line-through' : 'font-medium'}>
-                        {item.label}
+            <div className="mt-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                {checklist.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm transition-colors ${
+                      item.completed ? 'text-gray-500' : 'text-gray-700 bg-gray-50'
+                    }`}
+                  >
+                    {item.completed ? (
+                      <div className="animate-check-in">
+                        <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                      </div>
+                    ) : (
+                      <Circle className="w-4 h-4 text-gray-300 shrink-0" />
+                    )}
+                    <span className={item.completed ? 'line-through' : ''}>
+                      {item.label}
+                    </span>
+                    {item.detail && !item.completed && (
+                      <span className="text-xs text-gray-500 ml-auto font-medium">
+                        {item.detail}
                       </span>
-                      {item.detail && !item.completed && (
-                        <span className="text-xs text-amber-600 ml-auto font-medium">
-                          {item.detail}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Recommended items */}
-              <div>
-                <p className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold mb-1.5">
-                  Рекомендовано
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                  {recommendedItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm transition-colors ${
-                        item.completed ? 'text-gray-500' : 'text-gray-700 bg-gray-50'
-                      }`}
-                    >
-                      {item.completed ? (
-                        <div className="animate-check-in">
-                          <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-                        </div>
-                      ) : (
-                        <Circle className="w-4 h-4 text-gray-300 shrink-0" />
-                      )}
-                      <span className={item.completed ? 'line-through' : ''}>
-                        {item.label}
-                      </span>
-                      {item.detail && !item.completed && (
-                        <span className="text-xs text-gray-500 ml-auto font-medium">
-                          {item.detail}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Celebration banner when minimum is met but not yet published — DESKTOP only */}
-      {canPublish && !settings.isPublished && (
-        <div className="hidden lg:block mx-4 sm:mx-6 mt-3 mb-0">
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 flex items-center gap-3 animate-fade-in">
-            <div className="text-2xl animate-check-in">🎉</div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-green-800 text-sm">
-                {progressPercent === 100 ? 'Сайт повністю заповнений! 🎉' : 'Мінімум заповнено!'}
-              </p>
-              <p className="text-xs text-green-600 mt-0.5">
-                {progressPercent === 100
-                  ? 'Все готово — натисніть "Опублікувати" щоб створити сторінку.'
-                  : 'Ви вже можете створити публічну сторінку або продовжити заповнення для кращого результату'}
-              </p>
-            </div>
+      {/* Banner at 100% — not yet published */}
+      {progressPercent === 100 && !settings.isPublished && (
+        <div className="mx-4 sm:mx-6 mt-3 mb-0">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl px-3 lg:px-4 py-2.5 lg:py-3 flex items-center gap-2.5 lg:gap-3 animate-fade-in">
+            <span className="text-lg lg:text-2xl animate-check-in">🎉</span>
+            <p className="text-xs lg:text-sm font-medium text-green-800 flex-1 min-w-0">
+              Сайт повністю заповнений! Можна публікувати.
+            </p>
             <Button
               onClick={handlePublish}
               disabled={publishing}
               size="sm"
-              className="bg-green-600 hover:bg-green-700 text-white shrink-0"
+              className="bg-green-600 hover:bg-green-700 text-white shrink-0 hidden lg:flex"
             >
               {publishing ? <Loader2 className="w-4 h-4 animate-spin" /> : '🌐 Створити'}
             </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Mobile celebration banner — compact, no button (button is in bottom bar) */}
-      {canPublish && !settings.isPublished && (
-        <div className="lg:hidden mx-4 mt-3 mb-0">
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl px-3 py-2.5 flex items-center gap-2.5 animate-fade-in">
-            <span className="text-lg animate-check-in">🎉</span>
-            <p className="text-xs font-medium text-green-800 flex-1 min-w-0">
-              {progressPercent === 100
-                ? 'Сайт повністю заповнений! Можна публікувати.'
-                : 'Мінімум заповнено! Можна публікувати.'}
-            </p>
           </div>
         </div>
       )}
