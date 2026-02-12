@@ -286,8 +286,9 @@ export default function WebsiteEditorPage() {
       ? 'bg-green-500'
       : 'bg-amber-500';
 
-  // ── Confetti system ──
+  // ── Confetti system — smooth serpentine physics ──
   useEffect(() => {
+    // Skip on initial page load — don't fire for already-completed items
     if (initialLoadRef.current) {
       initialLoadRef.current = false;
       prevCompletedRef.current = completedCount;
@@ -302,91 +303,173 @@ export default function WebsiteEditorPage() {
       (minimumDone && !prevMinimumDoneRef.current) ||
       (completedCount > prev && prev >= 0);
 
-    if (shouldFire) {
-      const colors = ['#22c55e', '#10b981', '#34d399', '#fbbf24', '#f472b6', '#60a5fa', '#a78bfa', '#fb923c'];
-      const shapes = ['rect', 'circle', 'square', 'strip'];
+    if (!shouldFire) {
+      prevCompletedRef.current = completedCount;
+      prevMinimumDoneRef.current = minimumDone;
+      prevAllDoneRef.current = progressPercent === 100;
+      return;
+    }
 
-      const fireConfetti = (count: number, origins: { x: number; y: number }[]) => {
-        const container = document.createElement('div');
-        container.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden';
-        document.body.appendChild(container);
+    // ── Smooth DOM confetti with serpentine physics ──
+    const fireConfetti = (count: number, origins: { x: number; y: number }[]) => {
+      // Bright, festive palette
+      const colors = [
+        '#22c55e', '#10b981', '#6ee7b7', // greens
+        '#fbbf24', '#f59e0b', '#fcd34d', // golds
+        '#f472b6', '#ec4899', '#fb7185', // pinks
+        '#60a5fa', '#3b82f6', '#818cf8', // blues
+        '#a78bfa', '#c084fc',            // purples
+        '#fb923c', '#f97316',            // oranges
+      ];
 
-        for (let i = 0; i < count; i++) {
-          const origin = origins[Math.floor(Math.random() * origins.length)];
-          const color = colors[Math.floor(Math.random() * colors.length)];
-          const shape = shapes[Math.floor(Math.random() * shapes.length)];
-          const size = 5 + Math.random() * 7;
+      const container = document.createElement('div');
+      container.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden';
+      document.body.appendChild(container);
 
-          let w: string, h: string, br: string;
-          if (shape === 'rect') { w = `${size * 2.5}px`; h = `${size * 0.8}px`; br = '1px'; }
-          else if (shape === 'strip') { w = `${size * 3}px`; h = `${size * 0.4}px`; br = '2px'; }
-          else if (shape === 'circle') { w = `${size}px`; h = `${size}px`; br = '50%'; }
-          else { w = `${size}px`; h = `${size}px`; br = '2px'; }
+      for (let i = 0; i < count; i++) {
+        const origin = origins[Math.floor(Math.random() * origins.length)];
+        const color = colors[Math.floor(Math.random() * colors.length)];
 
-          const el = document.createElement('div');
-          el.style.cssText = `position:absolute;left:${origin.x * 100}%;top:${origin.y * 100}%;width:${w};height:${h};background:${color};border-radius:${br};opacity:0;pointer-events:none;will-change:transform,opacity;`;
-          container.appendChild(el);
+        // Shape variety: serpentine (tall thin), circle, square, wide strip
+        const shapeRoll = Math.random();
+        let w: number, h: number, borderRadius: string;
+        if (shapeRoll < 0.35) {
+          // Serpentine — tall thin rectangle (most confetti-like)
+          w = 3 + Math.random() * 3.5;
+          h = 10 + Math.random() * 14;
+          borderRadius = '1px';
+        } else if (shapeRoll < 0.55) {
+          // Circle
+          const sz = 5 + Math.random() * 5;
+          w = sz; h = sz;
+          borderRadius = '50%';
+        } else if (shapeRoll < 0.75) {
+          // Square
+          const sz = 4 + Math.random() * 5;
+          w = sz; h = sz;
+          borderRadius = '1.5px';
+        } else {
+          // Wide thin strip
+          w = 12 + Math.random() * 10;
+          h = 2.5 + Math.random() * 2;
+          borderRadius = '1px';
+        }
 
-          const angle = (Math.random() - 0.5) * 140;
-          const speed = 250 + Math.random() * 350;
-          let vx = Math.sin(angle * Math.PI / 180) * speed;
-          let vy = -Math.cos(angle * Math.PI / 180) * speed;
-          let x = 0, y = 0, rot = 0;
-          const rotSpeed = (Math.random() - 0.5) * 400;
-          const delay = Math.random() * 300;
-          const startTime = performance.now() + delay;
+        // Launch direction — spread across a wide arc
+        const angle = (Math.random() - 0.5) * 150;
+        const speed = 160 + Math.random() * 320;
+        const vx0 = Math.sin((angle * Math.PI) / 180) * speed;
+        const vy0 = -Math.cos((angle * Math.PI) / 180) * speed;
 
-          const tick = (now: number) => {
-            const elapsed = (now - startTime) / 1000;
-            if (elapsed < 0) { requestAnimationFrame(tick); return; }
+        const el = document.createElement('div');
+        el.style.cssText = `
+          position:absolute;
+          left:${origin.x * 100}%;
+          top:${origin.y * 100}%;
+          width:${w}px;
+          height:${h}px;
+          background:${color};
+          border-radius:${borderRadius};
+          opacity:0;
+          pointer-events:none;
+          will-change:transform,opacity;
+        `;
+        container.appendChild(el);
 
-            // Ease-in gravity — starts slow, accelerates
-            const gravity = 400 + elapsed * 200;
-            const dt = 1 / 60;
-            vy += gravity * dt;
-            vx *= 0.985;
-            x += vx * dt;
-            y += vy * dt;
-            rot += rotSpeed * dt;
+        // Per-particle character
+        const rotSpeed = (Math.random() - 0.5) * 480;   // deg/s — smooth rotation
+        const wobbleAmp = 15 + Math.random() * 35;      // px — side-to-side float
+        const wobbleFreq = 1.5 + Math.random() * 2.0;   // Hz
+        const totalLife = 3.0 + Math.random() * 1.0;    // seconds
 
-            // Smooth opacity: fade in fast, hold, fade out slowly
+        // Staggered start — wave-like cascade effect
+        const delay = Math.random() * 380;
+
+        setTimeout(() => {
+          const t0 = performance.now();
+
+          const animate = (now: number) => {
+            const elapsed = (now - t0) / 1000;
+
+            if (elapsed >= totalLife) {
+              el.remove();
+              return;
+            }
+
+            // ── Launch easing: particles accelerate smoothly from 0 ──
+            // Quadratic ease-in over first 0.35s — no sudden jump
+            const launchT = Math.min(elapsed / 0.35, 1);
+            const launchEase = launchT * launchT;
+
+            // ── Soft gravity: barely noticeable at first, then pulls down ──
+            // Particles «hover» for ~0.8s before gravity kicks in
+            const gravMax = 320;
+            const gravT = Math.max(0, Math.min((elapsed - 0.3) / 1.0, 1));
+            const gravity = gravMax * gravT * gravT; // quadratic ramp
+
+            // ── Air resistance on horizontal velocity ──
+            const dragFactor = Math.pow(0.982, elapsed * 60);
+            const vx = vx0 * dragFactor * launchEase;
+
+            // ── Position ──
+            // X: velocity + sinusoidal wobble (serpentine drift)
+            const wobbleIn = Math.min(elapsed / 0.5, 1); // wobble fades in
+            const x = vx * elapsed
+              + Math.sin(elapsed * wobbleFreq * Math.PI * 2) * wobbleAmp * wobbleIn;
+
+            // Y: launch velocity (eased) + gravity accumulation
+            const y = vy0 * launchEase * elapsed
+              + 0.5 * gravity * elapsed * elapsed;
+
+            // ── Smooth rotation ──
+            const rot = rotSpeed * elapsed;
+
+            // ── Opacity: quick fade-in, long hold, gentle fade-out ──
             let opacity: number;
-            if (elapsed < 0.15) opacity = elapsed / 0.15;
-            else if (elapsed < 2) opacity = 1;
-            else opacity = Math.max(0, 1 - (elapsed - 2) / 1.5);
+            if (elapsed < 0.12) {
+              opacity = elapsed / 0.12; // fast appear
+            } else if (elapsed > totalLife * 0.65) {
+              // Smooth cubic fade-out in last 35% of life
+              const fadeT = (elapsed - totalLife * 0.65) / (totalLife * 0.35);
+              opacity = Math.max(0, 1 - fadeT * fadeT);
+            } else {
+              opacity = 1;
+            }
 
-            el.style.transform = `translate(${x}px,${y}px) rotate(${rot}deg)`;
+            el.style.transform = `translate(${x}px, ${y}px) rotate(${rot}deg)`;
             el.style.opacity = String(opacity);
 
-            if (elapsed < 3.5 && opacity > 0) requestAnimationFrame(tick);
-            else el.remove();
+            requestAnimationFrame(animate);
           };
-          requestAnimationFrame(tick);
-        }
-        setTimeout(() => container.remove(), 4000);
-      };
 
-      // 🎯 100% — blast from all sides
-      if (progressPercent === 100 && !prevAllDoneRef.current) {
-        fireConfetti(80, [
-          { x: 0, y: 0 }, { x: 1, y: 0 },
-          { x: 0, y: 0.5 }, { x: 1, y: 0.5 },
-          { x: 0.5, y: 0 },
-        ]);
+          requestAnimationFrame(animate);
+        }, delay);
       }
-      // 🎯 Minimum — two shots from top corners
-      else if (minimumDone && !prevMinimumDoneRef.current) {
-        fireConfetti(40, [{ x: 0, y: 0 }, { x: 1, y: 0 }]);
-      }
-      // 🎯 Single checkmark — mini burst
-      else if (completedCount > prev && prev >= 0) {
-        const pts = [
-          { x: 0.15, y: 0.25 }, { x: 0.85, y: 0.25 },
-          { x: 0.3, y: 0.15 }, { x: 0.7, y: 0.15 },
-          { x: 0.5, y: 0.2 },
-        ];
-        fireConfetti(18, [pts[Math.floor(Math.random() * pts.length)]]);
-      }
+
+      // Cleanup container after all particles are done
+      setTimeout(() => container.remove(), 5000);
+    };
+
+    // 🎯 100% — full celebration from all sides
+    if (progressPercent === 100 && !prevAllDoneRef.current) {
+      fireConfetti(90, [
+        { x: 0, y: 0 }, { x: 1, y: 0 },
+        { x: 0, y: 0.4 }, { x: 1, y: 0.4 },
+        { x: 0.5, y: 0 },
+      ]);
+    }
+    // 🎯 Minimum reached — two bursts from top corners
+    else if (minimumDone && !prevMinimumDoneRef.current) {
+      fireConfetti(50, [{ x: 0.1, y: 0 }, { x: 0.9, y: 0 }]);
+    }
+    // 🎯 Single checkmark — small celebratory burst
+    else if (completedCount > prev && prev >= 0) {
+      const pts = [
+        { x: 0.15, y: 0.25 }, { x: 0.85, y: 0.25 },
+        { x: 0.25, y: 0.1 }, { x: 0.75, y: 0.1 },
+        { x: 0.5, y: 0.15 },
+      ];
+      fireConfetti(20, [pts[Math.floor(Math.random() * pts.length)]]);
     }
 
     prevCompletedRef.current = completedCount;
