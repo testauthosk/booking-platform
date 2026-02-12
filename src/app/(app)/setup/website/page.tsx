@@ -573,6 +573,31 @@ export default function WebsiteEditorPage() {
         </div>
       </div>
 
+      {/* Celebration banner when minimum is met but not yet published */}
+      {canPublish && !settings.isPublished && (
+        <div className="mx-4 sm:mx-6 mt-3 mb-0">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 flex items-center gap-3 animate-section-expand">
+            <div className="text-2xl animate-check-in">🎉</div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-green-800 text-sm">
+                Мінімум заповнено!
+              </p>
+              <p className="text-xs text-green-600 mt-0.5">
+                Ви вже можете створити публічну сторінку або продовжити заповнення для кращого результату
+              </p>
+            </div>
+            <Button
+              onClick={handlePublish}
+              disabled={publishing}
+              size="sm"
+              className="bg-green-600 hover:bg-green-700 text-white shrink-0"
+            >
+              {publishing ? <Loader2 className="w-4 h-4 animate-spin" /> : '🌐 Створити'}
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="flex">
         {/* Sidebar Navigation */}
         <div className="hidden lg:block w-56 shrink-0 border-r bg-white min-h-[calc(100vh-64px)] sticky top-16">
