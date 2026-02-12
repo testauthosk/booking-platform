@@ -284,103 +284,96 @@ export default function WebsiteEditorPage() {
       return;
     }
 
-    // Dynamic import to avoid SSR issues
-    import('canvas-confetti').then((mod) => {
-      const fire = mod.default || mod;
-      // 🎯 100% — full blast from all sides
-      if (progressPercent === 100 && !prevAllDoneRef.current) {
-        const duration = 1500;
-        const end = Date.now() + duration;
-        const frame = () => {
-          fire({
-            particleCount: 4,
-            angle: 60,
-            spread: 55,
-            origin: { x: 0, y: 0.6 },
-            colors: ['#22c55e', '#10b981', '#34d399', '#fbbf24', '#f472b6'],
-            gravity: 1.2,
-            drift: 0,
-            ticks: 200,
-            disableForReducedMotion: true,
-          });
-          fire({
-            particleCount: 4,
-            angle: 120,
-            spread: 55,
-            origin: { x: 1, y: 0.6 },
-            colors: ['#22c55e', '#10b981', '#34d399', '#fbbf24', '#f472b6'],
-            gravity: 1.2,
-            drift: 0,
-            ticks: 200,
-            disableForReducedMotion: true,
-          });
-          fire({
-            particleCount: 3,
-            angle: 90,
-            spread: 120,
-            origin: { x: 0.5, y: 0 },
-            colors: ['#22c55e', '#10b981', '#34d399', '#fbbf24', '#a78bfa'],
-            gravity: 1.2,
-            ticks: 200,
-            disableForReducedMotion: true,
-          });
-          if (Date.now() < end) requestAnimationFrame(frame);
-        };
-        frame();
-      }
-      // 🎯 Minimum reached — two shots from top corners
-      else if (minimumDone && !prevMinimumDoneRef.current) {
-        setTimeout(() => {
-          fire({
-            particleCount: 60,
-            angle: 60,
-            spread: 70,
-            origin: { x: 0, y: 0 },
-            colors: ['#22c55e', '#10b981', '#34d399', '#fbbf24'],
-            gravity: 1.2,
-            ticks: 200,
-            disableForReducedMotion: true,
-          });
-          fire({
-            particleCount: 60,
-            angle: 120,
-            spread: 70,
-            origin: { x: 1, y: 0 },
-            colors: ['#22c55e', '#10b981', '#34d399', '#fbbf24'],
-            gravity: 1.2,
-            ticks: 200,
-            disableForReducedMotion: true,
-          });
-        }, 200);
-      }
-      // 🎯 Single checkmark — mini burst from random point
-      else if (completedCount > prev && prev >= 0) {
-        const origins = [
-          { x: 0.1, y: 0.3 },
-          { x: 0.9, y: 0.3 },
-          { x: 0.2, y: 0.1 },
-          { x: 0.8, y: 0.1 },
-          { x: 0.5, y: 0.2 },
-          { x: 0.3, y: 0.5 },
-          { x: 0.7, y: 0.5 },
-        ];
+    // CSS confetti — create particles in DOM
+    const fireConfetti = (count: number, origins: {x: number, y: number}[]) => {
+      const colors = ['#22c55e', '#10b981', '#34d399', '#fbbf24', '#f472b6', '#60a5fa', '#a78bfa'];
+      const container = document.createElement('div');
+      container.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden';
+      document.body.appendChild(container);
+
+      for (let i = 0; i < count; i++) {
         const origin = origins[Math.floor(Math.random() * origins.length)];
-        fire({
-          particleCount: 25,
-          spread: 60,
-          origin,
-          colors: ['#22c55e', '#10b981', '#60a5fa'],
-          gravity: 1.4,
-          ticks: 150,
-          scalar: 0.8,
-          disableForReducedMotion: true,
-        });
+        const particle = document.createElement('div');
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const size = 6 + Math.random() * 6;
+        const isRect = Math.random() > 0.5;
+        const angle = (Math.random() - 0.5) * 120;
+        const velocity = 200 + Math.random() * 400;
+        const vx = Math.sin(angle * Math.PI / 180) * velocity;
+        const vy = -Math.cos(angle * Math.PI / 180) * velocity;
+
+        particle.style.cssText = `
+          position:absolute;
+          left:${origin.x * 100}%;
+          top:${origin.y * 100}%;
+          width:${isRect ? size * 2.5 : size}px;
+          height:${size}px;
+          background:${color};
+          border-radius:${isRect ? '1px' : '50%'};
+          opacity:1;
+          pointer-events:none;
+        `;
+        container.appendChild(particle);
+
+        // Animate with physics
+        let x = 0, y = 0, vxCur = vx, vyCur = vy;
+        let opacity = 1;
+        const rotation = Math.random() * 720 - 360;
+        let rot = 0;
+        const startTime = performance.now();
+
+        const animate = (time: number) => {
+          const dt = Math.min((time - startTime) / 1000, 0.05);
+          const elapsed = (time - startTime) / 1000;
+          vyCur += 800 * dt; // gravity
+          vxCur *= 0.99; // air resistance
+          x += vxCur * dt;
+          y += vyCur * dt;
+          rot += rotation * dt;
+          opacity = Math.max(0, 1 - elapsed / 2.5);
+
+          particle.style.transform = `translate(${x}px, ${y}px) rotate(${rot}deg)`;
+          particle.style.opacity = String(opacity);
+
+          if (elapsed < 2.5 && opacity > 0) {
+            requestAnimationFrame(animate);
+          } else {
+            particle.remove();
+          }
+        };
+        // Stagger start
+        setTimeout(() => requestAnimationFrame(animate), Math.random() * 200);
       }
 
-      prevCompletedRef.current = completedCount;
-      prevMinimumDoneRef.current = minimumDone;
-      prevAllDoneRef.current = progressPercent === 100;
-    });
+      // Cleanup container
+      setTimeout(() => container.remove(), 3000);
+    };
+
+    // 🎯 100% — full blast from all sides
+    if (progressPercent === 100 && !prevAllDoneRef.current) {
+      fireConfetti(80, [
+        { x: 0, y: 0 }, { x: 1, y: 0 },
+        { x: 0, y: 0.5 }, { x: 1, y: 0.5 },
+        { x: 0.5, y: 0 },
+      ]);
+    }
+    // 🎯 Minimum reached — two shots from top corners
+    else if (minimumDone && !prevMinimumDoneRef.current) {
+      fireConfetti(40, [{ x: 0, y: 0 }, { x: 1, y: 0 }]);
+    }
+    // 🎯 Single checkmark — mini burst from random point
+    else if (completedCount > prev && prev >= 0) {
+      const pts = [
+        { x: 0.1, y: 0.3 }, { x: 0.9, y: 0.3 },
+        { x: 0.2, y: 0.1 }, { x: 0.8, y: 0.1 },
+        { x: 0.5, y: 0.2 },
+      ];
+      fireConfetti(15, [pts[Math.floor(Math.random() * pts.length)]]);
+    }
+
+    prevCompletedRef.current = completedCount;
+    prevMinimumDoneRef.current = minimumDone;
+    prevAllDoneRef.current = progressPercent === 100;
   }, [completedCount, minimumDone, progressPercent]);
 
   // Збереження
