@@ -316,7 +316,7 @@ export default function WebsiteEditorPage() {
     const greenColors = ['#22c55e', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0'];
 
     if (cur.progressPercent === 100 && !saved.allDone) {
-      // BIG — all 100%
+      // BIG — reached 100%
       const end = Date.now() + 2000;
       const frame = () => {
         confetti({ particleCount: 4, angle: 60, spread: 80, origin: { x: 0, y: 0.6 }, colors: greenColors });
@@ -327,6 +327,9 @@ export default function WebsiteEditorPage() {
     } else if (cur.completedCount > saved.completed) {
       // Progress grew — celebrate
       confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 }, colors: greenColors });
+    } else if (cur.completedCount > 0) {
+      // Same progress but saved something — small burst
+      confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 }, colors: greenColors });
     }
 
     // Update baseline
@@ -1456,30 +1459,7 @@ export default function WebsiteEditorPage() {
           )}
         </div>
 
-        {/* Preview Panel */}
-        <div className="hidden xl:block w-[420px] shrink-0 border-l bg-gray-100 min-h-[calc(100vh-64px)] sticky top-16">
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-gray-600">Попередній перегляд</span>
-              <a
-                href={`https://${settings.slug}.tholim.com`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-              >
-                Відкрити
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            </div>
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-              <iframe
-                src={`https://${settings.slug}.tholim.com?preview=true`}
-                className="w-full h-[600px] border-0"
-                title="Preview"
-              />
-            </div>
-          </div>
-        </div>
+        {/* Preview panel removed */}
       </div>
 
       {/* Mobile Bottom Bar — publish / save */}
@@ -1556,20 +1536,18 @@ export default function WebsiteEditorPage() {
         </div>
       </div>
 
-      {/* Desktop Bottom Publish Bar */}
-      <div className="hidden lg:block fixed bottom-0 left-56 right-0 xl:right-[420px] bg-white border-t z-30">
+      {/* Desktop Bottom Bar */}
+      <div className="hidden lg:block fixed bottom-0 left-56 right-0 bg-white border-t z-30">
         <div className="flex items-center justify-between px-8 py-3 max-w-3xl">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {settings.isPublished ? (
               <span className="flex items-center gap-1.5 text-sm text-green-600 font-medium">
                 <CheckCircle2 className="w-4 h-4" />
-                Сторінка опублікована
+                Опубліковано
               </span>
             ) : (
               <span className="text-sm text-muted-foreground">
-                {canPublish
-                  ? 'Готово до публікації'
-                  : 'Заповніть мінімум: назва, 1 послуга, 1 майстер'}
+                {canPublish ? 'Готово до публікації' : 'Заповніть: назва, послуга, майстер'}
               </span>
             )}
           </div>
@@ -1579,60 +1557,44 @@ export default function WebsiteEditorPage() {
               disabled={!hasChanges || saving}
               variant="outline"
               size="sm"
+              className="rounded-xl"
             >
-              {saving ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4 mr-2" />
-              )}
-              💾 Зберегти чернетку
+              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              Зберегти
             </Button>
             {!settings.isPublished ? (
               <Button
                 onClick={handlePublish}
                 disabled={!canPublish || publishing}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                className="bg-green-600 hover:bg-green-700 text-white rounded-xl"
                 size="sm"
               >
-                {publishing ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Globe className="w-4 h-4 mr-2" />
-                )}
-                🌐 Створити публічну сторінку
+                {publishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Globe className="w-4 h-4 mr-2" />}
+                Опублікувати
               </Button>
             ) : (
               <>
                 <Button
                   onClick={handlePublish}
                   disabled={publishing}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
                   size="sm"
                 >
-                  {publishing ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                  )}
-                  🔄 Оновити дані
+                  {publishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+                  Оновити
                 </Button>
-                <a
-                  href={`https://${settings.slug}.tholim.com`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button variant="outline" size="sm">
-                    <Eye className="w-4 h-4 mr-2" />
-                    👁 Переглянути
+                <a href={`https://${settings.slug}.tholim.com`} target="_blank" rel="noopener noreferrer">
+                  <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl">
+                    <Eye className="w-4 h-4" />
                   </Button>
                 </a>
                 <Button
                   onClick={() => { setShowUnpublishModal(true); setUnpublishStep('confirm'); setUnpublishError(''); setUnpublishOtp(''); }}
                   variant="outline"
-                  size="sm"
-                  className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600"
+                  size="icon"
+                  className="h-9 w-9 rounded-xl text-red-500 border-red-200 hover:bg-red-50"
                 >
-                  🗑 Видалити
+                  <X className="w-4 h-4" />
                 </Button>
               </>
             )}
