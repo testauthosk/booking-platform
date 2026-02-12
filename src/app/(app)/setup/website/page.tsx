@@ -131,6 +131,15 @@ export default function WebsiteEditorPage() {
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [showChecklist, setShowChecklist] = useState(true);
 
+  // Unpublish (delete page) state
+  const [showUnpublishModal, setShowUnpublishModal] = useState(false);
+  const [unpublishStep, setUnpublishStep] = useState<'confirm' | 'otp'>('confirm');
+  const [unpublishOtp, setUnpublishOtp] = useState('');
+  const [unpublishSending, setUnpublishSending] = useState(false);
+  const [unpublishVerifying, setUnpublishVerifying] = useState(false);
+  const [unpublishHint, setUnpublishHint] = useState('');
+  const [unpublishError, setUnpublishError] = useState('');
+
   // Завантаження даних
   useEffect(() => {
     async function loadSettings() {
@@ -411,6 +420,57 @@ export default function WebsiteEditorPage() {
       alert('Помилка публікації');
     } finally {
       setPublishing(false);
+    }
+  };
+
+  // Unpublish — step 1: send OTP
+  const handleUnpublishRequest = async () => {
+    setUnpublishSending(true);
+    setUnpublishError('');
+    try {
+      const res = await fetch('/api/salon/unpublish', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setUnpublishHint(data.hint || 'Код відправлено');
+        setUnpublishStep('otp');
+      } else {
+        setUnpublishError(data.error || 'Помилка');
+      }
+    } catch {
+      setUnpublishError("Помилка з'єднання");
+    } finally {
+      setUnpublishSending(false);
+    }
+  };
+
+  // Unpublish — step 2: verify OTP
+  const handleUnpublishConfirm = async () => {
+    if (unpublishOtp.length !== 6) {
+      setUnpublishError('Введіть 6-значний код');
+      return;
+    }
+    setUnpublishVerifying(true);
+    setUnpublishError('');
+    try {
+      const res = await fetch('/api/salon/unpublish', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: unpublishOtp }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSettings((prev) => prev ? { ...prev, isPublished: false } : null);
+        setShowUnpublishModal(false);
+        setUnpublishStep('confirm');
+        setUnpublishOtp('');
+        setUnpublishHint('');
+      } else {
+        setUnpublishError(data.error || 'Невірний код');
+      }
+    } catch {
+      setUnpublishError("Помилка з'єднання");
+    } finally {
+      setUnpublishVerifying(false);
     }
   };
 
@@ -1436,6 +1496,14 @@ export default function WebsiteEditorPage() {
                   <Eye className="w-4 h-4" />
                 </Button>
               </a>
+              <Button
+                onClick={() => { setShowUnpublishModal(true); setUnpublishStep('confirm'); setUnpublishError(''); setUnpublishOtp(''); }}
+                variant="outline"
+                size="sm"
+                className="text-red-500 border-red-200"
+              >
+                <X className="w-4 h-4" />
+              </Button>
             </>
           )}
         </div>
@@ -1511,11 +1579,109 @@ export default function WebsiteEditorPage() {
                     👁 Переглянути
                   </Button>
                 </a>
+                <Button
+                  onClick={() => { setShowUnpublishModal(true); setUnpublishStep('confirm'); setUnpublishError(''); setUnpublishOtp(''); }}
+                  variant="outline"
+                  size="sm"
+                  className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600"
+                >
+                  🗑 Видалити
+                </Button>
               </>
             )}
           </div>
         </div>
       </div>
+
+      {/* Unpublish Confirmation Modal */}
+      {showUnpublishModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-section-expand">
+            {unpublishStep === 'confirm' ? (
+              <div className="p-6">
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">⚠️</span>
+                </div>
+                <h3 className="text-lg font-bold text-center text-gray-900 mb-2">
+                  Видалити публічну сторінку?
+                </h3>
+                <p className="text-sm text-gray-500 text-center mb-6">
+                  Ваш сайт <b>{settings.slug}.tholim.com</b> стане недоступним для клієнтів. Дані залишаться — ви зможете опублікувати знову.
+                </p>
+                {unpublishError && (
+                  <p className="text-sm text-red-500 text-center mb-4">{unpublishError}</p>
+                )}
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => setShowUnpublishModal(false)}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Скасувати
+                  </Button>
+                  <Button
+                    onClick={handleUnpublishRequest}
+                    disabled={unpublishSending}
+                    className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+                  >
+                    {unpublishSending ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : null}
+                    Підтвердити
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-6">
+                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">🔐</span>
+                </div>
+                <h3 className="text-lg font-bold text-center text-gray-900 mb-2">
+                  Введіть код підтвердження
+                </h3>
+                <p className="text-sm text-gray-500 text-center mb-4">
+                  {unpublishHint}
+                </p>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={unpublishOtp}
+                  onChange={(e) => {
+                    setUnpublishOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
+                    setUnpublishError('');
+                  }}
+                  className="text-center text-2xl tracking-[0.5em] font-mono mb-4"
+                  autoFocus
+                />
+                {unpublishError && (
+                  <p className="text-sm text-red-500 text-center mb-4">{unpublishError}</p>
+                )}
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => { setUnpublishStep('confirm'); setUnpublishError(''); }}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Назад
+                  </Button>
+                  <Button
+                    onClick={handleUnpublishConfirm}
+                    disabled={unpublishVerifying || unpublishOtp.length !== 6}
+                    className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+                  >
+                    {unpublishVerifying ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : null}
+                    Видалити сторінку
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

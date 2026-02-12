@@ -522,6 +522,7 @@ enum OtpType {
   REGISTER
   LOGIN
   LINK_TELEGRAM
+  UNPUBLISH
 }
 
 enum OtpChannel {
