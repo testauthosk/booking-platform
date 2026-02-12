@@ -658,13 +658,14 @@ export default function WebsiteEditorPage() {
     <div className="min-h-screen bg-gray-50/50 overflow-x-hidden max-w-full">
       {/* Confetti explosion */}
       {confettiType !== 'none' && (
-        <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none">
+        <div className="fixed inset-0 z-[99999] pointer-events-none flex items-start justify-center" style={{ paddingTop: '30vh' }}>
           <ConfettiExplosion
-            force={confettiType === 'big' ? 0.8 : confettiType === 'medium' ? 0.6 : 0.4}
-            duration={confettiType === 'big' ? 3500 : confettiType === 'medium' ? 3000 : 2500}
-            particleCount={confettiType === 'big' ? 150 : confettiType === 'medium' ? 80 : 30}
-            width={confettiType === 'big' ? 1600 : confettiType === 'medium' ? 1000 : 600}
-            colors={['#22c55e', '#10b981', '#34d399', '#6ee7b7', '#fbbf24', '#f472b6', '#60a5fa', '#a78bfa']}
+            force={confettiType === 'big' ? 0.9 : confettiType === 'medium' ? 0.7 : 0.6}
+            duration={confettiType === 'big' ? 4000 : confettiType === 'medium' ? 3500 : 3000}
+            particleCount={confettiType === 'big' ? 200 : confettiType === 'medium' ? 120 : 60}
+            width={confettiType === 'big' ? 1800 : confettiType === 'medium' ? 1200 : 800}
+            particleSize={confettiType === 'big' ? 14 : confettiType === 'medium' ? 12 : 10}
+            colors={['#22c55e', '#10b981', '#34d399', '#6ee7b7', '#fbbf24', '#f472b6', '#60a5fa', '#a78bfa', '#fb923c', '#e879f9']}
             onComplete={() => setConfettiType('none')}
           />
         </div>
