@@ -626,7 +626,6 @@ export default function WebsiteEditorPage() {
     { id: 'media', label: 'Медіа', icon: ImageIcon, done: settings.photos.length >= 3 },
     { id: 'hours', label: 'Години', icon: Clock, done: hasValidHours },
     { id: 'amenities', label: 'Зручності', icon: Sparkles, done: (settings.amenities?.length ?? 0) > 0 },
-    { id: 'theme', label: 'Тема', icon: Palette, done: !!settings.paletteId },
   ];
 
   // Section-specific hints
@@ -648,7 +647,6 @@ export default function WebsiteEditorPage() {
       text: '💡 Вкажіть графік — клієнти бачитимуть чи ви працюєте зараз',
     },
     amenities: { show: false, text: '' },
-    theme: { show: false, text: '' },
   };
 
   return (
@@ -842,6 +840,59 @@ export default function WebsiteEditorPage() {
             </div>
           </div>
         )}
+
+        {/* Mobile Section Tabs — inside sticky bar */}
+        <div className="overflow-x-auto scrollbar-hide px-3 pb-2">
+          <div
+            ref={tabsContainerRef}
+            className="relative bg-gray-100/80 rounded-2xl p-1 flex w-max min-w-full"
+          >
+            {/* Animated glass indicator */}
+            <div
+              className="absolute top-1 bottom-1 rounded-xl backdrop-blur-xl shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-white/50 pointer-events-none"
+              style={{
+                left: `${tabIndicator.left}px`,
+                width: `${tabIndicator.width}px`,
+                transition: 'left 0.3s ease, width 0.3s ease',
+                background: sections.find((s) => s.id === activeSection)?.done
+                  ? 'rgba(240, 253, 244, 0.7)'
+                  : 'rgba(255, 255, 255, 0.7)',
+              }}
+            />
+            {sections.map((section, idx) => {
+              const isActive = activeSection === section.id;
+              return (
+                <button
+                  key={section.id}
+                  data-tab-id={section.id}
+                  ref={(el) => { tabRefs.current[idx] = el; }}
+                  onClick={() => {
+                    setActiveSection(section.id);
+                    const container = tabsContainerRef.current;
+                    const tabEl = container?.querySelector(`[data-tab-id="${section.id}"]`) as HTMLElement | null;
+                    if (tabEl) {
+                      setTabIndicator({ left: tabEl.offsetLeft, width: tabEl.offsetWidth });
+                    }
+                  }}
+                  className={`relative z-10 flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm whitespace-nowrap transition-colors duration-200 ${
+                    isActive
+                      ? 'font-semibold text-gray-900'
+                      : section.done
+                        ? 'text-green-600'
+                        : 'text-gray-600'
+                  }`}
+                >
+                  {section.done && !isActive ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                  ) : (
+                    <section.icon className="w-3.5 h-3.5" />
+                  )}
+                  {section.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* ═══════════════════════════════════════════ */}
@@ -1084,62 +1135,6 @@ export default function WebsiteEditorPage() {
 
         {/* Main Content */}
         <div className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-3xl pb-[180px] lg:pb-8">
-          {/* ═══════════════════════════════════════════ */}
-          {/* Mobile Section Tabs — Glass morphism        */}
-          {/* ═══════════════════════════════════════════ */}
-          <div className="lg:hidden mb-4 -mx-4 px-4 overflow-x-auto scrollbar-hide">
-            <div
-              ref={tabsContainerRef}
-              className="relative bg-gray-100/80 rounded-2xl p-1 flex w-max min-w-full"
-            >
-              {/* Animated glass indicator */}
-              <div
-                className="absolute top-1 bottom-1 rounded-xl backdrop-blur-xl shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-white/50 pointer-events-none"
-                style={{
-                  left: `${tabIndicator.left}px`,
-                  width: `${tabIndicator.width}px`,
-                  transition: 'left 0.3s ease, width 0.3s ease',
-                  background: sections.find((s) => s.id === activeSection)?.done
-                    ? 'rgba(240, 253, 244, 0.7)'
-                    : 'rgba(255, 255, 255, 0.7)',
-                }}
-              />
-              {sections.map((section, idx) => {
-                const isActive = activeSection === section.id;
-                return (
-                  <button
-                    key={section.id}
-                    data-tab-id={section.id}
-                    ref={(el) => { tabRefs.current[idx] = el; }}
-                    onClick={() => {
-                      setActiveSection(section.id);
-                      // Immediately update indicator position
-                      const container = tabsContainerRef.current;
-                      const tabEl = container?.querySelector(`[data-tab-id="${section.id}"]`) as HTMLElement | null;
-                      if (tabEl) {
-                        setTabIndicator({ left: tabEl.offsetLeft, width: tabEl.offsetWidth });
-                      }
-                    }}
-                    className={`relative z-10 flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm whitespace-nowrap transition-colors duration-200 ${
-                      isActive
-                        ? 'font-semibold text-gray-900'
-                        : section.done
-                          ? 'text-green-600'
-                          : 'text-gray-600'
-                    }`}
-                  >
-                    {section.done && !isActive ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
-                    ) : (
-                      <section.icon className="w-3.5 h-3.5" />
-                    )}
-                    {section.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           {/* Section Hint */}
           {sectionHints[activeSection]?.show && (
             <div className="mb-4 flex items-start gap-2.5 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl bg-amber-50 border border-amber-100 text-sm text-amber-800 break-words">
@@ -1622,8 +1617,8 @@ export default function WebsiteEditorPage() {
             </Card>
           )}
 
-          {/* Theme Section */}
-          {activeSection === 'theme' && (
+          {/* Theme Section — shown inside "basic" */}
+          {activeSection === 'basic' && (
             <Card className="p-4 lg:p-6 max-w-full">
               <h2 className="text-base lg:text-lg font-semibold mb-4 lg:mb-6 flex items-center gap-2">
                 <Palette className="w-5 h-5 text-gray-400 shrink-0" />
