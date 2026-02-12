@@ -339,12 +339,18 @@ export default function WebsiteEditorPage() {
   // ── Confetti: called directly after successful save ──
   const fireConfettiIfNeeded = useCallback(() => {
     const saved = savedStateRef.current;
+    console.log('[CONFETTI] check:', { completedCount, savedCompleted: saved.completed, minimumDone, savedMinimum: saved.minimumDone, progressPercent, savedAllDone: saved.allDone });
     if (progressPercent === 100 && !saved.allDone) {
+      console.log('[CONFETTI] → BIG');
       setConfettiType('big');
     } else if (minimumDone && !saved.minimumDone) {
+      console.log('[CONFETTI] → MEDIUM');
       setConfettiType('medium');
     } else if (completedCount > saved.completed) {
+      console.log('[CONFETTI] → SMALL');
       setConfettiType('small');
+    } else {
+      console.log('[CONFETTI] → none (no change)');
     }
     // Update saved state to current
     savedStateRef.current = { completed: completedCount, minimumDone, allDone: progressPercent === 100 };
