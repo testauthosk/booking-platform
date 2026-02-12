@@ -819,16 +819,25 @@ export default function WebsiteEditorPage() {
       )}
 
       <div className="flex overflow-hidden max-w-full">
-        {/* Sidebar Navigation — Desktop — same style as main sidebar */}
+        {/* Sidebar Navigation — Desktop — sliding indicator */}
         <div className="hidden lg:block w-56 shrink-0 border-r bg-background min-h-[calc(100vh-64px)] sticky top-16">
-          <nav className="p-4 space-y-1">
+          <nav className="relative p-4 space-y-1">
+            {/* Sliding indicator — follows active section */}
+            <div
+              className="absolute left-4 right-4 rounded-lg bg-primary/10 pointer-events-none"
+              style={{
+                top: `${16 + sections.findIndex(s => s.id === activeSection) * 44}px`,
+                height: '40px',
+                transition: 'top 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+            />
             {sections.map((section) => (
               <button
                 key={section.id}
                 onClick={() => setActiveSection(section.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 active:scale-[0.98] ${
+                className={`relative z-10 w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-200 active:scale-[0.98] ${
                   activeSection === section.id
-                    ? 'bg-primary/10 text-primary font-medium'
+                    ? 'text-primary font-medium'
                     : section.done
                       ? 'text-green-700 hover:bg-muted'
                       : 'text-gray-600 hover:bg-muted'
