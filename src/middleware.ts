@@ -5,7 +5,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ── Subdomain Routing ──
-  // slug.tholim.com → /salon/slug
+  // slug.tholim.com → salon context
   const baseDomain = process.env.BASE_DOMAIN || 'tholim.com';
   if (
     hostname !== baseDomain &&
@@ -13,19 +13,26 @@ export function middleware(request: NextRequest) {
     hostname.endsWith(`.${baseDomain}`) &&
     !pathname.startsWith('/api/') &&
     !pathname.startsWith('/_next/') &&
-    !pathname.startsWith('/salon/') &&
-    !pathname.startsWith('/staff') &&
-    !pathname.startsWith('/login') &&
-    !pathname.startsWith('/register') &&
-    !pathname.startsWith('/join') &&
-    !pathname.startsWith('/review') &&
-    !pathname.startsWith('/booking')
+    !pathname.startsWith('/salon/')
   ) {
     const slug = hostname.replace(`.${baseDomain}`, '');
     if (slug && !slug.includes('.') && slug !== 'app') {
-      const url = request.nextUrl.clone();
-      url.pathname = `/salon/${slug}${pathname === '/' ? '' : pathname}`;
-      return NextResponse.rewrite(url);
+      // Admin/app routes — pass through as-is (login, dashboard, setup, etc.)
+      // These are handled by Next.js app router normally
+      const isAppRoute = [
+        '/login', '/register', '/join', '/staff',
+        '/dashboard', '/calendar', '/setup', '/catalogue',
+        '/team', '/clients', '/reports', '/inventory',
+        '/help', '/review', '/booking',
+      ].some((r) => pathname.startsWith(r));
+
+      if (!isAppRoute) {
+        // Public salon page: slug.tholim.com/ → /salon/slug
+        const url = request.nextUrl.clone();
+        url.pathname = `/salon/${slug}${pathname === '/' ? '' : pathname}`;
+        return NextResponse.rewrite(url);
+      }
+      // App routes on subdomain — let through, same as app.tholim.com
     }
   }
 
