@@ -166,8 +166,8 @@ export default function WebsiteEditorPage() {
   const [tabIndicator, setTabIndicator] = useState({ left: 0, width: 0 });
 
   // ── Confetti tracking refs ──
-  const justSavedRef = useRef(false);
-  const prevStateRef = useRef({ completed: 0, minimumDone: false, allDone: false });
+  // Tracks the SAVED state (from server) — updated on load and after each successful save
+  const savedStateRef = useRef({ completed: 0, minimumDone: false, allDone: false });
 
   // Завантаження даних
   useEffect(() => {
@@ -186,6 +186,25 @@ export default function WebsiteEditorPage() {
             }));
           }
           setSettings(data);
+          // Snapshot initial server state for confetti comparison
+          const hasHours = Array.isArray(data.workingHours) &&
+            data.workingHours.some((d: any) => d.enabled && d.start && d.end && d.start !== d.end);
+          const initCompleted = [
+            data.name && data.name.trim().length >= 2,
+            data.servicesCount > 0,
+            data.mastersCount > 0,
+            data.type && data.type.trim().length > 0,
+            data.phone || data.email,
+            data.address && data.address.trim().length > 0,
+            data.photos?.length >= 3,
+            hasHours,
+          ].filter(Boolean).length;
+          const initMinimum = !!(data.name && data.name.trim().length >= 2) && data.servicesCount > 0 && data.mastersCount > 0;
+          savedStateRef.current = {
+            completed: initCompleted,
+            minimumDone: initMinimum,
+            allDone: initCompleted === 8,
+          };
         }
       } catch (error) {
         console.error('Failed to load settings:', error);
@@ -317,18 +336,18 @@ export default function WebsiteEditorPage() {
       ? 'bg-green-500'
       : 'bg-amber-500';
 
-  // ── Confetti: useEffect that fires after state updates post-save ──
-  useEffect(() => {
-    if (!justSavedRef.current) return;
-    justSavedRef.current = false;
-    const prev = prevStateRef.current;
-    if (progressPercent === 100 && !prev.allDone) {
+  // ── Confetti: called directly after successful save ──
+  const fireConfettiIfNeeded = useCallback(() => {
+    const saved = savedStateRef.current;
+    if (progressPercent === 100 && !saved.allDone) {
       setConfettiType('big');
-    } else if (minimumDone && !prev.minimumDone) {
+    } else if (minimumDone && !saved.minimumDone) {
       setConfettiType('medium');
-    } else if (completedCount > prev.completed) {
+    } else if (completedCount > saved.completed) {
       setConfettiType('small');
     }
+    // Update saved state to current
+    savedStateRef.current = { completed: completedCount, minimumDone, allDone: progressPercent === 100 };
   }, [completedCount, minimumDone, progressPercent]);
 
   // ── Glass tabs: measure active tab position ──
@@ -356,9 +375,6 @@ export default function WebsiteEditorPage() {
   // Збереження
   const handleSave = async () => {
     if (!settings) return;
-    // Snapshot state before save
-    prevStateRef.current = { completed: completedCount, minimumDone, allDone: progressPercent === 100 };
-    justSavedRef.current = true;
     setSaving(true);
     try {
       const res = await fetch('/api/salon/settings', {
@@ -370,13 +386,12 @@ export default function WebsiteEditorPage() {
         const updated = await res.json();
         setSettings((prev) => prev ? { ...prev, ...updated } : null);
         setHasChanges(false);
+        fireConfettiIfNeeded();
       } else {
-        justSavedRef.current = false;
         const err = await res.json();
         alert(err.error || 'Помилка збереження');
       }
     } catch (error) {
-      justSavedRef.current = false;
       console.error('Failed to save:', error);
       alert('Помилка збереження');
     } finally {
@@ -387,12 +402,8 @@ export default function WebsiteEditorPage() {
   // Publish / Update
   const handlePublish = async () => {
     if (!settings) return;
-    // Snapshot state before save
-    prevStateRef.current = { completed: completedCount, minimumDone, allDone: progressPercent === 100 };
-    justSavedRef.current = true;
     setPublishing(true);
     try {
-      // First save current changes if any
       const saveData = { ...settings, isPublished: true };
       const res = await fetch('/api/salon/settings', {
         method: 'PATCH',
@@ -403,13 +414,12 @@ export default function WebsiteEditorPage() {
         const updated = await res.json();
         setSettings((prev) => prev ? { ...prev, ...updated } : null);
         setHasChanges(false);
+        fireConfettiIfNeeded();
       } else {
-        justSavedRef.current = false;
         const err = await res.json();
         alert(err.error || 'Помилка публікації');
       }
     } catch (error) {
-      justSavedRef.current = false;
       console.error('Failed to publish:', error);
       alert('Помилка публікації');
     } finally {
