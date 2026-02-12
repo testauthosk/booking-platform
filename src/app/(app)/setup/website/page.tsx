@@ -697,15 +697,15 @@ export default function WebsiteEditorPage() {
             <Button
               onClick={handleSave}
               disabled={!hasChanges || saving}
-              size="sm"
+              size="icon"
               variant="outline"
+              className="rounded-xl"
             >
               {saving ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <Save className="w-4 h-4 mr-2" />
+                <Save className="w-4 h-4" />
               )}
-              <span className="hidden sm:inline">💾 Зберегти чернетку</span>
             </Button>
           </div>
         </div>
@@ -849,7 +849,7 @@ export default function WebsiteEditorPage() {
           >
             {/* Animated glass indicator */}
             <div
-              className="absolute top-1 bottom-1 rounded-xl backdrop-blur-xl shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-white/50 pointer-events-none"
+              className="absolute top-1 bottom-1 rounded-lg backdrop-blur-xl shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-white/50 pointer-events-none"
               style={{
                 left: `${tabIndicator.left}px`,
                 width: `${tabIndicator.width}px`,
@@ -874,7 +874,7 @@ export default function WebsiteEditorPage() {
                       setTabIndicator({ left: tabEl.offsetLeft, width: tabEl.offsetWidth });
                     }
                   }}
-                  className={`relative z-10 flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm whitespace-nowrap transition-colors duration-200 ${
+                  className={`relative z-10 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs whitespace-nowrap transition-colors duration-200 ${
                     isActive
                       ? 'font-semibold text-gray-900'
                       : section.done
@@ -1708,14 +1708,14 @@ export default function WebsiteEditorPage() {
       </div>
 
       {/* Mobile Bottom Bar — publish / save */}
-      <div className="lg:hidden fixed bottom-[68px] left-0 right-0 bg-white border-t z-30 safe-area-bottom">
-        <div className="flex items-center gap-2 px-4 py-3">
+      <div className="lg:hidden fixed bottom-[68px] left-0 right-0 z-30 safe-area-bottom">
+        <div className="flex items-center gap-2 mx-4 mb-1 px-3 py-2.5 rounded-2xl bg-white/70 backdrop-blur-xl border border-black/10 shadow-lg">
           {/* Save draft */}
           <Button
             onClick={handleSave}
             disabled={!hasChanges || saving}
             variant="outline"
-            className="flex-1"
+            className="flex-1 rounded-xl"
             size="sm"
           >
             {saving ? (
@@ -1723,7 +1723,7 @@ export default function WebsiteEditorPage() {
             ) : (
               <Save className="w-4 h-4 mr-1.5" />
             )}
-            💾 Зберегти чернетку
+            Зберегти
           </Button>
 
           {/* Publish / Update */}
@@ -1731,7 +1731,7 @@ export default function WebsiteEditorPage() {
             <Button
               onClick={handlePublish}
               disabled={!canPublish || publishing}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white animate-pulse-glow"
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white animate-pulse-glow rounded-xl"
               size="sm"
             >
               {publishing ? (
@@ -1746,7 +1746,7 @@ export default function WebsiteEditorPage() {
               <Button
                 onClick={handlePublish}
                 disabled={publishing}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
                 size="sm"
               >
                 {publishing ? (
@@ -1761,7 +1761,7 @@ export default function WebsiteEditorPage() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="rounded-xl">
                   <Eye className="w-4 h-4" />
                 </Button>
               </a>
@@ -1769,7 +1769,7 @@ export default function WebsiteEditorPage() {
                 onClick={() => { setShowUnpublishModal(true); setUnpublishStep('confirm'); setUnpublishError(''); setUnpublishOtp(''); }}
                 variant="outline"
                 size="sm"
-                className="text-red-500 border-red-200"
+                className="text-red-500 border-red-200 rounded-xl"
               >
                 <X className="w-4 h-4" />
               </Button>
