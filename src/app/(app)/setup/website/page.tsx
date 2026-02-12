@@ -796,34 +796,7 @@ export default function WebsiteEditorPage() {
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════ */}
-      {/* Progress Bar — DESKTOP full version         */}
-      {/* ═══════════════════════════════════════════ */}
-      <div className="hidden lg:block sticky top-16 z-10 bg-white border-b shadow-sm">
-        <div className="px-4 sm:px-6 py-3">
-          {/* Title row */}
-          {/* Compact progress bar — checklist moved to right sidebar */}
-          <div className="flex items-center gap-3">
-            {progressPercent === 100 ? (
-              <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-            ) : (
-              <Circle className="w-4 h-4 text-gray-400 shrink-0" />
-            )}
-            <div className="flex-1">
-              <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full ${progressColor}`}
-                  style={{
-                    width: `${progressPercent}%`,
-                    transition: 'width 0.8s ease, background-color 0.6s ease',
-                  }}
-                />
-              </div>
-            </div>
-            <span className="text-xs font-medium text-gray-500 tabular-nums shrink-0">{progressPercent}%</span>
-          </div>
-        </div>
-      </div>
+      {/* Desktop progress bar removed — checklist is in right sidebar */}
 
       {/* Banner at 100% — not yet published */}
       {progressPercent === 100 && !settings.isPublished && (
@@ -873,10 +846,10 @@ export default function WebsiteEditorPage() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-3xl pb-[180px] lg:pb-8">
-          {/* Section Hint */}
+        <div className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 pb-[180px] lg:pb-16">
+          {/* Section hint — mobile only (desktop has right sidebar) */}
           {sectionHints[activeSection]?.show && (
-            <div className="mb-4 flex items-start gap-2.5 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl bg-amber-50 border border-amber-100 text-sm text-amber-800 break-words">
+            <div className="mb-4 lg:hidden flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-100 text-sm text-amber-800 break-words">
               <Lightbulb className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
               <span className="min-w-0">{sectionHints[activeSection].text}</span>
             </div>
@@ -895,7 +868,17 @@ export default function WebsiteEditorPage() {
                   <Input
                     id="name"
                     value={settings.name}
-                    onChange={(e) => updateField('name', e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      updateField('name', val);
+                      // Auto-generate slug from name (transliterate cyrillic)
+                      const translitMap: Record<string, string> = {
+                        а:'a',б:'b',в:'v',г:'h',ґ:'g',д:'d',е:'e',є:'ye',ж:'zh',з:'z',и:'y',і:'i',ї:'yi',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'kh',ц:'ts',ч:'ch',ш:'sh',щ:'shch',ь:'',ю:'yu',я:'ya',э:'e',ы:'y',ъ:'',ё:'yo',
+                      };
+                      const slug = val.toLowerCase().split('').map(c => translitMap[c] ?? c).join('')
+                        .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 30);
+                      updateField('slug', slug);
+                    }}
                     placeholder="The Barber Shop"
                     className="mt-1.5"
                   />

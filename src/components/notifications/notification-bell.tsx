@@ -113,10 +113,10 @@ export function NotificationBell() {
             : "active:bg-gray-200"
         )}
         style={{
-          width: '44px',
-          height: '44px',
+          width: '36px',
+          height: '36px',
           borderRadius: open ? '12px 12px 0 0' : '12px',
-          ...(!open ? { backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.4)' } : {}),
+          ...(!open ? { backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.1)' } : {}),
         }}
       >
         <Bell className="h-[18px] w-[18px] text-gray-700 pointer-events-none" />
@@ -138,11 +138,11 @@ export function NotificationBell() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="absolute right-0 top-[39px] w-80 bg-card border border-border rounded-b-xl rounded-tl-xl overflow-hidden z-[70]"
+            className="absolute right-0 top-[31px] w-80 bg-card border border-border rounded-b-xl rounded-tl-xl overflow-hidden z-[70]"
             style={{ marginRight: '0px' }}
           >
             {/* Top border line with gap for button connection */}
-            <div className="absolute top-0 left-0 right-[39px] h-[1px] bg-border" />
+            <div className="absolute top-0 left-0 right-[31px] h-[1px] bg-border" />
             
             {/* Header */}
             <div className="flex items-center justify-between p-3 border-b border-border bg-card">
