@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import ConfettiExplosion from 'react-confetti-explosion';
+// confetti removed
 import {
   ArrowLeft,
   Save,
@@ -153,8 +153,7 @@ export default function WebsiteEditorPage() {
   // Track milestone dismissed
   const [milestoneDismissed, setMilestoneDismissed] = useState(false);
 
-  // Confetti explosion state: 'none' | 'small' | 'medium' | 'big'
-  const [confettiType, setConfettiType] = useState<'none' | 'small' | 'medium' | 'big'>('none');
+  // confetti removed
 
   // Custom business type dropdown
   const [businessTypeOpen, setBusinessTypeOpen] = useState(false);
@@ -165,9 +164,7 @@ export default function WebsiteEditorPage() {
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [tabIndicator, setTabIndicator] = useState({ left: 0, width: 0 });
 
-  // ── Confetti tracking refs ──
-  // Tracks the SAVED state (from server) — updated on load and after each successful save
-  const savedStateRef = useRef({ completed: 0, minimumDone: false, allDone: false });
+  // confetti refs removed
 
   // Завантаження даних
   useEffect(() => {
@@ -186,25 +183,7 @@ export default function WebsiteEditorPage() {
             }));
           }
           setSettings(data);
-          // Snapshot initial server state for confetti comparison
-          const hasHours = Array.isArray(data.workingHours) &&
-            data.workingHours.some((d: any) => d.enabled && d.start && d.end && d.start !== d.end);
-          const initCompleted = [
-            data.name && data.name.trim().length >= 2,
-            data.servicesCount > 0,
-            data.mastersCount > 0,
-            data.type && data.type.trim().length > 0,
-            data.phone || data.email,
-            data.address && data.address.trim().length > 0,
-            data.photos?.length >= 3,
-            hasHours,
-          ].filter(Boolean).length;
-          const initMinimum = !!(data.name && data.name.trim().length >= 2) && data.servicesCount > 0 && data.mastersCount > 0;
-          savedStateRef.current = {
-            completed: initCompleted,
-            minimumDone: initMinimum,
-            allDone: initCompleted === 8,
-          };
+          // confetti init removed
         }
       } catch (error) {
         console.error('Failed to load settings:', error);
@@ -336,30 +315,7 @@ export default function WebsiteEditorPage() {
       ? 'bg-green-500'
       : 'bg-amber-500';
 
-  // ── Confetti: called directly after successful save ──
-  // Uses refs to avoid stale closure issues
-  const completedRef = useRef({ completedCount, minimumDone, progressPercent });
-  completedRef.current = { completedCount, minimumDone, progressPercent };
-
-  const fireConfettiIfNeeded = useCallback(() => {
-    const saved = savedStateRef.current;
-    const cur = completedRef.current;
-    console.log('[CONFETTI] check:', { cur, saved });
-    if (cur.progressPercent === 100 && !saved.allDone) {
-      console.log('[CONFETTI] → BIG');
-      setConfettiType('big');
-    } else if (cur.minimumDone && !saved.minimumDone) {
-      console.log('[CONFETTI] → MEDIUM');
-      setConfettiType('medium');
-    } else if (cur.completedCount > saved.completed) {
-      console.log('[CONFETTI] → SMALL');
-      setConfettiType('small');
-    } else {
-      console.log('[CONFETTI] → none (no change)');
-    }
-    // Update saved state to current
-    savedStateRef.current = { completed: cur.completedCount, minimumDone: cur.minimumDone, allDone: cur.progressPercent === 100 };
-  }, []);
+  // confetti logic removed
 
   // ── Glass tabs: measure active tab position ──
   const updateTabIndicator = useCallback((sectionId?: string) => {
@@ -397,7 +353,6 @@ export default function WebsiteEditorPage() {
         const updated = await res.json();
         setSettings((prev) => prev ? { ...prev, ...updated } : null);
         setHasChanges(false);
-        fireConfettiIfNeeded();
       } else {
         const err = await res.json();
         alert(err.error || 'Помилка збереження');
@@ -425,7 +380,6 @@ export default function WebsiteEditorPage() {
         const updated = await res.json();
         setSettings((prev) => prev ? { ...prev, ...updated } : null);
         setHasChanges(false);
-        fireConfettiIfNeeded();
       } else {
         const err = await res.json();
         alert(err.error || 'Помилка публікації');
@@ -656,20 +610,7 @@ export default function WebsiteEditorPage() {
 
   return (
     <div className="min-h-screen bg-gray-50/50 overflow-x-hidden max-w-full">
-      {/* Confetti explosion */}
-      {confettiType !== 'none' && (
-        <div className="fixed inset-0 z-[99999] pointer-events-none flex items-start justify-center" style={{ paddingTop: '30vh' }}>
-          <ConfettiExplosion
-            force={confettiType === 'big' ? 0.9 : confettiType === 'medium' ? 0.7 : 0.6}
-            duration={confettiType === 'big' ? 4000 : confettiType === 'medium' ? 3500 : 3000}
-            particleCount={confettiType === 'big' ? 200 : confettiType === 'medium' ? 120 : 60}
-            width={confettiType === 'big' ? 1800 : confettiType === 'medium' ? 1200 : 800}
-            particleSize={confettiType === 'big' ? 14 : confettiType === 'medium' ? 12 : 10}
-            colors={['#22c55e', '#10b981', '#34d399', '#6ee7b7', '#fbbf24', '#f472b6', '#60a5fa', '#a78bfa', '#fb923c', '#e879f9']}
-            onComplete={() => setConfettiType('none')}
-          />
-        </div>
-      )}
+      {/* confetti removed */}
       {/* Header */}
       <div className="sticky top-0 z-20 bg-white border-b">
         <div className="flex items-center justify-between px-4 sm:px-6 h-14 lg:h-16">
