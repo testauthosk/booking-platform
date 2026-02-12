@@ -285,7 +285,8 @@ export default function WebsiteEditorPage() {
     }
 
     // Dynamic import to avoid SSR issues
-    import('canvas-confetti').then(({ default: fire }) => {
+    import('canvas-confetti').then((mod) => {
+      const fire = mod.default || mod;
       // 🎯 100% — full blast from all sides
       if (progressPercent === 100 && !prevAllDoneRef.current) {
         const duration = 1500;
