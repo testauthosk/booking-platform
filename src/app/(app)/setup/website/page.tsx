@@ -100,6 +100,8 @@ const BUSINESS_TYPES = [
   'Косметологія',
   'Масажний салон',
   'Студія татуювань',
+  'Медичний центр',
+  'Інше',
 ];
 
 // Доступні зручності
@@ -154,7 +156,18 @@ export default function WebsiteEditorPage() {
   // Confetti explosion state: 'none' | 'small' | 'medium' | 'big'
   const [confettiType, setConfettiType] = useState<'none' | 'small' | 'medium' | 'big'>('none');
 
-  // ── Confetti tracking ──
+  // Custom business type dropdown
+  const [businessTypeOpen, setBusinessTypeOpen] = useState(false);
+  const businessTypeRef = useRef<HTMLDivElement>(null);
+
+  // Glass tabs refs for mobile
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const [tabIndicator, setTabIndicator] = useState({ left: 0, width: 0 });
+
+  // ── Confetti tracking refs ──
+  const justSavedRef = useRef(false);
+  const prevStateRef = useRef({ completed: 0, minimumDone: false, allDone: false });
 
   // Завантаження даних
   useEffect(() => {
@@ -182,6 +195,19 @@ export default function WebsiteEditorPage() {
     }
     loadSettings();
   }, []);
+
+  // Close business type dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (businessTypeRef.current && !businessTypeRef.current.contains(e.target as Node)) {
+        setBusinessTypeOpen(false);
+      }
+    }
+    if (businessTypeOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [businessTypeOpen]);
 
   // Оновлення поля
   const updateField = useCallback((field: keyof SalonSettings, value: any) => {
@@ -291,34 +317,48 @@ export default function WebsiteEditorPage() {
       ? 'bg-green-500'
       : 'bg-amber-500';
 
-  // ── Confetti: snapshot state before save, compare after ──
-  const preSaveSnapshotRef = useRef({ completed: 0, minimumDone: false, allDone: false });
-
-  const snapshotBeforeSave = useCallback(() => {
-    preSaveSnapshotRef.current = {
-      completed: completedCount,
-      minimumDone,
-      allDone: progressPercent === 100,
-    };
-  }, [completedCount, minimumDone, progressPercent]);
-
-  // Called after successful save — compares with pre-save snapshot
-  const checkConfetti = useCallback(() => {
-    const snap = preSaveSnapshotRef.current;
-
-    if (progressPercent === 100 && !snap.allDone) {
+  // ── Confetti: useEffect that fires after state updates post-save ──
+  useEffect(() => {
+    if (!justSavedRef.current) return;
+    justSavedRef.current = false;
+    const prev = prevStateRef.current;
+    if (progressPercent === 100 && !prev.allDone) {
       setConfettiType('big');
-    } else if (minimumDone && !snap.minimumDone) {
+    } else if (minimumDone && !prev.minimumDone) {
       setConfettiType('medium');
-    } else if (completedCount > snap.completed) {
+    } else if (completedCount > prev.completed) {
       setConfettiType('small');
     }
   }, [completedCount, minimumDone, progressPercent]);
 
+  // ── Glass tabs: measure active tab position ──
+  const updateTabIndicator = useCallback((sectionId?: string) => {
+    const container = tabsContainerRef.current;
+    if (!container) return;
+    // Find sections array index — but sections is defined in render. Use a data attribute approach.
+    const targetId = sectionId || activeSection;
+    const tabEl = container.querySelector(`[data-tab-id="${targetId}"]`) as HTMLElement | null;
+    if (tabEl) {
+      setTabIndicator({
+        left: tabEl.offsetLeft,
+        width: tabEl.offsetWidth,
+      });
+    }
+  }, [activeSection]);
+
+  // Update indicator when activeSection changes or on mount
+  useEffect(() => {
+    // Small delay to allow DOM to settle
+    const timer = setTimeout(() => updateTabIndicator(), 50);
+    return () => clearTimeout(timer);
+  }, [activeSection, updateTabIndicator, loading, settings]);
+
   // Збереження
   const handleSave = async () => {
     if (!settings) return;
-    snapshotBeforeSave();
+    // Snapshot state before save
+    prevStateRef.current = { completed: completedCount, minimumDone, allDone: progressPercent === 100 };
+    justSavedRef.current = true;
     setSaving(true);
     try {
       const res = await fetch('/api/salon/settings', {
@@ -330,12 +370,13 @@ export default function WebsiteEditorPage() {
         const updated = await res.json();
         setSettings((prev) => prev ? { ...prev, ...updated } : null);
         setHasChanges(false);
-        setTimeout(() => checkConfetti(), 300);
       } else {
+        justSavedRef.current = false;
         const err = await res.json();
         alert(err.error || 'Помилка збереження');
       }
     } catch (error) {
+      justSavedRef.current = false;
       console.error('Failed to save:', error);
       alert('Помилка збереження');
     } finally {
@@ -346,7 +387,9 @@ export default function WebsiteEditorPage() {
   // Publish / Update
   const handlePublish = async () => {
     if (!settings) return;
-    snapshotBeforeSave();
+    // Snapshot state before save
+    prevStateRef.current = { completed: completedCount, minimumDone, allDone: progressPercent === 100 };
+    justSavedRef.current = true;
     setPublishing(true);
     try {
       // First save current changes if any
@@ -360,12 +403,13 @@ export default function WebsiteEditorPage() {
         const updated = await res.json();
         setSettings((prev) => prev ? { ...prev, ...updated } : null);
         setHasChanges(false);
-        setTimeout(() => checkConfetti(), 300);
       } else {
+        justSavedRef.current = false;
         const err = await res.json();
         alert(err.error || 'Помилка публікації');
       }
     } catch (error) {
+      justSavedRef.current = false;
       console.error('Failed to publish:', error);
       alert('Помилка публікації');
     } finally {
@@ -996,18 +1040,18 @@ export default function WebsiteEditorPage() {
       )}
 
       <div className="flex overflow-hidden max-w-full">
-        {/* Sidebar Navigation */}
+        {/* Sidebar Navigation — Desktop — glass morphism */}
         <div className="hidden lg:block w-56 shrink-0 border-r bg-white min-h-[calc(100vh-64px)] sticky top-16">
           <nav className="p-4 space-y-1">
             {sections.map((section) => (
               <button
                 key={section.id}
                 onClick={() => setActiveSection(section.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                   activeSection === section.id
-                    ? 'bg-gray-900 text-white'
+                    ? 'bg-white/70 backdrop-blur-sm shadow-sm border border-white/50 text-gray-900 font-semibold'
                     : section.done
-                      ? 'text-green-700 bg-green-50 hover:bg-green-100'
+                      ? 'text-green-700 bg-green-50/80 hover:bg-green-100'
                       : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
@@ -1024,29 +1068,59 @@ export default function WebsiteEditorPage() {
 
         {/* Main Content */}
         <div className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-3xl pb-[180px] lg:pb-8">
-          {/* Mobile Section Tabs — horizontal scroll */}
+          {/* ═══════════════════════════════════════════ */}
+          {/* Mobile Section Tabs — Glass morphism        */}
+          {/* ═══════════════════════════════════════════ */}
           <div className="lg:hidden mb-4 -mx-4 px-4 overflow-x-auto scrollbar-hide">
-            <div className="flex gap-2 w-max">
-              {sections.map((section) => (
-                <button
-                  key={section.id}
-                  onClick={() => setActiveSection(section.id)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
-                    activeSection === section.id
-                      ? 'bg-gray-900 text-white'
-                      : section.done
-                        ? 'bg-green-50 text-green-700 border border-green-300'
-                        : 'bg-white text-gray-600 border'
-                  }`}
-                >
-                  {section.done && activeSection !== section.id ? (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
-                  ) : (
-                    <section.icon className="w-3.5 h-3.5" />
-                  )}
-                  {section.label}
-                </button>
-              ))}
+            <div
+              ref={tabsContainerRef}
+              className="relative bg-gray-100/80 rounded-2xl p-1 flex w-max min-w-full"
+            >
+              {/* Animated glass indicator */}
+              <div
+                className="absolute top-1 bottom-1 rounded-xl backdrop-blur-xl shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-white/50 pointer-events-none"
+                style={{
+                  left: `${tabIndicator.left}px`,
+                  width: `${tabIndicator.width}px`,
+                  transition: 'left 0.3s ease, width 0.3s ease',
+                  background: sections.find((s) => s.id === activeSection)?.done
+                    ? 'rgba(240, 253, 244, 0.7)'
+                    : 'rgba(255, 255, 255, 0.7)',
+                }}
+              />
+              {sections.map((section, idx) => {
+                const isActive = activeSection === section.id;
+                return (
+                  <button
+                    key={section.id}
+                    data-tab-id={section.id}
+                    ref={(el) => { tabRefs.current[idx] = el; }}
+                    onClick={() => {
+                      setActiveSection(section.id);
+                      // Immediately update indicator position
+                      const container = tabsContainerRef.current;
+                      const tabEl = container?.querySelector(`[data-tab-id="${section.id}"]`) as HTMLElement | null;
+                      if (tabEl) {
+                        setTabIndicator({ left: tabEl.offsetLeft, width: tabEl.offsetWidth });
+                      }
+                    }}
+                    className={`relative z-10 flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm whitespace-nowrap transition-colors duration-200 ${
+                      isActive
+                        ? 'font-semibold text-gray-900'
+                        : section.done
+                          ? 'text-green-600'
+                          : 'text-gray-600'
+                    }`}
+                  >
+                    {section.done && !isActive ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                    ) : (
+                      <section.icon className="w-3.5 h-3.5" />
+                    )}
+                    {section.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -1101,20 +1175,50 @@ export default function WebsiteEditorPage() {
                   </p>
                 </div>
 
+                {/* Custom business type dropdown */}
                 <div>
                   <Label htmlFor="type">Тип закладу</Label>
-                  <select
-                    id="type"
-                    value={settings.type}
-                    onChange={(e) => updateField('type', e.target.value)}
-                    className="w-full mt-1.5 px-3 py-2 border rounded-md bg-white text-sm"
-                  >
-                    {BUSINESS_TYPES.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
+                  <div ref={businessTypeRef} className="relative mt-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setBusinessTypeOpen(!businessTypeOpen)}
+                      className="w-full flex items-center justify-between px-3 py-2 border rounded-md bg-white text-sm text-left hover:border-gray-400 transition-colors"
+                    >
+                      <span className={settings.type ? 'text-gray-900' : 'text-gray-400'}>
+                        {settings.type || 'Оберіть тип закладу'}
+                      </span>
+                      <ChevronDown
+                        className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                          businessTypeOpen ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
+                    {businessTypeOpen && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto py-1">
+                        {BUSINESS_TYPES.map((type) => {
+                          const isSelected = settings.type === type;
+                          return (
+                            <button
+                              key={type}
+                              type="button"
+                              onClick={() => {
+                                updateField('type', type);
+                                setBusinessTypeOpen(false);
+                              }}
+                              className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left transition-colors ${
+                                isSelected
+                                  ? 'bg-gray-50 text-gray-900 font-medium'
+                                  : 'text-gray-700 hover:bg-gray-50'
+                              }`}
+                            >
+                              <span>{type}</span>
+                              {isSelected && <Check className="w-4 h-4 text-green-500 shrink-0" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div>
@@ -1391,13 +1495,13 @@ export default function WebsiteEditorPage() {
                 Години роботи
               </h2>
 
-              {/* Quick presets — horizontal scroll */}
-              <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-hide -mx-1 px-1">
+              {/* Quick presets — compact grid */}
+              <div className="grid grid-cols-4 gap-2 mb-0">
                 {[
-                  { label: '9–18', start: '09:00', end: '18:00' },
-                  { label: '9–21', start: '09:00', end: '21:00' },
-                  { label: '10–20', start: '10:00', end: '20:00' },
-                  { label: '10–22', start: '10:00', end: '22:00' },
+                  { label: '9:00–18:00', sub: 'Пн–Сб', start: '09:00', end: '18:00' },
+                  { label: '9:00–21:00', sub: 'Пн–Сб', start: '09:00', end: '21:00' },
+                  { label: '10:00–20:00', sub: 'Пн–Сб', start: '10:00', end: '20:00' },
+                  { label: '10:00–22:00', sub: 'Пн–Сб', start: '10:00', end: '22:00' },
                 ].map((preset) => (
                   <button
                     key={preset.label}
@@ -1412,12 +1516,16 @@ export default function WebsiteEditorPage() {
                       }));
                       updateField('workingHours', newHours);
                     }}
-                    className="shrink-0 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 bg-gray-50 hover:bg-green-50 hover:border-green-300 hover:text-green-700 transition-colors whitespace-nowrap"
+                    className="flex flex-col items-center py-2 text-center rounded-lg border border-gray-200 bg-gray-50 hover:bg-green-50 hover:border-green-300 hover:text-green-700 transition-colors"
                   >
-                    {preset.label}
+                    <span className="text-[10px] text-gray-400 leading-tight">{preset.sub}</span>
+                    <span className="text-xs font-medium leading-tight mt-0.5">{preset.label}</span>
                   </button>
                 ))}
               </div>
+
+              {/* Separator between presets and days */}
+              <div className="border-t my-3" />
 
               <div className="space-y-2 lg:space-y-3">
                 {settings.workingHours?.map((day, index) => (
