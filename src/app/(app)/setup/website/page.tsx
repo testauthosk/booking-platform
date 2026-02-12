@@ -967,7 +967,7 @@ export default function WebsiteEditorPage() {
                 <div>
                   <Label htmlFor="phone">Телефон</Label>
                   <div className="flex items-center gap-0 mt-1.5">
-                    <span className="inline-flex items-center px-3 h-10 rounded-l-md border border-r-0 bg-gray-50 text-sm text-gray-600 select-none shrink-0">+380</span>
+                    <span className="inline-flex items-center justify-center px-3 h-9 rounded-l-md border border-r-0 bg-gray-50 text-sm text-gray-600 select-none shrink-0">+380</span>
                     <Input
                       id="phone"
                       type="tel"
@@ -994,6 +994,9 @@ export default function WebsiteEditorPage() {
                     placeholder="hello@salon.com"
                     className="mt-1.5"
                   />
+                  {settings.email && settings.email.trim().length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(settings.email) && (
+                    <p className="text-xs text-red-500 mt-1">Введіть коректний email</p>
+                  )}
                 </div>
 
                 <div className="relative">
@@ -1009,7 +1012,7 @@ export default function WebsiteEditorPage() {
                       addressTimeoutRef.current = setTimeout(async () => {
                         try {
                           const res = await fetch(
-                            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&addressdetails=1`,
+                            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&addressdetails=1&countrycodes=ua`,
                             { headers: { 'Accept-Language': 'uk,en' } }
                           );
                           const data = await res.json();
