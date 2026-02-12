@@ -802,65 +802,26 @@ export default function WebsiteEditorPage() {
       <div className="hidden lg:block sticky top-16 z-10 bg-white border-b shadow-sm">
         <div className="px-4 sm:px-6 py-3">
           {/* Title row */}
-          <div className="flex items-center justify-between mb-2">
-            <button
-              onClick={() => setShowChecklist(!showChecklist)}
-              className="text-sm font-medium text-gray-700 flex items-center gap-1.5 hover:text-gray-900 transition-colors"
-            >
-              {progressPercent === 100 ? (
-                <CheckCircle2 className="w-4 h-4 text-green-500" />
-              ) : (
-                <Circle className="w-4 h-4 text-gray-400" />
-              )}
-              Ваш сайт готовий на {progressPercent}%
-            </button>
-            <span className="text-xs text-muted-foreground">
-              {completedCount}/{totalCount}
-            </span>
-          </div>
-
-          {/* Linear progress bar */}
-          <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full ${progressColor}`}
-              style={{
-                width: `${progressPercent}%`,
-                transition: 'width 0.8s ease, background-color 0.6s ease',
-              }}
-            />
-          </div>
-
-          {/* Checklist — desktop */}
-          {showChecklist && (
-            <div className="mt-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                {checklist.map((item) => (
-                  <div
-                    key={item.id}
-                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm transition-colors ${
-                      item.completed ? 'text-gray-500' : 'text-gray-700 bg-gray-50'
-                    }`}
-                  >
-                    {item.completed ? (
-                      <div className="animate-check-in">
-                        <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-                      </div>
-                    ) : (
-                      <Circle className="w-4 h-4 text-gray-300 shrink-0" />
-                    )}
-                    <span className={item.completed ? 'line-through' : ''}>
-                      {item.label}
-                    </span>
-                    {item.detail && !item.completed && (
-                      <span className="text-xs text-gray-500 ml-auto font-medium">
-                        {item.detail}
-                      </span>
-                    )}
-                  </div>
-                ))}
+          {/* Compact progress bar — checklist moved to right sidebar */}
+          <div className="flex items-center gap-3">
+            {progressPercent === 100 ? (
+              <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+            ) : (
+              <Circle className="w-4 h-4 text-gray-400 shrink-0" />
+            )}
+            <div className="flex-1">
+              <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${progressColor}`}
+                  style={{
+                    width: `${progressPercent}%`,
+                    transition: 'width 0.8s ease, background-color 0.6s ease',
+                  }}
+                />
               </div>
             </div>
-          )}
+            <span className="text-xs font-medium text-gray-500 tabular-nums shrink-0">{progressPercent}%</span>
+          </div>
         </div>
       </div>
 
@@ -1467,7 +1428,62 @@ export default function WebsiteEditorPage() {
           )}
         </div>
 
-        {/* Preview panel removed */}
+        {/* Right sidebar — checklist */}
+        <div className="hidden xl:block w-[280px] shrink-0 border-l bg-white min-h-[calc(100vh-64px)] sticky top-16">
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-semibold text-gray-700">Прогрес</span>
+              <span className="text-xs font-medium text-gray-500 tabular-nums">{completedCount}/{totalCount}</span>
+            </div>
+            <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-4">
+              <div
+                className={`h-full rounded-full ${progressColor}`}
+                style={{
+                  width: `${progressPercent}%`,
+                  transition: 'width 0.8s ease, background-color 0.6s ease',
+                }}
+              />
+            </div>
+            <div className="space-y-1.5">
+              {checklist.map((item) => (
+                <div
+                  key={item.id}
+                  className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-colors ${
+                    item.completed ? 'text-gray-400' : 'text-gray-700'
+                  }`}
+                >
+                  {item.completed ? (
+                    <div className="animate-check-in">
+                      <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                    </div>
+                  ) : (
+                    <Circle className="w-4 h-4 text-gray-300 shrink-0" />
+                  )}
+                  <span className={`flex-1 ${item.completed ? 'line-through' : ''}`}>
+                    {item.label}
+                  </span>
+                  {item.detail && !item.completed && (
+                    <span className="text-[11px] text-gray-400 font-medium">{item.detail}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+            {progressPercent === 100 && !settings.isPublished && (
+              <div className="mt-4 p-3 rounded-xl bg-green-50 border border-green-200">
+                <p className="text-xs font-medium text-green-800 mb-2">🎉 Все заповнено!</p>
+                <Button
+                  onClick={handlePublish}
+                  disabled={publishing}
+                  size="sm"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white rounded-xl"
+                >
+                  {publishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Globe className="w-4 h-4 mr-2" />}
+                  Опублікувати
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Mobile Bottom Bar — publish / save */}
