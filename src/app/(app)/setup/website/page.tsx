@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import ConfettiExplosion from 'react-confetti-explosion';
 import {
   ArrowLeft,
   Save,
@@ -144,6 +145,9 @@ export default function WebsiteEditorPage() {
 
   // Track milestone dismissed
   const [milestoneDismissed, setMilestoneDismissed] = useState(false);
+
+  // Confetti explosion state: 'none' | 'small' | 'medium' | 'big'
+  const [confettiType, setConfettiType] = useState<'none' | 'small' | 'medium' | 'big'>('none');
 
   // ── Confetti tracking refs ──
   const prevCompletedRef = useRef<number>(-1);
@@ -286,9 +290,8 @@ export default function WebsiteEditorPage() {
       ? 'bg-green-500'
       : 'bg-amber-500';
 
-  // ── Confetti system — smooth serpentine physics ──
+  // ── Confetti trigger ──
   useEffect(() => {
-    // Skip on initial page load — don't fire for already-completed items
     if (initialLoadRef.current) {
       initialLoadRef.current = false;
       prevCompletedRef.current = completedCount;
@@ -298,178 +301,18 @@ export default function WebsiteEditorPage() {
     }
 
     const prev = prevCompletedRef.current;
-    const shouldFire =
-      (progressPercent === 100 && !prevAllDoneRef.current) ||
-      (minimumDone && !prevMinimumDoneRef.current) ||
-      (completedCount > prev && prev >= 0);
 
-    if (!shouldFire) {
-      prevCompletedRef.current = completedCount;
-      prevMinimumDoneRef.current = minimumDone;
-      prevAllDoneRef.current = progressPercent === 100;
-      return;
-    }
-
-    // ── Smooth DOM confetti with serpentine physics ──
-    const fireConfetti = (count: number, origins: { x: number; y: number }[]) => {
-      // Bright, festive palette
-      const colors = [
-        '#22c55e', '#10b981', '#6ee7b7', // greens
-        '#fbbf24', '#f59e0b', '#fcd34d', // golds
-        '#f472b6', '#ec4899', '#fb7185', // pinks
-        '#60a5fa', '#3b82f6', '#818cf8', // blues
-        '#a78bfa', '#c084fc',            // purples
-        '#fb923c', '#f97316',            // oranges
-      ];
-
-      const container = document.createElement('div');
-      container.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden';
-      document.body.appendChild(container);
-
-      for (let i = 0; i < count; i++) {
-        const origin = origins[Math.floor(Math.random() * origins.length)];
-        const color = colors[Math.floor(Math.random() * colors.length)];
-
-        // Shape variety: serpentine (tall thin), circle, square, wide strip
-        const shapeRoll = Math.random();
-        let w: number, h: number, borderRadius: string;
-        if (shapeRoll < 0.35) {
-          // Serpentine — tall thin rectangle (most confetti-like)
-          w = 3 + Math.random() * 3.5;
-          h = 10 + Math.random() * 14;
-          borderRadius = '1px';
-        } else if (shapeRoll < 0.55) {
-          // Circle
-          const sz = 5 + Math.random() * 5;
-          w = sz; h = sz;
-          borderRadius = '50%';
-        } else if (shapeRoll < 0.75) {
-          // Square
-          const sz = 4 + Math.random() * 5;
-          w = sz; h = sz;
-          borderRadius = '1.5px';
-        } else {
-          // Wide thin strip
-          w = 12 + Math.random() * 10;
-          h = 2.5 + Math.random() * 2;
-          borderRadius = '1px';
-        }
-
-        // Launch direction — spread across a wide arc
-        const angle = (Math.random() - 0.5) * 150;
-        const speed = 160 + Math.random() * 320;
-        const vx0 = Math.sin((angle * Math.PI) / 180) * speed;
-        const vy0 = -Math.cos((angle * Math.PI) / 180) * speed;
-
-        const el = document.createElement('div');
-        el.style.cssText = `
-          position:absolute;
-          left:${origin.x * 100}%;
-          top:${origin.y * 100}%;
-          width:${w}px;
-          height:${h}px;
-          background:${color};
-          border-radius:${borderRadius};
-          opacity:0;
-          pointer-events:none;
-          will-change:transform,opacity;
-        `;
-        container.appendChild(el);
-
-        // Per-particle character
-        const rotSpeed = (Math.random() - 0.5) * 480;   // deg/s — smooth rotation
-        const wobbleAmp = 15 + Math.random() * 35;      // px — side-to-side float
-        const wobbleFreq = 1.5 + Math.random() * 2.0;   // Hz
-        const totalLife = 3.0 + Math.random() * 1.0;    // seconds
-
-        // Staggered start — wave-like cascade effect
-        const delay = Math.random() * 380;
-
-        setTimeout(() => {
-          const t0 = performance.now();
-
-          const animate = (now: number) => {
-            const elapsed = (now - t0) / 1000;
-
-            if (elapsed >= totalLife) {
-              el.remove();
-              return;
-            }
-
-            // ── Launch easing: particles accelerate smoothly from 0 ──
-            // Quadratic ease-in over first 0.35s — no sudden jump
-            const launchT = Math.min(elapsed / 0.35, 1);
-            const launchEase = launchT * launchT;
-
-            // ── Soft gravity: barely noticeable at first, then pulls down ──
-            // Particles «hover» for ~0.8s before gravity kicks in
-            const gravMax = 320;
-            const gravT = Math.max(0, Math.min((elapsed - 0.3) / 1.0, 1));
-            const gravity = gravMax * gravT * gravT; // quadratic ramp
-
-            // ── Air resistance on horizontal velocity ──
-            const dragFactor = Math.pow(0.982, elapsed * 60);
-            const vx = vx0 * dragFactor * launchEase;
-
-            // ── Position ──
-            // X: velocity + sinusoidal wobble (serpentine drift)
-            const wobbleIn = Math.min(elapsed / 0.5, 1); // wobble fades in
-            const x = vx * elapsed
-              + Math.sin(elapsed * wobbleFreq * Math.PI * 2) * wobbleAmp * wobbleIn;
-
-            // Y: launch velocity (eased) + gravity accumulation
-            const y = vy0 * launchEase * elapsed
-              + 0.5 * gravity * elapsed * elapsed;
-
-            // ── Smooth rotation ──
-            const rot = rotSpeed * elapsed;
-
-            // ── Opacity: quick fade-in, long hold, gentle fade-out ──
-            let opacity: number;
-            if (elapsed < 0.12) {
-              opacity = elapsed / 0.12; // fast appear
-            } else if (elapsed > totalLife * 0.65) {
-              // Smooth cubic fade-out in last 35% of life
-              const fadeT = (elapsed - totalLife * 0.65) / (totalLife * 0.35);
-              opacity = Math.max(0, 1 - fadeT * fadeT);
-            } else {
-              opacity = 1;
-            }
-
-            el.style.transform = `translate(${x}px, ${y}px) rotate(${rot}deg)`;
-            el.style.opacity = String(opacity);
-
-            requestAnimationFrame(animate);
-          };
-
-          requestAnimationFrame(animate);
-        }, delay);
-      }
-
-      // Cleanup container after all particles are done
-      setTimeout(() => container.remove(), 5000);
-    };
-
-    // 🎯 100% — full celebration from all sides
+    // 100% — big explosion
     if (progressPercent === 100 && !prevAllDoneRef.current) {
-      fireConfetti(90, [
-        { x: 0, y: 0 }, { x: 1, y: 0 },
-        { x: 0, y: 0.4 }, { x: 1, y: 0.4 },
-        { x: 0.5, y: 0 },
-      ]);
+      setConfettiType('big');
     }
-    // 🎯 Minimum reached — two bursts from top corners
+    // Minimum reached — medium explosion
     else if (minimumDone && !prevMinimumDoneRef.current) {
-      fireConfetti(50, [{ x: 0.1, y: 0 }, { x: 0.9, y: 0 }]);
+      setConfettiType('medium');
     }
-    // 🎯 Single checkmark — small celebratory burst
+    // Single checkmark — small burst
     else if (completedCount > prev && prev >= 0) {
-      const pts = [
-        { x: 0.15, y: 0.25 }, { x: 0.85, y: 0.25 },
-        { x: 0.25, y: 0.1 }, { x: 0.75, y: 0.1 },
-        { x: 0.5, y: 0.15 },
-      ];
-      fireConfetti(20, [pts[Math.floor(Math.random() * pts.length)]]);
+      setConfettiType('small');
     }
 
     prevCompletedRef.current = completedCount;
@@ -748,6 +591,19 @@ export default function WebsiteEditorPage() {
 
   return (
     <div className="min-h-screen bg-gray-50/50 overflow-x-hidden max-w-full">
+      {/* Confetti explosion */}
+      {confettiType !== 'none' && (
+        <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none">
+          <ConfettiExplosion
+            force={confettiType === 'big' ? 0.8 : confettiType === 'medium' ? 0.6 : 0.4}
+            duration={confettiType === 'big' ? 3500 : confettiType === 'medium' ? 3000 : 2500}
+            particleCount={confettiType === 'big' ? 150 : confettiType === 'medium' ? 80 : 30}
+            width={confettiType === 'big' ? 1600 : confettiType === 'medium' ? 1000 : 600}
+            colors={['#22c55e', '#10b981', '#fbbf24', '#f472b6', '#60a5fa', '#a78bfa', '#fb923c', '#f59e0b']}
+            onComplete={() => setConfettiType('none')}
+          />
+        </div>
+      )}
       {/* Header */}
       <div className="sticky top-0 z-20 bg-white border-b">
         <div className="flex items-center justify-between px-4 sm:px-6 h-14 lg:h-16">
