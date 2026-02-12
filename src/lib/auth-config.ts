@@ -108,5 +108,17 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60, // 30 днів
     updateAge: 24 * 60 * 60,   // Оновлювати JWT кожні 24 години
   },
+  cookies: {
+    sessionToken: {
+      name: `__Secure-next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: true,
+        domain: `.${process.env.BASE_DOMAIN || 'tholim.com'}`,
+      },
+    },
+  },
   secret: process.env.NEXTAUTH_SECRET,
 }

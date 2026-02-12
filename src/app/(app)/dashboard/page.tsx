@@ -266,7 +266,7 @@ export default function DashboardPage() {
                   const res = await fetch('/api/salon/settings');
                   if (res.ok) {
                     const salon = await res.json();
-                    const url = `${window.location.origin}/salon/${salon.slug}`;
+                    const url = `https://${salon.slug}.tholim.com`;
                     await navigator.clipboard.writeText(url);
                     setCopied(true);
                     setTimeout(() => setCopied(false), 2000);
@@ -520,7 +520,7 @@ export default function DashboardPage() {
                         const res = await fetch('/api/salon/settings');
                         if (res.ok) {
                           const salon = await res.json();
-                          await navigator.clipboard.writeText(`${window.location.origin}/salon/${salon.slug}`);
+                          await navigator.clipboard.writeText(`https://${salon.slug}.tholim.com`);
                         }
                       } catch {}
                     }}

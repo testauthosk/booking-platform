@@ -48,6 +48,23 @@ export default function LoginPage() {
     return digits ? `+380${digits}` : '';
   };
 
+  // After login: redirect to salon subdomain dashboard
+  const redirectToDashboard = async () => {
+    try {
+      const res = await fetch('/api/salon/settings');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.slug) {
+          const baseDomain = 'tholim.com';
+          window.location.href = `https://${data.slug}.${baseDomain}/dashboard`;
+          return;
+        }
+      }
+    } catch {}
+    // Fallback: stay on current domain
+    window.location.href = '/dashboard';
+  };
+
   // Відправка OTP
   const handleSendOtp = async () => {
     setError('');
@@ -167,7 +184,7 @@ export default function LoginPage() {
         return;
       }
 
-      window.location.href = '/dashboard';
+      await redirectToDashboard();
     } catch (err) {
       console.error('Verify OTP error:', err);
       setError('Помилка з\'єднання');
@@ -200,7 +217,7 @@ export default function LoginPage() {
         return;
       }
 
-      window.location.href = '/dashboard';
+      await redirectToDashboard();
     } catch (err) {
       console.error('Login error:', err);
       setError('Помилка підключення до сервера');
