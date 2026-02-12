@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import confetti from 'canvas-confetti';
 import { useSession } from 'next-auth/react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -245,6 +246,119 @@ export default function WebsiteEditorPage() {
   // Track if we should show the milestone celebration banner
   const [milestoneDismissed, setMilestoneDismissed] = useState(false);
   const showMilestoneBanner = minimumDone && !settings?.isPublished && !milestoneDismissed;
+
+  // ── Confetti system ──
+  const prevCompletedRef = useRef<number>(-1);
+  const prevMinimumDoneRef = useRef<boolean>(false);
+  const prevAllDoneRef = useRef<boolean>(false);
+  const initialLoadRef = useRef(true);
+
+  useEffect(() => {
+    // Skip confetti on initial page load (don't fire for already-completed items)
+    if (initialLoadRef.current) {
+      initialLoadRef.current = false;
+      prevCompletedRef.current = completedCount;
+      prevMinimumDoneRef.current = minimumDone;
+      prevAllDoneRef.current = progressPercent === 100;
+      return;
+    }
+
+    const prev = prevCompletedRef.current;
+
+    // 🎯 100% — full blast from all sides
+    if (progressPercent === 100 && !prevAllDoneRef.current) {
+      const duration = 1500;
+      const end = Date.now() + duration;
+      const frame = () => {
+        confetti({
+          particleCount: 4,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0, y: 0.6 },
+          colors: ['#22c55e', '#10b981', '#34d399', '#fbbf24', '#f472b6'],
+          gravity: 1.2,
+          drift: 0,
+          ticks: 200,
+          disableForReducedMotion: true,
+        });
+        confetti({
+          particleCount: 4,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1, y: 0.6 },
+          colors: ['#22c55e', '#10b981', '#34d399', '#fbbf24', '#f472b6'],
+          gravity: 1.2,
+          drift: 0,
+          ticks: 200,
+          disableForReducedMotion: true,
+        });
+        confetti({
+          particleCount: 3,
+          angle: 90,
+          spread: 120,
+          origin: { x: 0.5, y: 0 },
+          colors: ['#22c55e', '#10b981', '#34d399', '#fbbf24', '#a78bfa'],
+          gravity: 1.2,
+          ticks: 200,
+          disableForReducedMotion: true,
+        });
+        if (Date.now() < end) requestAnimationFrame(frame);
+      };
+      frame();
+    }
+    // 🎯 Minimum reached — two shots from top corners
+    else if (minimumDone && !prevMinimumDoneRef.current) {
+      setTimeout(() => {
+        confetti({
+          particleCount: 60,
+          angle: 60,
+          spread: 70,
+          origin: { x: 0, y: 0 },
+          colors: ['#22c55e', '#10b981', '#34d399', '#fbbf24'],
+          gravity: 1.2,
+          ticks: 200,
+          disableForReducedMotion: true,
+        });
+        confetti({
+          particleCount: 60,
+          angle: 120,
+          spread: 70,
+          origin: { x: 1, y: 0 },
+          colors: ['#22c55e', '#10b981', '#34d399', '#fbbf24'],
+          gravity: 1.2,
+          ticks: 200,
+          disableForReducedMotion: true,
+        });
+      }, 200);
+    }
+    // 🎯 Single checkmark — mini burst from random point
+    else if (completedCount > prev && prev >= 0) {
+      const origins = [
+        { x: 0.1, y: 0.3 },
+        { x: 0.9, y: 0.3 },
+        { x: 0.2, y: 0.1 },
+        { x: 0.8, y: 0.1 },
+        { x: 0.5, y: 0.2 },
+        { x: 0.3, y: 0.5 },
+        { x: 0.7, y: 0.5 },
+      ];
+      const origin = origins[Math.floor(Math.random() * origins.length)];
+      confetti({
+        particleCount: 25,
+        spread: 60,
+        origin,
+        colors: ['#22c55e', '#10b981', '#60a5fa'],
+        gravity: 1.4,
+        ticks: 150,
+        scalar: 0.8,
+        disableForReducedMotion: true,
+      });
+    }
+
+    prevCompletedRef.current = completedCount;
+    prevMinimumDoneRef.current = minimumDone;
+    prevAllDoneRef.current = progressPercent === 100;
+  }, [completedCount, minimumDone, progressPercent]);
 
   // Збереження
   const handleSave = async () => {
