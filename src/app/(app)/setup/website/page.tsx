@@ -299,8 +299,8 @@ export default function WebsiteEditorPage() {
   const totalCount = checklist.length;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  // canPublish = name + at least 1 service + at least 1 master
-  const canPublish = !!(settings?.name && settings.name.trim().length >= 2) && (settings?.servicesCount ?? 0) > 0 && (settings?.mastersCount ?? 0) > 0;
+  // canPublish = 100% progress (all 8 checklist items)
+  const canPublish = progressPercent === 100;
 
   // Linear progress color
   const progressColor = progressPercent === 100 ? 'bg-green-500' : progressPercent >= 50 ? 'bg-green-500' : 'bg-amber-500';
