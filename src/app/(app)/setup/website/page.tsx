@@ -168,12 +168,12 @@ export default function WebsiteEditorPage() {
         if (res.ok) {
           const data = await res.json();
           // Ініціалізуємо workingHours якщо пусто
-          if (!data.workingHours || !Array.isArray(data.workingHours)) {
+          if (!data.workingHours || !Array.isArray(data.workingHours) || data.workingHours.length === 0) {
             data.workingHours = DAYS_OF_WEEK.map((day) => ({
               day,
-              enabled: day !== 'Неділя',
-              start: '09:00',
-              end: '18:00',
+              enabled: false,
+              start: '',
+              end: '',
             }));
           }
           setSettings(data);
@@ -562,13 +562,16 @@ export default function WebsiteEditorPage() {
     );
   }
 
+  const hasValidHours = Array.isArray(settings.workingHours) &&
+    settings.workingHours.some((d: any) => d.enabled && d.start && d.end && d.start !== d.end);
+
   const sections = [
-    { id: 'basic', label: 'Основне', icon: Building2 },
-    { id: 'contacts', label: 'Контакти', icon: Phone },
-    { id: 'media', label: 'Медіа', icon: ImageIcon },
-    { id: 'hours', label: 'Години', icon: Clock },
-    { id: 'amenities', label: 'Зручності', icon: Sparkles },
-    { id: 'theme', label: 'Тема', icon: Palette },
+    { id: 'basic', label: 'Основне', icon: Building2, done: !!settings.name && settings.name.trim().length >= 2 && !!settings.type },
+    { id: 'contacts', label: 'Контакти', icon: Phone, done: !!(settings.phone || settings.email) && !!settings.address },
+    { id: 'media', label: 'Медіа', icon: ImageIcon, done: settings.photos.length >= 3 },
+    { id: 'hours', label: 'Години', icon: Clock, done: hasValidHours },
+    { id: 'amenities', label: 'Зручності', icon: Sparkles, done: (settings.amenities?.length ?? 0) > 0 },
+    { id: 'theme', label: 'Тема', icon: Palette, done: !!settings.paletteId },
   ];
 
   // Section-specific hints
@@ -695,9 +698,12 @@ export default function WebsiteEditorPage() {
         {/* Expandable mobile checklist */}
         {mobileChecklistOpen && (
           <div className="px-4 pb-3 animate-fade-in">
-            {/* Milestone celebration — compact mobile */}
-            {showMilestoneBanner && (
-              <div className="mb-2.5 flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-green-50 border border-green-200 animate-fade-in">
+            {/* Milestone celebration — compact mobile (smooth expand) */}
+            <div
+              className="overflow-hidden transition-all duration-500 ease-out"
+              style={{ maxHeight: showMilestoneBanner ? '80px' : '0px', opacity: showMilestoneBanner ? 1 : 0 }}
+            >
+              <div className="mb-2.5 flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-green-50 border border-green-200">
                 <span className="text-base shrink-0 animate-check-in">🎉</span>
                 <p className="text-xs font-medium text-green-800 flex-1 min-w-0">
                   Мінімум заповнено! Можна публікувати.
@@ -709,7 +715,7 @@ export default function WebsiteEditorPage() {
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-            )}
+            </div>
 
             {/* Minimum items */}
             <div className="mb-2">
@@ -845,9 +851,12 @@ export default function WebsiteEditorPage() {
             </div>
           </div>
 
-          {/* Milestone celebration banner — desktop */}
-          {showMilestoneBanner && (
-            <div className="mt-3 animate-fade-in">
+          {/* Milestone celebration banner — desktop (smooth expand) */}
+          <div
+            className="overflow-hidden transition-all duration-500 ease-out"
+            style={{ maxHeight: showMilestoneBanner ? '120px' : '0px', opacity: showMilestoneBanner ? 1 : 0 }}
+          >
+            <div className="mt-3">
               <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-green-50 border border-green-200">
                 <span className="text-xl shrink-0 animate-check-in">🎉</span>
                 <div className="flex-1 min-w-0">
@@ -866,7 +875,7 @@ export default function WebsiteEditorPage() {
                 </button>
               </div>
             </div>
-          )}
+          </div>
 
           {/* Checklist — desktop */}
           {showChecklist && (
@@ -994,10 +1003,16 @@ export default function WebsiteEditorPage() {
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   activeSection === section.id
                     ? 'bg-gray-900 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
+                    : section.done
+                      ? 'text-green-700 bg-green-50 hover:bg-green-100'
+                      : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                <section.icon className="w-4 h-4" />
+                {section.done && activeSection !== section.id ? (
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                ) : (
+                  <section.icon className="w-4 h-4" />
+                )}
                 {section.label}
               </button>
             ))}
@@ -1013,13 +1028,19 @@ export default function WebsiteEditorPage() {
                 <button
                   key={section.id}
                   onClick={() => setActiveSection(section.id)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
                     activeSection === section.id
                       ? 'bg-gray-900 text-white'
-                      : 'bg-white text-gray-600 border'
+                      : section.done
+                        ? 'bg-green-50 text-green-700 border border-green-300'
+                        : 'bg-white text-gray-600 border'
                   }`}
                 >
-                  <section.icon className="w-3.5 h-3.5" />
+                  {section.done && activeSection !== section.id ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                  ) : (
+                    <section.icon className="w-3.5 h-3.5" />
+                  )}
                   {section.label}
                 </button>
               ))}
@@ -1362,10 +1383,40 @@ export default function WebsiteEditorPage() {
           {/* Working Hours Section */}
           {activeSection === 'hours' && (
             <Card className="p-4 lg:p-6 max-w-full">
-              <h2 className="text-base lg:text-lg font-semibold mb-4 lg:mb-6 flex items-center gap-2">
+              <h2 className="text-base lg:text-lg font-semibold mb-3 flex items-center gap-2">
                 <Clock className="w-5 h-5 text-gray-400 shrink-0" />
                 Години роботи
               </h2>
+
+              {/* Quick presets */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {[
+                  { label: '9–18', start: '09:00', end: '18:00' },
+                  { label: '9–21', start: '09:00', end: '21:00' },
+                  { label: '10–20', start: '10:00', end: '20:00' },
+                  { label: '10–22', start: '10:00', end: '22:00' },
+                ].map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => {
+                      // Mon-Sat enabled with preset hours, Sun off
+                      const days = ['Понеділок', 'Вівторок', 'Середа', 'Четвер', "П'ятниця", 'Субота', 'Неділя'];
+                      const newHours = days.map((day, i) => ({
+                        day,
+                        enabled: i < 6, // Mon-Sat
+                        start: i < 6 ? preset.start : '',
+                        end: i < 6 ? preset.end : '',
+                      }));
+                      updateField('workingHours', newHours);
+                    }}
+                    className="px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 bg-white hover:bg-violet-50 hover:border-violet-300 hover:text-violet-700 transition-colors"
+                  >
+                    🕐 Пн-Сб {preset.label}
+                  </button>
+                ))}
+              </div>
+
               <div className="space-y-2 lg:space-y-3">
                 {settings.workingHours?.map((day, index) => (
                   <div
