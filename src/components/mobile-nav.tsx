@@ -62,7 +62,7 @@ export function MobileNav({ isCalendar = false }: MobileNavProps) {
     <nav
       className={cn(
         "lg:hidden fixed bottom-1 left-[23px] right-[23px] z-40",
-        "bg-white/70 backdrop-blur-xl border border-black/10 shadow-lg",
+        "bg-white border border-black/10 shadow-lg",
         "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
         isCalendar
           ? "rounded-b-2xl rounded-t-none border-t-0"
