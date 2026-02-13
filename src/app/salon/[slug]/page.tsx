@@ -411,14 +411,20 @@ export default function SalonPage() {
 
   // Update underline position
   useLayoutEffect(() => {
-    const activeIndex = tabs.findIndex(tab => tab.id === activeTab);
-    const activeTabEl = tabsRef.current[activeIndex];
-    if (activeTabEl) {
-      setUnderlineStyle({
-        left: activeTabEl.offsetLeft,
-        width: activeTabEl.offsetWidth,
-      });
-    }
+    const update = () => {
+      const activeIndex = tabs.findIndex(tab => tab.id === activeTab);
+      const activeTabEl = tabsRef.current[activeIndex];
+      if (activeTabEl && activeTabEl.offsetWidth > 0) {
+        setUnderlineStyle({
+          left: activeTabEl.offsetLeft,
+          width: activeTabEl.offsetWidth,
+        });
+      }
+    };
+    update();
+    // Retry after a frame in case refs aren't measured yet on mount
+    const raf = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(raf);
   }, [activeTab]);
 
   // Track scroll
