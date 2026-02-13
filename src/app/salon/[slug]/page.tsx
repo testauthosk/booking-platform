@@ -893,6 +893,10 @@ export default function SalonPage() {
                         />
                       </div>
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-200" />
+                      <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 text-xs font-medium text-gray-700 group-hover:bg-white transition-colors">
+                        <MapPin className="w-3.5 h-3.5 text-red-500" />
+                        Відкрити карту
+                      </div>
                     </a>
                   )}
 
