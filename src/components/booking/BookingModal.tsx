@@ -408,6 +408,29 @@ export function BookingModal({
   const [slotSelectionError, setSlotSelectionError] = useState<string | null>(null);
   const timeSlotsRef = useRef<HTMLDivElement>(null);
 
+  // Bulk availability: which dates have enough consecutive free slots
+  const [dateAvailability, setDateAvailability] = useState<Record<string, { hasAvailability: boolean; freeSlots: number }>>({});
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
+
+  // Fetch bulk availability when entering time step
+  useEffect(() => {
+    if (currentStep === 2 && salonId) {
+      setLoadingAvailability(true);
+      const dateStrs = dates.slice(0, 14).map(d => d.toISOString().split('T')[0]).join(',');
+      const params = new URLSearchParams({
+        salonId,
+        dates: dateStrs,
+        duration: String(roundedDuration),
+        ...(selectedSpecialist && selectedSpecialist !== 'any' ? { masterId: selectedSpecialist } : {}),
+      });
+      fetch(`/api/slots/bulk?${params}`)
+        .then(r => r.ok ? r.json() : {})
+        .then(data => setDateAvailability(data))
+        .catch(() => {})
+        .finally(() => setLoadingAvailability(false));
+    }
+  }, [currentStep, salonId, selectedSpecialist, roundedDuration]);
+
   useEffect(() => {
     if (selectedDate) {
       setLoadingSlots(true);
@@ -990,14 +1013,17 @@ export function BookingModal({
                           const isPast = date < today;
                           const isSelected = selectedDate?.toDateString() === date.toDateString();
                           const isToday = date.toDateString() === today.toDateString();
+                          const calDateStr = date.toISOString().split('T')[0];
+                          const calDayInfo = dateAvailability[calDateStr];
+                          const calNoAvail = !isPast && calDayInfo && !calDayInfo.hasAvailability;
 
                           return (
                             <button
                               key={date.toISOString()}
-                              onClick={() => !isPast && setSelectedDate(date)}
-                              disabled={isPast}
+                              onClick={() => !isPast && !calNoAvail && setSelectedDate(date)}
+                              disabled={isPast || !!calNoAvail}
                               className={`aspect-square rounded-full flex items-center justify-center text-sm font-medium transition-all cursor-pointer ${
-                                isPast
+                                isPast || calNoAvail
                                   ? "text-gray-300 cursor-not-allowed"
                                   : isSelected
                                     ? "bg-violet-500 text-white"
@@ -1026,20 +1052,26 @@ export function BookingModal({
                       <div className="flex gap-2 mb-6 pt-1 pb-2 overflow-x-auto scrollbar-hide">
                         {dates.slice(0, 14).map((date, index) => {
                           const isSelected = selectedDate?.toDateString() === date.toDateString();
+                          const dateStr = date.toISOString().split('T')[0];
+                          const dayInfo = dateAvailability[dateStr];
+                          const noAvailability = dayInfo && !dayInfo.hasAvailability;
                           return (
                             <button
                               key={index}
-                              onClick={() => setSelectedDate(date)}
-                              className={`flex flex-col items-center min-w-[52px] py-3 px-3 rounded-full transition-all duration-300 cursor-pointer ${
-                                isSelected
-                                  ? "bg-violet-500 text-white shadow-lg shadow-violet-200"
-                                  : "hover:bg-gray-100 active:scale-95"
+                              onClick={() => !noAvailability && setSelectedDate(date)}
+                              disabled={noAvailability}
+                              className={`flex flex-col items-center min-w-[52px] py-3 px-3 rounded-full transition-all duration-300 ${
+                                noAvailability
+                                  ? "opacity-40 cursor-not-allowed"
+                                  : isSelected
+                                    ? "bg-violet-500 text-white shadow-lg shadow-violet-200 cursor-pointer"
+                                    : "hover:bg-gray-100 active:scale-95 cursor-pointer"
                               }`}
                             >
-                              <span className={`text-lg font-bold ${isSelected ? "text-white" : "text-gray-900"}`}>
+                              <span className={`text-lg font-bold ${noAvailability ? "text-gray-300" : isSelected ? "text-white" : "text-gray-900"}`}>
                                 {date.getDate()}
                               </span>
-                              <span className={`text-xs uppercase font-medium ${isSelected ? "text-violet-100" : "text-gray-500"}`}>
+                              <span className={`text-xs uppercase font-medium ${noAvailability ? "text-gray-300" : isSelected ? "text-violet-100" : "text-gray-500"}`}>
                                 {getDayName(date)}
                               </span>
                             </button>
