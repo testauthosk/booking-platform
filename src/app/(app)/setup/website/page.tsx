@@ -1178,7 +1178,7 @@ export default function WebsiteEditorPage() {
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors">
                           <button
                             onClick={() => removePhoto(index)}
-                            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity shadow-md"
                           >
                             <X className="w-4 h-4" />
                           </button>
