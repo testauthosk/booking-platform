@@ -568,7 +568,7 @@ export default function SalonPage() {
             {/* Mobile Swipeable Gallery */}
             <div className="lg:hidden">
               <div
-                className="relative h-[300px] rounded-xl overflow-hidden bg-gray-100 border border-gray-200"
+                className="relative h-[300px] rounded-xl overflow-hidden bg-gray-100 border border-gray-300"
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
@@ -589,17 +589,17 @@ export default function SalonPage() {
                 {/* Story-style progress bars */}
                 <div className="absolute bottom-3 left-3 right-3 flex gap-1.5">
                   {photos.map((_, index) => (
-                    <button
+                    <div
                       key={index}
                       onClick={(e) => { e.stopPropagation(); setMobilePhotoIndex(index); }}
-                      className="flex-1 rounded-full overflow-hidden bg-black/20 backdrop-blur-sm"
+                      className="flex-1 rounded-full overflow-hidden bg-black/20 backdrop-blur-sm cursor-pointer"
                       style={{ height: '5px' }}
                     >
                       <div
                         className="h-full bg-white/90 rounded-full transition-all duration-300"
                         style={{ width: index <= mobilePhotoIndex ? '100%' : '0%' }}
                       />
-                    </button>
+                    </div>
                   ))}
                 </div>
                 <div className="absolute top-3 right-3 bg-black/40 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-lg font-medium">
