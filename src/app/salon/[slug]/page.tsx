@@ -874,34 +874,44 @@ export default function SalonPage() {
                     <p className="text-gray-600 leading-relaxed mb-8">{salon.description}</p>
                   )}
 
-                  {/* Map */}
+                  {/* Map — clickable static image */}
                   {(salon.coordinates_lat || salon.coordinates_lng) && (
-                    <div className="rounded-2xl overflow-hidden mb-6 border border-gray-100 relative">
-                      <div className="aspect-[16/9] bg-gray-100">
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${salon.coordinates_lat},${salon.coordinates_lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block rounded-2xl overflow-hidden mb-6 border border-gray-100 relative group cursor-pointer"
+                    >
+                      <div className="aspect-[2/1] bg-gray-100 relative">
+                        <img
+                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${Number(salon.coordinates_lng) - 0.008},${Number(salon.coordinates_lat) - 0.004},${Number(salon.coordinates_lng) + 0.008},${Number(salon.coordinates_lat) + 0.004}&marker=${salon.coordinates_lat},${salon.coordinates_lng}&layers=ND`}
+                          alt=""
+                          className="hidden"
+                        />
                         <iframe
                           width="100%"
                           height="100%"
-                          style={{ border: 0, filter: 'saturate(0.7) brightness(1.05) contrast(0.95)' }}
+                          style={{ border: 0, pointerEvents: 'none' }}
                           loading="lazy"
-                          referrerPolicy="no-referrer-when-downgrade"
-                          src={`https://www.google.com/maps?q=${salon.coordinates_lat},${salon.coordinates_lng}&z=15&output=embed`}
+                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${Number(salon.coordinates_lng) - 0.008},${Number(salon.coordinates_lat) - 0.004},${Number(salon.coordinates_lng) + 0.008},${Number(salon.coordinates_lat) + 0.004}&marker=${salon.coordinates_lat},${salon.coordinates_lng}&layers=ND`}
                         />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-200" style={{ pointerEvents: 'none' }} />
                       </div>
-                      <div className="absolute inset-0 pointer-events-none rounded-2xl ring-1 ring-inset ring-black/5" />
-                    </div>
+                    </a>
                   )}
 
                   <div className="flex items-start gap-3 mb-6">
                     <MapPin className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-gray-900 font-medium">{salon.address}</p>
+                      <p className="text-gray-900 font-medium">{salon.short_address || salon.address}</p>
                       <a
                         href={`https://www.google.com/maps/dir/?api=1&destination=${salon.coordinates_lat},${salon.coordinates_lng}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-gray-600 hover:text-gray-900 font-medium"
+                        className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium mt-1"
                       >
-                        Прокласти маршрут →
+                        <Navigation className="w-3.5 h-3.5" />
+                        Прокласти маршрут
                       </a>
                     </div>
                   </div>
