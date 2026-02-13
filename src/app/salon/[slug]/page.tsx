@@ -671,18 +671,18 @@ export default function SalonPage() {
             {/* Left Column */}
             <div>
               {/* Address Row */}
-              <div className="flex flex-wrap items-center gap-3 mb-6 pb-6 border-b border-gray-100">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <MapPin className="w-4 h-4 text-gray-400" />
+              <div className="flex flex-col gap-3 mb-6 pb-6 border-b border-gray-100">
+                <div className="flex items-center gap-3 text-gray-600">
+                  <MapPin className="w-5 h-5 text-gray-400 shrink-0" />
                   <span className="text-sm">{salon.short_address || salon.address}</span>
                 </div>
                 <a
                   href={`https://www.google.com/maps/dir/?api=1&destination=${salon.coordinates_lat},${salon.coordinates_lng}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 bg-gray-900 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-800 transition-all duration-200 cursor-pointer active:scale-95"
+                  className="flex items-center gap-3 text-sm text-blue-600 hover:text-blue-700 font-medium"
                 >
-                  <Navigation className="w-3.5 h-3.5" />
+                  <Navigation className="w-5 h-5 shrink-0" />
                   Прокласти маршрут
                 </a>
               </div>

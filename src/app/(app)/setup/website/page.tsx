@@ -1332,68 +1332,7 @@ export default function WebsiteEditorPage() {
             </Card>
           )}
 
-          {/* Theme Section — shown inside amenities */}
-          {activeSection === 'amenities' && (
-            <Card className="p-4 lg:p-6 max-w-full">
-              <h2 className="text-base lg:text-lg font-semibold mb-4 lg:mb-6 flex items-center gap-2">
-                <Palette className="w-5 h-5 text-gray-400 shrink-0" />
-                Кольорова тема
-              </h2>
-              <div className="flex flex-col gap-2 lg:gap-3">
-                {LIB_PALETTES.map((palette) => {
-                  const isSelected = settings.paletteId === palette.id;
-                  return (
-                    <button
-                      key={palette.id}
-                      onClick={() => updateField('paletteId', palette.id)}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 text-left transition-all ${
-                        isSelected
-                          ? 'border-gray-900 bg-gray-50 shadow-sm'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="flex gap-1 shrink-0">
-                        {palette.colors.map((color, i) => (
-                          <div
-                            key={i}
-                            className="w-4 h-4 rounded-full"
-                            style={{ backgroundColor: color.hex }}
-                          />
-                        ))}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">{palette.name}</p>
-                        <p className="text-[11px] text-gray-500 truncate">{palette.description}</p>
-                      </div>
-                      {isSelected && (
-                        <Check className="w-4 h-4 text-gray-900 shrink-0 ml-auto" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Save palette + distribute colors */}
-              <div className="mt-4 pt-4 border-t">
-                <Button
-                  onClick={handlePaletteSave}
-                  disabled={!hasChanges || savingPalette}
-                  className="w-full"
-                  size="sm"
-                >
-                  {savingPalette ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4 mr-2" />
-                  )}
-                  Зберегти та розподілити кольори
-                </Button>
-                <p className="text-[11px] text-gray-400 mt-2 text-center">
-                  Кольори будуть випадково розподілені між майстрами
-                </p>
-              </div>
-            </Card>
-          )}
+          {/* Theme/Palette removed — palette is for admin panel theming, not public page */}
         </div>
 
         {/* Right sidebar — checklist */}
