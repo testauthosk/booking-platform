@@ -129,10 +129,12 @@
   }
   /* Public salon pages need normal scroll */
   html.salon-public, html.salon-public body {
-    overflow: auto !important;
+    overflow: visible !important;
+    overflow-y: scroll !important;
     position: static !important;
     height: auto !important;
     width: auto !important;
+    overscroll-behavior: auto !important;
   }
 }
 
