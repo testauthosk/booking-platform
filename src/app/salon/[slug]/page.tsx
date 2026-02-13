@@ -516,10 +516,10 @@ export default function SalonPage() {
                       <div className="flex items-center gap-2">
                         <div className="flex gap-0.5">
                           {[1, 2, 3, 4, 5].map((star) => (
-                            <Star key={star} className="w-5 h-5 fill-amber-400 text-amber-400" />
+                            <Star key={star} className={`w-5 h-5 ${star <= Math.round(Number(salon.rating)) ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 text-gray-200'}`} />
                           ))}
                         </div>
-                        <span className="font-semibold text-gray-900 text-lg">{salon.rating}</span>
+                        <span className="font-semibold text-gray-900 text-lg">{Number(salon.rating).toFixed(1)}</span>
                         <button
                           onClick={scrollToReviews}
                           className="text-blue-600 hover:text-blue-700 hover:underline cursor-pointer transition-colors"
@@ -699,7 +699,13 @@ export default function SalonPage() {
                   {tabs.map((tab, index) => (
                     <button
                       key={tab.id}
-                      ref={(el) => { tabsRef.current[index] = el; }}
+                      ref={(el) => {
+                        tabsRef.current[index] = el;
+                        // Set initial underline on first tab mount
+                        if (el && index === 0 && activeTab === tabs[0].id && underlineStyle.width === 0) {
+                          setUnderlineStyle({ left: el.offsetLeft, width: el.offsetWidth });
+                        }
+                      }}
                       onClick={() => setActiveTab(tab.id)}
                       className={`pb-4 text-sm font-medium transition-colors cursor-pointer ${
                         activeTab === tab.id ? "text-gray-900" : "text-gray-500 hover:text-gray-700"
@@ -709,8 +715,12 @@ export default function SalonPage() {
                     </button>
                   ))}
                   <div
-                    className="absolute bottom-0 h-0.5 bg-gray-900 transition-all duration-300 ease-out"
-                    style={{ left: underlineStyle.left, width: underlineStyle.width }}
+                    className="absolute bottom-0 h-0.5 bg-gray-900"
+                    style={{
+                      left: underlineStyle.left,
+                      width: underlineStyle.width,
+                      transition: underlineStyle.width > 0 ? 'all 0.3s ease-out' : 'none',
+                    }}
                   />
                 </nav>
               </div>
@@ -811,7 +821,7 @@ export default function SalonPage() {
                       <>
                         <div className="flex">
                           {[1, 2, 3, 4, 5].map((star) => (
-                            <Star key={star} className="w-6 h-6 fill-yellow-400 text-yellow-400" />
+                            <Star key={star} className={`w-6 h-6 ${star <= Math.round(Number(salon.rating)) ? 'fill-yellow-400 text-yellow-400' : 'fill-gray-200 text-gray-200'}`} />
                           ))}
                         </div>
                         <span className="text-lg font-semibold text-gray-900">{Number(salon.rating).toFixed(1).replace('.', ',')}</span>
@@ -952,7 +962,7 @@ export default function SalonPage() {
                           <span className="font-semibold text-gray-900 text-lg">{Number(salon.rating).toFixed(1).replace('.', ',')}</span>
                           <div className="flex gap-0.5">
                             {[1, 2, 3, 4, 5].map((star) => (
-                              <Star key={star} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                              <Star key={star} className={`w-4 h-4 ${star <= Math.round(Number(salon.rating)) ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 text-gray-200'}`} />
                             ))}
                           </div>
                           <button onClick={scrollToReviews} className="text-blue-600 font-medium text-base hover:underline cursor-pointer">
