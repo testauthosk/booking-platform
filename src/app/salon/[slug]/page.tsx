@@ -632,7 +632,7 @@ export default function SalonPage() {
             </div>
 
             {/* Desktop Gallery */}
-            <div className="hidden lg:grid lg:grid-cols-[1fr_0.4fr] gap-2 h-[420px]">
+            <div className="hidden lg:grid lg:grid-cols-[1fr_0.4fr] lg:gap-10 gap-2 h-[420px]">
               <div className="relative rounded-xl overflow-hidden bg-gray-100 cursor-pointer group" onClick={() => openGallery(0)}>
                 <Image src={photos[0]} alt={salon.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" priority />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
