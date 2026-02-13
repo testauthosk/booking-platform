@@ -685,7 +685,7 @@ export default function SalonPage() {
                   <iframe
                     width="100%"
                     height="100%"
-                    style={{ border: 0, filter: 'grayscale(1) contrast(1.1) opacity(0.9)' }}
+                    style={{ border: 0, filter: 'saturate(0.7) brightness(1.05) contrast(0.95)' }}
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
                     src={`https://www.google.com/maps?q=${salon.coordinates_lat},${salon.coordinates_lng}&z=15&output=embed`}
@@ -896,7 +896,7 @@ export default function SalonPage() {
                         <iframe
                           width="100%"
                           height="100%"
-                          style={{ border: 0, filter: 'grayscale(1) contrast(1.1) opacity(0.9)' }}
+                          style={{ border: 0, filter: 'saturate(0.7) brightness(1.05) contrast(0.95)' }}
                           loading="lazy"
                           referrerPolicy="no-referrer-when-downgrade"
                           src={`https://www.google.com/maps?q=${salon.coordinates_lat},${salon.coordinates_lng}&z=15&output=embed`}
