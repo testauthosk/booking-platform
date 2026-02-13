@@ -304,7 +304,15 @@ export function BookingModal({
   initialCategory,
   preSelectedServiceId,
 }: BookingModalProps) {
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, _setCurrentStep] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const setCurrentStep = useCallback((v: number | ((prev: number) => number)) => {
+    _setCurrentStep(v);
+    // Scroll content to top on step change
+    requestAnimationFrame(() => {
+      scrollContainerRef.current?.scrollTo({ top: 0 });
+    });
+  }, []);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedSpecialist, setSelectedSpecialist] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -733,15 +741,27 @@ export function BookingModal({
     }
   };
 
-  // Lock body scroll when modal is open
+  // Lock ALL scroll when modal is open (body + any overflow-y-auto containers)
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+      document.querySelectorAll('.overflow-y-auto').forEach(el => {
+        (el as HTMLElement).style.overflow = 'hidden';
+      });
     } else {
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+      document.querySelectorAll('.overflow-y-auto').forEach(el => {
+        (el as HTMLElement).style.overflow = '';
+      });
     }
     return () => {
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+      document.querySelectorAll('.overflow-y-auto').forEach(el => {
+        (el as HTMLElement).style.overflow = '';
+      });
     };
   }, [isOpen]);
 
@@ -866,7 +886,7 @@ export function BookingModal({
         <div className="flex-1 overflow-hidden">
           <div className="h-full max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-8 flex gap-8">
             {/* Main content */}
-            <div className="flex-1 overflow-y-auto pb-4">
+            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto pb-4">
               {/* Step 0: Services — Accordion catalog */}
               {currentStep === 0 && (
                 <div className="animate-fadeIn">
@@ -1038,8 +1058,9 @@ export function BookingModal({
                   <div className="space-y-3">
                     {specialists
                       .filter(sp => {
-                        // If specialist has serviceIds, check they can do ALL selected services
-                        if (!sp.serviceIds || sp.serviceIds.length === 0) return true; // no data = show
+                        // Hide specialists without serviceIds (not configured)
+                        if (!sp.serviceIds || sp.serviceIds.length === 0) return false;
+                        // Check they can do ALL selected services
                         return selectedServices.every(sid => sp.serviceIds!.includes(sid));
                       })
                       .map(specialist => {
