@@ -575,31 +575,37 @@ export default function SalonPage() {
                 onClick={() => openGallery(mobilePhotoIndex)}
               >
                 <div
-                  className="absolute inset-0 transition-all duration-500 ease-out"
-                  style={{ transform: `translateX(${swipeOffset}px)` }}
+                  className="absolute inset-0 flex transition-transform duration-400 ease-out"
+                  style={{
+                    width: `${photos.length * 100}%`,
+                    transform: `translateX(calc(-${mobilePhotoIndex * (100 / photos.length)}% + ${swipeOffset}px))`,
+                  }}
                 >
-                  <Image
-                    src={photos[mobilePhotoIndex]}
-                    alt={salon.name}
-                    fill
-                    className="object-cover transition-all duration-500 ease-out"
-                    priority
-                  />
+                  {photos.map((photo, i) => (
+                    <div key={i} className="relative h-full" style={{ width: `${100 / photos.length}%` }}>
+                      <Image
+                        src={photo}
+                        alt={`${salon.name} ${i + 1}`}
+                        fill
+                        className="object-cover"
+                        priority={i === 0}
+                      />
+                    </div>
+                  ))}
                 </div>
-                {/* Story-style progress bars */}
+                {/* Story-style progress bars — only active one is filled */}
                 <div className="absolute bottom-3 left-3 right-3 flex gap-1.5">
                   {photos.map((_, index) => (
                     <div
                       key={index}
                       onClick={(e) => { e.stopPropagation(); setMobilePhotoIndex(index); }}
-                      className="flex-1 rounded-full overflow-hidden bg-black/20 backdrop-blur-sm cursor-pointer"
-                      style={{ height: '5px' }}
-                    >
-                      <div
-                        className="h-full bg-white/90 rounded-full transition-all duration-300"
-                        style={{ width: index <= mobilePhotoIndex ? '100%' : '0%' }}
-                      />
-                    </div>
+                      className="flex-1 rounded-full overflow-hidden cursor-pointer"
+                      style={{
+                        height: '4px',
+                        backgroundColor: index === mobilePhotoIndex ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.2)',
+                        transition: 'background-color 0.3s ease',
+                      }}
+                    />
                   ))}
                 </div>
                 <div className="absolute top-3 right-3 bg-black/40 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-lg font-medium">
