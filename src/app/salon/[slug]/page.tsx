@@ -512,7 +512,7 @@ export default function SalonPage() {
         {/* Hero Section */}
         <div className="bg-white border-b border-gray-100">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-4">
-            <div className="flex items-start justify-between gap-4 lg:pr-[calc(360px+2.5rem)]">
+            <div className="flex items-start justify-between gap-4">
               <div>
                 <h1 className="text-[32px] lg:text-[44px] font-bold text-gray-900 mb-3 leading-tight">
                   {salon.name}
@@ -667,7 +667,7 @@ export default function SalonPage() {
 
         {/* Content Section */}
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8 lg:gap-10">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_0.4fr] gap-8 lg:gap-10">
             {/* Left Column */}
             <div>
               {/* Address Row */}
