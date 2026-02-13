@@ -88,7 +88,7 @@ function StepIndicator({
               data-step={index}
               onClick={() => canClick && onStepClick(index)}
               disabled={!canClick}
-              className={`transition-colors whitespace-nowrap px-2 py-1.5 sm:px-3 sm:py-2 rounded-full text-xs sm:text-sm ${
+              className={`transition-colors whitespace-nowrap px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs sm:text-sm ${
                 isCurrent
                   ? "text-white bg-gray-900 font-medium"
                   : isCompleted
@@ -253,7 +253,7 @@ function ConfirmCloseDialog({
       <div className="relative bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
         <button
           onClick={onCancel}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer"
+          className="absolute top-4 right-4 w-8 h-8 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer"
         >
           <X className="w-4 h-4 text-gray-500" />
         </button>
@@ -269,13 +269,13 @@ function ConfirmCloseDialog({
           <div className="flex gap-3">
             <button
               onClick={onCancel}
-              className="flex-1 px-4 py-3 rounded-full border border-gray-200 font-medium text-gray-900 hover:bg-gray-50 active:scale-95 transition-all cursor-pointer"
+              className="flex-1 px-4 py-3 rounded-xl border border-gray-200 font-medium text-gray-900 hover:bg-gray-50 active:scale-95 transition-all cursor-pointer"
             >
               Відмінити
             </button>
             <button
               onClick={onConfirm}
-              className="flex-1 px-4 py-3 rounded-full bg-gray-900 font-medium text-white hover:bg-gray-800 active:scale-95 transition-all cursor-pointer"
+              className="flex-1 px-4 py-3 rounded-xl bg-gray-900 font-medium text-white hover:bg-gray-800 active:scale-95 transition-all cursor-pointer"
             >
               Вийти
             </button>
@@ -560,8 +560,8 @@ export function BookingModal({
   };
 
   const getMonthName = (date: Date) => {
-    const months = ["січень", "лютий", "березень", "квітень", "травень", "червень",
-                    "липень", "серпень", "вересень", "жовтень", "листопад", "грудень"];
+    const months = ["Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
+                    "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"];
     return months[date.getMonth()];
   };
 
@@ -744,7 +744,7 @@ export function BookingModal({
           {/* Back/Close button - always visible */}
           <button
             onClick={currentStep > 0 && currentStep < steps.length - 1 ? handleBack : handleCloseAttempt}
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 active:scale-95 transition-all cursor-pointer shrink-0"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 active:scale-95 transition-all cursor-pointer shrink-0"
           >
             {currentStep > 0 && currentStep < steps.length - 1 ? (
               <ChevronLeft className="w-5 h-5 text-gray-600" />
@@ -763,7 +763,7 @@ export function BookingModal({
           {/* Close button - always visible on mobile too */}
           <button
             onClick={handleCloseAttempt}
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 active:scale-95 transition-all cursor-pointer shrink-0"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 active:scale-95 transition-all cursor-pointer shrink-0"
           >
             <X className="w-5 h-5 text-gray-600" />
           </button>
@@ -805,7 +805,7 @@ export function BookingModal({
                                 {service.price} ₴
                               </p>
                             </div>
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 ${
                               isSelected ? "bg-gray-900 scale-110" : "border-2 border-gray-200 hover:border-gray-400"
                             }`}>
                               {isSelected ? (
@@ -857,7 +857,7 @@ export function BookingModal({
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                        <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
                           <User className="w-6 h-6 text-gray-400" />
                         </div>
                         <div>
@@ -866,11 +866,11 @@ export function BookingModal({
                         </div>
                       </div>
                       {selectedSpecialist === "any" ? (
-                        <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center scale-110 transition-transform">
+                        <div className="w-8 h-8 rounded-xl bg-gray-900 flex items-center justify-center scale-110 transition-transform">
                           <Check className="w-4 h-4 text-white" />
                         </div>
                       ) : (
-                        <Button variant="outline" className="rounded-full hover:bg-gray-100 active:scale-95 transition-all cursor-pointer">
+                        <Button variant="outline" className="rounded-xl hover:bg-gray-100 active:scale-95 transition-all cursor-pointer">
                           Обрати
                         </Button>
                       )}
@@ -915,11 +915,11 @@ export function BookingModal({
                               </div>
                             </div>
                             {isSelected ? (
-                              <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center scale-110 transition-transform">
+                              <div className="w-8 h-8 rounded-xl bg-gray-900 flex items-center justify-center scale-110 transition-transform">
                                 <Check className="w-4 h-4 text-white" />
                               </div>
                             ) : (
-                              <Button variant="outline" className="rounded-full hover:bg-gray-100 active:scale-95 transition-all cursor-pointer">
+                              <Button variant="outline" className="rounded-xl hover:bg-gray-100 active:scale-95 transition-all cursor-pointer">
                                 Обрати
                               </Button>
                             )}
@@ -946,7 +946,7 @@ export function BookingModal({
                   {/* Specialist chip + Calendar button */}
                   <div className="flex items-center gap-2 mb-6">
                     {selectedSpecialist && selectedSpecialist !== "any" && (
-                      <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-gray-100">
+                      <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-100">
                         <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200">
                           <Image
                             src={specialists.find(s => s.id === selectedSpecialist)?.avatar || ""}
@@ -963,7 +963,7 @@ export function BookingModal({
                     )}
                     <button
                       onClick={() => setCalendarOpen(!calendarOpen)}
-                      className={`p-2 rounded-full border transition-colors cursor-pointer ${
+                      className={`p-2 rounded-xl border transition-colors cursor-pointer ${
                         calendarOpen ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200 hover:bg-gray-50"
                       }`}
                     >
@@ -977,7 +977,7 @@ export function BookingModal({
                       <div className="flex items-center justify-between mb-4">
                         <button
                           onClick={goToPrevMonth}
-                          className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 cursor-pointer"
+                          className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-gray-100 cursor-pointer"
                         >
                           <ChevronLeft className="w-5 h-5" />
                         </button>
@@ -986,7 +986,7 @@ export function BookingModal({
                         </h3>
                         <button
                           onClick={goToNextMonth}
-                          className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 cursor-pointer"
+                          className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-gray-100 cursor-pointer"
                         >
                           <ChevronRight className="w-5 h-5" />
                         </button>
@@ -1022,7 +1022,7 @@ export function BookingModal({
                               key={date.toISOString()}
                               onClick={() => !isPast && !calNoAvail && setSelectedDate(date)}
                               disabled={isPast || !!calNoAvail}
-                              className={`aspect-square rounded-full flex items-center justify-center text-sm font-medium transition-all cursor-pointer ${
+                              className={`aspect-square rounded-xl flex items-center justify-center text-sm font-medium transition-all cursor-pointer ${
                                 isPast || calNoAvail
                                   ? "text-gray-300 cursor-not-allowed"
                                   : isSelected
@@ -1060,7 +1060,7 @@ export function BookingModal({
                               key={index}
                               onClick={() => !noAvailability && setSelectedDate(date)}
                               disabled={noAvailability}
-                              className={`flex flex-col items-center min-w-[52px] py-3 px-3 rounded-full transition-all duration-300 ${
+                              className={`flex flex-col items-center min-w-[52px] py-3 px-3 rounded-xl transition-all duration-300 ${
                                 noAvailability
                                   ? "opacity-40 cursor-not-allowed"
                                   : isSelected
@@ -1107,7 +1107,7 @@ export function BookingModal({
                     {/* Time slots */}
                     {!selectedDate ? (
                       <div className="text-center py-12">
-                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 flex items-center justify-center">
                           <Calendar className="w-8 h-8 text-gray-400" />
                         </div>
                         <p className="text-gray-500 font-medium">Оберіть дату щоб побачити доступний час</p>
@@ -1292,7 +1292,7 @@ export function BookingModal({
               {/* Step 4: Done */}
               {currentStep === 4 && (
                 <div className="text-center py-8">
-                  <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center">
+                  <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-green-100 flex items-center justify-center">
                     <Check className="w-10 h-10 text-green-600" />
                   </div>
 
@@ -1339,7 +1339,7 @@ export function BookingModal({
                       href={`https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT || 'tholim_bot'}?start=client_${bookedClientId}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-full transition-colors cursor-pointer flex items-center justify-center gap-2 no-underline"
+                      className="w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 no-underline"
                     >
                       <Send className="w-4 h-4" />
                       Підписатися в Telegram
@@ -1371,7 +1371,7 @@ export function BookingModal({
                 <Button
                   onClick={handleNext}
                   disabled={!canProceed() || isSubmitting}
-                  className="mt-4 w-full bg-gray-900 hover:bg-gray-800 text-white rounded-full px-8 h-12 font-semibold transition-all duration-200 hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:active:scale-100 cursor-pointer"
+                  className="mt-4 w-full bg-gray-900 hover:bg-gray-800 text-white rounded-xl px-8 h-12 font-semibold transition-all duration-200 hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:active:scale-100 cursor-pointer"
                 >
                   {isSubmitting ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -1383,7 +1383,7 @@ export function BookingModal({
               {currentStep === steps.length - 1 && (
                 <Button
                   onClick={handleSmoothClose}
-                  className="mt-4 w-full bg-gray-900 hover:bg-gray-800 text-white rounded-full px-8 h-12 font-semibold transition-all duration-200 hover:shadow-lg active:scale-95 cursor-pointer"
+                  className="mt-4 w-full bg-gray-900 hover:bg-gray-800 text-white rounded-xl px-8 h-12 font-semibold transition-all duration-200 hover:shadow-lg active:scale-95 cursor-pointer"
                 >
                   Закрити
                 </Button>
@@ -1398,7 +1398,7 @@ export function BookingModal({
             <Button
               onClick={handleNext}
               disabled={!canProceed() || isSubmitting}
-              className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-full px-8 h-12 font-semibold transition-all duration-200 hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:active:scale-100 cursor-pointer"
+              className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-xl px-8 h-12 font-semibold transition-all duration-200 hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:active:scale-100 cursor-pointer"
             >
               {isSubmitting ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -1412,7 +1412,7 @@ export function BookingModal({
           <div className="lg:hidden px-4 sm:px-6 py-4 border-t border-gray-100 shrink-0 bg-white">
             <Button
               onClick={handleSmoothClose}
-              className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-full px-8 h-12 font-semibold transition-all duration-200 hover:shadow-lg active:scale-95 cursor-pointer"
+              className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-xl px-8 h-12 font-semibold transition-all duration-200 hover:shadow-lg active:scale-95 cursor-pointer"
             >
               Закрити
             </Button>
@@ -1446,7 +1446,7 @@ export function BookingModal({
             </div>
             <button
               onClick={() => setSlotSelectionError(null)}
-              className="w-6 h-6 rounded-full hover:bg-gray-100 flex items-center justify-center shrink-0 cursor-pointer"
+              className="w-6 h-6 rounded-lg hover:bg-gray-100 flex items-center justify-center shrink-0 cursor-pointer"
             >
               <X className="w-4 h-4 text-gray-400" />
             </button>
