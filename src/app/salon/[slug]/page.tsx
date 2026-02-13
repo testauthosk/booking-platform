@@ -276,6 +276,8 @@ export default function SalonPage() {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [bookingOpen, setBookingOpen] = useState(false);
+  const [bookingInitialCategory, setBookingInitialCategory] = useState<string | undefined>(undefined);
+  const [bookingPreSelectedServiceId, setBookingPreSelectedServiceId] = useState<string | undefined>(undefined);
   const [isScrolled, setIsScrolled] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [mobilePhotoIndex, setMobilePhotoIndex] = useState(0);
@@ -439,6 +441,12 @@ export default function SalonPage() {
   const openGallery = (index: number = 0) => {
     setGalleryIndex(index);
     setGalleryOpen(true);
+  };
+
+  const openBooking = (opts?: { category?: string; serviceId?: string }) => {
+    setBookingInitialCategory(opts?.category);
+    setBookingPreSelectedServiceId(opts?.serviceId);
+    setBookingOpen(true);
   };
 
   // Loading and error states
@@ -717,50 +725,54 @@ export default function SalonPage() {
                   <h2 className="text-xl font-bold text-gray-900 mb-6">Послуги</h2>
 
                   <div className="space-y-8">
-                    {services.map((category: any) => (
-                      <div key={category.id}>
-                        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
-                          {category.name}
-                        </h3>
-                        <div className="space-y-3">
-                          {category.items?.map((service: any) => (
-                            <div
-                              key={service.id}
-                              onClick={() => setBookingOpen(true)}
-                              className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-pointer group"
-                            >
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-semibold text-gray-900 mb-1">{service.name}</h4>
-                                  <p className="text-sm text-gray-500 mb-2">{service.duration}</p>
-                                  <p className="text-sm font-medium text-gray-900">
-                                    {service.price_from && <span className="text-gray-500 font-normal">від </span>}
-                                    {service.price} ₴
-                                  </p>
-                                </div>
-                                <Button
-                                  onClick={(e) => { e.stopPropagation(); setBookingOpen(true); }}
-                                  className="bg-gray-900 hover:bg-gray-800 active:scale-95 text-white rounded-xl px-6 h-10 font-medium shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-pointer"
-                                >
-                                  Забронювати
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                    {services.map((category: any) => {
+                      const items = category.items || [];
+                      const visibleItems = items.slice(0, 2);
+                      const hasMore = items.length > 2;
 
-                  {services.length > 0 && (
-                    <button
-                      onClick={() => setBookingOpen(true)}
-                      className="mt-6 text-gray-900 font-medium hover:underline flex items-center gap-1 cursor-pointer transition-colors hover:text-gray-600"
-                    >
-                      Дивитись усі послуги
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  )}
+                      return (
+                        <div key={category.id}>
+                          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+                            {category.name}
+                          </h3>
+                          <div className="space-y-3">
+                            {visibleItems.map((service: any) => (
+                              <div
+                                key={service.id}
+                                onClick={() => openBooking({ serviceId: service.id })}
+                                className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-pointer group"
+                              >
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-semibold text-gray-900 mb-1">{service.name}</h4>
+                                    <p className="text-sm text-gray-500 mb-2">{service.duration}</p>
+                                    <p className="text-sm font-medium text-gray-900">
+                                      {service.price_from && <span className="text-gray-500 font-normal">від </span>}
+                                      {service.price} ₴
+                                    </p>
+                                  </div>
+                                  <Button
+                                    onClick={(e) => { e.stopPropagation(); openBooking({ serviceId: service.id }); }}
+                                    className="bg-gray-900 hover:bg-gray-800 active:scale-95 text-white rounded-xl px-6 h-10 font-medium shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-pointer"
+                                  >
+                                    Забронювати
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {hasMore && (
+                            <button
+                              onClick={() => openBooking({ category: category.name })}
+                              className="mt-3 text-sm text-gray-600 hover:text-gray-900 font-medium cursor-pointer transition-colors"
+                            >
+                              Дивитись усі ({items.length})
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </section>
               )}
 
@@ -989,7 +1001,7 @@ export default function SalonPage() {
 
                   <div className={`px-5 transition-all duration-300 ${isScrolled ? "pt-4" : "pt-5"}`}>
                     <Button
-                      onClick={() => setBookingOpen(true)}
+                      onClick={() => openBooking()}
                       className="w-full bg-gray-900 hover:bg-gray-800 active:scale-[0.98] text-white rounded-xl h-12 text-base font-semibold transition-all duration-200 cursor-pointer shadow-sm"
                     >
                       Забронювати
@@ -1033,23 +1045,25 @@ export default function SalonPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
                         <MapPin className="w-5 h-5 text-gray-400" />
                       </div>
-                      <div className="flex-1 min-w-0 pt-0.5">
-                        <p className="text-gray-700 text-sm leading-relaxed">{salon.address}</p>
-                        <a
-                          href={`https://www.google.com/maps/dir/?api=1&destination=${salon.coordinates_lat},${salon.coordinates_lng}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 font-medium text-sm hover:underline inline-flex items-center gap-1 mt-1.5 transition-colors"
-                        >
-                          Прокласти маршрут
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        </a>
-                      </div>
+                      <p className="text-gray-700 text-sm leading-relaxed flex-1 min-w-0">{salon.address}</p>
                     </div>
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${salon.coordinates_lat},${salon.coordinates_lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
+                        <Navigation className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <span className="text-blue-600 font-medium text-sm hover:underline transition-colors">
+                        Прокласти маршрут
+                      </span>
+                    </a>
                   </div>
                 </div>
               </div>
@@ -1061,7 +1075,7 @@ export default function SalonPage() {
       {/* Mobile Fixed Bottom Bar */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50">
         <Button
-          onClick={() => setBookingOpen(true)}
+          onClick={() => openBooking()}
           className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-xl h-12 text-base font-semibold"
         >
           Забронювати
@@ -1080,7 +1094,11 @@ export default function SalonPage() {
       {/* Booking Modal */}
       <BookingModal
         isOpen={bookingOpen}
-        onClose={() => setBookingOpen(false)}
+        onClose={() => {
+          setBookingOpen(false);
+          setBookingInitialCategory(undefined);
+          setBookingPreSelectedServiceId(undefined);
+        }}
         salonId={salon.id}
         salonName={salon.name}
         salonImage={photos[0]}
@@ -1106,6 +1124,8 @@ export default function SalonPage() {
           reviewCount: member.review_count,
           price: member.price,
         }))}
+        initialCategory={bookingInitialCategory}
+        preSelectedServiceId={bookingPreSelectedServiceId}
       />
     </div>
   );

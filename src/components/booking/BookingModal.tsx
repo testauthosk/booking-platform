@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { usePreservedModal } from "@/hooks/use-preserved-modal";
 import Image from "next/image";
-import { X, ChevronLeft, ChevronRight, Star, Check, Plus, Calendar, Clock, User, Send, Loader2 } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, ChevronDown, Star, Check, Plus, Calendar, Clock, User, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 // supabase removed - using API instead
 import { createBooking } from "@/lib/api";
@@ -46,6 +46,8 @@ interface BookingModalProps {
   salonAddress: string;
   services: { category: string; items: Service[] }[];
   specialists: Specialist[];
+  initialCategory?: string;
+  preSelectedServiceId?: string;
 }
 
 // Step indicator component - scrollable on mobile with click navigation
@@ -297,13 +299,14 @@ export function BookingModal({
   salonAddress,
   services,
   specialists,
+  initialCategory,
+  preSelectedServiceId,
 }: BookingModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedSpecialist, setSelectedSpecialist] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTimes, setSelectedTimes] = useState<string[]>([]);
-  const [showAllServices, setShowAllServices] = useState(false);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -318,6 +321,12 @@ export function BookingModal({
   const [isClosing, setIsClosing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingSlots, setLoadingSlots] = useState(false);
+
+  // Accordion state for services catalog
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [allExpanded, setAllExpanded] = useState(false);
+  const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const accordionContentRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const steps = ["Послуги", "Фахівець", "Час", "Підтвердження", "Готово"];
 
@@ -335,6 +344,84 @@ export function BookingModal({
 
   // Зберігати стан 3 хв після закриття
   usePreservedModal(isOpen, resetState);
+
+  // Toggle single accordion category
+  const toggleCategory = useCallback((categoryName: string) => {
+    setExpandedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(categoryName)) {
+        next.delete(categoryName);
+      } else {
+        next.add(categoryName);
+      }
+      // Update allExpanded state
+      const allCats = services.map(c => c.category);
+      setAllExpanded(allCats.every(c => next.has(c)));
+      return next;
+    });
+  }, [services]);
+
+  // Toggle all categories
+  const toggleAllCategories = useCallback(() => {
+    if (allExpanded) {
+      setExpandedCategories(new Set());
+      setAllExpanded(false);
+    } else {
+      const allCats = new Set(services.map(c => c.category));
+      setExpandedCategories(allCats);
+      setAllExpanded(true);
+    }
+  }, [allExpanded, services]);
+
+  // Handle initialCategory and preSelectedServiceId when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      // Pre-select service if provided
+      if (preSelectedServiceId) {
+        setSelectedServices(prev => {
+          if (prev.includes(preSelectedServiceId)) return prev;
+          return [preSelectedServiceId];
+        });
+        // Find which category this service belongs to and expand it
+        for (const cat of services) {
+          const found = cat.items.find(s => s.id === preSelectedServiceId);
+          if (found) {
+            setExpandedCategories(new Set([cat.category]));
+            break;
+          }
+        }
+      } else if (initialCategory) {
+        // Expand initial category
+        setExpandedCategories(new Set([initialCategory]));
+      } else {
+        // Default: all collapsed
+        setExpandedCategories(new Set());
+      }
+      setAllExpanded(false);
+    }
+  }, [isOpen, initialCategory, preSelectedServiceId, services]);
+
+  // Scroll to initial category after modal opens
+  useEffect(() => {
+    if (isOpen && currentStep === 0) {
+      const targetCategory = initialCategory || (preSelectedServiceId
+        ? services.find(c => c.items.some(s => s.id === preSelectedServiceId))?.category
+        : null);
+
+      if (targetCategory) {
+        setTimeout(() => {
+          const el = categoryRefs.current[targetCategory];
+          if (el) {
+            const container = el.closest('.overflow-y-auto');
+            if (container) {
+              const targetPos = el.offsetTop - 80;
+              container.scrollTo({ top: targetPos, behavior: 'smooth' });
+            }
+          }
+        }, 400);
+      }
+    }
+  }, [isOpen, currentStep, initialCategory, preSelectedServiceId, services]);
 
   // Smooth close with animation
   const handleSmoothClose = () => {
@@ -664,7 +751,6 @@ export function BookingModal({
       setSelectedSpecialist(null);
       setSelectedDate(null);
       setSelectedTimes([]);
-      setShowAllServices(false);
       setShowConfirmClose(false);
       setCompletedSteps([]);
       setFirstName("");
@@ -734,8 +820,6 @@ export function BookingModal({
 
   if (!isOpen) return null;
 
-  const displayedServices = showAllServices ? allServices : allServices.slice(0, 5);
-
   return (
     <div className={`fixed inset-0 z-[100] bg-white overflow-hidden ${isClosing ? 'animate-fadeOut' : 'fullpage-modal'}`}>
       <div className="h-full flex flex-col">
@@ -774,61 +858,114 @@ export function BookingModal({
           <div className="h-full max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-8 flex gap-8">
             {/* Main content */}
             <div className="flex-1 overflow-y-auto pb-4">
-              {/* Step 0: Services */}
+              {/* Step 0: Services — Accordion catalog */}
               {currentStep === 0 && (
                 <div className="animate-fadeIn">
-                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Оберіть послуги</h1>
+                  <div className="flex items-center justify-between mb-4 sm:mb-6">
+                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Оберіть послуги</h1>
+                    <button
+                      onClick={toggleAllCategories}
+                      className="text-sm text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
+                    >
+                      {allExpanded ? "Згорнути всі" : "Розгорнути всі"}
+                    </button>
+                  </div>
 
                   <div className="space-y-3">
-                    {displayedServices.map((service, index) => {
-                      const isSelected = selectedServices.includes(service.id);
+                    {services.map((category, catIdx) => {
+                      const isExpanded = expandedCategories.has(category.category);
+                      const selectedInCategory = category.items.filter(s => selectedServices.includes(s.id)).length;
+
                       return (
                         <div
-                          key={service.id}
-                          onClick={() => toggleService(service.id)}
-                          className={`p-4 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:shadow-md opacity-0 ${
-                            isSelected
-                              ? "border-gray-900 bg-gray-50/50 shadow-sm"
-                              : "border-gray-100 bg-white hover:border-gray-300"
-                          }`}
+                          key={category.category}
+                          ref={(el) => { categoryRefs.current[category.category] = el; }}
+                          className="rounded-2xl border border-gray-100 overflow-hidden bg-white"
                           style={{
                             animation: `fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards`,
-                            animationDelay: `${index * 80}ms`
+                            animationDelay: `${catIdx * 60}ms`,
+                            opacity: 0,
                           }}
                         >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h3 className="font-semibold text-gray-900">{service.name}</h3>
-                              <p className="text-sm text-gray-500 mt-0.5">{service.duration}</p>
-                              <p className="text-sm font-medium text-gray-900 mt-1">
-                                {service.priceFrom && <span className="text-gray-500 font-normal">від </span>}
-                                {service.price} ₴
-                              </p>
-                            </div>
-                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 ${
-                              isSelected ? "bg-gray-900 scale-110" : "border-2 border-gray-200 hover:border-gray-400"
-                            }`}>
-                              {isSelected ? (
-                                <Check className="w-4 h-4 text-white" />
-                              ) : (
-                                <Plus className="w-4 h-4 text-gray-400" />
+                          {/* Category header — clickable */}
+                          <button
+                            onClick={() => toggleCategory(category.category)}
+                            className="w-full flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
+                                {category.category}
+                              </h3>
+                              {selectedInCategory > 0 && (
+                                <span className="bg-gray-900 text-white text-xs font-medium px-2 py-0.5 rounded-lg">
+                                  {selectedInCategory}
+                                </span>
                               )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-400">{category.items.length} послуг</span>
+                              <ChevronDown
+                                className={`w-5 h-5 text-gray-400 transition-transform duration-300 ease-out ${
+                                  isExpanded ? "rotate-180" : ""
+                                }`}
+                              />
+                            </div>
+                          </button>
+
+                          {/* Accordion content with smooth height animation */}
+                          <div
+                            className="transition-all duration-300 ease-out overflow-hidden"
+                            style={{
+                              maxHeight: isExpanded
+                                ? `${(accordionContentRefs.current[category.category]?.scrollHeight || 1000) + 20}px`
+                                : "0px",
+                              opacity: isExpanded ? 1 : 0,
+                            }}
+                          >
+                            <div
+                              ref={(el) => { accordionContentRefs.current[category.category] = el; }}
+                              className="px-4 pb-4 space-y-2"
+                            >
+                              {category.items.map((service) => {
+                                const isSelected = selectedServices.includes(service.id);
+                                return (
+                                  <div
+                                    key={service.id}
+                                    onClick={() => toggleService(service.id)}
+                                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-sm ${
+                                      isSelected
+                                        ? "border-gray-900 bg-gray-50/50"
+                                        : "border-gray-100 bg-white hover:border-gray-300"
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div>
+                                        <h4 className="font-semibold text-gray-900">{service.name}</h4>
+                                        <p className="text-sm text-gray-500 mt-0.5">{service.duration}</p>
+                                        <p className="text-sm font-medium text-gray-900 mt-1">
+                                          {service.priceFrom && <span className="text-gray-500 font-normal">від </span>}
+                                          {service.price} ₴
+                                        </p>
+                                      </div>
+                                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 ${
+                                        isSelected ? "bg-gray-900 scale-110" : "border-2 border-gray-200 hover:border-gray-400"
+                                      }`}>
+                                        {isSelected ? (
+                                          <Check className="w-4 h-4 text-white" />
+                                        ) : (
+                                          <Plus className="w-4 h-4 text-gray-400" />
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         </div>
                       );
                     })}
                   </div>
-
-                  {allServices.length > 5 && (
-                    <button
-                      onClick={() => setShowAllServices(!showAllServices)}
-                      className="mt-6 text-gray-900 font-medium hover:underline flex items-center gap-1 cursor-pointer transition-colors hover:text-gray-600"
-                    >
-                      {showAllServices ? "Показати менше" : `Дивитись усі послуги (${allServices.length})`}
-                      <ChevronRight className={`w-4 h-4 transition-transform ${showAllServices ? "rotate-90" : ""}`} />
-                    </button>
-                  )}
 
                   {/* Duration info */}
                   {selectedServices.length > 0 && (
