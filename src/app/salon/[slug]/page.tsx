@@ -635,7 +635,7 @@ export default function SalonPage() {
             <div className="hidden lg:grid lg:grid-cols-[1fr_0.4fr] gap-2 h-[420px]">
               <div className="relative rounded-xl overflow-hidden bg-gray-100 cursor-pointer group" onClick={() => openGallery(0)}>
                 <Image src={photos[0]} alt={salon.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" priority />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
                 <button
                   className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm text-gray-900 px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-white transition-all duration-200 flex items-center gap-2 shadow-sm cursor-pointer active:scale-95"
                   onClick={(e) => { e.stopPropagation(); openGallery(0); }}
@@ -651,13 +651,13 @@ export default function SalonPage() {
                 {photos[1] && (
                   <div className="relative rounded-xl overflow-hidden bg-gray-100 cursor-pointer group" onClick={() => openGallery(1)}>
                     <Image src={photos[1]} alt={`${salon.name} інтер'єр`} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
                   </div>
                 )}
                 {photos[2] && (
                   <div className="relative rounded-xl overflow-hidden bg-gray-100 cursor-pointer group" onClick={() => openGallery(2)}>
                     <Image src={photos[2]} alt={`${salon.name} деталі`} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
                   </div>
                 )}
               </div>
@@ -930,7 +930,7 @@ export default function SalonPage() {
                           src={`https://www.google.com/maps?q=${salon.coordinates_lat},${salon.coordinates_lng}&z=15&hl=uk&output=embed`}
                         />
                       </div>
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-200" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-200 pointer-events-none" />
                       <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 text-xs font-medium text-gray-700 group-hover:bg-white transition-colors">
                         <MapPin className="w-3.5 h-3.5 text-red-500" />
                         Відкрити карту
