@@ -522,7 +522,7 @@ export default function SalonPage() {
                             {[1,2,3,4,5].map(s => <Star key={s} className="w-5 h-5 fill-amber-400 text-amber-400 shrink-0" />)}
                           </div>
                         </div>
-                        <span className="font-semibold text-gray-900 text-lg">{Number(salon.rating).toFixed(2)}</span>
+                        <span className="font-semibold text-gray-900 text-lg">{Number(salon.rating).toFixed(1)}</span>
                         <button
                           onClick={scrollToReviews}
                           className="text-blue-600 hover:text-blue-700 hover:underline cursor-pointer transition-colors"

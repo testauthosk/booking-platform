@@ -115,7 +115,7 @@ export async function GET(
     }
 
     // Transform to expected format — exclude internal fields
-    const { isPublished: _, categories: _cats, services: _svcs, ...publicSalon } = salon;
+    const { isPublished: _, categories: _cats, services: _svcs, rating: _dbRating, reviewCount: _dbReviewCount, ...publicSalon } = salon;
 
     // Calculate real rating and review count from actual reviews
     const realReviewCount = salon.reviews.length;
