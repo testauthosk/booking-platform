@@ -133,10 +133,7 @@
     position: static;
     height: auto;
   }
-  /* Lock scroll when booking modal is open */
-  html.salon-public.modal-open, html.salon-public.modal-open body {
-    overflow: hidden !important;
-  }
+  /* modal-open scroll lock removed — handled differently */
 }
 
 /* Hide scrollbar but keep functionality */

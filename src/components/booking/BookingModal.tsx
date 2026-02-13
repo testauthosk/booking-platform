@@ -752,17 +752,7 @@ export function BookingModal({
     }
   };
 
-  // Lock page scroll when modal is open via CSS class on <html>
-  useEffect(() => {
-    if (isOpen) {
-      document.documentElement.classList.add('modal-open');
-    } else {
-      document.documentElement.classList.remove('modal-open');
-    }
-    return () => {
-      document.documentElement.classList.remove('modal-open');
-    };
-  }, [isOpen]);
+  // No scroll lock — modal backdrop covers page, scroll doesn't matter
 
   useEffect(() => {
     if (!isOpen) {
