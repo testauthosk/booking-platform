@@ -737,13 +737,13 @@ export default function SalonPage() {
                         >
                           {/* Category header */}
                           <div className="px-5 pt-4 pb-3">
-                            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                            <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wider">
                               {category.name}
                             </h3>
                           </div>
 
                           {/* Divider — full width */}
-                          <div className="border-t border-gray-100" />
+                          <div className="border-t border-gray-200" />
 
                           {/* Service rows */}
                           <div className="pb-1">
@@ -765,7 +765,7 @@ export default function SalonPage() {
                                 </div>
                                 {/* Divider between services — indented 10% each side */}
                                 {idx < visibleItems.length - 1 && (
-                                  <div className="mx-[10%] border-t border-gray-100" />
+                                  <div className="mx-[5%] border-t border-gray-200" />
                                 )}
                               </div>
                             ))}
@@ -774,8 +774,8 @@ export default function SalonPage() {
                           {/* "Show all" link */}
                           {hasMore && (
                             <>
-                              <div className="border-t border-gray-100" />
-                              <div className="px-5 py-4">
+                              <div className="border-t border-gray-200" />
+                              <div className="px-5 py-1.5">
                                 <button
                                   onClick={() => openBooking({ category: category.name })}
                                   className="text-sm text-gray-500 hover:text-gray-900 font-medium cursor-pointer transition-colors"
