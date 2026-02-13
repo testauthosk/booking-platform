@@ -116,6 +116,13 @@ export async function GET(
 
     // Transform to expected format — exclude internal fields
     const { isPublished: _, categories: _cats, services: _svcs, ...publicSalon } = salon;
+
+    // Calculate real rating and review count from actual reviews
+    const realReviewCount = salon.reviews.length;
+    const realRating = realReviewCount > 0
+      ? salon.reviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / realReviewCount
+      : 0;
+
     const result = {
       ...publicSalon,
       short_address: salon.shortAddress,
@@ -125,7 +132,8 @@ export async function GET(
             hours: wh.enabled === false ? 'Зачинено' : `${wh.start || '09:00'} - ${wh.end || '18:00'}`,
           }))
         : salon.workingHours,
-      review_count: salon.reviewCount,
+      rating: realRating,
+      review_count: realReviewCount,
       coordinates_lat: salon.latitude,
       coordinates_lng: salon.longitude,
       services: (() => {
