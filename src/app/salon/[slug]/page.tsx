@@ -900,20 +900,20 @@ export default function SalonPage() {
                     </a>
                   )}
 
-                  <div className="flex items-start gap-3 mb-6">
-                    <MapPin className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
-                    <div>
+                  <div className="space-y-3 mb-6">
+                    <div className="flex items-center gap-3">
+                      <MapPin className="w-5 h-5 text-gray-400 shrink-0" />
                       <p className="text-gray-900 font-medium">{salon.address}</p>
-                      <a
-                        href={`https://www.google.com/maps/dir/?api=1&destination=${salon.coordinates_lat},${salon.coordinates_lng}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium mt-1"
-                      >
-                        <Navigation className="w-3.5 h-3.5" />
-                        Прокласти маршрут
-                      </a>
                     </div>
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${salon.coordinates_lat},${salon.coordinates_lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      <Navigation className="w-5 h-5 shrink-0" />
+                      Прокласти маршрут
+                    </a>
                   </div>
 
                   {/* Working Hours */}
