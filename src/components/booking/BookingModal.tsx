@@ -1092,26 +1092,38 @@ export function BookingModal({
                             <p className="text-gray-500 font-medium">Немає доступних слотів</p>
                           </div>
                         ) : (
-                          timeSlots.map(slot => {
+                          timeSlots.map((slot, slotIdx) => {
                             const isSelected = selectedTimes.includes(slot.time);
                             const isBooked = slot.booked;
+                            // Check if N consecutive free slots exist starting from this one
+                            let canStart = slot.available;
+                            if (canStart && requiredSlots > 1) {
+                              for (let k = 1; k < requiredSlots; k++) {
+                                const next = timeSlots[slotIdx + k];
+                                if (!next || !next.available) { canStart = false; break; }
+                              }
+                            }
+                            const isDisabled = !slot.available || (!isSelected && !canStart);
 
                             return (
                               <button
                                 key={slot.time}
-                                onClick={() => slot.available && handleTimeSlotClick(slot.time)}
-                                disabled={!slot.available}
+                                onClick={() => canStart && handleTimeSlotClick(slot.time)}
+                                disabled={isDisabled}
                                 className={`w-full p-4 rounded-xl border-2 text-center font-medium transition-all duration-300 ease-out ${
                                   isBooked
                                     ? "border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed line-through"
                                     : isSelected
                                       ? "border-gray-900 bg-gray-900 text-white shadow-lg cursor-pointer"
-                                      : "border-gray-100 bg-white text-gray-900 hover:border-gray-300 hover:bg-gray-50 cursor-pointer"
+                                      : !canStart
+                                        ? "border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed"
+                                        : "border-gray-100 bg-white text-gray-900 hover:border-gray-300 hover:bg-gray-50 cursor-pointer"
                                 }`}
                               >
                                 <span className="flex items-center justify-center gap-2">
                                   {slot.time}
                                   {isBooked && <span className="text-xs">(зайнято)</span>}
+                                  {!isBooked && !canStart && <span className="text-xs">(недостатньо часу)</span>}
                                 </span>
                               </button>
                             );
