@@ -679,21 +679,6 @@ export default function SalonPage() {
                 </a>
               </div>
 
-              {/* Map */}
-              {salon.address && (salon.coordinates_lat || salon.coordinates_lng) && (
-                <div className="mb-6 rounded-xl overflow-hidden border border-gray-200 relative" style={{ height: '200px' }}>
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0, filter: 'saturate(0.7) brightness(1.05) contrast(0.95)' }}
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                    src={`https://www.google.com/maps?q=${salon.coordinates_lat},${salon.coordinates_lng}&z=15&output=embed`}
-                  />
-                  <div className="absolute inset-0 pointer-events-none rounded-xl ring-1 ring-inset ring-black/5" />
-                </div>
-              )}
-
               {/* Navigation Tabs */}
               <div className="border-b border-gray-200 mb-8">
                 <nav className="flex gap-8 relative">
