@@ -586,27 +586,24 @@ export default function SalonPage() {
                     priority
                   />
                 </div>
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+                {/* Story-style progress bars */}
+                <div className="absolute top-3 left-3 right-3 flex gap-1">
                   {photos.map((_, index) => (
                     <button
                       key={index}
                       onClick={(e) => { e.stopPropagation(); setMobilePhotoIndex(index); }}
-                      className={`w-2 h-2 rounded-full transition-all ${index === mobilePhotoIndex ? "bg-white w-6" : "bg-white/50"}`}
-                    />
+                      className="flex-1 h-[3px] rounded-full overflow-hidden bg-white/30"
+                    >
+                      <div
+                        className="h-full bg-white rounded-full transition-all duration-300"
+                        style={{ width: index <= mobilePhotoIndex ? '100%' : '0%' }}
+                      />
+                    </button>
                   ))}
                 </div>
-                <div className="absolute top-4 right-4 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
-                  {mobilePhotoIndex + 1} / {photos.length}
+                <div className="absolute top-3 right-3 bg-black/40 text-white text-[10px] px-1.5 py-0.5 rounded-md mt-3">
+                  {mobilePhotoIndex + 1}/{photos.length}
                 </div>
-                <button
-                  className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm text-gray-900 px-3 py-2 rounded-full text-sm font-medium flex items-center gap-1.5 shadow-sm cursor-pointer active:scale-95"
-                  onClick={(e) => { e.stopPropagation(); openGallery(0); }}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  Усі фото
-                </button>
               </div>
             </div>
 
