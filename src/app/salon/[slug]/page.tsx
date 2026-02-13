@@ -587,21 +587,21 @@ export default function SalonPage() {
                   />
                 </div>
                 {/* Story-style progress bars */}
-                <div className="absolute top-3 left-3 right-3 flex gap-1">
+                <div className="absolute top-3 left-3 right-3 flex gap-1.5">
                   {photos.map((_, index) => (
                     <button
                       key={index}
                       onClick={(e) => { e.stopPropagation(); setMobilePhotoIndex(index); }}
-                      className="flex-1 h-[3px] rounded-full overflow-hidden bg-white/30"
+                      className="flex-1 h-[5px] rounded-full overflow-hidden bg-black/20 backdrop-blur-sm"
                     >
                       <div
-                        className="h-full bg-white rounded-full transition-all duration-300"
+                        className="h-full bg-white/90 rounded-full transition-all duration-300"
                         style={{ width: index <= mobilePhotoIndex ? '100%' : '0%' }}
                       />
                     </button>
                   ))}
                 </div>
-                <div className="absolute top-3 right-3 bg-black/40 text-white text-[10px] px-1.5 py-0.5 rounded-md mt-3">
+                <div className="absolute top-3 right-3 bg-black/40 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-lg mt-4 font-medium">
                   {mobilePhotoIndex + 1}/{photos.length}
                 </div>
               </div>
