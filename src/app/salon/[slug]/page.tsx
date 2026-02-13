@@ -587,7 +587,7 @@ export default function SalonPage() {
                   />
                 </div>
                 {/* Story-style progress bars */}
-                <div className="absolute top-3 left-3 right-3 flex gap-1.5">
+                <div className="absolute bottom-3 left-3 right-3 flex gap-1.5">
                   {photos.map((_, index) => (
                     <button
                       key={index}
@@ -601,7 +601,7 @@ export default function SalonPage() {
                     </button>
                   ))}
                 </div>
-                <div className="absolute top-3 right-3 bg-black/40 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-lg mt-4 font-medium">
+                <div className="absolute top-3 right-3 bg-black/40 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-lg font-medium">
                   {mobilePhotoIndex + 1}/{photos.length}
                 </div>
               </div>
