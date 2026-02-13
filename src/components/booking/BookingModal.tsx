@@ -315,6 +315,9 @@ export function BookingModal({
   }, []);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedSpecialist, setSelectedSpecialist] = useState<string | null>(null);
+  // Per-service specialist selection (Fresha-style)
+  const [specialistPerService, setSpecialistPerService] = useState<Record<string, string>>({});
+  const [expandedServiceSpec, setExpandedServiceSpec] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTimes, setSelectedTimes] = useState<string[]>([]);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
@@ -344,6 +347,8 @@ export function BookingModal({
     setCurrentStep(0);
     setSelectedServices([]);
     setSelectedSpecialist(null);
+    setSpecialistPerService({});
+    setExpandedServiceSpec(null);
     setSelectedDate(null);
     setSelectedTimes([]);
     setCompletedSteps([]);
@@ -679,7 +684,7 @@ export function BookingModal({
   const canProceed = () => {
     switch (currentStep) {
       case 0: return selectedServices.length > 0;
-      case 1: return selectedSpecialist !== null;
+      case 1: return true; // Per-service selection, default is "any" for all
       case 2: return selectedDate !== null && selectedTimes.length === requiredSlots;
       case 3: return firstName.trim() !== "" && lastName.trim() !== "" && phone.replace(/\s/g, '').length >= 9;
       default: return true;
@@ -695,7 +700,13 @@ export function BookingModal({
           const booking = await createBooking({
             salonId: salonId,
             serviceId: selectedServices[0], // Primary service
-            masterId: selectedSpecialist === 'any' ? specialists[0]?.id : selectedSpecialist!,
+            masterId: (() => {
+              // Use first service's specialist, or first available specialist
+              const firstSpec = specialistPerService[selectedServices[0]];
+              if (firstSpec) return firstSpec;
+              const anySpec = specialists.find(sp => sp.serviceIds?.includes(selectedServices[0]));
+              return anySpec?.id || specialists[0]?.id;
+            })(),
             clientName: `${firstName} ${lastName}`,
             clientPhone: `+380${phone.replace(/\s/g, '')}`,
             ...(email.trim() && email.includes('@') ? { clientEmail: email.trim().toLowerCase() } : {}),
@@ -760,6 +771,8 @@ export function BookingModal({
       setCurrentStep(0);
       setSelectedServices([]);
       setSelectedSpecialist(null);
+      setSpecialistPerService({});
+      setExpandedServiceSpec(null);
       setSelectedDate(null);
       setSelectedTimes([]);
       setShowConfirmClose(false);
@@ -996,124 +1009,166 @@ export function BookingModal({
                 </div>
               )}
 
-              {/* Step 1: Specialist */}
+              {/* Step 1: Specialist — per-service selection (Fresha-style) */}
               {currentStep === 1 && (
                 <div>
-                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Оберіть фахівця</h1>
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-4">Оберіть фахівця</h1>
+                  <p className="text-sm text-gray-500 mb-5">Для кожної послуги оберіть майстра або залиште &quot;Будь-який вільний&quot;</p>
 
-                  {/* Total price for selected services */}
-                  {selectedServiceItems.length > 0 && (
-                    <div className="mb-4 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                      <p className="text-sm text-gray-600">
-                        Обрано послуг: <span className="font-medium text-gray-900">{selectedServiceItems.length}</span>
-                        {" · "}
-                        Сума: <span className="font-medium text-gray-900">{selectedServiceItems.reduce((s, sv) => s + sv.price, 0)} ₴</span>
-                      </p>
-                    </div>
-                  )}
+                  <div className="space-y-4">
+                    {selectedServiceItems.map((service) => {
+                      // Filter specialists who can do this specific service
+                      const availableSpecs = specialists.filter(sp =>
+                        sp.serviceIds && sp.serviceIds.length > 0 && sp.serviceIds.includes(service.id)
+                      );
+                      const currentChoice = specialistPerService[service.id] || "any";
+                      const isExpanded = expandedServiceSpec === service.id;
 
-                  {/* Any specialist option — always first */}
-                  <div
-                    onClick={() => setSelectedSpecialist("any")}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-md mb-3 ${
-                      selectedSpecialist === "any"
-                        ? "border-gray-900 bg-gray-50/50 shadow-sm"
-                        : "border-gray-100 bg-white hover:border-gray-300"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                          <User className="w-6 h-6 text-gray-400" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900">Будь-який вільний фахівець</h3>
-                          <p className="text-sm text-gray-500">для гнучкого бронювання</p>
-                        </div>
-                      </div>
-                      {selectedSpecialist === "any" ? (
-                        <div className="w-8 h-8 rounded-xl bg-gray-900 flex items-center justify-center scale-110 transition-transform">
-                          <Check className="w-4 h-4 text-white" />
-                        </div>
-                      ) : (
-                        <Button variant="outline" className="rounded-xl hover:bg-gray-100 active:scale-95 transition-all cursor-pointer">
-                          Обрати
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+                      // Get chosen specialist info
+                      const chosenSpec = currentChoice !== "any"
+                        ? availableSpecs.find(sp => sp.id === currentChoice)
+                        : null;
+                      const chosenPrice = chosenSpec?.servicePrices?.[service.id] ?? service.price;
 
-                  {/* Specialists list — filtered by selected services */}
-                  <div className="space-y-3">
-                    {specialists
-                      .filter(sp => {
-                        // Hide specialists without serviceIds (not configured)
-                        if (!sp.serviceIds || sp.serviceIds.length === 0) return false;
-                        // Check they can do ALL selected services
-                        return selectedServices.every(sid => sp.serviceIds!.includes(sid));
-                      })
-                      .map(specialist => {
-                      const isSelected = selectedSpecialist === specialist.id;
-                      // Calculate price from specialist's custom prices, fallback to service default
-                      const totalForSpecialist = selectedServiceItems.reduce((s, sv) => {
-                        const customPrice = specialist.servicePrices?.[sv.id];
-                        return s + (customPrice ?? sv.price);
-                      }, 0);
                       return (
-                        <div
-                          key={specialist.id}
-                          onClick={() => setSelectedSpecialist(specialist.id)}
-                          className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${
-                            isSelected
-                              ? "border-gray-900 bg-gray-50/50 shadow-sm"
-                              : "border-gray-100 bg-white hover:border-gray-300"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <div className="relative">
-                                <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 ring-2 ring-white shadow-md">
-                                  {specialist.avatar ? (
-                                    <Image
-                                      src={specialist.avatar}
-                                      alt={specialist.name}
-                                      width={56}
-                                      height={56}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                                      <span className="text-xl font-bold text-gray-500">{specialist.name?.charAt(0)?.toUpperCase()}</span>
-                                    </div>
-                                  )}
+                        <div key={service.id} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+                          {/* Service header — always visible */}
+                          <div
+                            className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                            onClick={() => setExpandedServiceSpec(isExpanded ? null : service.id)}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium text-gray-900 text-sm">{service.name}</h3>
+                              <p className="text-xs text-gray-500 mt-0.5">
+                                {service.duration} · {chosenPrice} ₴
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {chosenSpec ? (
+                                <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-1.5 border border-gray-100">
+                                  <div className="w-6 h-6 rounded-lg overflow-hidden bg-gray-200">
+                                    {chosenSpec.avatar ? (
+                                      <Image src={chosenSpec.avatar} alt={chosenSpec.name} width={24} height={24} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-gray-500">
+                                        {chosenSpec.name?.charAt(0)}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className="text-xs font-medium text-gray-700">{chosenSpec.name}</span>
                                 </div>
-                                <div className="absolute -bottom-1 -right-1 bg-white rounded-xl px-1.5 py-0.5 shadow-sm flex items-center gap-0.5 border border-gray-100">
-                                  <span className="text-xs font-bold text-gray-900">{specialist.rating}</span>
-                                  <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
+                              ) : (
+                                <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-1.5 border border-gray-100">
+                                  <User className="w-4 h-4 text-gray-400" />
+                                  <span className="text-xs text-gray-500">Будь-який</span>
                                 </div>
-                              </div>
-                              <div>
-                                <h3 className="font-semibold text-gray-900">{specialist.name}</h3>
-                                <p className="text-xs text-gray-500 uppercase tracking-wide">{specialist.role}</p>
-                                {totalForSpecialist > 0 && (
-                                  <p className="text-sm font-medium text-gray-900 mt-0.5">{totalForSpecialist} ₴</p>
+                              )}
+                              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                            </div>
+                          </div>
+
+                          {/* Expanded: specialist picker */}
+                          {isExpanded && (
+                            <div className="border-t border-gray-100 p-3 space-y-2 bg-gray-50/50">
+                              {/* "Any available" option */}
+                              <div
+                                onClick={() => {
+                                  setSpecialistPerService(prev => {
+                                    const next = { ...prev };
+                                    delete next[service.id];
+                                    return next;
+                                  });
+                                  setExpandedServiceSpec(null);
+                                }}
+                                className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
+                                  currentChoice === "any"
+                                    ? "bg-white border-2 border-gray-900 shadow-sm"
+                                    : "bg-white border border-gray-200 hover:border-gray-300"
+                                }`}
+                              >
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center shrink-0">
+                                  <User className="w-5 h-5 text-gray-400" />
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-gray-900">Будь-який вільний фахівець</p>
+                                </div>
+                                {currentChoice === "any" && (
+                                  <Check className="w-4 h-4 text-gray-900 shrink-0" />
                                 )}
                               </div>
+
+                              {/* Available specialists for this service */}
+                              {availableSpecs.map(spec => {
+                                const customPrice = spec.servicePrices?.[service.id] ?? service.price;
+                                const isChosen = currentChoice === spec.id;
+                                return (
+                                  <div
+                                    key={spec.id}
+                                    onClick={() => {
+                                      setSpecialistPerService(prev => ({ ...prev, [service.id]: spec.id }));
+                                      setExpandedServiceSpec(null);
+                                    }}
+                                    className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
+                                      isChosen
+                                        ? "bg-white border-2 border-gray-900 shadow-sm"
+                                        : "bg-white border border-gray-200 hover:border-gray-300"
+                                    }`}
+                                  >
+                                    <div className="relative shrink-0">
+                                      <div className="w-10 h-10 rounded-xl overflow-hidden bg-gray-100">
+                                        {spec.avatar ? (
+                                          <Image src={spec.avatar} alt={spec.name} width={40} height={40} className="w-full h-full object-cover" />
+                                        ) : (
+                                          <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                                            <span className="text-sm font-bold text-gray-500">{spec.name?.charAt(0)}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="absolute -bottom-1 -right-1 bg-white rounded-lg px-1 py-0.5 shadow-sm flex items-center gap-0.5 border border-gray-100">
+                                        <span className="text-[10px] font-bold text-gray-900">{spec.rating}</span>
+                                        <Star className="w-2 h-2 fill-yellow-400 text-yellow-400" />
+                                      </div>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-gray-900">{spec.name}</p>
+                                      <p className="text-xs text-gray-500">{customPrice} ₴</p>
+                                    </div>
+                                    {isChosen && (
+                                      <Check className="w-4 h-4 text-gray-900 shrink-0" />
+                                    )}
+                                  </div>
+                                );
+                              })}
+
+                              {availableSpecs.length === 0 && (
+                                <p className="text-xs text-gray-400 text-center py-2">Немає фахівців для цієї послуги</p>
+                              )}
                             </div>
-                            {isSelected ? (
-                              <div className="w-8 h-8 rounded-xl bg-gray-900 flex items-center justify-center scale-110 transition-transform">
-                                <Check className="w-4 h-4 text-white" />
-                              </div>
-                            ) : (
-                              <Button variant="outline" className="rounded-xl hover:bg-gray-100 active:scale-95 transition-all cursor-pointer">
-                                Обрати
-                              </Button>
-                            )}
-                          </div>
+                          )}
                         </div>
                       );
                     })}
                   </div>
+
+                  {/* Total */}
+                  {selectedServiceItems.length > 0 && (
+                    <div className="mt-5 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                      <p className="text-sm text-gray-600">
+                        Обрано послуг: <span className="font-medium text-gray-900">{selectedServiceItems.length}</span>
+                        {" · "}
+                        Сума: <span className="font-medium text-gray-900">
+                          {selectedServiceItems.reduce((s, sv) => {
+                            const specId = specialistPerService[sv.id];
+                            if (specId) {
+                              const spec = specialists.find(sp => sp.id === specId);
+                              return s + (spec?.servicePrices?.[sv.id] ?? sv.price);
+                            }
+                            return s + sv.price;
+                          }, 0)} ₴
+                        </span>
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1129,24 +1184,24 @@ export function BookingModal({
                     </p>
                   </div>
 
-                  {/* Specialist chip + Calendar button */}
-                  <div className="flex items-center gap-2 mb-6">
-                    {selectedSpecialist && selectedSpecialist !== "any" && (
-                      <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-100">
-                        <div className="w-6 h-6 rounded-xl overflow-hidden bg-gray-200">
-                          <Image
-                            src={specialists.find(s => s.id === selectedSpecialist)?.avatar || ""}
-                            alt=""
-                            width={24}
-                            height={24}
-                            className="w-full h-full object-cover"
-                          />
+                  {/* Specialist chips + Calendar button */}
+                  <div className="flex items-center gap-2 mb-6 flex-wrap">
+                    {Object.entries(specialistPerService).map(([svcId, specId]) => {
+                      const spec = specialists.find(s => s.id === specId);
+                      if (!spec) return null;
+                      return (
+                        <div key={svcId} className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-100">
+                          <div className="w-6 h-6 rounded-xl overflow-hidden bg-gray-200">
+                            {spec.avatar ? (
+                              <Image src={spec.avatar} alt="" width={24} height={24} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-gray-500">{spec.name?.charAt(0)}</div>
+                            )}
+                          </div>
+                          <span className="text-sm font-medium text-gray-900">{spec.name}</span>
                         </div>
-                        <span className="text-sm font-medium text-gray-900">
-                          {specialists.find(s => s.id === selectedSpecialist)?.name}
-                        </span>
-                      </div>
-                    )}
+                      );
+                    })}
                     <button
                       onClick={() => setCalendarOpen(!calendarOpen)}
                       className={`p-2 rounded-xl border transition-colors cursor-pointer ${
@@ -1445,11 +1500,13 @@ export function BookingModal({
                           <span className="text-gray-500">Тривалість:</span>
                           <span className="font-medium text-gray-900">{roundedDuration} хв</span>
                         </div>
-                        {selectedSpecialist && selectedSpecialist !== "any" && (
+                        {Object.keys(specialistPerService).length > 0 && (
                           <div className="flex justify-between">
-                            <span className="text-gray-500">Спеціаліст:</span>
-                            <span className="font-medium text-gray-900">
-                              {specialists.find(s => s.id === selectedSpecialist)?.name}
+                            <span className="text-gray-500">Фахівці:</span>
+                            <span className="font-medium text-gray-900 text-right">
+                              {[...new Set(Object.values(specialistPerService))].map(specId => 
+                                specialists.find(s => s.id === specId)?.name
+                              ).filter(Boolean).join(', ')}
                             </span>
                           </div>
                         )}
@@ -1457,12 +1514,20 @@ export function BookingModal({
 
                       <div className="mt-4 pt-4 border-t border-gray-200">
                         <h5 className="font-medium text-gray-900 mb-2">Послуги:</h5>
-                        {selectedServiceItems.map(service => (
-                          <div key={service.id} className="flex justify-between text-sm py-1">
-                            <span className="text-gray-600">{service.name}</span>
-                            <span className="font-medium text-gray-900">{service.price} ₴</span>
-                          </div>
-                        ))}
+                        {selectedServiceItems.map(service => {
+                          const specId = specialistPerService[service.id];
+                          const spec = specId ? specialists.find(s => s.id === specId) : null;
+                          const price = spec?.servicePrices?.[service.id] ?? service.price;
+                          return (
+                            <div key={service.id} className="flex justify-between text-sm py-1">
+                              <div>
+                                <span className="text-gray-600">{service.name}</span>
+                                {spec && <span className="text-gray-400 text-xs ml-1">· {spec.name}</span>}
+                              </div>
+                              <span className="font-medium text-gray-900 shrink-0">{price} ₴</span>
+                            </div>
+                          );
+                        })}
                         <div className="flex justify-between text-sm pt-2 mt-2 border-t border-gray-200">
                           <span className="font-bold text-gray-900">Всього:</span>
                           <span className="font-bold text-gray-900">
