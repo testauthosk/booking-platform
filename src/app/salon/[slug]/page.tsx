@@ -725,7 +725,7 @@ export default function SalonPage() {
                   <h2 className="text-xl font-bold text-gray-900 mb-6">Послуги</h2>
 
                   <div className="space-y-4">
-                    {services.map((category: any) => {
+                    {(services.length > 3 ? services.slice(0, 3) : services).map((category: any) => {
                       const items = category.items || [];
                       const visibleItems = items.slice(0, 2);
                       const hasMore = items.length > 2;
@@ -790,7 +790,15 @@ export default function SalonPage() {
                     })}
                   </div>
 
-                  {/* All categories shown — no "view all" button needed */}
+                  {/* "View all categories" button when more than 3 */}
+                  {services.length > 3 && (
+                    <button
+                      onClick={() => openBooking()}
+                      className="mt-4 w-full py-3 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer active:scale-[0.98]"
+                    >
+                      Переглянути всі категорії ({services.length})
+                    </button>
+                  )}
                 </section>
               )}
 
