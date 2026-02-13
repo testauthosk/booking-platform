@@ -821,7 +821,14 @@ export function BookingModal({
   if (!isOpen) return null;
 
   return (
-    <div className={`fixed inset-0 z-[100] bg-white overflow-hidden ${isClosing ? 'animate-fadeOut' : 'fullpage-modal'}`}>
+    <div className="fixed inset-0 z-[100] flex items-end lg:items-center lg:justify-center">
+      {/* Backdrop */}
+      <div
+        className={`absolute inset-0 bg-black/50 backdrop-blur-sm ${isClosing ? 'booking-backdrop-exit' : 'booking-backdrop-enter'}`}
+        onClick={handleCloseAttempt}
+      />
+      {/* Content panel */}
+      <div className={`relative w-full h-full lg:h-[90vh] lg:max-w-[1100px] lg:rounded-2xl bg-white overflow-hidden shadow-2xl ${isClosing ? 'booking-content-exit' : 'booking-content-enter'}`}>
       <div className="h-full flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-3 sm:px-6 h-14 sm:h-16 border-b border-gray-100 shrink-0">
@@ -943,7 +950,7 @@ export function BookingModal({
                                         <h4 className="font-semibold text-gray-900">{service.name}</h4>
                                         <p className="text-sm text-gray-500 mt-0.5">{service.duration}</p>
                                         <p className="text-sm font-medium text-gray-900 mt-1">
-                                          {service.priceFrom && <span className="text-gray-500 font-normal">від </span>}
+                                          <span className="text-gray-500 font-normal">від </span>
                                           {service.price} ₴
                                         </p>
                                       </div>
@@ -981,12 +988,23 @@ export function BookingModal({
               {/* Step 1: Specialist */}
               {currentStep === 1 && (
                 <div>
-                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Оберіть спеціаліста</h1>
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Оберіть фахівця</h1>
 
-                  {/* Any specialist option */}
+                  {/* Total price for selected services */}
+                  {selectedServiceItems.length > 0 && (
+                    <div className="mb-4 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                      <p className="text-sm text-gray-600">
+                        Обрано послуг: <span className="font-medium text-gray-900">{selectedServiceItems.length}</span>
+                        {" · "}
+                        Сума: <span className="font-medium text-gray-900">{selectedServiceItems.reduce((s, sv) => s + sv.price, 0)} ₴</span>
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Any specialist option — always first */}
                   <div
                     onClick={() => setSelectedSpecialist("any")}
-                    className={`p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 hover:shadow-md mb-3 ${
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-md mb-3 ${
                       selectedSpecialist === "any"
                         ? "border-gray-900 bg-gray-50/50 shadow-sm"
                         : "border-gray-100 bg-white hover:border-gray-300"
@@ -998,7 +1016,7 @@ export function BookingModal({
                           <User className="w-6 h-6 text-gray-400" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900">Будь-який спеціаліст</h3>
+                          <h3 className="font-semibold text-gray-900">Будь-який вільний фахівець</h3>
                           <p className="text-sm text-gray-500">для гнучкого бронювання</p>
                         </div>
                       </div>
@@ -1018,11 +1036,13 @@ export function BookingModal({
                   <div className="space-y-3">
                     {specialists.map(specialist => {
                       const isSelected = selectedSpecialist === specialist.id;
+                      // Show total of selected services prices (no per-specialist pricing in API)
+                      const totalForSpecialist = selectedServiceItems.reduce((s, sv) => s + sv.price, 0);
                       return (
                         <div
                           key={specialist.id}
                           onClick={() => setSelectedSpecialist(specialist.id)}
-                          className={`p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${
+                          className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${
                             isSelected
                               ? "border-gray-900 bg-gray-50/50 shadow-sm"
                               : "border-gray-100 bg-white hover:border-gray-300"
@@ -1032,13 +1052,19 @@ export function BookingModal({
                             <div className="flex items-center gap-4">
                               <div className="relative">
                                 <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 ring-2 ring-white shadow-md">
-                                  <Image
-                                    src={specialist.avatar}
-                                    alt={specialist.name}
-                                    width={56}
-                                    height={56}
-                                    className="w-full h-full object-cover"
-                                  />
+                                  {specialist.avatar ? (
+                                    <Image
+                                      src={specialist.avatar}
+                                      alt={specialist.name}
+                                      width={56}
+                                      height={56}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                                      <span className="text-xl font-bold text-gray-500">{specialist.name?.charAt(0)?.toUpperCase()}</span>
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="absolute -bottom-1 -right-1 bg-white rounded-xl px-1.5 py-0.5 shadow-sm flex items-center gap-0.5 border border-gray-100">
                                   <span className="text-xs font-bold text-gray-900">{specialist.rating}</span>
@@ -1048,7 +1074,9 @@ export function BookingModal({
                               <div>
                                 <h3 className="font-semibold text-gray-900">{specialist.name}</h3>
                                 <p className="text-xs text-gray-500 uppercase tracking-wide">{specialist.role}</p>
-                                <p className="text-sm font-medium text-gray-900 mt-0.5">від {specialist.price} ₴</p>
+                                {totalForSpecialist > 0 && (
+                                  <p className="text-sm font-medium text-gray-900 mt-0.5">{totalForSpecialist} ₴</p>
+                                )}
                               </div>
                             </div>
                             {isSelected ? (
@@ -1590,6 +1618,7 @@ export function BookingModal({
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

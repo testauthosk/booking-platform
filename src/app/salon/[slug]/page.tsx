@@ -724,55 +724,69 @@ export default function SalonPage() {
                 <section className="animate-fadeIn">
                   <h2 className="text-xl font-bold text-gray-900 mb-6">Послуги</h2>
 
-                  <div className="space-y-8">
-                    {services.map((category: any) => {
+                  <div className="space-y-4">
+                    {(services.length > 3 ? services.slice(0, 3) : services).map((category: any) => {
                       const items = category.items || [];
-                      const visibleItems = items.slice(0, 2);
-                      const hasMore = items.length > 2;
+                      const visibleItems = items.slice(0, 3);
+                      const hasMore = items.length > 3;
 
                       return (
-                        <div key={category.id}>
-                          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
-                            {category.name}
-                          </h3>
-                          <div className="space-y-3">
+                        <div
+                          key={category.id}
+                          className="rounded-xl border border-gray-200 overflow-hidden bg-white"
+                        >
+                          {/* Category header */}
+                          <div className="px-5 pt-5 pb-3">
+                            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                              {category.name}
+                            </h3>
+                          </div>
+
+                          {/* Service rows */}
+                          <div className="px-5 pb-4 space-y-4">
                             {visibleItems.map((service: any) => (
-                              <div
-                                key={service.id}
-                                onClick={() => openBooking({ serviceId: service.id })}
-                                className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-pointer group"
-                              >
-                                <div className="flex items-start justify-between gap-4">
-                                  <div className="flex-1 min-w-0">
-                                    <h4 className="font-semibold text-gray-900 mb-1">{service.name}</h4>
-                                    <p className="text-sm text-gray-500 mb-2">{service.duration}</p>
-                                    <p className="text-sm font-medium text-gray-900">
-                                      {service.price_from && <span className="text-gray-500 font-normal">від </span>}
-                                      {service.price} ₴
-                                    </p>
-                                  </div>
-                                  <Button
-                                    onClick={(e) => { e.stopPropagation(); openBooking({ serviceId: service.id }); }}
-                                    className="bg-gray-900 hover:bg-gray-800 active:scale-95 text-white rounded-xl px-6 h-10 font-medium shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-pointer"
-                                  >
-                                    Забронювати
-                                  </Button>
+                              <div key={service.id} className="flex items-center justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-gray-900 text-sm">{service.name}</h4>
+                                  <p className="text-xs text-gray-500 mt-0.5">
+                                    {service.duration} · від {service.price} ₴
+                                  </p>
                                 </div>
+                                <button
+                                  onClick={() => openBooking({ serviceId: service.id })}
+                                  className="border border-gray-300 text-gray-700 text-xs px-3 py-1.5 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer active:scale-95 shrink-0"
+                                >
+                                  Обрати
+                                </button>
                               </div>
                             ))}
                           </div>
+
+                          {/* "Show all" link */}
                           {hasMore && (
-                            <button
-                              onClick={() => openBooking({ category: category.name })}
-                              className="mt-3 text-sm text-gray-600 hover:text-gray-900 font-medium cursor-pointer transition-colors"
-                            >
-                              Дивитись усі ({items.length})
-                            </button>
+                            <div className="px-5 pb-4">
+                              <button
+                                onClick={() => openBooking({ category: category.name })}
+                                className="text-sm text-gray-500 hover:text-gray-900 font-medium cursor-pointer transition-colors"
+                              >
+                                Дивитись усі ({items.length})
+                              </button>
+                            </div>
                           )}
                         </div>
                       );
                     })}
                   </div>
+
+                  {/* "View all categories" button when more than 3 */}
+                  {services.length > 3 && (
+                    <button
+                      onClick={() => openBooking()}
+                      className="mt-4 w-full py-3 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer active:scale-[0.98]"
+                    >
+                      Переглянути всі категорії ({services.length})
+                    </button>
+                  )}
                 </section>
               )}
 
