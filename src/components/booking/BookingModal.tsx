@@ -894,7 +894,7 @@ export function BookingModal({
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
                               <div className="relative">
-                                <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-100 ring-2 ring-white shadow-md">
+                                <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 ring-2 ring-white shadow-md">
                                   <Image
                                     src={specialist.avatar}
                                     alt={specialist.name}
@@ -903,7 +903,7 @@ export function BookingModal({
                                     className="w-full h-full object-cover"
                                   />
                                 </div>
-                                <div className="absolute -bottom-1 -right-1 bg-white rounded-full px-1.5 py-0.5 shadow-sm flex items-center gap-0.5 border border-gray-100">
+                                <div className="absolute -bottom-1 -right-1 bg-white rounded-xl px-1.5 py-0.5 shadow-sm flex items-center gap-0.5 border border-gray-100">
                                   <span className="text-xs font-bold text-gray-900">{specialist.rating}</span>
                                   <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
                                 </div>
@@ -947,7 +947,7 @@ export function BookingModal({
                   <div className="flex items-center gap-2 mb-6">
                     {selectedSpecialist && selectedSpecialist !== "any" && (
                       <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-100">
-                        <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200">
+                        <div className="w-6 h-6 rounded-xl overflow-hidden bg-gray-200">
                           <Image
                             src={specialists.find(s => s.id === selectedSpecialist)?.avatar || ""}
                             alt=""

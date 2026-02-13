@@ -131,18 +131,18 @@ function GalleryModal({
       >
         <button
           onClick={() => setFullscreenMode(false)}
-          className="absolute top-4 right-4 z-20 w-12 h-12 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center transition-colors cursor-pointer"
+          className="absolute top-4 right-4 z-20 w-12 h-12 rounded-xl bg-black/50 hover:bg-black/70 flex items-center justify-center transition-colors cursor-pointer"
         >
           <X className="w-6 h-6 text-white" />
         </button>
 
-        <div className="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-full bg-black/50 text-white text-sm font-medium">
+        <div className="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-xl bg-black/50 text-white text-sm font-medium">
           {currentIndex + 1} / {photos.length}
         </div>
 
         <button
           onClick={goPrev}
-          className="absolute left-4 z-20 w-14 h-14 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center transition-colors cursor-pointer"
+          className="absolute left-4 z-20 w-14 h-14 rounded-xl bg-black/50 hover:bg-black/70 flex items-center justify-center transition-colors cursor-pointer"
         >
           <ChevronLeft className="w-8 h-8 text-white" />
         </button>
@@ -162,7 +162,7 @@ function GalleryModal({
 
         <button
           onClick={goNext}
-          className="absolute right-4 z-20 w-14 h-14 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center transition-colors cursor-pointer"
+          className="absolute right-4 z-20 w-14 h-14 rounded-xl bg-black/50 hover:bg-black/70 flex items-center justify-center transition-colors cursor-pointer"
         >
           <ChevronRight className="w-8 h-8 text-white" />
         </button>
@@ -196,7 +196,7 @@ function GalleryModal({
           </div>
           <button
             onClick={handleSmoothClose}
-            className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors cursor-pointer active:scale-95"
+            className="w-10 h-10 rounded-xl hover:bg-gray-100 flex items-center justify-center transition-colors cursor-pointer active:scale-95"
           >
             <X className="w-6 h-6 text-gray-600" />
           </button>
@@ -211,7 +211,7 @@ function GalleryModal({
           >
             <Image src={photos[0]} alt="Головне фото" fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-full px-4 py-2 text-sm font-medium text-gray-900">
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-xl px-4 py-2 text-sm font-medium text-gray-900">
                 Відкрити
               </div>
             </div>
@@ -553,7 +553,7 @@ export default function SalonPage() {
                     navigator.clipboard.writeText(window.location.href);
                   }
                 }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200 cursor-pointer active:scale-95 self-end mb-0.5"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200 cursor-pointer active:scale-95 self-end mb-0.5"
               >
                 <Upload className="w-4 h-4 text-gray-600" />
                 <span className="text-sm font-medium text-gray-700 hidden sm:inline">Поділитися</span>
@@ -613,7 +613,7 @@ export default function SalonPage() {
                 <Image src={photos[0]} alt={salon.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" priority />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
                 <button
-                  className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm text-gray-900 px-4 py-2.5 rounded-full text-sm font-medium hover:bg-white transition-all duration-200 flex items-center gap-2 shadow-sm cursor-pointer active:scale-95"
+                  className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm text-gray-900 px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-white transition-all duration-200 flex items-center gap-2 shadow-sm cursor-pointer active:scale-95"
                   onClick={(e) => { e.stopPropagation(); openGallery(0); }}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -656,7 +656,7 @@ export default function SalonPage() {
                   href={`https://www.google.com/maps/dir/?api=1&destination=${salon.coordinates_lat},${salon.coordinates_lng}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 bg-gray-900 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-gray-800 transition-all duration-200 cursor-pointer active:scale-95"
+                  className="inline-flex items-center gap-1.5 bg-gray-900 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-800 transition-all duration-200 cursor-pointer active:scale-95"
                 >
                   <Navigation className="w-3.5 h-3.5" />
                   Прокласти маршрут
@@ -731,7 +731,7 @@ export default function SalonPage() {
                                 </div>
                                 <Button
                                   onClick={(e) => { e.stopPropagation(); setBookingOpen(true); }}
-                                  className="bg-gray-900 hover:bg-gray-800 active:scale-95 text-white rounded-full px-6 h-10 font-medium shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-pointer"
+                                  className="bg-gray-900 hover:bg-gray-800 active:scale-95 text-white rounded-xl px-6 h-10 font-medium shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-pointer"
                                 >
                                   Забронювати
                                 </Button>
@@ -773,7 +773,7 @@ export default function SalonPage() {
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />
                           </div>
-                          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white rounded-full px-2.5 py-1 shadow-md flex items-center gap-1">
+                          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white rounded-xl px-2.5 py-1 shadow-md flex items-center gap-1">
                             <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                             <span className="text-xs font-semibold text-gray-900">{member.rating}</span>
                           </div>
@@ -840,7 +840,7 @@ export default function SalonPage() {
                   </div>
 
                   {reviews.length > 0 && (
-                    <button className="mt-6 px-6 py-2.5 border border-gray-200 rounded-full text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer">
+                    <button className="mt-6 px-6 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer">
                       Дивитись усі
                     </button>
                   )}
@@ -914,7 +914,7 @@ export default function SalonPage() {
                       <div className="space-y-3">
                         {salon.amenities.map((amenity: string, i: number) => (
                           <div key={i} className="flex items-center gap-3 text-sm">
-                            <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center">
+                            <div className="w-5 h-5 rounded-xl bg-gray-100 flex items-center justify-center">
                               <Check className="w-3 h-3 text-gray-600" />
                             </div>
                             <span className="text-gray-600">{amenity}</span>
@@ -967,7 +967,7 @@ export default function SalonPage() {
                         onClick={() => setScheduleOpen(!scheduleOpen)}
                         className="flex items-center gap-3 w-full text-left cursor-pointer"
                       >
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isOpen ? "bg-green-50" : "bg-red-50"}`}>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isOpen ? "bg-green-50" : "bg-red-50"}`}>
                           <Clock className={`w-5 h-5 ${isOpen ? "text-green-600" : "text-red-500"}`} />
                         </div>
                         <div className="flex-1">
@@ -999,7 +999,7 @@ export default function SalonPage() {
                     </div>
 
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
                         <MapPin className="w-5 h-5 text-gray-400" />
                       </div>
                       <div className="flex-1 min-w-0 pt-0.5">
@@ -1027,7 +1027,7 @@ export default function SalonPage() {
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50">
         <Button
           onClick={() => setBookingOpen(true)}
-          className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-full h-12 text-base font-semibold"
+          className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-xl h-12 text-base font-semibold"
         >
           Забронювати
         </Button>
