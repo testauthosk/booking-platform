@@ -475,7 +475,7 @@ export default function SalonPage() {
     ...(reviews.length > 0 ? {
       aggregateRating: {
         '@type': 'AggregateRating',
-        ratingValue: (reviews.reduce((sum: number, r: any) => sum + (r.rating || 5), 0) / reviews.length).toFixed(1),
+        ratingValue: (reviews.reduce((sum: number, r: any) => sum + (r.rating || 5), 0) / reviews.length).toFixed(2),
         reviewCount: reviews.length,
       },
     } : {}),
@@ -522,7 +522,7 @@ export default function SalonPage() {
                             {[1,2,3,4,5].map(s => <Star key={s} className="w-5 h-5 fill-amber-400 text-amber-400 shrink-0" />)}
                           </div>
                         </div>
-                        <span className="font-semibold text-gray-900 text-lg">{Number(salon.rating).toFixed(1)}</span>
+                        <span className="font-semibold text-gray-900 text-lg">{Number(salon.rating).toFixed(2).replace(/\.00$/, '.0')}</span>
                         <button
                           onClick={scrollToReviews}
                           className="text-blue-600 hover:text-blue-700 hover:underline cursor-pointer transition-colors"
@@ -830,7 +830,7 @@ export default function SalonPage() {
                             {[1,2,3,4,5].map(s => <Star key={s} className="w-6 h-6 fill-yellow-400 text-yellow-400 shrink-0" />)}
                           </div>
                         </div>
-                        <span className="text-lg font-semibold text-gray-900">{Number(salon.rating).toFixed(1).replace('.', ',')}</span>
+                        <span className="text-lg font-semibold text-gray-900">{Number(salon.rating).toFixed(2).replace(/\.00$/, '.0')}</span>
                         <span className="text-blue-600">({salon.review_count.toLocaleString()} відгуків)</span>
                       </>
                     ) : (
@@ -965,7 +965,7 @@ export default function SalonPage() {
                       <h3 className="font-bold text-gray-900 text-[28px] leading-tight">{salon.name}</h3>
                       {salon.review_count > 0 ? (
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-gray-900 text-lg">{Number(salon.rating).toFixed(1).replace('.', ',')}</span>
+                          <span className="font-semibold text-gray-900 text-lg">{Number(salon.rating).toFixed(2).replace(/\.00$/, '.0')}</span>
                           <div className="relative inline-flex">
                             <div className="flex gap-0.5">
                               {[1,2,3,4,5].map(s => <Star key={s} className="w-4 h-4 fill-gray-200 text-gray-200" />)}
