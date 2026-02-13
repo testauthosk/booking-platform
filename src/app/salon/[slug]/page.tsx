@@ -874,29 +874,25 @@ export default function SalonPage() {
                     <p className="text-gray-600 leading-relaxed mb-8">{salon.description}</p>
                   )}
 
-                  {/* Map — clickable static image */}
+                  {/* Map — Google Maps embed, controls hidden via overflow crop */}
                   {(salon.coordinates_lat || salon.coordinates_lng) && (
                     <a
                       href={`https://www.google.com/maps/search/?api=1&query=${salon.coordinates_lat},${salon.coordinates_lng}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="block rounded-2xl overflow-hidden mb-6 border border-gray-100 relative group cursor-pointer"
+                      style={{ height: '200px' }}
                     >
-                      <div className="aspect-[2/1] bg-gray-100 relative">
-                        <img
-                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${Number(salon.coordinates_lng) - 0.008},${Number(salon.coordinates_lat) - 0.004},${Number(salon.coordinates_lng) + 0.008},${Number(salon.coordinates_lat) + 0.004}&marker=${salon.coordinates_lat},${salon.coordinates_lng}&layers=ND`}
-                          alt=""
-                          className="hidden"
-                        />
+                      <div className="absolute inset-0 overflow-hidden">
                         <iframe
                           width="100%"
-                          height="100%"
-                          style={{ border: 0, pointerEvents: 'none' }}
+                          style={{ border: 0, pointerEvents: 'none', height: 'calc(100% + 60px)', marginTop: '-20px' }}
                           loading="lazy"
-                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${Number(salon.coordinates_lng) - 0.008},${Number(salon.coordinates_lat) - 0.004},${Number(salon.coordinates_lng) + 0.008},${Number(salon.coordinates_lat) + 0.004}&marker=${salon.coordinates_lat},${salon.coordinates_lng}&layers=ND`}
+                          referrerPolicy="no-referrer-when-downgrade"
+                          src={`https://www.google.com/maps?q=${salon.coordinates_lat},${salon.coordinates_lng}&z=15&hl=uk&output=embed`}
                         />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-200" style={{ pointerEvents: 'none' }} />
                       </div>
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-200" />
                     </a>
                   )}
 
