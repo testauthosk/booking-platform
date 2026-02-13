@@ -752,16 +752,15 @@ export function BookingModal({
     }
   };
 
-  // Lock page scroll when modal is open (not modal's own scroll)
+  // Lock page scroll when modal is open via CSS class on <html>
   useEffect(() => {
-    const pageContainer = document.querySelector('.salon-page-scroll') as HTMLElement | null;
     if (isOpen) {
-      if (pageContainer) pageContainer.style.overflow = 'hidden';
+      document.documentElement.classList.add('modal-open');
     } else {
-      if (pageContainer) pageContainer.style.overflow = '';
+      document.documentElement.classList.remove('modal-open');
     }
     return () => {
-      if (pageContainer) pageContainer.style.overflow = '';
+      document.documentElement.classList.remove('modal-open');
     };
   }, [isOpen]);
 
