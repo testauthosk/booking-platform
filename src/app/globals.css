@@ -129,11 +129,11 @@
   }
   /* Public salon pages need normal scroll */
   html.salon-public, html.salon-public body {
-    overflow: auto;
-    position: static;
-    height: auto;
+    overflow: auto !important;
+    position: static !important;
+    height: auto !important;
+    width: auto !important;
   }
-  /* modal-open scroll lock removed — handled differently */
 }
 
 /* Hide scrollbar but keep functionality */
