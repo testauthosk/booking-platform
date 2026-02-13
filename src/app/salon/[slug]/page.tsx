@@ -187,8 +187,8 @@ function GalleryModal({
   }
 
   return (
-    <div className={`min-h-screen bg-white ${isClosing ? 'animate-fadeOut' : 'fullpage-modal'}`}>
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
+    <div className={`fixed inset-0 z-[100] bg-white ${isClosing ? 'animate-fadeOut' : 'fullpage-modal'}`}>
+      <div className="absolute top-0 left-0 right-0 z-10 bg-white border-b border-gray-100">
         <div className="flex items-center justify-between px-4 sm:px-6 h-14 sm:h-16">
           <div>
             <h2 className="text-base sm:text-lg font-semibold text-gray-900">Галерея зображень</h2>
@@ -203,7 +203,7 @@ function GalleryModal({
         </div>
       </div>
 
-      <div className="salon-page-scroll pb-8 px-4 sm:px-6">
+      <div className="salon-page-scroll pt-16 sm:pt-20 pb-8 px-4 sm:px-6 h-full overflow-y-auto">
         <div className="max-w-6xl mx-auto">
           <div
             onClick={() => openFullscreen(0)}
