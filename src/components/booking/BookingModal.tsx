@@ -741,27 +741,25 @@ export function BookingModal({
     }
   };
 
-  // Lock ALL scroll when modal is open (body + any overflow-y-auto containers)
+  // Lock page scroll when modal is open (not modal's own scroll)
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
-      document.querySelectorAll('.overflow-y-auto').forEach(el => {
-        (el as HTMLElement).style.overflow = 'hidden';
-      });
+      // Block only the salon page scroll container, not modal internals
+      const pageContainer = document.querySelector('.salon-page-scroll');
+      if (pageContainer) (pageContainer as HTMLElement).style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
-      document.querySelectorAll('.overflow-y-auto').forEach(el => {
-        (el as HTMLElement).style.overflow = '';
-      });
+      const pageContainer = document.querySelector('.salon-page-scroll');
+      if (pageContainer) (pageContainer as HTMLElement).style.overflow = '';
     }
     return () => {
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
-      document.querySelectorAll('.overflow-y-auto').forEach(el => {
-        (el as HTMLElement).style.overflow = '';
-      });
+      const pageContainer = document.querySelector('.salon-page-scroll');
+      if (pageContainer) (pageContainer as HTMLElement).style.overflow = '';
     };
   }, [isOpen]);
 

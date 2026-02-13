@@ -203,7 +203,7 @@ function GalleryModal({
         </div>
       </div>
 
-      <div className="pt-16 sm:pt-20 pb-8 px-4 sm:px-6 h-full overflow-y-auto">
+      <div className="salon-page-scroll pt-16 sm:pt-20 pb-8 px-4 sm:px-6 h-full overflow-y-auto">
         <div className="max-w-6xl mx-auto">
           <div
             onClick={() => openFullscreen(0)}
