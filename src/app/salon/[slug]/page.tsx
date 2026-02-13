@@ -881,12 +881,12 @@ export default function SalonPage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="block rounded-2xl overflow-hidden mb-6 border border-gray-100 relative group cursor-pointer"
-                      style={{ height: '200px' }}
+                      style={{ height: '220px' }}
                     >
                       <div className="absolute inset-0 overflow-hidden">
                         <iframe
                           width="100%"
-                          style={{ border: 0, pointerEvents: 'none', height: 'calc(100% + 60px)', marginTop: '-20px' }}
+                          style={{ border: 0, pointerEvents: 'none', height: 'calc(100% + 140px)', marginTop: '-70px' }}
                           loading="lazy"
                           referrerPolicy="no-referrer-when-downgrade"
                           src={`https://www.google.com/maps?q=${salon.coordinates_lat},${salon.coordinates_lng}&z=15&hl=uk&output=embed`}
@@ -899,7 +899,7 @@ export default function SalonPage() {
                   <div className="flex items-start gap-3 mb-6">
                     <MapPin className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-gray-900 font-medium">{salon.short_address || salon.address}</p>
+                      <p className="text-gray-900 font-medium">{salon.address}</p>
                       <a
                         href={`https://www.google.com/maps/dir/?api=1&destination=${salon.coordinates_lat},${salon.coordinates_lng}`}
                         target="_blank"
