@@ -727,8 +727,8 @@ export default function SalonPage() {
                   <div className="space-y-4">
                     {(services.length > 3 ? services.slice(0, 3) : services).map((category: any) => {
                       const items = category.items || [];
-                      const visibleItems = items.slice(0, 3);
-                      const hasMore = items.length > 3;
+                      const visibleItems = items.slice(0, 2);
+                      const hasMore = items.length > 2;
 
                       return (
                         <div
