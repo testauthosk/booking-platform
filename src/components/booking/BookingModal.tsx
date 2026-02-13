@@ -27,6 +27,8 @@ interface Specialist {
   rating: number;
   reviewCount?: number;
   price: number;
+  serviceIds?: string[];
+  servicePrices?: Record<string, number>;
 }
 
 interface TimeSlot {
@@ -1032,12 +1034,21 @@ export function BookingModal({
                     </div>
                   </div>
 
-                  {/* Specialists list */}
+                  {/* Specialists list — filtered by selected services */}
                   <div className="space-y-3">
-                    {specialists.map(specialist => {
+                    {specialists
+                      .filter(sp => {
+                        // If specialist has serviceIds, check they can do ALL selected services
+                        if (!sp.serviceIds || sp.serviceIds.length === 0) return true; // no data = show
+                        return selectedServices.every(sid => sp.serviceIds!.includes(sid));
+                      })
+                      .map(specialist => {
                       const isSelected = selectedSpecialist === specialist.id;
-                      // Show total of selected services prices (no per-specialist pricing in API)
-                      const totalForSpecialist = selectedServiceItems.reduce((s, sv) => s + sv.price, 0);
+                      // Calculate price from specialist's custom prices, fallback to service default
+                      const totalForSpecialist = selectedServiceItems.reduce((s, sv) => {
+                        const customPrice = specialist.servicePrices?.[sv.id];
+                        return s + (customPrice ?? sv.price);
+                      }, 0);
                       return (
                         <div
                           key={specialist.id}

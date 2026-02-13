@@ -743,9 +743,9 @@ export default function SalonPage() {
                           </div>
 
                           {/* Service rows */}
-                          <div className="px-5 pb-4 space-y-4">
+                          <div className="px-5 pb-2 divide-y divide-gray-100">
                             {visibleItems.map((service: any) => (
-                              <div key={service.id} className="flex items-center justify-between gap-3">
+                              <div key={service.id} className="flex items-center justify-between gap-3 py-3 first:pt-0">
                                 <div className="flex-1 min-w-0">
                                   <h4 className="font-medium text-gray-900 text-sm">{service.name}</h4>
                                   <p className="text-xs text-gray-500 mt-0.5">

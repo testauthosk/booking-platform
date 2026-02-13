@@ -78,6 +78,12 @@ export async function GET(
             rating: true,
             reviewCount: true,
             price: true,
+            services: {
+              select: {
+                serviceId: true,
+                customPrice: true,
+              },
+            },
           },
         },
         reviews: {
@@ -173,7 +179,7 @@ export async function GET(
         }
         return cats.filter(c => c.items.length > 0);
       })(),
-      masters: salon.masters.map(m => ({
+      masters: salon.masters.map((m: any) => ({
         id: m.id,
         name: m.name,
         role: m.role,
@@ -181,6 +187,8 @@ export async function GET(
         rating: m.rating,
         review_count: m.reviewCount,
         price: m.price,
+        serviceIds: m.services?.map((s: any) => s.serviceId) || [],
+        servicePrices: m.services?.reduce((acc: any, s: any) => { acc[s.serviceId] = s.customPrice; return acc; }, {}) || {},
       })),
       reviews: salon.reviews.map(r => ({
         id: r.id,
