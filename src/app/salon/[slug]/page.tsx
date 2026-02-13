@@ -568,7 +568,7 @@ export default function SalonPage() {
             {/* Mobile Swipeable Gallery */}
             <div className="lg:hidden">
               <div
-                className="relative h-[300px] rounded-xl overflow-hidden bg-gray-100"
+                className="relative h-[300px] rounded-xl overflow-hidden bg-gray-100 border border-gray-200"
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
