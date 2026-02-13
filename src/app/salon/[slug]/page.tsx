@@ -679,7 +679,20 @@ export default function SalonPage() {
                 </a>
               </div>
 
-              {/* Map — placeholder until map provider is chosen */}
+              {/* Map */}
+              {salon.address && (salon.coordinates_lat || salon.coordinates_lng) && (
+                <div className="mb-6 rounded-xl overflow-hidden border border-gray-200 relative" style={{ height: '200px' }}>
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0, filter: 'grayscale(1) contrast(1.1) opacity(0.9)' }}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={`https://www.google.com/maps?q=${salon.coordinates_lat},${salon.coordinates_lng}&z=15&output=embed`}
+                  />
+                  <div className="absolute inset-0 pointer-events-none rounded-xl ring-1 ring-inset ring-black/5" />
+                </div>
+              )}
 
               {/* Navigation Tabs */}
               <div className="border-b border-gray-200 mb-8">
@@ -876,7 +889,22 @@ export default function SalonPage() {
                     <p className="text-gray-600 leading-relaxed mb-8">{salon.description}</p>
                   )}
 
-                  {/* Map — placeholder until map provider is chosen */}
+                  {/* Map */}
+                  {(salon.coordinates_lat || salon.coordinates_lng) && (
+                    <div className="rounded-2xl overflow-hidden mb-6 border border-gray-100 relative">
+                      <div className="aspect-[16/9] bg-gray-100">
+                        <iframe
+                          width="100%"
+                          height="100%"
+                          style={{ border: 0, filter: 'grayscale(1) contrast(1.1) opacity(0.9)' }}
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                          src={`https://www.google.com/maps?q=${salon.coordinates_lat},${salon.coordinates_lng}&z=15&output=embed`}
+                        />
+                      </div>
+                      <div className="absolute inset-0 pointer-events-none rounded-2xl ring-1 ring-inset ring-black/5" />
+                    </div>
+                  )}
 
                   <div className="flex items-start gap-3 mb-6">
                     <MapPin className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
