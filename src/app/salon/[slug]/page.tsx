@@ -725,7 +725,7 @@ export default function SalonPage() {
                   <h2 className="text-xl font-bold text-gray-900 mb-6">Послуги</h2>
 
                   <div className="space-y-4">
-                    {(services.length > 3 ? services.slice(0, 3) : services).map((category: any) => {
+                    {services.map((category: any) => {
                       const items = category.items || [];
                       const visibleItems = items.slice(0, 2);
                       const hasMore = items.length > 2;
@@ -736,57 +736,61 @@ export default function SalonPage() {
                           className="rounded-xl border border-gray-200 overflow-hidden bg-white"
                         >
                           {/* Category header */}
-                          <div className="px-5 pt-5 pb-3">
+                          <div className="px-5 pt-4 pb-3">
                             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
                               {category.name}
                             </h3>
                           </div>
 
+                          {/* Divider — full width */}
+                          <div className="border-t border-gray-100" />
+
                           {/* Service rows */}
-                          <div className="px-5 pb-2 divide-y divide-gray-100">
-                            {visibleItems.map((service: any) => (
-                              <div key={service.id} className="flex items-center justify-between gap-3 py-3 first:pt-0">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-gray-900 text-sm">{service.name}</h4>
-                                  <p className="text-xs text-gray-500 mt-0.5">
-                                    {service.duration} · від {service.price} ₴
-                                  </p>
+                          <div className="pb-1">
+                            {visibleItems.map((service: any, idx: number) => (
+                              <div key={service.id}>
+                                <div className="flex items-center justify-between gap-3 px-5 py-3">
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-medium text-gray-900 text-sm">{service.name}</h4>
+                                    <p className="text-xs text-gray-500 mt-0.5">
+                                      {service.duration} · від {service.price} ₴
+                                    </p>
+                                  </div>
+                                  <button
+                                    onClick={() => openBooking({ serviceId: service.id })}
+                                    className="border border-gray-300 text-gray-700 text-xs px-3 py-1.5 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer active:scale-95 shrink-0"
+                                  >
+                                    Обрати
+                                  </button>
                                 </div>
-                                <button
-                                  onClick={() => openBooking({ serviceId: service.id })}
-                                  className="border border-gray-300 text-gray-700 text-xs px-3 py-1.5 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer active:scale-95 shrink-0"
-                                >
-                                  Обрати
-                                </button>
+                                {/* Divider between services — indented 10% each side */}
+                                {idx < visibleItems.length - 1 && (
+                                  <div className="mx-[10%] border-t border-gray-100" />
+                                )}
                               </div>
                             ))}
                           </div>
 
                           {/* "Show all" link */}
                           {hasMore && (
-                            <div className="px-5 pb-4">
-                              <button
-                                onClick={() => openBooking({ category: category.name })}
-                                className="text-sm text-gray-500 hover:text-gray-900 font-medium cursor-pointer transition-colors"
-                              >
-                                Дивитись усі ({items.length})
-                              </button>
-                            </div>
+                            <>
+                              <div className="border-t border-gray-100" />
+                              <div className="px-5 py-4">
+                                <button
+                                  onClick={() => openBooking({ category: category.name })}
+                                  className="text-sm text-gray-500 hover:text-gray-900 font-medium cursor-pointer transition-colors"
+                                >
+                                  Дивитись усі ({items.length})
+                                </button>
+                              </div>
+                            </>
                           )}
                         </div>
                       );
                     })}
                   </div>
 
-                  {/* "View all categories" button when more than 3 */}
-                  {services.length > 3 && (
-                    <button
-                      onClick={() => openBooking()}
-                      className="mt-4 w-full py-3 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer active:scale-[0.98]"
-                    >
-                      Переглянути всі категорії ({services.length})
-                    </button>
-                  )}
+                  {/* All categories shown — no "view all" button needed */}
                 </section>
               )}
 
