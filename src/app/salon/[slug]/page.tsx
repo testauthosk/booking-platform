@@ -514,12 +514,15 @@ export default function SalonPage() {
                   {salon.review_count > 0 && (
                     <>
                       <div className="flex items-center gap-2">
-                        <div className="flex gap-0.5">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star key={star} className={`w-5 h-5 ${star <= Math.round(Number(salon.rating)) ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 text-gray-200'}`} />
-                          ))}
+                        <div className="relative inline-flex">
+                          <div className="flex gap-0.5">
+                            {[1,2,3,4,5].map(s => <Star key={s} className="w-5 h-5 fill-gray-200 text-gray-200" />)}
+                          </div>
+                          <div className="absolute inset-0 flex gap-0.5 overflow-hidden" style={{ width: `${(Number(salon.rating) / 5) * 100}%` }}>
+                            {[1,2,3,4,5].map(s => <Star key={s} className="w-5 h-5 fill-amber-400 text-amber-400 shrink-0" />)}
+                          </div>
                         </div>
-                        <span className="font-semibold text-gray-900 text-lg">{Number(salon.rating).toFixed(1)}</span>
+                        <span className="font-semibold text-gray-900 text-lg">{Number(salon.rating).toFixed(2)}</span>
                         <button
                           onClick={scrollToReviews}
                           className="text-blue-600 hover:text-blue-700 hover:underline cursor-pointer transition-colors"
@@ -819,10 +822,13 @@ export default function SalonPage() {
                   <div className="flex items-center gap-2 mb-6">
                     {salon.review_count > 0 ? (
                       <>
-                        <div className="flex">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star key={star} className={`w-6 h-6 ${star <= Math.round(Number(salon.rating)) ? 'fill-yellow-400 text-yellow-400' : 'fill-gray-200 text-gray-200'}`} />
-                          ))}
+                        <div className="relative inline-flex">
+                          <div className="flex">
+                            {[1,2,3,4,5].map(s => <Star key={s} className="w-6 h-6 fill-gray-200 text-gray-200" />)}
+                          </div>
+                          <div className="absolute inset-0 flex overflow-hidden" style={{ width: `${(Number(salon.rating) / 5) * 100}%` }}>
+                            {[1,2,3,4,5].map(s => <Star key={s} className="w-6 h-6 fill-yellow-400 text-yellow-400 shrink-0" />)}
+                          </div>
                         </div>
                         <span className="text-lg font-semibold text-gray-900">{Number(salon.rating).toFixed(1).replace('.', ',')}</span>
                         <span className="text-blue-600">({salon.review_count.toLocaleString()} відгуків)</span>
@@ -960,10 +966,13 @@ export default function SalonPage() {
                       {salon.review_count > 0 ? (
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-gray-900 text-lg">{Number(salon.rating).toFixed(1).replace('.', ',')}</span>
-                          <div className="flex gap-0.5">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star key={star} className={`w-4 h-4 ${star <= Math.round(Number(salon.rating)) ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 text-gray-200'}`} />
-                            ))}
+                          <div className="relative inline-flex">
+                            <div className="flex gap-0.5">
+                              {[1,2,3,4,5].map(s => <Star key={s} className="w-4 h-4 fill-gray-200 text-gray-200" />)}
+                            </div>
+                            <div className="absolute inset-0 flex gap-0.5 overflow-hidden" style={{ width: `${(Number(salon.rating) / 5) * 100}%` }}>
+                              {[1,2,3,4,5].map(s => <Star key={s} className="w-4 h-4 fill-amber-400 text-amber-400 shrink-0" />)}
+                            </div>
                           </div>
                           <button onClick={scrollToReviews} className="text-blue-600 font-medium text-base hover:underline cursor-pointer">
                             ({salon.review_count.toLocaleString()} відгуків)
