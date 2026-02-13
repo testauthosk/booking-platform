@@ -592,7 +592,8 @@ export default function SalonPage() {
                     <button
                       key={index}
                       onClick={(e) => { e.stopPropagation(); setMobilePhotoIndex(index); }}
-                      className="flex-1 h-[5px] rounded-full overflow-hidden bg-black/20 backdrop-blur-sm"
+                      className="flex-1 rounded-full overflow-hidden bg-black/20 backdrop-blur-sm"
+                      style={{ height: '5px' }}
                     >
                       <div
                         className="h-full bg-white/90 rounded-full transition-all duration-300"
