@@ -1407,7 +1407,7 @@ export function DayPilotResourceCalendar({
             <div className="h-[110px] lg:h-0 shrink-0" />
           </div>
         ) : (
-        <div ref={scrollContainerRef} className="h-full overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div ref={scrollContainerRef} className="h-full overflow-y-auto overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
           {/* Заголовки ресурсів — sticky top, скролиться разом з grid */}
           {!hideResourceHeader && (
           <div className="flex border-b border-gray-200 bg-white sticky top-0 z-30" style={{ minWidth: resources.length > 3 ? `${40 + resources.length * 120}px` : '100%', transform: 'translateZ(0)', willChange: 'transform' }}>
@@ -1547,12 +1547,12 @@ export function DayPilotResourceCalendar({
                 }
                 const gridStartMin = dayStartHour * 60;
                 const gridEndMin = dayEndHour * 60;
-                const beforePct = Math.max(0, ((wh.startMin - gridStartMin + timeStep) / totalMinutes) * 100);
+                const beforePct = Math.max(0, ((wh.startMin - gridStartMin) / totalMinutes) * 100);
                 const afterPct = Math.max(0, ((gridEndMin - wh.endMin) / totalMinutes) * 100);
                 return (
                   <>
-                    {beforePct > 0 && <div className="absolute left-0 right-0 top-0 bg-gray-200/50 z-[1] pointer-events-none" style={{ height: `${beforePct}%` }} />}
-                    {afterPct > 0 && <div className="absolute left-0 right-0 bottom-0 bg-gray-200/50 z-[1] pointer-events-none" style={{ height: `${afterPct}%` }} />}
+                    {beforePct > 0 && <div className="absolute left-0 right-0 top-0 z-[1] pointer-events-none" style={{ height: `${beforePct}%`, backgroundColor: 'rgba(0,0,0,0.04)', backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.04) 4px, rgba(0,0,0,0.04) 8px)' }} />}
+                    {afterPct > 0 && <div className="absolute left-0 right-0 bottom-0 z-[1] pointer-events-none" style={{ height: `${afterPct}%`, backgroundColor: 'rgba(0,0,0,0.04)', backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.04) 4px, rgba(0,0,0,0.04) 8px)' }} />}
                   </>
                 );
               })()}

@@ -63,11 +63,11 @@ export function MobileNav({ isCalendar = false, hasTopBar = false }: MobileNavPr
     <nav
       className={cn(
         "lg:hidden fixed bottom-1 left-[23px] right-[23px] z-40",
-        "bg-white border border-black/10 shadow-lg",
+        "bg-white shadow-lg",
         "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
         (isCalendar || hasTopBar)
-          ? "rounded-b-2xl rounded-t-none border-t"
-          : "rounded-2xl border-t"
+          ? "rounded-b-2xl rounded-t-none border border-black/15 border-t-0"
+          : "rounded-2xl border border-black/15"
       )}
     >
       <div ref={navRef} className="relative flex items-center justify-around h-16 px-2">
