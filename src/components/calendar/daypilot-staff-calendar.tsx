@@ -113,7 +113,7 @@ const TOUCH_MOVE_THRESHOLD = 10;
 const MOUSE_MOVE_THRESHOLD = 5;
 const RESIZE_HANDLE_HEIGHT = 12; // px — зона захвату resize (top/bottom)
 
-export function DayPilotResourceCalendar({
+export function DayPilotStaffCalendar({
   resources,
   events,
   startDate,
@@ -338,8 +338,9 @@ export function DayPilotResourceCalendar({
     // relY може бути від'ємним якщо курсор над grid — clamp
     const clampedY = Math.max(0, Math.min(gridHeight, relY));
     const rawMinutes = Math.round((clampedY / gridHeight) * totalMinutes / timeStep) * timeStep; // snap
-    const minutes = Math.max(0, Math.min(totalMinutes - timeStep, rawMinutes));
-    const startMin = dayStartHour * 60 + minutes;
+    // Компенсація зміщення: events/мітки зміщені на +timeStep, тому віднімаємо
+    const minutes = Math.max(0, rawMinutes - timeStep);
+    const startMin = dayStartHour * 60 + Math.min(totalMinutes - timeStep, minutes);
 
     return { resourceId, startMin, resourceIdx };
   }, [resources, dayStartHour, dayEndHour, timeStep]);
@@ -1443,7 +1444,7 @@ export function DayPilotResourceCalendar({
           </div>
           )}
           {/* Сітка часу */}
-          <div ref={gridRef} className="relative flex select-none" style={{ minHeight: `${stepCount * stepHeight}px`, minWidth: resources.length > 3 ? `${40 + resources.length * 120}px` : '100%', WebkitUserSelect: 'none', userSelect: 'none' }}>
+          <div ref={gridRef} className="relative flex select-none" style={{ minHeight: `${totalMinutes}px`, minWidth: resources.length > 3 ? `${40 + resources.length * 120}px` : '100%', WebkitUserSelect: 'none', userSelect: 'none' }}>
             {/* Колонка часу — sticky left */}
             <div
               className={`${columnMinWidth === 0 ? 'w-11' : 'w-10'} lg:w-14 flex-shrink-0 border-r border-gray-200/60 sticky left-0 z-20`}
@@ -1498,7 +1499,7 @@ export function DayPilotResourceCalendar({
             <div
               data-resources
               className={`flex relative ${resources.length <= 3 && columnMinWidth === 0 ? 'flex-1' : ''}`}
-              style={{ minWidth: resources.length > 3 ? `${resources.length * 120}px` : (columnMinWidth === 0 ? undefined : '100%'), height: `${stepCount * stepHeight}px` }}
+              style={{ minWidth: resources.length > 3 ? `${resources.length * 120}px` : (columnMinWidth === 0 ? undefined : '100%') }}
               onTouchStart={handleEmptyTouchStart}
               onClick={(e) => {
                 if (!onEmptySlotMenu) return;

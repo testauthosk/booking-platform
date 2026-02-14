@@ -66,7 +66,7 @@ export function MobileNav({ isCalendar = false, hasTopBar = false }: MobileNavPr
         "bg-white border border-black/10 shadow-lg",
         "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
         (isCalendar || hasTopBar)
-          ? "rounded-b-2xl rounded-t-none border-t-0"
+          ? "rounded-b-2xl rounded-t-none border-t"
           : "rounded-2xl border-t"
       )}
     >

@@ -8,10 +8,10 @@ import { ClientCardPanel } from '@/components/staff/client-card-panel';
 import { CalendarPickerModal } from '@/components/staff/calendar-picker-modal';
 import { BookingDetailsModal } from '@/components/staff/booking-details-modal';
 import dynamic from 'next/dynamic';
-import type { CalendarEvent, CalendarResource } from '@/components/calendar/daypilot-resource-calendar';
+import type { CalendarEvent, CalendarResource } from '@/components/calendar/daypilot-staff-calendar';
 
 const DayPilotResourceCalendar = dynamic(
-  () => import('@/components/calendar/daypilot-resource-calendar').then(mod => mod.DayPilotResourceCalendar),
+  () => import('@/components/calendar/daypilot-staff-calendar').then(mod => mod.DayPilotStaffCalendar),
   { ssr: false, loading: () => <div className="flex-1 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div> }
 );
 
