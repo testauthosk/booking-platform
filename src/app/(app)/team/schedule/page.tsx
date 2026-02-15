@@ -51,8 +51,8 @@ export default function AdminTeamSchedule() {
 
   const [loading, setLoading] = useState(true);
   const [masters, setMasters] = useState<Master[]>([]);
-  const [selectedMasterId, setSelectedMasterId] = useState<string | null>(null);
-  const [overrides, setOverrides] = useState<ScheduleOverride[]>([]);
+  const [selectedMasterIds, setSelectedMasterIds] = useState<string[]>([]);
+  const [overrides, setOverrides] = useState<Record<string, ScheduleOverride[]>>({});  // masterId -> overrides
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() };
@@ -76,8 +76,8 @@ export default function AdminTeamSchedule() {
   }, [salonId]);
 
   useEffect(() => {
-    if (selectedMasterId) loadOverrides();
-  }, [selectedMasterId, currentMonth]);
+    if (selectedMasterIds.length > 0) loadOverrides();
+  }, [selectedMasterIds, currentMonth]);
 
   const loadMasters = async () => {
     setLoading(true);
@@ -86,9 +86,8 @@ export default function AdminTeamSchedule() {
       if (res.ok) {
         const data = await res.json();
         setMasters(data);
-        if (data.length > 0 && !selectedMasterId) {
-          setSelectedMasterId(data[0].id);
-          // Load full master data with workingHours
+        if (data.length > 0 && selectedMasterIds.length === 0) {
+          setSelectedMasterIds([data[0].id]);
           loadMasterDetails(data[0].id);
         }
       }
@@ -112,28 +111,50 @@ export default function AdminTeamSchedule() {
   };
 
   const loadOverrides = async () => {
-    if (!selectedMasterId) return;
+    if (selectedMasterIds.length === 0) return;
     try {
       const monthStr = `${currentMonth.year}-${(currentMonth.month + 1).toString().padStart(2, '0')}`;
-      const res = await fetch(`/api/masters/${selectedMasterId}/schedule-overrides?month=${monthStr}`);
-      if (res.ok) {
-        const data = await res.json();
-        setOverrides(data);
-      }
+      const results: Record<string, ScheduleOverride[]> = {};
+      await Promise.all(
+        selectedMasterIds.map(async (mid) => {
+          const res = await fetch(`/api/masters/${mid}/schedule-overrides?month=${monthStr}`);
+          if (res.ok) results[mid] = await res.json();
+          else results[mid] = [];
+        })
+      );
+      setOverrides(results);
     } catch (error) {
       console.error('Load overrides error:', error);
     }
   };
 
-  const selectMaster = (masterId: string) => {
-    setSelectedMasterId(masterId);
+  const toggleMaster = (masterId: string) => {
+    setSelectedMasterIds(prev => {
+      const isSelected = prev.includes(masterId);
+      const next = isSelected ? prev.filter(id => id !== masterId) : [...prev, masterId];
+      // Ensure at least one selected
+      return next.length === 0 ? prev : next;
+    });
     const master = masters.find(m => m.id === masterId);
     if (master && !master.workingHours) {
       loadMasterDetails(masterId);
     }
   };
 
-  const selectedMaster = masters.find(m => m.id === selectedMasterId);
+  const toggleAllMasters = () => {
+    if (selectedMasterIds.length === masters.length) {
+      // Deselect all except first
+      setSelectedMasterIds([masters[0].id]);
+    } else {
+      setSelectedMasterIds(masters.map(m => m.id));
+      // Load details for all
+      masters.forEach(m => { if (!m.workingHours) loadMasterDetails(m.id); });
+    }
+  };
+
+  // For single-master operations (calendar view uses first selected)
+  const primaryMasterId = selectedMasterIds[0] || null;
+  const selectedMaster = masters.find(m => m.id === primaryMasterId);
   const workingHours = selectedMaster?.workingHours || {};
 
   const getMonthDays = useCallback(() => {
@@ -181,8 +202,10 @@ export default function AdminTeamSchedule() {
     return days;
   }, [currentMonth]);
 
-  const getDayInfo = (dateStr: string) => {
-    const override = overrides.find(o => o.date === dateStr);
+  const getDayInfo = (dateStr: string, masterId?: string) => {
+    const mid = masterId || primaryMasterId;
+    const masterOverrides = mid ? (overrides[mid] || []) : [];
+    const override = masterOverrides.find(o => o.date === dateStr);
     if (override) {
       return {
         type: override.isWorking ? 'override-working' as const : 'override-dayoff' as const,
@@ -274,26 +297,32 @@ export default function AdminTeamSchedule() {
   };
 
   const saveOverride = async () => {
-    if (!selectedDate || !selectedMasterId) return;
+    if (!selectedDate || selectedMasterIds.length === 0) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/masters/${selectedMasterId}/schedule-overrides`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          date: selectedDate,
-          isWorking: modalIsWorking,
-          start: modalIsWorking ? modalStart : null,
-          end: modalIsWorking ? modalEnd : null,
-          reason: modalReason || null,
-        }),
-      });
-
-      if (res.ok) {
+      const body = {
+        date: selectedDate,
+        isWorking: modalIsWorking,
+        start: modalIsWorking ? modalStart : null,
+        end: modalIsWorking ? modalEnd : null,
+        reason: modalReason || null,
+      };
+      const results = await Promise.all(
+        selectedMasterIds.map(mid =>
+          fetch(`/api/masters/${mid}/schedule-overrides`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          })
+        )
+      );
+      const allOk = results.every(r => r.ok);
+      if (allOk) {
         await loadOverrides();
         setModalOpen(false);
       } else {
-        const err = await res.json();
+        const firstFail = results.find(r => !r.ok);
+        const err = firstFail ? await firstFail.json() : { error: 'Помилка' };
         alert(err.error || 'Помилка збереження');
       }
     } catch (error) {
@@ -305,28 +334,29 @@ export default function AdminTeamSchedule() {
   };
 
   const deleteOverride = async () => {
-    if (!selectedDate || !selectedMasterId) return;
-    const override = overrides.find(o => o.date === selectedDate);
-    if (!override) return;
-
+    if (!selectedDate || selectedMasterIds.length === 0) return;
     setDeleting(true);
     try {
-      const res = await fetch(`/api/masters/${selectedMasterId}/schedule-overrides?id=${override.id}`, {
-        method: 'DELETE',
-      });
-
-      if (res.ok) {
-        await loadOverrides();
-        setModalOpen(false);
-      } else {
-        const err = await res.json();
-        alert(err.error || 'Помилка видалення');
-      }
+      await Promise.all(
+        selectedMasterIds.map(mid => {
+          const masterOverrides = overrides[mid] || [];
+          const override = masterOverrides.find(o => o.date === selectedDate);
+          if (!override) return Promise.resolve();
+          return fetch(`/api/masters/${mid}/schedule-overrides?id=${override.id}`, { method: 'DELETE' });
+        })
+      );
+      await loadOverrides();
+      setModalOpen(false);
     } catch (error) {
       console.error('Delete override error:', error);
     } finally {
       setDeleting(false);
     }
+  };
+
+  // Check if ANY selected master has override on date
+  const anyHasOverride = (dateStr: string) => {
+    return selectedMasterIds.some(mid => (overrides[mid] || []).some(o => o.date === dateStr));
   };
 
   const prevMonth = () => {
@@ -421,37 +451,63 @@ export default function AdminTeamSchedule() {
           </div>
         </div>
 
-        {/* Master selector - horizontal scroll chips */}
+        {/* Master selector - horizontal scroll chips with multi-select */}
         <div className="overflow-x-auto -mx-4 px-4 mb-4 scrollbar-hide">
           <div className="flex gap-2 pb-1">
-            {masters.map((master, index) => (
-              <button
-                key={master.id}
-                onClick={() => selectMaster(master.id)}
-                className={`shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200 ${
-                  selectedMasterId === master.id
-                    ? 'bg-primary text-primary-foreground shadow-md'
-                    : 'bg-card border border-border hover:bg-muted'
-                }`}
-              >
-                {master.avatar ? (
-                  <img src={master.avatar} alt={master.name} className="h-7 w-7 rounded-lg object-cover" />
-                ) : (
-                  <div className={`h-7 w-7 rounded-lg ${
-                    selectedMasterId === master.id ? 'bg-primary-foreground/20' : getAvatarColor(index)
-                  } flex items-center justify-center text-xs font-bold ${
-                    selectedMasterId === master.id ? '' : 'text-white'
-                  }`}>
-                    {master.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <span className="text-sm font-medium whitespace-nowrap">{master.name}</span>
-              </button>
-            ))}
+            {/* "All" button */}
+            <button
+              onClick={toggleAllMasters}
+              className={`shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200 ${
+                selectedMasterIds.length === masters.length
+                  ? 'bg-primary text-primary-foreground shadow-md'
+                  : 'bg-card border border-border hover:bg-muted'
+              }`}
+            >
+              <div className={`h-7 w-7 rounded-lg flex items-center justify-center text-xs font-bold ${
+                selectedMasterIds.length === masters.length ? 'bg-primary-foreground/20' : 'bg-gray-400 text-white'
+              }`}>
+                {selectedMasterIds.length === masters.length ? <Check className="h-4 w-4" /> : '∀'}
+              </div>
+              <span className="text-sm font-medium whitespace-nowrap">Всі</span>
+            </button>
+            {masters.map((master, index) => {
+              const isSelected = selectedMasterIds.includes(master.id);
+              return (
+                <button
+                  key={master.id}
+                  onClick={() => toggleMaster(master.id)}
+                  className={`shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200 ${
+                    isSelected
+                      ? 'bg-primary text-primary-foreground shadow-md'
+                      : 'bg-card border border-border hover:bg-muted'
+                  }`}
+                >
+                  {master.avatar ? (
+                    <img src={master.avatar} alt={master.name} className="h-7 w-7 rounded-lg object-cover" />
+                  ) : (
+                    <div className={`h-7 w-7 rounded-lg ${
+                      isSelected ? 'bg-primary-foreground/20' : getAvatarColor(index)
+                    } flex items-center justify-center text-xs font-bold ${
+                      isSelected ? '' : 'text-white'
+                    }`}>
+                      {master.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <span className="text-sm font-medium whitespace-nowrap">{master.name}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
+        {selectedMasterIds.length > 1 && (
+          <div className="mb-3 px-1">
+            <p className="text-xs text-muted-foreground">
+              Обрано {selectedMasterIds.length} майстрів — зміни застосуються до всіх обраних
+            </p>
+          </div>
+        )}
 
-        {selectedMasterId && (
+        {selectedMasterIds.length > 0 && (
           <>
             {/* Month navigation */}
             <div className="flex items-center justify-between mb-4">
@@ -604,13 +660,20 @@ export default function AdminTeamSchedule() {
           modalOpen ? 'translate-y-0 lg:scale-100 lg:opacity-100' : 'translate-y-full lg:scale-95 lg:opacity-0'
         }`}
       >
-        {selectedDate && selectedMaster && (
+        {selectedDate && selectedMasterIds.length > 0 && (
           <>
             <div className="p-4 border-b border-border flex items-center justify-between">
               <div>
                 <h3 className="font-semibold text-base">{formatSelectedDate(selectedDate)}</h3>
-                <p className="text-sm text-muted-foreground">{selectedMaster.name}</p>
-                {getDayInfo(selectedDate).override && (
+                <p className="text-sm text-muted-foreground">
+                  {selectedMasterIds.length === 1
+                    ? (selectedMaster?.name || '')
+                    : selectedMasterIds.length === masters.length
+                      ? 'Всі майстри'
+                      : `${selectedMasterIds.length} майстрів`
+                  }
+                </p>
+                {anyHasOverride(selectedDate) && (
                   <p className="text-xs text-orange-600">Має зміни до шаблону</p>
                 )}
               </div>
@@ -704,7 +767,7 @@ export default function AdminTeamSchedule() {
                 )}
               </button>
 
-              {getDayInfo(selectedDate).override && (
+              {anyHasOverride(selectedDate) && (
                 <button
                   onClick={deleteOverride}
                   disabled={deleting}
