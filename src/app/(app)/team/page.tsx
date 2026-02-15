@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Search, Plus, Filter, MoreVertical, Menu, Clock, UserPlus, Loader2, Copy, Check, Mail, ChevronRight, Trash2, ExternalLink, Eye, X, Send, Settings, LogOut, CalendarDays, TrendingUp, Users, UserRoundPlus } from 'lucide-react';
+// Schedule modal state below
 import { useRouter } from 'next/navigation';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useSidebar } from '@/components/sidebar-context';
@@ -56,6 +57,7 @@ export default function TeamPage() {
   
   const salonId = session?.user?.salonId || '';
   const [onboardingRequired, setOnboardingRequired] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   
   // Invite modal
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
@@ -330,7 +332,7 @@ export default function TeamPage() {
 
         {/* Schedule button */}
         <button
-          onClick={() => router.push('/team/schedule')}
+          onClick={() => setScheduleOpen(true)}
           className="w-full mb-4 py-3 rounded-xl border border-border bg-card hover:bg-muted transition-colors flex items-center justify-center gap-2 text-sm font-medium"
         >
           <CalendarDays className="h-4 w-4 text-muted-foreground" />
@@ -805,6 +807,26 @@ export default function TeamPage() {
           </div>
         </div>
       </div>
+
+      {/* Schedule Fullscreen Modal */}
+      {scheduleOpen && (
+        <div className="fixed inset-0 z-[200] bg-background">
+          <div className="sticky top-0 z-10 bg-white border-b border-gray-200 flex items-center gap-3 px-4" style={{ height: 56 }}>
+            <button
+              onClick={() => setScheduleOpen(false)}
+              className="h-10 w-10 rounded-xl border border-border hover:bg-muted flex items-center justify-center transition-colors"
+            >
+              <X className="h-5 w-5 text-muted-foreground" />
+            </button>
+            <h1 className="text-base font-semibold flex-1">Графік команди</h1>
+          </div>
+          <iframe
+            src="/team/schedule?embed=1"
+            className="w-full border-0"
+            style={{ height: 'calc(100dvh - 56px)' }}
+          />
+        </div>
+      )}
 
       {/* Fixed Toast */}
       {toast && (

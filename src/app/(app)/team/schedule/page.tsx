@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -42,9 +42,19 @@ const TIME_OPTIONS = Array.from({ length: 30 }, (_, i) => {
 
 const REASON_OPTIONS = ['Вихідний', 'Відпустка', 'Лікарняний', 'Змінений графік', 'Інше'];
 
-export default function AdminTeamSchedule() {
+export default function AdminTeamScheduleWrapper() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+      <AdminTeamSchedule />
+    </Suspense>
+  );
+}
+
+function AdminTeamSchedule() {
   const { data: session } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isEmbed = searchParams.get('embed') === '1';
   const { open: openSidebar } = useSidebar();
 
   const salonId = session?.user?.salonId || '';
@@ -424,32 +434,36 @@ export default function AdminTeamSchedule() {
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Mobile header */}
-      <header
-        className="lg:hidden bg-white border-b border-gray-200 shrink-0 z-20 sticky top-0"
-        style={{ height: 56, padding: '0 12px', display: 'flex', alignItems: 'center', gap: 8 }}
-      >
-        <button
-          onClick={openSidebar}
-          className="shrink-0 active:scale-95 transition-transform p-2 rounded-xl border border-gray-200 hover:bg-gray-50"
-          style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      {/* Mobile header — hidden in embed mode */}
+      {!isEmbed && (
+        <header
+          className="lg:hidden bg-white border-b border-gray-200 shrink-0 z-20 sticky top-0"
+          style={{ height: 56, padding: '0 12px', display: 'flex', alignItems: 'center', gap: 8 }}
         >
-          <Menu className="text-gray-700" style={{ width: 18, height: 18 }} />
-        </button>
-        <h1 className="flex-1 text-center text-base font-semibold truncate">Графік команди</h1>
-        <div className="flex items-center shrink-0" style={{ gap: 8 }}>
-          <NotificationBell />
-        </div>
-      </header>
+          <button
+            onClick={openSidebar}
+            className="shrink-0 active:scale-95 transition-transform p-2 rounded-xl border border-gray-200 hover:bg-gray-50"
+            style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Menu className="text-gray-700" style={{ width: 18, height: 18 }} />
+          </button>
+          <h1 className="flex-1 text-center text-base font-semibold truncate">Графік команди</h1>
+          <div className="flex items-center shrink-0" style={{ gap: 8 }}>
+            <NotificationBell />
+          </div>
+        </header>
+      )}
 
       <div className="flex-1 overflow-auto p-4 lg:p-6 pb-24">
         {/* Desktop title */}
-        <div className="hidden lg:flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">Графік команди</h1>
-            <p className="text-muted-foreground">Зміни до шаблону по дням</p>
+        {!isEmbed && (
+          <div className="hidden lg:flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold">Графік команди</h1>
+              <p className="text-muted-foreground">Зміни до шаблону по дням</p>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Master selector - horizontal scroll chips with multi-select */}
         <div className="overflow-x-auto -mx-4 px-4 mb-4 scrollbar-hide">
