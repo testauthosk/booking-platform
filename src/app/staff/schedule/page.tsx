@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { staffFetch } from '@/lib/staff-fetch';
 import { Switch } from '@/components/ui/switch';
-import { ChevronLeft, Loader2, Check, X, Copy } from 'lucide-react';
+import { ChevronLeft, Loader2, Check, X, Copy, CalendarDays } from 'lucide-react';
 
 interface DaySchedule {
   enabled: boolean;
@@ -190,6 +190,15 @@ export default function StaffSchedule() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-3">
+        {/* Monthly schedule link */}
+        <button
+          onClick={() => router.push('/staff/schedule/monthly')}
+          className="w-full py-3 rounded-xl border border-border bg-card hover:bg-muted transition-colors flex items-center justify-center gap-2 text-sm font-medium"
+        >
+          <CalendarDays className="h-4 w-4" />
+          Місячний графік — зміни по дням
+        </button>
+
         {/* Apply to all button */}
         <button
           onClick={applyMondayToAll}

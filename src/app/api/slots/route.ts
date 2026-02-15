@@ -41,7 +41,44 @@ export async function GET(request: NextRequest) {
       if (!master || master.salonId !== salonId || !master.isActive) {
         return NextResponse.json({ error: 'Master not found' }, { status: 404 });
       }
-      if (master?.workingHours) {
+
+      // Check ScheduleOverride first — it takes priority over template
+      const scheduleOverride = await prisma.scheduleOverride.findUnique({
+        where: { masterId_date: { masterId, date } },
+      });
+
+      if (scheduleOverride) {
+        if (!scheduleOverride.isWorking) {
+          // Day off override — no slots
+          return NextResponse.json([]);
+        }
+        // Working override with custom hours
+        if (scheduleOverride.start) {
+          const [sh, sm] = scheduleOverride.start.split(':').map(Number);
+          dayStart = sh * 60 + sm;
+        }
+        if (scheduleOverride.end) {
+          const [eh, em] = scheduleOverride.end.split(':').map(Number);
+          dayEnd = eh * 60 + em;
+        }
+        // If override has no start/end, fall through to template hours below
+        if (scheduleOverride.start && scheduleOverride.end) {
+          // Skip template lookup — override has full hours
+        } else if (master?.workingHours) {
+          const mwh = master.workingHours as Record<string, { start: string; end: string; enabled: boolean }>;
+          const dayConfig = mwh[dayOfWeek];
+          if (dayConfig) {
+            if (!scheduleOverride.start && dayConfig.start) {
+              const [sh, sm] = dayConfig.start.split(':').map(Number);
+              dayStart = sh * 60 + sm;
+            }
+            if (!scheduleOverride.end && dayConfig.end) {
+              const [eh, em] = dayConfig.end.split(':').map(Number);
+              dayEnd = eh * 60 + em;
+            }
+          }
+        }
+      } else if (master?.workingHours) {
         const mwh = master.workingHours as Record<string, { start: string; end: string; enabled: boolean }>;
         const dayConfig = mwh[dayOfWeek];
         if (dayConfig) {

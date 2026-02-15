@@ -31,6 +31,8 @@ export async function GET(request: NextRequest) {
 
     // Get master working hours if needed
     let masterWH: Record<string, { start: string; end: string; enabled: boolean }> | null = null;
+    // Schedule overrides map for this master
+    let overridesMap = new Map<string, { isWorking: boolean; start: string | null; end: string | null }>();
     if (masterId && masterId !== 'any') {
       const master = await prisma.master.findUnique({
         where: { id: masterId },
@@ -41,6 +43,15 @@ export async function GET(request: NextRequest) {
       }
       if (master.workingHours) {
         masterWH = master.workingHours as Record<string, { start: string; end: string; enabled: boolean }>;
+      }
+
+      // Fetch all schedule overrides for requested dates in one query
+      const allOverrides = await prisma.scheduleOverride.findMany({
+        where: { masterId, date: { in: dates } },
+        select: { date: true, isWorking: true, start: true, end: true },
+      });
+      for (const ov of allOverrides) {
+        overridesMap.set(ov.date, { isWorking: ov.isWorking, start: ov.start, end: ov.end });
       }
     }
 
@@ -88,19 +99,56 @@ export async function GET(request: NextRequest) {
       let dayEnd = 19 * 60;
       let dayEnabled = true;
 
-      // Master hours take priority
-      const wh = masterWH || salonWH;
-      if (wh) {
-        const dayConfig = wh[dayOfWeek];
-        if (dayConfig) {
-          dayEnabled = dayConfig.enabled;
-          if (dayConfig.start) {
-            const [sh, sm] = dayConfig.start.split(':').map(Number);
-            dayStart = sh * 60 + sm;
+      // Check schedule override first (highest priority)
+      const override = overridesMap.get(date);
+      if (override) {
+        if (!override.isWorking) {
+          // Day off override — no availability
+          result[date] = { hasAvailability: false, freeSlots: 0, totalSlots: 0 };
+          continue;
+        }
+        // Working override — use override hours if provided, otherwise fall through to template
+        if (override.start) {
+          const [sh, sm] = override.start.split(':').map(Number);
+          dayStart = sh * 60 + sm;
+        }
+        if (override.end) {
+          const [eh, em] = override.end.split(':').map(Number);
+          dayEnd = eh * 60 + em;
+        }
+        // If override has both times, skip template lookup
+        if (!override.start || !override.end) {
+          // Fill missing from template
+          const wh = masterWH || salonWH;
+          if (wh) {
+            const dayConfig = wh[dayOfWeek];
+            if (dayConfig) {
+              if (!override.start && dayConfig.start) {
+                const [sh, sm] = dayConfig.start.split(':').map(Number);
+                dayStart = sh * 60 + sm;
+              }
+              if (!override.end && dayConfig.end) {
+                const [eh, em] = dayConfig.end.split(':').map(Number);
+                dayEnd = eh * 60 + em;
+              }
+            }
           }
-          if (dayConfig.end) {
-            const [eh, em] = dayConfig.end.split(':').map(Number);
-            dayEnd = eh * 60 + em;
+        }
+      } else {
+        // No override — use template hours
+        const wh = masterWH || salonWH;
+        if (wh) {
+          const dayConfig = wh[dayOfWeek];
+          if (dayConfig) {
+            dayEnabled = dayConfig.enabled;
+            if (dayConfig.start) {
+              const [sh, sm] = dayConfig.start.split(':').map(Number);
+              dayStart = sh * 60 + sm;
+            }
+            if (dayConfig.end) {
+              const [eh, em] = dayConfig.end.split(':').map(Number);
+              dayEnd = eh * 60 + em;
+            }
           }
         }
       }

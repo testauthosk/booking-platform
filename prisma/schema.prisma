@@ -130,6 +130,7 @@ model Master {
   timeBlocks     TimeBlock[]
   trustedDevices TrustedDevice[]
   staffOtps      StaffOtp[]
+  scheduleOverrides ScheduleOverride[]
 
   @@index([salonId])
   @@index([isActive])
@@ -448,6 +449,25 @@ model TimeBlock {
   createdAt DateTime      @default(now())
   master    Master?       @relation(fields: [masterId], references: [id], onDelete: Cascade)
 
+  @@index([salonId])
+  @@index([masterId])
+  @@index([date])
+}
+
+model ScheduleOverride {
+  id        String   @id @default(uuid())
+  salonId   String
+  masterId  String
+  date      String   // YYYY-MM-DD
+  isWorking Boolean  @default(true)  // false = day off
+  start     String?  // Override start time (null = use template)
+  end       String?  // Override end time (null = use template)
+  reason    String?  // Вихідний, Відпустка, Змінений графік
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  master    Master   @relation(fields: [masterId], references: [id], onDelete: Cascade)
+
+  @@unique([masterId, date])
   @@index([salonId])
   @@index([masterId])
   @@index([date])
