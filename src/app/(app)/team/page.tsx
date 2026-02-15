@@ -12,7 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Search, Plus, Filter, MoreVertical, Menu, Clock, UserPlus, Loader2, Copy, Check, Mail, ChevronRight, Trash2, ExternalLink, Eye, X, Send, Settings, LogOut, CalendarDays, TrendingUp, Users } from 'lucide-react';
+import { Search, Plus, Filter, MoreVertical, Menu, Clock, UserPlus, Loader2, Copy, Check, Mail, ChevronRight, Trash2, ExternalLink, Eye, X, Send, Settings, LogOut, CalendarDays, TrendingUp, Users, UserRoundPlus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useSidebar } from '@/components/sidebar-context';
 import { useCalendarSettings } from '@/lib/calendar-settings-context';
@@ -26,7 +27,9 @@ interface Master {
   email?: string;
   role?: string;
   avatar?: string;
+  color?: string;
   isActive: boolean;
+  hasPassword?: boolean;
 }
 
 interface Invitation {
@@ -45,6 +48,7 @@ export default function TeamPage() {
   const { data: session } = useSession();
   const { open: openSidebar } = useSidebar();
   const { getColorForIndex } = useCalendarSettings();
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [masters, setMasters] = useState<Master[]>([]);
@@ -248,7 +252,7 @@ export default function TeamPage() {
   );
 
   const getAvatarColor = (index: number) => {
-    const colors = ['bg-orange-500', 'bg-pink-500', 'bg-purple-500', 'bg-blue-500', 'bg-green-500'];
+    const colors = ['#f97316', '#ec4899', '#a855f7', '#3b82f6', '#22c55e'];
     return colors[index % colors.length];
   };
 
@@ -289,20 +293,38 @@ export default function TeamPage() {
             <h1 className="text-2xl font-bold">Команда</h1>
             <p className="text-muted-foreground">Учасники команди</p>
           </div>
-          <div className="relative group">
-            <Button
-              onClick={() => !onboardingRequired && setInviteModalOpen(true)}
-              disabled={onboardingRequired}
-              className={onboardingRequired ? 'opacity-50 cursor-not-allowed' : ''}
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Запросити майстра
-            </Button>
-            {onboardingRequired && (
-              <div className="absolute bottom-full mb-2 right-0 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                Завершіть налаштування акаунту
-              </div>
-            )}
+          <div className="flex items-center gap-2">
+            <div className="relative group">
+              <Button
+                variant="outline"
+                onClick={() => !onboardingRequired && router.push('/team/master/new')}
+                disabled={onboardingRequired}
+                className={`rounded-xl ${onboardingRequired ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <UserRoundPlus className="h-4 w-4 mr-2" />
+                Додати майстра
+              </Button>
+              {onboardingRequired && (
+                <div className="absolute bottom-full mb-2 right-0 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  Завершіть налаштування акаунту
+                </div>
+              )}
+            </div>
+            <div className="relative group">
+              <Button
+                onClick={() => !onboardingRequired && setInviteModalOpen(true)}
+                disabled={onboardingRequired}
+                className={onboardingRequired ? 'opacity-50 cursor-not-allowed' : ''}
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Запросити в додаток
+              </Button>
+              {onboardingRequired && (
+                <div className="absolute bottom-full mb-2 right-0 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  Завершіть налаштування акаунту
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -332,26 +354,45 @@ export default function TeamPage() {
         {/* Masters list */}
         {!loading && (
           <div className="space-y-2">
-            {filteredMasters.map((master, index) => (
-              <Card 
-                key={master.id} 
-                className="p-4 transition-all hover:shadow-md cursor-pointer"
-                onClick={() => setSelectedMaster(master)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className={`h-12 w-12 rounded-2xl ${getAvatarColor(index)} flex items-center justify-center text-white font-medium text-lg`}>
-                      {master.name.charAt(0).toUpperCase()}
+            {filteredMasters.map((master, index) => {
+              const isManaged = !master.hasPassword;
+              return (
+                <Card 
+                  key={master.id} 
+                  className="p-4 transition-all hover:shadow-md cursor-pointer"
+                  onClick={() => setSelectedMaster(master)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      {master.avatar ? (
+                        <div className="h-12 w-12 rounded-2xl overflow-hidden shrink-0">
+                          <img src={master.avatar} alt={master.name} className="h-full w-full object-cover" />
+                        </div>
+                      ) : (
+                        <div
+                          className="h-12 w-12 rounded-2xl flex items-center justify-center text-white font-medium text-lg shrink-0"
+                          style={{ backgroundColor: master.color || getAvatarColor(index) }}
+                        >
+                          {master.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{master.name}</p>
+                          {isManaged && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 font-medium">
+                              Без кабінету
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">{master.role || 'Майстер'}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium">{master.name}</p>
-                      <p className="text-sm text-muted-foreground">{master.role || 'Майстер'}</p>
-                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
 
             {/* Pending invitations */}
             {invitations.length > 0 && (
@@ -396,23 +437,34 @@ export default function TeamPage() {
               <UserPlus className="h-8 w-8 text-muted-foreground" />
             </div>
             <p className="text-muted-foreground mb-4">Додайте першого майстра</p>
-            <Button
-              onClick={() => !onboardingRequired && setInviteModalOpen(true)}
-              disabled={onboardingRequired}
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              {onboardingRequired ? 'Спершу завершіть налаштування' : 'Запросити майстра'}
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                variant="outline"
+                onClick={() => !onboardingRequired && router.push('/team/master/new')}
+                disabled={onboardingRequired}
+                className="rounded-xl"
+              >
+                <UserRoundPlus className="h-4 w-4 mr-2" />
+                {onboardingRequired ? 'Спершу завершіть налаштування' : 'Додати майстра'}
+              </Button>
+              <Button
+                onClick={() => !onboardingRequired && setInviteModalOpen(true)}
+                disabled={onboardingRequired}
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                {onboardingRequired ? 'Спершу завершіть налаштування' : 'Запросити в додаток'}
+              </Button>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Mobile FAB */}
+      {/* Mobile FAB — Add master */}
       {!onboardingRequired && (
         <Button 
           className="lg:hidden fixed right-4 bottom-[76px] w-14 h-14 rounded-2xl shadow-lg"
           size="icon"
-          onClick={() => setInviteModalOpen(true)}
+          onClick={() => router.push('/team/master/new')}
         >
           <Plus className="h-6 w-6" />
         </Button>
@@ -651,6 +703,11 @@ export default function TeamPage() {
         canDelete
         onDelete={handleDeleteMaster}
         isDeleting={deletingMaster}
+        onInvite={(master) => {
+          setSelectedMaster(null);
+          setInviteName(master.name);
+          setInviteModalOpen(true);
+        }}
       />
 
       {/* Profile Panel Overlay - frosted glass fade */}

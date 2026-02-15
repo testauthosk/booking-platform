@@ -36,6 +36,7 @@ export async function GET(
         lunchStart: true,
         isActive: true,
         sortOrder: true,
+        passwordHash: true,
         services: { include: { service: true } },
       },
     });
@@ -54,7 +55,9 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    return NextResponse.json(master);
+    // Return hasPassword flag instead of actual hash
+    const { passwordHash, ...masterData } = master;
+    return NextResponse.json({ ...masterData, hasPassword: !!passwordHash });
   } catch (error) {
     console.error('GET /api/masters/[id] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -95,7 +98,7 @@ export async function PATCH(
     }
 
     // Дозволені поля для оновлення
-    const { name, role, phone, email, avatar, bio, color, isActive, workingHours, sortOrder } = body;
+    const { name, role, phone, email, avatar, bio, color, isActive, workingHours, sortOrder, lunchStart, lunchDuration, services } = body;
 
     const updated = await prisma.master.update({
       where: { id },
@@ -103,22 +106,57 @@ export async function PATCH(
         ...(name !== undefined && { name }),
         ...(role !== undefined && { role }),
         ...(phone !== undefined && { phone }),
-        ...(email !== undefined && { email }),
+        ...(email !== undefined && { email: email || null }),
         ...(avatar !== undefined && { avatar }),
         ...(bio !== undefined && { bio }),
         ...(color !== undefined && { color }),
         ...(isActive !== undefined && { isActive }),
         ...(workingHours !== undefined && { workingHours }),
         ...(sortOrder !== undefined && { sortOrder }),
+        ...(lunchStart !== undefined && { lunchStart }),
+        ...(lunchDuration !== undefined && { lunchDuration }),
       },
       select: {
         id: true, salonId: true, name: true, role: true, phone: true,
         email: true, avatar: true, bio: true, color: true, rating: true,
-        reviewCount: true, price: true, workingHours: true, isActive: true, sortOrder: true,
+        reviewCount: true, price: true, workingHours: true, lunchStart: true,
+        lunchDuration: true, isActive: true, sortOrder: true,
       },
     });
 
-    return NextResponse.json(updated);
+    // Update services if provided
+    if (services !== undefined && Array.isArray(services)) {
+      // Delete existing MasterService records
+      await prisma.masterService.deleteMany({
+        where: { masterId: id },
+      });
+
+      // Create new ones
+      if (services.length > 0) {
+        await prisma.masterService.createMany({
+          data: services.map((s: { serviceId: string; customPrice?: number }) => ({
+            masterId: id,
+            serviceId: s.serviceId,
+            customPrice: s.customPrice ?? null,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
+
+    // Return with services
+    const result = await prisma.master.findUnique({
+      where: { id },
+      select: {
+        id: true, salonId: true, name: true, role: true, phone: true,
+        email: true, avatar: true, bio: true, color: true, rating: true,
+        reviewCount: true, price: true, workingHours: true, lunchStart: true,
+        lunchDuration: true, isActive: true, sortOrder: true,
+        services: { include: { service: true } },
+      },
+    });
+
+    return NextResponse.json(result);
   } catch (error: any) {
     console.error('PATCH /api/masters/[id] error:', error);
     if (error.code === 'P2002') {

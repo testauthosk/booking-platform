@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Mail, CalendarDays, Loader2, Trash2, ChevronRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { X, Mail, CalendarDays, Loader2, Trash2, ChevronRight, Pencil, UserPlus, Info } from 'lucide-react';
 
 interface MasterStats {
   todayCount: number;
@@ -17,6 +18,8 @@ interface Master {
   email?: string;
   role?: string;
   color?: string;
+  avatar?: string;
+  hasPassword?: boolean;
 }
 
 interface MasterCardPanelProps {
@@ -26,11 +29,15 @@ interface MasterCardPanelProps {
   canDelete?: boolean;
   onDelete?: (masterId: string) => void;
   isDeleting?: boolean;
+  onInvite?: (master: Master) => void;
 }
 
-export function MasterCardPanel({ isOpen, onClose, master, canDelete, onDelete, isDeleting }: MasterCardPanelProps) {
+export function MasterCardPanel({ isOpen, onClose, master, canDelete, onDelete, isDeleting, onInvite }: MasterCardPanelProps) {
+  const router = useRouter();
   const [masterStats, setMasterStats] = useState<MasterStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
+
+  const isManaged = master ? !master.hasPassword : false;
 
   useEffect(() => {
     if (isOpen && master) {
@@ -65,14 +72,27 @@ export function MasterCardPanel({ isOpen, onClose, master, canDelete, onDelete, 
             {/* Header — clean, minimal */}
             <div className="flex items-center justify-between px-5 py-4 border-b">
               <div className="flex items-center gap-4">
-                <div 
-                  className="h-12 w-12 rounded-full flex items-center justify-center text-white text-lg font-semibold"
-                  style={{ backgroundColor: master.color || '#71717a' }}
-                >
-                  {master.name.charAt(0).toUpperCase()}
-                </div>
+                {master.avatar ? (
+                  <div className="h-12 w-12 rounded-full overflow-hidden shrink-0">
+                    <img src={master.avatar} alt={master.name} className="h-full w-full object-cover" />
+                  </div>
+                ) : (
+                  <div 
+                    className="h-12 w-12 rounded-full flex items-center justify-center text-white text-lg font-semibold shrink-0"
+                    style={{ backgroundColor: master.color || '#71717a' }}
+                  >
+                    {master.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div>
-                  <h2 className="text-lg font-semibold tracking-tight">{master.name}</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold tracking-tight">{master.name}</h2>
+                    {isManaged && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 font-medium">
+                        Без кабінету
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground">{master.role || 'Майстер'}</p>
                 </div>
               </div>
@@ -93,6 +113,32 @@ export function MasterCardPanel({ isOpen, onClose, master, canDelete, onDelete, 
                 </div>
               </div>
             )}
+
+            {/* Action buttons */}
+            <div className="px-5 py-3 border-b flex gap-2">
+              <button
+                onClick={() => {
+                  onClose();
+                  router.push(`/team/master/${master.id}`);
+                }}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium bg-muted hover:bg-muted/80 transition-colors"
+              >
+                <Pencil className="h-4 w-4" />
+                Редагувати
+              </button>
+              {isManaged && onInvite && (
+                <button
+                  onClick={() => {
+                    onClose();
+                    onInvite(master);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium bg-primary/10 text-primary hover:bg-primary/15 transition-colors"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Запросити в додаток
+                </button>
+              )}
+            </div>
 
             {/* Stats row — monochrome */}
             <div className="px-5 py-4 border-b">
