@@ -171,6 +171,7 @@ export default function CalendarPage() {
   const [isMobileCalendarOpen, setIsMobileCalendarOpen] = useState(false);
   const [salonTimezone, setSalonTimezone] = useState<string>('Europe/Kiev');
   const [salonWorkingHours, setSalonWorkingHours] = useState<WorkingHours | null>(null);
+  const [adminScheduleOverrides, setAdminScheduleOverrides] = useState<Record<string, { isWorking: boolean; start?: string | null; end?: string | null }>>({});
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
   const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
@@ -197,6 +198,26 @@ export default function CalendarPage() {
       loadServices();
     }
   }, [user?.salonId]);
+
+  // Load schedule overrides for all masters for current month
+  useEffect(() => {
+    if (!user?.salonId || masters.length === 0) return;
+    const month = selectedDate.toISOString().slice(0, 7);
+    Promise.all(
+      masters.map(m =>
+        fetch(`/api/masters/${m.id}/schedule-overrides?month=${month}`)
+          .then(r => r.ok ? r.json() : [])
+          .then((data: Array<{ date: string; isWorking: boolean; start: string | null; end: string | null }>) =>
+            data.map(o => ({ key: `${m.id}:${o.date}`, val: { isWorking: o.isWorking, start: o.start, end: o.end } }))
+          )
+          .catch(() => [])
+      )
+    ).then(results => {
+      const map: Record<string, { isWorking: boolean; start?: string | null; end?: string | null }> = {};
+      results.flat().forEach(({ key, val }) => { map[key] = val; });
+      setAdminScheduleOverrides(map);
+    });
+  }, [user?.salonId, masters, selectedDate]);
 
   // Trigger header slide-in animation on mount
   useEffect(() => {
@@ -854,6 +875,7 @@ export default function CalendarPage() {
           viewMode={viewMode}
           salonWorkingHours={salonWorkingHours}
           masterWorkingHours={masters.reduce((acc, m) => { if (m.workingHours) acc[m.id] = m.workingHours; return acc; }, {} as Record<string, WorkingHours>)}
+          scheduleOverrides={adminScheduleOverrides}
           onEventStatusChange={handleEventStatusChange}
         />
       </div>

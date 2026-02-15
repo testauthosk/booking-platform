@@ -47,6 +47,7 @@ interface DayPilotResourceCalendarProps {
   viewMode?: 'day' | 'week';
   salonWorkingHours?: Record<string, { start: string; end: string; enabled: boolean }> | null;
   masterWorkingHours?: Record<string, Record<string, { start: string; end: string; enabled: boolean }>>;
+  scheduleOverrides?: Record<string, { isWorking: boolean; start?: string | null; end?: string | null }>;  // key = "masterId:YYYY-MM-DD"
   hideResourceHeader?: boolean;
   columnMinWidth?: number;
   accentColor?: string;
@@ -130,6 +131,7 @@ export function DayPilotStaffCalendar({
   viewMode = 'day',
   salonWorkingHours,
   masterWorkingHours,
+  scheduleOverrides,
   hideResourceHeader = false,
   columnMinWidth = 120,
   onEventStatusChange,
@@ -1175,7 +1177,18 @@ export function DayPilotStaffCalendar({
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const getWorkingHoursForResource = (resourceId: string, date: Date): { startMin: number; endMin: number; enabled: boolean } | null => {
     const dayKey = dayNames[date.getDay()];
-    // Master-specific first
+    const dateStr = date.toISOString().split('T')[0];
+    // Schedule override takes priority
+    const overrideKey = `${resourceId}:${dateStr}`;
+    const override = scheduleOverrides?.[overrideKey];
+    if (override) {
+      if (!override.isWorking) return { startMin: 0, endMin: 0, enabled: false };
+      const baseWh = masterWorkingHours?.[resourceId]?.[dayKey];
+      const startStr = override.start || baseWh?.start || '09:00';
+      const endStr = override.end || baseWh?.end || '18:00';
+      return { startMin: parseInt(startStr.split(':')[0]) * 60 + parseInt(startStr.split(':')[1] || '0'), endMin: parseInt(endStr.split(':')[0]) * 60 + parseInt(endStr.split(':')[1] || '0'), enabled: true };
+    }
+    // Master-specific template
     const masterWh = masterWorkingHours?.[resourceId]?.[dayKey];
     if (masterWh) return { startMin: parseInt(masterWh.start.split(':')[0]) * 60 + parseInt(masterWh.start.split(':')[1] || '0'), endMin: parseInt(masterWh.end.split(':')[0]) * 60 + parseInt(masterWh.end.split(':')[1] || '0'), enabled: masterWh.enabled };
     // Fallback to salon

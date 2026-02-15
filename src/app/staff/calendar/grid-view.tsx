@@ -57,6 +57,7 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
   const [salonTimezone, setSalonTimezone] = useState('Europe/Kiev');
   const [salonWorkingHours, setSalonWorkingHours] = useState<Record<string, WorkingDay> | null>(null);
   const [rawBookings, setRawBookings] = useState<BookingFromAPI[]>([]);
+  const [scheduleOverrides, setScheduleOverrides] = useState<Record<string, { isWorking: boolean; start?: string | null; end?: string | null }>>({});
   const [loading, setLoading] = useState(true);
   const [loadingBookings, setLoadingBookings] = useState(false);
 
@@ -136,6 +137,20 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
   }, [staffId, selectedDate]);
 
   useEffect(() => { if (staffId) loadBookings(); }, [staffId, loadBookings, reloadKey]);
+
+  // Load schedule overrides for visible range
+  useEffect(() => {
+    if (!staffId) return;
+    const month = selectedDate.toISOString().slice(0, 7); // YYYY-MM
+    staffFetch(`/api/staff/schedule-overrides?masterId=${staffId}&month=${month}`)
+      .then(r => r.ok ? r.json() : [])
+      .then((data: Array<{ date: string; isWorking: boolean; start: string | null; end: string | null }>) => {
+        const map: Record<string, { isWorking: boolean; start?: string | null; end?: string | null }> = {};
+        data.forEach(o => { map[`${staffId}:${o.date}`] = { isWorking: o.isWorking, start: o.start, end: o.end }; });
+        setScheduleOverrides(map);
+      })
+      .catch(() => {});
+  }, [staffId, selectedDate]);
 
   // Filter only own bookings
   const myBookings = useMemo(() => rawBookings.filter(b => b.masterId === staffId), [rawBookings, staffId]);
@@ -454,6 +469,7 @@ export default function StaffGridView({ selectedDate, onDateChange, onAddBooking
           columnMinWidth={0}
           salonWorkingHours={salonWorkingHours}
           masterWorkingHours={staffWorkingHours ? { [staffId]: staffWorkingHours } : undefined}
+          scheduleOverrides={scheduleOverrides}
           onEventStatusChange={handleEventStatusChange}
         />
       </div>
