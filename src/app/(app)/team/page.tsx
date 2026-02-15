@@ -328,6 +328,15 @@ export default function TeamPage() {
           </div>
         </div>
 
+        {/* Schedule button */}
+        <button
+          onClick={() => router.push('/team/schedule')}
+          className="w-full mb-4 py-3 rounded-xl border border-border bg-card hover:bg-muted transition-colors flex items-center justify-center gap-2 text-sm font-medium"
+        >
+          <CalendarDays className="h-4 w-4 text-muted-foreground" />
+          Графік команди
+        </button>
+
         {/* Search */}
         <div className="flex gap-2 mb-4 items-center">
           <div className="relative flex-1">
