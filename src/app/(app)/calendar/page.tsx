@@ -764,6 +764,7 @@ export default function CalendarPage() {
           </div>
         )}
         <DayPilotResourceCalendar
+          columnMinWidth={160}
           resources={viewMode === 'week' && weekFilterMasterIds.length > 0 && weekFilterMasterIds.length < masters.length
             ? calendarResources.filter(r => weekFilterMasterIds.includes(r.id))
             : calendarResources}
