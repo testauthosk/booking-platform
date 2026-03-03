@@ -1190,10 +1190,10 @@ export function DayPilotResourceCalendar({
     }
     // Master-specific template
     const masterWh = masterWorkingHours?.[resourceId]?.[dayKey];
-    if (masterWh) return { startMin: parseInt(masterWh.start.split(':')[0]) * 60 + parseInt(masterWh.start.split(':')[1] || '0'), endMin: parseInt(masterWh.end.split(':')[0]) * 60 + parseInt(masterWh.end.split(':')[1] || '0'), enabled: masterWh.enabled };
+    if (masterWh?.start && masterWh?.end) return { startMin: parseInt(masterWh.start.split(':')[0]) * 60 + parseInt(masterWh.start.split(':')[1] || '0'), endMin: parseInt(masterWh.end.split(':')[0]) * 60 + parseInt(masterWh.end.split(':')[1] || '0'), enabled: masterWh.enabled };
     // Fallback to salon
     const salonWh = salonWorkingHours?.[dayKey as keyof typeof salonWorkingHours] as { start: string; end: string; enabled: boolean } | undefined;
-    if (salonWh) return { startMin: parseInt(salonWh.start.split(':')[0]) * 60 + parseInt(salonWh.start.split(':')[1] || '0'), endMin: parseInt(salonWh.end.split(':')[0]) * 60 + parseInt(salonWh.end.split(':')[1] || '0'), enabled: salonWh.enabled };
+    if (salonWh?.start && salonWh?.end) return { startMin: parseInt(salonWh.start.split(':')[0]) * 60 + parseInt(salonWh.start.split(':')[1] || '0'), endMin: parseInt(salonWh.end.split(':')[0]) * 60 + parseInt(salonWh.end.split(':')[1] || '0'), enabled: salonWh.enabled };
     return null;
   };
 

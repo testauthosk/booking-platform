@@ -124,7 +124,7 @@ function isWorkingHour(resource: Resource, dayName: string, hour: number): boole
   if (!resource.workingHours) return true; // No schedule = always available
   
   const daySchedule = resource.workingHours[dayName];
-  if (!daySchedule || !daySchedule.enabled) return false; // Day off
+  if (!daySchedule || !daySchedule.enabled || !daySchedule.start || !daySchedule.end) return false;
   
   const startHour = parseInt(daySchedule.start.split(':')[0], 10);
   const endHour = parseInt(daySchedule.end.split(':')[0], 10);
